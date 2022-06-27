@@ -1,29 +1,10 @@
-# README #
+# Code for IMmunoPhenotyping Assessment in a COVID-19 Cohort (IMPACC) study #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+The purpose of this repository is to provide code used in the following three publications from the IMPACC study.
 
-### What is this repository for? ###
+### IMPACC manuscripts
+- Clinical manuscript: (brief description)
+- Core assay manuscript: (brief description)
+- Data integration manuscript: (brief description)
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
-
-### How do I get set up? ###
-
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
-
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+The files include code for data pre-processing, data analysis and output generation (individual figure panels and tables). Please see the manuscript-specific README files for instructions for set up, data download, running the code and contact information.
