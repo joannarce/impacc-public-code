@@ -1,0 +1,2 @@
+This is a readme document for file ‘impacc_conv_paired51.csv’. This file has 3 columns:1) matchid.  Numeric identifier for each matched pair.  Case-control pairs are matched on number of comorbidities (categorical), age (categorical), and sex.2) case.  Participant id for each case, for linkage to other IMPACC data files.  Cases are defined by a deficit in all seven patient-reported outcome (PRO) measures.
+3) control.  Participant id for each control.  Controls are defined as having no deficit in any of the seven PRO measures.

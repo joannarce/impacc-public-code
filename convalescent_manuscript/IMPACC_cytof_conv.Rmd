@@ -1,0 +1,613 @@
+---
+title: "Blood CyTOF univariate analysis"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: github_document
+---
+
+### Load libraries
+```{r load-packages}
+rm(list = ls())
+.libPaths( c( .libPaths(), "~/R.old/x86_64-pc-linux-gnu-library/4.0") )
+suppressPackageStartupMessages(library(package = "knitr"))
+suppressPackageStartupMessages(library(package = "RColorBrewer"))
+suppressPackageStartupMessages(library(package = "ComplexHeatmap"))
+suppressPackageStartupMessages(library(package = "ordinal"))
+suppressPackageStartupMessages(library(package = "qvalue"))
+suppressPackageStartupMessages(library(package = "ggbeeswarm"))
+suppressPackageStartupMessages(library(package = "scales"))
+suppressPackageStartupMessages(library(package = "nlme"))
+suppressPackageStartupMessages(library(package = "ggeffects"))
+suppressPackageStartupMessages(library(package = "pvca"))
+suppressPackageStartupMessages(library(package = "tidyverse"))
+
+# set session options
+options(show_col_types         = FALSE,
+        dplyr.summarise.inform = FALSE)
+VarCorr <- lme4::VarCorr # for PVCA
+```
+
+### Load codebase.R, load data matrices and set path to a local output directory
+```{r load-codebase, results="hide", fig.show="hide", message=FALSE, warning=FALSE}
+# load codebase.R, olink data and clinical information
+source(file = "~/conv/data_analysis_template_codebase_conv.R")
+data_env <- load_IMPACC_datasets(DATA_VERSION                = "2023-01-01", 
+                                 KEEP_COVID19_POS            = TRUE, 
+                                 FILTER_BY_CORE_ASSAY_COHORT = TRUE)
+for (n in grep(pattern = "bld_cytof|clinical_data", 
+               names(data_env), 
+               value   = TRUE)) {
+  assign(n, value = data_env[[n]])
+}
+
+
+# Define the outlier samples, if any, that should be removed.
+outlier_sample_ids <- 
+  rownames(bld_cytof_metadata)[bld_cytof_metadata$sample_status %in% "IMPACC sample assayed with questionable QC"]
+
+```
+
+### Functions: data processing
+```{r data-processing}
+# normalize parent on non-granulocyte counts
+preprocess_bld_cytof_parent_nongran <- function(input_counts, input_rowfeature) {
+  output_counts <- input_counts %>%
+    rownames_to_column(var = "sample_id") %>%
+    pivot_longer(cols = -sample_id, names_to = "rowname") %>%
+    filter(!sample_id %in% outlier_sample_ids) %>%
+    merge(y = rownames_to_column(input_rowfeature), by = "rowname") %>%
+    group_by(sample_id, `Broad Parent Population`) %>%
+    summarize(value = sum(value)) %>%
+    pivot_wider(names_from = `Broad Parent Population`) %>%
+    select(-contains(match = "Debris"), 
+           -contains(match = "Multiplet"),
+           -`Platelets`, 
+           -`RBC`, 
+           -`Undefined`,
+           -`Neutrophil`,
+           - Eosinophil,
+           -`Basophil`) %>%
+    column_to_rownames(var = "sample_id")
+  output_counts <- output_counts/rowSums(output_counts)
+ 
+  return(value = output_counts)
+} 
+
+# normalize children on non-granulocyte counts
+preprocess_bld_cytof_child_nongran <- function(input_counts) {
+  output_counts <-  input_counts %>%
+    rownames_to_column(var = "sample_id") %>%
+    filter(!sample_id %in% outlier_sample_ids) %>%
+    select(-contains(match = "Debris"), 
+           -contains(match = "Multiplet"),
+           -`Platelets`, 
+           -`RBC`, 
+           -`Tier1_Undefined`,
+           -`Tier2_undefined_Undefined`,
+           -`Neutrophil (CD16low)`,
+           -`Neutrophil (CD16hi)`,
+           -`Eosinophil`,
+           -`Basophil`) %>%
+    column_to_rownames(var = "sample_id")
+  output_counts <- output_counts/rowSums(output_counts)
+  
+  return(value = output_counts)
+}
+
+```
+
+## modified code
+```{r}
+source(file = "~/conv/data_analysis_template_codebase_conv.R")
+```
+
+## pull conv cluster info
+```{r}
+conv_cluster <- read.csv("/scratch/clinical/current/impacc-convalescent.csv")
+conv_cluster$conv_cluster4 <- ifelse(conv_cluster$conv_cluster6 %in% c(1, 3, 4), 1, conv_cluster$conv_cluster6)
+
+
+clinical_data <-  clinical_data %>%
+          merge(conv_cluster, by = "participant_id")
+
+case_ctrl <- read.csv("/scratch/clinical/current/impacc_conv_paired51.csv")%>%
+  gather(-matchid, key = "case_ctrl", value = "participant_id")
+
+clinical_data <-  clinical_data %>%
+          left_join(case_ctrl)
+
+clinical_data$trajectory_group_0 <- clinical_data$trajectory_group
+
+conv_symtom <- read.csv("/scratch/clinical/current/impacc_conv_symptoms.csv")
+
+clinical_data <-  clinical_data %>%
+          left_join(conv_symtom)
+
+#colnames(clinical_data)
+```
+  
+### set outcome
+```{r}
+clinical_data$trajectory_group <- clinical_data$conv_cluster4
+table(clinical_data$conv_cluster4, clinical_data$convsx_2plus_count)
+```
+
+
+### Repeated measurment: bld_cytof_counts_processed_parent_nongran
+```{r panel-a-analysis, results="hide", fig.show="hide", message=FALSE, warning=FALSE}
+# non-granulocytes parent counts
+bld_cytof_counts_processed_parent_nongran <- 
+  preprocess_bld_cytof_parent_nongran(bld_cytof_counts, bld_cytof_rowfeature)
+
+data_use_parent_nongran <- bld_cytof_counts_processed_parent_nongran %>%
+  rownames_to_column(var = "sample_id") %>%
+  setNames(nm = gsub(x           = names(.), 
+                     pattern     = "+",
+                     replacement = "pos", 
+                     fixed       = TRUE)) %>%
+  setNames(nm = gsub(x           = names(.), 
+                     pattern     = "-",
+                     replacement = "neg", 
+                     fixed       = TRUE)) %>%
+  setNames(nm = gsub(x           = names(.), 
+                     pattern     = "\\(|\\)| ",
+                     replacement = "_"
+                     )) %>%
+  merge(y  = select(clinical_data, 
+                    sample_id, 
+                    event_date,
+                    event_type,
+                    trajectory_group,
+                    enrollment_site,
+                    discretized_admit_age_quantile,
+                    sex,
+                    participant_id),
+        by = "sample_id") %>%
+  filter(!is.na(trajectory_group)) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(trajectory_group = factor(trajectory_group)) %>%
+  column_to_rownames(var = "sample_id")%>%
+  filter(event_date <= 28)
+
+# a model with only intercept and random effect across sites
+
+data_use <- data_use_parent_nongran
+data_use$endpoints <- factor(data_use$trajectory_group)
+data_use$trajectory_group <- NULL
+
+res_table_pairwise <- NULL
+res_table_ordinal <- NULL
+
+query <- setdiff(names(data_use), names(clinical_data))
+query <- query[query != "endpoints"]
+
+
+for (varName in query) {
+  my.formula0 <- paste0(varName,
+                        '~(1|enrollment_site)+(1|participant_id)+event_type+',
+                        'discretized_admit_age_quantile+sex')
+  my.formula1 <- paste0(varName,
+                        '~endpoints +(1|enrollment_site)+(1|participant_id)+event_type+',
+                        'discretized_admit_age_quantile+sex')
+
+  res_pairwise <- mixed_pairwise(my.formula0, 
+                       my.formula1,
+                       data_use = data_use)
+  
+  av = anova(lme4::lmer(my.formula0,data = data_use),
+                 lme4::lmer(my.formula1,data = data_use))
+  
+  res_table_pairwise <- rbind(res_table_pairwise, res_pairwise)
+  res_table_ordinal <- rbind(res_table_ordinal, data.frame("var" = varName, "pval" = av$`Pr(>Chisq)`[2]))
+}
+
+
+rownames(res_table_pairwise) <- query
+
+res_table_pairwise_qvalue <- res_table_pairwise %>%
+  as.data.frame() %>%
+  mutate_all(.funs = function(x) qvalue::qvalue(x, fdr.level = 0.05, pi0 = 1)$qvalues)
+
+res_table_pairwise <- res_table_pairwise %>%
+  as.data.frame() 
+
+res_table_ordinal <- res_table_ordinal%>%
+  as.data.frame()%>%
+  column_to_rownames(var = "var")%>%
+  mutate(qval = qvalue::qvalue(pval, fdr.level = 0.05, pi0 = 1)$qvalues)
+
+res_table_ordinal["B_Cell", ]
+res_table_pairwise["B_Cell", ]
+
+```
+
+### Fig.4
+```{r}
+colnames(data_use) <- gsub("_$", "", colnames(data_use))
+res_table_ordinal$qval <- res_table_ordinal$pval
+
+TrajGrpCol <- c("1" = "#999999", "2" = "#56B4E9", "5" = "#E69F00", "6" = "#FF0000")
+library(ggbeeswarm)
+
+res_table_pairwise_long_df <- res_table_pairwise %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column(var = "feature") %>%
+  pivot_longer(cols = -c("feature")) %>%
+  rename(Pvalue = value) %>%
+  tidyr::separate(col = "name", into = c("group1", "group2"), remove = FALSE)
+
+res_table_pairwise_long_df_temp <- res_table_pairwise_long_df %>%
+  filter(feature == "B_Cell") %>%
+  filter(Pvalue < 0.1) %>%
+  mutate(Pvalue = signif(Pvalue,2)) %>%
+  select(group1, group2, Pvalue) %>%
+  mutate(`y.position` = c(0.5, 0.55, 0.6, 0.65)) %>%
+  as.tibble()
+
+library(ggprism)
+
+df_pooled_mean <- data_use %>%
+  group_by(endpoints) %>%
+  summarise(n = n(),
+            B_Cell_mean = mean(B_Cell))
+
+boxplot_B_Cell <- ggplot(data_use, aes(x = endpoints, y = B_Cell)) + 
+  geom_boxplot(aes(x = endpoints, y = B_Cell, color = endpoints), size = 0.8, outlier.shape = NA) +
+  geom_quasirandom(aes(x = endpoints, y = B_Cell, color = endpoints), width = 0.2, alpha = 0.7, size = 1) +
+  # geom_point(data = df_pooled_mean, aes(x = conv_cluster4, y = N1_CT_mean), color = "black", size = 5, alpha = 0.7) +
+  theme_bw() +
+  ylab("B_Cell") + xlab("") + #labs(tag = "A")+
+  theme_bw() +
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10),
+        axis.text.y = element_text(size = 10),
+        text = element_text(size=10)) +
+  scale_color_manual(values = TrajGrpCol) +
+  add_pvalue(res_table_pairwise_long_df_temp, 
+             label = "Pvalue",
+             vjust = 0,
+             coord.flip = FALSE,
+             tip.length = 0,
+             bracket.nudge.y = 0,
+             label.size = 3) +
+  #coord_cartesian(ylim = c(40, 8)) +
+  scale_x_discrete(labels=c('MIN', 'PHY', 'COG', 'MLT'))
+
+boxplot_B_Cell
+
+
+#ggsave(
+#  filename = format(Sys.Date(), "~/conv/B_Cell_boxplot_PRO_clusters.png"),
+#  width = 2.5,
+#  height = 3
+#)
+```
+
+### Repeated measurment: data_use_child_nongran
+```{r panel-b-analysis, results="hide", fig.show="hide", message=FALSE, warning=FALSE}
+# ratio children to parent
+bld_cytof_counts_processed_child_nongran <- 
+  preprocess_bld_cytof_child_nongran(bld_cytof_counts)
+
+data_use_child_nongran <- bld_cytof_counts_processed_child_nongran %>%
+  rownames_to_column(var = "sample_id") %>%
+  setNames(nm = gsub(x           = names(.), 
+                     pattern     = "+",
+                     replacement = "pos", 
+                     fixed       = TRUE)) %>%
+  setNames(nm = gsub(x           = names(.), 
+                     pattern     = "-",
+                     replacement = "neg", 
+                     fixed       = TRUE)) %>%
+  setNames(nm = gsub(x           = names(.), 
+                     pattern     = "\\(|\\)| ",
+                     replacement = "_"
+                     )) %>%
+  merge(y  = select(clinical_data, 
+                    sample_id, 
+                    event_date,
+                    event_type,
+                    trajectory_group,
+                    enrollment_site,
+                    discretized_admit_age_quantile,
+                    sex,
+                    participant_id),
+        by = "sample_id") %>%
+  filter(!is.na(trajectory_group)) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(trajectory_group = factor(trajectory_group)) %>%
+  column_to_rownames(var = "sample_id")%>%
+  filter(event_date <= 28)
+
+
+data_use <- data_use_child_nongran
+data_use$endpoints <- factor(data_use$trajectory_group)
+data_use$trajectory_group <- NULL
+query <- setdiff(names(data_use), names(clinical_data))
+query <- query[query != "endpoints"]
+
+res_table_pairwise <- NULL
+res_table_ordinal <- NULL
+
+query <- query[!grepl("Undefined", query)]
+for (varName in query) {
+  my.formula0 <- paste0(varName,
+                        '~(1|enrollment_site)+(1|participant_id)+event_type+',
+                        'discretized_admit_age_quantile+sex')
+  my.formula1 <- paste0(varName,
+                        '~endpoints +(1|enrollment_site)+(1|participant_id)+event_type+',
+                        'discretized_admit_age_quantile+sex')
+
+  res_pairwise <- mixed_pairwise(my.formula0, 
+                       my.formula1,
+                       data_use = data_use)
+  
+  av = anova(lme4::lmer(my.formula0,data = data_use),
+                 lme4::lmer(my.formula1,data = data_use))
+  
+  res_table_pairwise <- rbind(res_table_pairwise, res_pairwise)
+  res_table_ordinal <- rbind(res_table_ordinal, data.frame("var" = varName, "pval" = av$`Pr(>Chisq)`[2]))
+}
+
+
+rownames(res_table_pairwise) <- gsub("_$", "", query)
+
+res_table_pairwise_qvalue <- res_table_pairwise %>%
+  as.data.frame() #%>%
+  #mutate_all(.funs = function(x) qvalue::qvalue(x, fdr.level = 0.05, pi0 = 1)$qvalues)
+
+res_table_pairwise <- res_table_pairwise %>%
+  as.data.frame() 
+
+res_table_ordinal <- res_table_ordinal%>%
+#  mutate(var = gsub("_$", "", var))%>%
+  column_to_rownames(var = "var")%>%
+  mutate(qval = qvalue::qvalue(pval, fdr.level = 0.05, pi0 = 1)$qvalues)
+
+res_table_pairwise_qvalue[apply(res_table_pairwise_qvalue, 1, function(x) sum(x < 0.05) > 0), ]
+
+plot_var <- query[apply(res_table_pairwise_qvalue, 1, function(x) sum(x < 0.05) > 0)]
+
+# b cell subset
+res_table_ordinal[grepl("B_Cell__naive", rownames(res_table_ordinal)), ]
+res_table_pairwise[grepl("B_Cell__naive", rownames(res_table_pairwise)), ]
+```
+
+### Fig.6S A
+```{r}
+colnames(data_use) <- gsub("_$", "", colnames(data_use))
+res_table_ordinal$qval <- res_table_ordinal$pval
+
+TrajGrpCol <- c("1" = "#999999", "2" = "#56B4E9", "5" = "#E69F00", "6" = "#FF0000")
+library(ggbeeswarm)
+
+res_table_pairwise_long_df <- res_table_pairwise %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column(var = "feature") %>%
+  pivot_longer(cols = -c("feature")) %>%
+  rename(Pvalue = value) %>%
+  tidyr::separate(col = "name", into = c("group1", "group2"), remove = FALSE)
+
+res_table_pairwise_long_df_temp <- res_table_pairwise_long_df %>%
+  filter(feature == "B_Cell__naive") %>%
+  filter(Pvalue < 0.1) %>%
+  mutate(Pvalue = signif(Pvalue,2)) %>%
+  select(group1, group2, Pvalue) %>%
+  mutate(`y.position` = c(0.25, 0.3)) %>%
+  as.tibble()
+
+library(ggprism)
+
+df_pooled_mean <- data_use %>%
+  group_by(endpoints) %>%
+  summarise(n = n(),
+            B_Cell__naive_mean = mean(B_Cell__naive))
+
+boxplot_B_Cell__naive <- ggplot(data_use, aes(x = endpoints, y = B_Cell__naive)) + 
+  geom_boxplot(aes(x = endpoints, y = B_Cell__naive, color = endpoints), size = 0.8, outlier.shape = NA) +
+  geom_quasirandom(aes(x = endpoints, y = B_Cell__naive, color = endpoints), width = 0.2, alpha = 0.7, size = 1) +
+  # geom_point(data = df_pooled_mean, aes(x = conv_cluster4, y = N1_CT_mean), color = "black", size = 5, alpha = 0.7) +
+  theme_bw() +
+  ylab("B Cell (naive)") + xlab("") + #labs(tag = "B")+
+  theme_bw() +
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10),
+        axis.text.y = element_text(size = 10),
+        text = element_text(size=10)) +
+  scale_color_manual(values = TrajGrpCol) +
+  add_pvalue(res_table_pairwise_long_df_temp, 
+             label = "Pvalue",
+             vjust = 0,
+             coord.flip = FALSE,
+             tip.length = 0,
+             bracket.nudge.y = 0,
+             label.size = 3) +
+  #coord_cartesian(ylim = c(40, 8)) +
+  scale_x_discrete(labels=c('MIN', 'PHY', 'COG', 'MLT'))
+
+boxplot_B_Cell__naive
+
+
+#ggsave(
+#  filename = format(Sys.Date(), "conv/%y%m%d_B_Cell_boxplot_PRO_clusters.pdf"),
+#  width = 2.5,
+#  height = 3
+#)
+```
+
+
+### GAM: bld_cytof_counts_processed_parent_nongran
+```{r panel-c-analysis, results="hide", fig.show="hide", message=FALSE, warning=FALSE}
+# children normalized on total number of events
+data_use <- bld_cytof_counts_processed_parent_nongran %>%
+  rownames_to_column(var = "sample_id") %>%
+  merge(y  = select(clinical_data, 
+                    sample_id, 
+                    event_date,
+                    trajectory_group,
+                    enrollment_site,
+                    discretized_admit_age_quantile,
+                    sex,
+                    participant_id),
+        by = "sample_id") %>%
+  filter(!is.na(trajectory_group)) %>%
+  filter(duplicated(participant_id) | duplicated(participant_id, fromLast = TRUE)) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(trajectory_group = factor(trajectory_group)) %>%
+  pivot_longer(cols = -c("sample_id", "event_date", "participant_id",
+                         "enrollment_site", "trajectory_group",
+                         "discretized_admit_age_quantile", "sex")) %>%
+  mutate(discretized_admit_age_quantile= factor(discretized_admit_age_quantile)) %>%
+  filter(!is.na(value))%>%
+  filter(event_date <= 28)
+
+smooth_spline_model_loop <- model_loop(inputDF   = data_use, 
+                                             modelType = "lme",
+                                             endpoint  = "trajectory_group")
+
+smooth_spline_model_loop["B Cell", ]
+```
+
+### Fig.6S.B
+```{r}
+lab = "B Cell"
+exampleDF <- data_use %>%
+  filter(name %in% lab) 
+
+fig6s.b <- plot_model(exampleDF, 
+                          model_loop     = smooth_spline_model_loop, 
+                          modelType      = "lme", 
+                          p_adjust       = F, 
+                          colors = c("#999999", "#56B4E9",  "#E69F00","#FF0000"),
+                          endpoint       = "trajectory_group", 
+                          remove_NS_threshold = 0.1,
+                          signif_markers = FALSE,
+                          remove_NS      = TRUE, 
+                          bar_height     = 6.5)
+
+```
+
+### GAM: bld_cytof_counts_processed_child_nongran
+```{r panel-c-analysis, results="hide", fig.show="hide", message=FALSE, warning=FALSE}
+# children normalized on total number of events
+data_use <- bld_cytof_counts_processed_child_nongran %>%
+  rownames_to_column(var = "sample_id") %>%
+  merge(y  = select(clinical_data, 
+                    sample_id, 
+                    event_date,
+                    trajectory_group,
+                    enrollment_site,
+                    discretized_admit_age_quantile,
+                    sex,
+                    participant_id),
+        by = "sample_id") %>%
+  filter(!is.na(trajectory_group)) %>%
+  filter(duplicated(participant_id) | duplicated(participant_id, fromLast = TRUE)) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(trajectory_group = factor(trajectory_group)) %>%
+  pivot_longer(cols = -c("sample_id", "event_date", "participant_id",
+                         "enrollment_site", "trajectory_group",
+                         "discretized_admit_age_quantile", "sex")) %>%
+  mutate(discretized_admit_age_quantile= factor(discretized_admit_age_quantile)) %>%
+  filter(!is.na(value))%>%
+  filter(event_date <= 28)
+
+smooth_spline_model_loop <- model_loop(inputDF   = data_use, 
+                                             modelType = "lme",
+                                             endpoint  = "trajectory_group")
+plot_var <- smooth_spline_model_loop[smooth_spline_model_loop$adjp.slope <= 0.05|smooth_spline_model_loop$adjp.intercept <= 0.05, ] %>%
+  select(adjp.slope, adjp.intercept)
+```
+
+### supp plots
+```{r}
+lab = "B Cell (naive)"
+exampleDF <- data_use %>%
+  filter(name %in% lab) 
+
+fig6s.c <- plot_model(exampleDF, 
+                          model_loop     = smooth_spline_model_loop, 
+                          modelType      = "lme", 
+                          p_adjust       = F, 
+                          colors = c("#999999", "#56B4E9",  "#E69F00","#FF0000"),
+                          endpoint       = "trajectory_group", 
+                          remove_NS_threshold = 0.1,
+                          signif_markers = FALSE,
+                          remove_NS      = TRUE, 
+                          bar_height     = 6.5)
+
+
+
+```
+### Fig.6S
+```{r}
+library(patchwork)
+layout <- '
+AABBBB
+AACCCC
+'
+wrap_plots(boxplot_B_Cell__naive, fig6s.b, fig6s.c)+
+  plot_layout(design = layout, guides = "collect")+
+  plot_annotation(tag_levels = 'A')
+```
+
+
+### Session info
+```{r, print-session-info}
+sessionInfo()
+```
+R version 4.0.2 (2020-06-22)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 18.04.6 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/openblas/libblas.so.3
+LAPACK: /usr/lib/x86_64-linux-gnu/libopenblasp-r0.2.20.so
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8        LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8   
+ [6] LC_MESSAGES=C.UTF-8    LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C           LC_TELEPHONE=C        
+[11] LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+attached base packages:
+[1] parallel  grid      stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] GSA_1.03.1           igraph_1.2.6         ggprism_1.0.4        scales_1.1.1         doParallel_1.0.16   
+ [6] doRNG_1.8.2          rngtools_1.5         missForest_1.4       itertools_0.1-3      iterators_1.0.13    
+[11] foreach_1.5.1        randomForest_4.6-14  ComplexHeatmap_2.6.2 corrr_0.4.3          gridExtra_2.3       
+[16] rlang_1.0.6          RColorBrewer_1.1-2   cowplot_1.1.1        pals_1.6             forcats_0.5.1       
+[21] stringr_1.4.0        dplyr_1.0.5          purrr_0.3.4          readr_1.4.0          tidyr_1.1.3         
+[26] tibble_3.1.2         tidyverse_1.3.0      ggeffects_1.1.1      gamm4_0.2-6          mgcv_1.8-31         
+[31] nlme_3.1-148         impute_1.64.0        pvca_0.1.0           magrittr_2.0.1       DT_0.16             
+[36] survminer_0.4.9      patchwork_1.1.0      survival_3.2-9       ggpubr_0.4.0         ggbeeswarm_0.6.0    
+[41] ggplot2_3.3.5        ordinal_2019.12-10   lme4_1.1-26          Matrix_1.2-18        qvalue_2.22.0       
+[46] knitr_1.30          
+
+loaded via a namespace (and not attached):
+  [1] readxl_1.3.1        backports_1.2.0     circlize_0.4.12     plyr_1.8.6          splines_4.0.2      
+  [6] digest_0.6.27       htmltools_0.5.1.1   fansi_0.4.1         cluster_2.1.0       openxlsx_4.2.3     
+ [11] modelr_0.1.8        matrixStats_0.58.0  colorspace_2.0-0    rvest_1.0.0         haven_2.3.1        
+ [16] xfun_0.22           crayon_1.3.4        jsonlite_1.7.1      zoo_1.8-9           glue_1.4.2         
+ [21] gtable_0.3.0        GetoptLong_1.0.5    car_3.0-10          shape_1.4.5         BiocGenerics_0.36.0
+ [26] maps_3.3.0          abind_1.4-5         DBI_1.1.1           rstatix_0.7.0       Rcpp_1.0.5         
+ [31] xtable_1.8-4        clue_0.3-59         foreign_0.8-80      mapproj_1.2.7       km.ci_0.5-2        
+ [36] stats4_4.0.2        htmlwidgets_1.5.3   httr_1.4.2          ellipsis_0.3.2      farver_2.1.0       
+ [41] pkgconfig_2.0.3     sass_0.4.0          dbplyr_2.1.0        utf8_1.1.4          labeling_0.4.2     
+ [46] tidyselect_1.1.0    reshape2_1.4.4      munsell_0.5.0       cellranger_1.1.0    tools_4.0.2        
+ [51] cli_3.4.1           generics_0.1.0      sjlabelled_1.1.8    broom_0.7.5         evaluate_0.14      
+ [56] yaml_2.2.1          fs_1.5.2            zip_2.1.1           survMisc_0.5.5      egg_0.4.5          
+ [61] xml2_1.3.2          compiler_4.0.2      rstudioapi_0.13     beeswarm_0.4.0      curl_4.3           
+ [66] png_0.1-7           ggsignif_0.6.1      reprex_1.0.0        statmod_1.4.35      bslib_0.2.5.1      
+ [71] stringi_1.5.3       lattice_0.20-44     nloptr_1.2.2.2      KMsurv_0.1-5        vctrs_0.3.8        
+ [76] pillar_1.6.1        lifecycle_1.0.0     jquerylib_0.1.4     GlobalOptions_0.1.2 ucminf_1.1-4       
+ [81] insight_0.16.0      data.table_1.14.0   R6_2.5.0            rio_0.5.26          vipor_0.4.5        
+ [86] IRanges_2.24.1      codetools_0.2-16    dichromat_2.0-0     boot_1.3-25         MASS_7.3-51.6      
+ [91] assertthat_0.2.1    rjson_0.2.20        withr_2.3.0         S4Vectors_0.28.1    hms_1.0.0          
+ [96] minqa_1.2.4         snakecase_0.11.0    rmarkdown_2.7       carData_3.0-4       Cairo_1.5-12.2     
+[101] numDeriv_2016.8-1.1 lubridate_1.7.10   
+
+```{r, eval=F, echo=F}
+library(knitr)
+options(knitr.duplicate.label = "allow")
+rmarkdown::render("~/conv/conv_cytof_result.Rmd", rmarkdown::html_document(pandoc_args = "--self-contained", toc = T))
+```
