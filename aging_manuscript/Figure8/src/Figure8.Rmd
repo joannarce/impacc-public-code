@@ -1,0 +1,206 @@
+---
+title: "Figure8"
+author: "Cole Maguire"
+date: "5/5/2023"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load packages}
+# Most packages are loaded by "class_structure.R" (see below). Load any additional packages here.
+suppressPackageStartupMessages(library(package = "knitr"))
+suppressPackageStartupMessages(library(package = "tidyverse"))
+suppressPackageStartupMessages(library(package = "readxl"))
+suppressPackageStartupMessages(library(package = "ggpubr"))
+suppressPackageStartupMessages(library(package = "ggpubr"))
+suppressPackageStartupMessages(library(package = "circlize"))
+suppressPackageStartupMessages(library(package = "ComplexHeatmap"))
+suppressPackageStartupMessages(library(package = "OmnipathR"))
+
+# set session options
+options(show_col_types = FALSE)
+VarCorr <- lme4::VarCorr
+options(scipen=999)
+set.seed(123)
+```
+
+```{r load code and data, warning=FALSE, message=FALSE}
+
+##### Load code
+source("../../Codebase/gene_set_functions.R")
+
+##### Load data 
+## Prepare pbmc transcriptomics (using nasal rowfeatures because I don't have access to the pbmc row features)
+pbmc_data <- read_csv("~/git_clones/impacc_push_pull_v2/impacc/20230123_bulk_RNAseq_pbmc_visit1_DE_no-viralload.csv") ## Updated 1-27-2023
+colnames(pbmc_data)[1] <- "gene_id"
+
+nt_data <- read_csv("~/git_clones/impacc_push_pull_v2/impacc/20230125_bulk_RNAseq_nasal_visit1_DE_no-viralload.csv")
+colnames(nt_data)[1] <- "gene_id"
+
+olink_data <- read_csv("~/git_clones/impacc_push_pull_v2/impacc/20230124_olink_visit1_DE_no-viralload.csv")
+
+## Read in the rowfeatures, to which I currently don't have access to the /data/pbmc so going through a saved object for now
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+transcriptomic_rowfeatures <- data_env0$pbmc_transcriptomics_rowfeature
+nasal_transcriptomic_rowfeatures <- read_csv("/data/nasal-transcriptomics/current/nasal-transcriptomics-RowFeature.csv", skip = 1)
+rm(data_env0)
+
+pbmc_data <- pbmc_data %>%
+  left_join(transcriptomic_rowfeatures %>%  rownames_to_column("gene_id"))
+
+nt_data <- nt_data %>%
+  left_join(nasal_transcriptomic_rowfeatures)
+
+
+##### Load other data files, if any
+
+##### Set global variables
+# Trajectory group colors
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+
+##### Output directory
+graphing_dir = "../output/"
+```
+
+
+## Unbiased Omnipath Integration
+```{r main_a}
+
+## From the gene_set_functions.R sourced document
+signif <- pbmc_data[pbmc_data$adj.P.Val <= 0.05,]
+omnipath_connections <- omnipath_connection_pull(signif$gene_name)
+
+signif_olink <- olink_data[olink_data$adj.PVal <= 0.05,]
+top_mag <- signif_olink[order(abs(signif_olink$slope),decreasing = T)[1:10],]
+
+omnipath_connections <- omnipath_connection_pull(unique(c(signif_olink$cytokine, signif$gene_name)), gr_network = FALSE, double_step = FALSE)
+
+
+igraph_node <- as.data.frame(cbind(nodes = unique(c(omnipath_connections$from, omnipath_connections$to))))
+igraph_node <- merge(igraph_node, signif, by.x = "nodes", by.y = "gene_name", all.x = T) #### Toggle all.x for keeping empty genes
+igraph_node <- merge(igraph_node, signif_olink, by.x = "nodes", by.y = "cytokine", all.x = T)
+igraph_node <- igraph_node[!is.na(igraph_node$logFC) | !is.na(igraph_node$slope), ]
+igraph_node$selection_slope <- ifelse(!is.na(igraph_node$slope), igraph_node$slope, igraph_node$logFC)
+igraph_node$selection_assay <- ifelse(!is.na(igraph_node$slope), "Olink", "PBMC_Trans")
+igraph_node$color <- ifelse(is.na(igraph_node$logFC), "white", ifelse(igraph_node$logFC > 0, "red", ifelse(igraph_node$logFC < 0, "blue", "white")))
+
+
+omnipath_connections <- omnipath_connections[omnipath_connections$from %in% igraph_node$nodes & omnipath_connections$to %in% igraph_node$nodes,]
+igraph_node <- igraph_node[igraph_node$nodes %in% c(omnipath_connections$from, omnipath_connections$to),]
+network <- graph_from_data_frame(d=as.data.frame(omnipath_connections),
+                                 vertices=igraph_node, directed=T)
+
+lay <- layout_nicely(network)
+plot(network, layout=lay, vertex.label.cex=0.5, vertex.size=9, vertex.label.color= "black",
+     edge.color=ifelse(E(network)$is_inhibition == 1, "blue", "red"),
+     edge.arrow.size=0.5)
+saveRDS(network, paste0(graphing_dir, "/full_integrated_network.RDS"))
+## Load this RDS object then run the chunk below on local machine with access to Cytoscape
+## using the RCy3 package to load the igraph object into cytoscape
+
+```
+
+
+```{r main_b, fig.width = 12, fig.height = 12}
+lr_Network_Omnipath_Unique <- import_ligrecextra_interactions() %>%
+    dplyr::rename(from=source_genesymbol, to=target_genesymbol) %>%
+    dplyr::filter(from != to) %>% ## No self signal
+    separate_rows(from, sep = "_") %>%
+    separate_rows(to, sep = "_") %>%
+    mutate(dataframe = "lr_network")
+
+
+so_ligands_rec <- lr_Network_Omnipath_Unique %>%
+  filter(from %in% olink_data$cytokine[olink_data$adj.PVal<= 0.05]) %>%
+  arrange(from)
+
+
+### Make heatmap matrix
+base_df <- so_ligands_rec %>%
+  select(from, to) %>%
+  left_join(olink_data %>%
+              rename(adj.P.Val.so = adj.PVal) %>%
+              select(cytokine, slope, adj.P.Val.so), by = c("from" = "cytokine")) %>%
+  left_join(nt_data, by = c("to" = "gene_name")) %>%
+  left_join(pbmc_data, by = c("to" = "gene_name"), suffix = c(".nt", ".pbmc"))
+
+
+col_fun = colorRamp2(c(-0.03, 0, 0.03), c("blue", "white", "red"))
+circos.clear()
+heatdf1tmp <- base_df %>% distinct() %>%
+  filter(!(is.na(logFC.nt) & is.na(logFC.pbmc))) %>%
+  mutate(logFC.nt = ifelse(adj.P.Val.nt > 0.05, 0, logFC.nt),
+         logFC.pbmc = ifelse(adj.P.Val.pbmc > 0.05, 0, logFC.pbmc)) %>%
+  select(to, logFC.nt, logFC.pbmc, from)
+split <- factor(heatdf1tmp$from)
+
+olink_data_stars <- olink_data %>%
+  mutate(adj.P.Val.so =
+  ifelse(adj.PVal <= 0.001, "***",
+                               ifelse(adj.PVal <= 0.01, "**", 
+                                      ifelse(adj.PVal <= 0.05, "*", "")))) %>%
+  mutate(adj.P.Val.so = ifelse(is.na(adj.P.Val.so), "", adj.P.Val.so))
+stars <- olink_data_stars$adj.P.Val.so[match(levels(split), olink_data_stars$cytokine)]
+
+heat_circle_df <- as.matrix(heatdf1tmp[,2:3])
+rownames(heat_circle_df) <- heatdf1tmp$to
+circos.par(gap.after = c(rep(2, length(levels(split))-1), 10))
+circos.heatmap(heat_circle_df, cluster = F, col = col_fun, split = split,
+               rownames.side = "outside", bg.border = "black", cell.border = "black",
+               rownames.cex = 0.35, cell.lwd = 0.2)
+
+circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
+    if(CELL_META$sector.numeric.index == length(levels(split))) { # the last sector
+        circos.rect(CELL_META$cell.xlim[2] + convert_x(1, "mm"), 0,
+                    CELL_META$cell.xlim[2] + convert_x(6, "mm"), 1,
+                    col = "#50A3A4", border = "black", cex = 0.35)
+        circos.text(CELL_META$cell.xlim[2] + convert_x(3.5, "mm"), 0.5,
+                    "PBMCs", cex = 0.3, facing = "clockwise")
+
+        circos.rect(CELL_META$cell.xlim[2] + convert_x(1, "mm"), 1,
+                    CELL_META$cell.xlim[2] + convert_x(6, "mm"), 2,
+                    col = "#b4c540", border = "black", cex = 0.35)
+        circos.text(CELL_META$cell.xlim[2] + convert_x(3.5, "mm"), 1.5,
+                    "Nasal", cex = 0.3, facing = "clockwise")
+    }
+}, bg.border = NA)
+
+circos.heatmap(heatdf1tmp %>% left_join(olink_data %>%
+              select(cytokine, slope), by = c("from" = "cytokine")) %>%
+                select(slope),
+              cluster = F, col = col_fun, split = F, bg.border = "black")
+circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
+    if(CELL_META$sector.numeric.index == length(levels(split))) { # the last sector
+        circos.rect(CELL_META$cell.xlim[2] + convert_x(1, "mm"), 0,
+                    CELL_META$cell.xlim[2] + convert_x(4.5, "mm"), 1,
+                    col = "#fcaf38", border = "black", cex = 0.35)
+        circos.text(CELL_META$cell.xlim[2] + convert_x(2.75, "mm"), 0.5,
+                    "Serum Olink", cex = 0.3, facing = "clockwise")
+    }
+}, bg.border = NA)
+
+
+circos.track(ylim = c(0, 1), track.index = 3, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$cell.ylim[2] + convert_y(-3.25, "mm"), 
+        paste0(stars[CELL_META$sector.numeric.index]),
+        facing = "clockwise", cex = 0.5,
+        adj = c(1.5,0.5), niceFacing = TRUE)
+}, bg.border = NA)
+
+circos.track(ylim = c(0, 1), track.index = 4, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$cell.ylim[2] + convert_y(0, "mm"), 
+        paste0(levels(split)[CELL_META$sector.numeric.index]),
+        facing = "clockwise", cex = 0.5,
+        adj = c( 1, 0.5), niceFacing = TRUE)
+}, bg.border = NA)
+
+library(ComplexHeatmap)
+lgd = Legend(title = "Slope\n(change per\n1 year of age)", col_fun = col_fun)
+draw(lgd, x = unit(0.95, "npc"), y = unit(0.85, "npc"), just = c("right", "top"))
+
+
+```
+
