@@ -1,0 +1,347 @@
+---
+title: "nasal_viralload"
+output: html_document
+---
+
+Here I will analyze viral load from nasal mNGS data, and compare viral load by mNGS vs qPCR.
+
+Source: 20230426_viralload.Rmd
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(pheatmap)
+library(RColorBrewer)
+library(patchwork)
+
+library(lme4)
+library(gamm4)
+
+# library(fgsea)
+
+setwd("~/20220902_IMPACC_aging")
+
+my.theme <- theme_classic() + 
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text = element_text(size=12, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm")
+  )
+```
+
+# Import data
+
+## Clinical metadata
+
+```{r}
+# Clinical characteristics
+clin.individ <- read.csv(
+  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-frozen.csv",
+  header = TRUE, row.names = NULL
+)
+# Filter COVID positive samples
+clin.individ <- subset(clin.individ, participant_type == "COVID-19 Positive")
+print(head(clin.individ))
+
+# Clinical characteristics supp
+clin.individ.supp <- read.csv(
+  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-supp-frozen.csv",
+  header = TRUE, row.names = NULL
+)
+print(clin.individ.supp[1:6,1:6])
+```
+
+Import event data.
+
+```{r}
+# For mapping sample_id to event_id
+clin.sample <- read.csv(
+  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-sample-frozen.csv",
+  header = TRUE, row.names = NULL
+)
+print(head(clin.sample))
+
+# Explanation of event_id
+clin.event <- read.csv(
+  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-event-frozen.csv",
+  header = TRUE, row.names = NULL
+)
+print(head(clin.event))
+```
+
+### Clinical metadata processing
+
+I will annotate if an event_id has received steroids, by comparing clin.event's event_date with clin.individ.supp's steroids_start.
+
+```{r}
+clin.event <- merge(
+  clin.event, clin.individ.supp[,c("participant_id","steroids_start")],
+  by = "participant_id",
+  all.x = TRUE, all.y = FALSE,
+  sort = FALSE
+)
+
+clin.event$steroids <- clin.event$steroids_start <= clin.event$event_date
+clin.event[is.na(clin.event$steroids),"steroids"] <- FALSE
+clin.event$steroids <- as.factor(clin.event$steroids)
+```
+
+```{r}
+# Convert ordinal score to factor
+clin.event$respiratory_status <- as.factor(clin.event$respiratory_status)
+
+# Convert some columns to factor
+clin.individ$sex <- as.factor(clin.individ$sex)
+clin.individ$trajectory_group <- as.factor(clin.individ$trajectory_group)
+clin.individ$enrollment_site <- as.factor(clin.individ$enrollment_site)
+clin.individ$participant_id <- as.factor(clin.individ$participant_id)
+```
+
+## Viral load data
+
+Get SARS-CoV-2 viral load from nasal-metagenomics-AllGenera-Counts_RPM.csv, sc2_rpm column.
+
+```{r}
+# mNGS metadata, containing viral load by mNGS
+mngs.metadata <- read.csv(
+  "/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv",
+  header = TRUE, row.names = NULL,
+  check.names = FALSE
+)
+
+# qPCR data
+pcr <- read.csv(
+  "/data/nasal-viralload/current/nasal-viralload-Counts.csv",
+  header=TRUE, row.names=NULL,
+  check.names=FALSE
+)
+pcr.metadata <- read.csv(
+ "/data/nasal-viralload/current/nasal-viralload-Metadata.csv",
+ header=TRUE, row.names=NULL,
+ check.names=FALSE
+)
+```
+
+# Merge metadata
+
+```{r}
+# Combine sample and event metadata
+clin.sample.event <- merge(
+  clin.sample, clin.event,
+  by = "event_id",
+  all.x = TRUE, all.y = FALSE,
+  suffixes = c("",".y"),
+  sort = FALSE
+)
+
+# Add patient metadata
+clin.sample.event.individ <- merge(
+  clin.sample.event, clin.individ,
+  by = "participant_id", all = FALSE, sort = FALSE
+)
+```
+
+```{r}
+# mNGS QC
+mngs.metadata <- mngs.metadata[!is.na(mngs.metadata$sc2_rpm),]
+mngs.metadata <- subset(mngs.metadata,
+                        sample_status == "IMPACC sample assayed and passed QC")
+
+# Add viral load to clin.sample.event.individ
+clin.sample.event.individ.sc2 <- merge(
+  clin.sample.event.individ, mngs.metadata[,c("sample_id","sc2_rpm")],
+  by = "sample_id", all = FALSE, sort = FALSE
+)
+# Remove participant_id 014-2038 & 002-0040 visit 1, 010-0024 visit 6: they have 2 very different sc2_rpm for the duplicates
+clin.sample.event.individ.sc2 <- subset(
+  clin.sample.event.individ.sc2,
+  !(participant_id == "014-2038" & event_type == "Visit 1"))
+clin.sample.event.individ.sc2 <- subset(
+  clin.sample.event.individ.sc2,
+  !(participant_id == "002-0040" & event_type == "Visit 1"))
+clin.sample.event.individ.sc2 <- subset(
+  clin.sample.event.individ.sc2,
+  !(participant_id == "010-0024" & event_type == "Visit 6"))
+```
+
+```{r}
+# qPCR QC
+pcr.metadata <- subset(pcr.metadata,
+                       sample_status=="IMPACC sample assayed and passed QC")
+pcr <- subset(pcr, (sample_id %in% pcr.metadata$sample_id) &
+                !is.na(N1_CT) & !is.na(N2_CT))
+
+# Merge with clinical metadata
+clin.sample.event.individ.pcr <- merge(
+  clin.sample.event.individ, pcr[,c("sample_id","N1_CT","N2_CT")],
+  by="sample_id", all=FALSE, sort=FALSE
+)
+```
+
+# Visit 1 Analysis
+
+```{r}
+# Only keep Visit 1 samples
+clin.sample.event.individ.visit1 <- clin.sample.event.individ.sc2 %>%
+  subset(event_type=="Visit 1")
+
+# log-transform rpm
+clin.sample.event.individ.visit1$sc2_rpm_log10 <- log10(clin.sample.event.individ.visit1$sc2_rpm+1)
+
+# Divide into age groups
+clin.sample.event.individ.visit1$age_group <- cut(
+  clin.sample.event.individ.visit1$admit_age,
+  breaks=c(17,46,54,62,70,96)
+  )
+# Rename levels: convert round bracket to square bracket
+levels(clin.sample.event.individ.visit1$age_group) <- c("[18,46]","[47,54]","[55,62]","[63,70]","[71,96]")
+```
+
+Plot
+
+```{r}
+# Figure 2D
+
+p1 <- ggplot(clin.sample.event.individ.visit1,
+            aes(x=age_group,
+                y=sc2_rpm_log10,
+                color=age_group)) + 
+  stat_boxplot(geom ="errorbar", width=0.3) + 
+  geom_boxplot(fill="white", outlier.shape=NA) +
+  ggbeeswarm::geom_quasirandom(width=0.35, size=0.5) +
+  # geom_jitter(width=0.2, size=0.5, alpha=0.5) +
+  labs(x="Age group", y="Viral load") +
+  scale_color_viridis_d(guide="none") +
+  # scale_y_continuous(breaks = c(20, 40, 60, 80, 100), limits = c(15, 100)) +
+  theme_classic() + theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text.x = element_text(size=11, color="black"),
+    axis.text.y = element_text(size=12, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm"),
+    panel.grid.minor=element_blank()
+  ) # viralload_visit1, 3.5 x 3 in
+```
+
+P value
+
+```{r}
+print(kruskal.test(
+  sc2_rpm_log10 ~ age_group, data=clin.sample.event.individ.visit1
+))
+```
+
+## Compare mNGS vs qPCR
+
+```{r}
+# Add qPCR data
+clin.sample.event.individ.visit1 <- merge(
+  clin.sample.event.individ.visit1, clin.sample.event.individ.pcr[,c("event_id","N1_CT","N2_CT")],
+  by="event_id", all=FALSE, sort=FALSE
+)
+
+print(unique(clin.sample.event.individ.visit1$event_location))
+```
+
+```{r}
+p1 <- ggplot(data=clin.sample.event.individ.visit1,
+             aes(x=N1_CT, y=sc2_rpm_log10)) +
+  geom_point(size=1) +
+  labs(x="qPCR (N1 CT)", y="Metatranscriptomics\n(log-transformed rpM)") +
+  my.theme
+
+p2 <- ggplot(data=clin.sample.event.individ.visit1,
+             aes(x=N2_CT, y=sc2_rpm_log10)) +
+  geom_point(size=1) +
+  labs(x="qPCR (N2 CT)", y="Metatranscriptomics\n(log-transformed rpM)") +
+  my.theme
+
+# Supplementary figure 1
+p1 + p2 + plot_layout(nrow=1) # viralload_mngs-vs-qpcr.pdf, 6 x 3 in
+```
+
+```{r}
+print(cor.test(
+  clin.sample.event.individ.visit1$N1_CT, clin.sample.event.individ.visit1$sc2_rpm_log10
+))
+
+print(cor.test(
+  clin.sample.event.individ.visit1$N2_CT, clin.sample.event.individ.visit1$sc2_rpm_log10
+))
+```
+
+# Longitudinal analysis
+
+```{r}
+# Remove escalation samples
+clin.sample.event.individ.long <- clin.sample.event.individ.sc2 %>%
+  subset(!grepl("Escalation", event_type) & event_date<=30)
+
+# Divide into age groups
+clin.sample.event.individ.long$age_group <- cut(
+  clin.sample.event.individ.long$admit_age,
+  breaks=c(17,46,54,62,70,96)
+  )
+
+# Rename levels: convert round bracket to square bracket
+levels(clin.sample.event.individ.long$age_group) <- c("[18,46]","[47,54]","[55,62]","[63,70]","[71,96]")
+
+# log-transform viral load
+clin.sample.event.individ.long$sc2_rpm_log10 <- log10(clin.sample.event.individ.long$sc2_rpm+1)
+```
+
+Generalized additive mixed modeling
+
+```{r}
+# Prepare ordered age group
+clin.sample.event.individ.long$age_group_ordered <- ordered(clin.sample.event.individ.long$age_group)
+fit <- gamm4(
+    sc2_rpm_log10 ~ s(event_date, bs="cr") + s(event_date, bs="cr", by=age_group_ordered) + age_group_ordered + trajectory_group + sex, 
+    data = clin.sample.event.individ.long, random = ~(1|enrollment_site/participant_id))
+  
+aa <- anova(fit$gam)
+  
+# Get P-values for the interaction term across all age-groups
+aa1 <- sum(aa$s.table[-c(1), "F"]*aa$s.table[-c(1), "Ref.df"])
+aa2 <- sum(aa$s.table[-c(1), "Ref.df"])
+pval <- pchisq(aa1, aa2, lower.tail = FALSE)
+```
+
+Plot
+
+```{r}
+# Predict
+my.pred <- ggeffects::ggpredict(fit, terms=c("event_date","age_group_ordered"),
+                                type="fixed")
+colnames(my.pred)[colnames(my.pred)=="group"] <- "age_group"
+
+clin.sample.event.individ.long$yhat <- predict(fit$mer)
+
+# Figure 2E
+# Longitudinal plot
+p4 <- ggplot(data=clin.sample.event.individ.long, 
+             aes(x=event_date, y=sc2_rpm_log10, color=age_group)) +
+  geom_line(aes(group=participant_id), color="gray", alpha=0.4) +
+  # geom_line(inherit.aes=FALSE, aes(x=event_date, y=yhat, group=participant_id),
+  #           color="#5F5F5F", alpha=0.9) +
+  geom_point(aes(color=age_group),
+             shape=16, size=1, alpha=0.7) +
+  geom_line(inherit.aes=FALSE, data=my.pred, aes(x,predicted),
+            color="black", linewidth=1.5) +
+  labs(x="Days from admission", y="Viral load",
+       title="") +
+  facet_wrap(~ age_group, nrow=1) +
+  scale_color_viridis_d(guide="none") +
+  theme_bw() +
+    theme(
+      plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+      axis.text.x = element_text(size=11, color="black"),
+      axis.text.y = element_text(size=12, color="black"),
+      text = element_text(size=12, family="Arial"),
+      plot.margin = unit(c(0,1,0.5,0), "cm"),
+      panel.spacing = unit(0.25, "cm"),
+      panel.grid.minor=element_blank()
+    ) # viralload_longitudinal.pdf, 7 x 3.1 in
+```
+

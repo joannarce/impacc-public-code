@@ -1,0 +1,288 @@
+---
+title: "patient_characteristics"
+output: html_document
+---
+
+Here I will analyze age vs some patient characteristics.
+
+Source: 20230206_table1.Rmd
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(pheatmap)
+library(RColorBrewer)
+library(patchwork)
+
+library(lme4)
+library(gamm4)
+
+# library(fgsea)
+
+setwd("~/20220902_IMPACC_aging")
+
+my.theme <- theme_classic() + 
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text = element_text(size=12, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm")
+  )
+
+```
+
+# Import data
+
+## Clinical metadata
+
+```{r}
+# Clinical characteristics
+clin.individ <- read.csv(
+  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-frozen.csv",
+  header = TRUE, row.names = NULL
+)
+# Filter COVID positive samples
+clin.individ <- subset(clin.individ, participant_type == "COVID-19 Positive")
+print(head(clin.individ))
+
+# Clinical characteristics supp
+clin.individ.supp <- read.csv(
+  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-supp-frozen.csv",
+  header = TRUE, row.names = NULL
+)
+print(clin.individ.supp[1:6,1:6])
+```
+
+Import event data.
+
+```{r}
+# For mapping sample_id to event_id
+clin.sample <- read.csv(
+  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-sample-frozen.csv",
+  header = TRUE, row.names = NULL
+)
+print(head(clin.sample))
+
+# Explanation of event_id
+clin.event <- read.csv(
+  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-event-frozen.csv",
+  header = TRUE, row.names = NULL
+)
+print(head(clin.event))
+```
+
+### Clinical metadata processing
+
+I will annotate if an event_id has received steroids, by comparing clin.event's event_date with clin.individ.supp's steroids_start.
+
+```{r}
+clin.event <- merge(
+  clin.event, clin.individ.supp[,c("participant_id","steroids_start","ever_steroids","diedever","timetodeath","los")],
+  by = "participant_id",
+  all.x = TRUE, all.y = FALSE,
+  sort = FALSE
+)
+
+clin.event$steroids <- clin.event$steroids_start <= clin.event$event_date
+clin.event[is.na(clin.event$steroids),"steroids"] <- FALSE
+clin.event$steroids <- as.factor(clin.event$steroids)
+```
+
+```{r}
+# Convert ordinal score to factor
+clin.event$respiratory_status <- as.factor(clin.event$respiratory_status)
+
+# Convert some columns to factor
+clin.individ$sex <- as.factor(clin.individ$sex)
+clin.individ$trajectory_group <- as.factor(clin.individ$trajectory_group)
+clin.individ$enrollment_site <- as.factor(clin.individ$enrollment_site)
+clin.individ$participant_id <- as.factor(clin.individ$participant_id)
+```
+
+## Viral load data
+
+Get SARS-CoV-2 viral load from nasal-metagenomics-AllGenera-Counts_RPM.csv, sc2_rpm column.
+
+```{r}
+# mNGS metadata
+mngs.metadata <- read.csv(
+  "/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv",
+  header = TRUE, row.names = NULL,
+  check.names = FALSE
+)
+```
+
+# Merge metadata
+
+```{r}
+# Combine sample and event metadata
+clin.sample.event <- merge(
+  clin.sample, clin.event,
+  by = "event_id",
+  all.x = TRUE, all.y = FALSE,
+  suffixes = c("",".y"),
+  sort = FALSE
+)
+
+# Add patient metadata
+clin.sample.event.individ <- merge(
+  clin.sample.event, clin.individ,
+  by = "participant_id", all = FALSE, sort = FALSE
+)
+```
+
+```{r}
+# mNGS QC
+mngs.metadata <- mngs.metadata[!is.na(mngs.metadata$sc2_rpm),]
+mngs.metadata <- subset(mngs.metadata,
+                        sample_status == "IMPACC sample assayed and passed QC")
+
+# Add viral load to clin.sample.event.individ
+clin.sample.event.individ.sc2 <- merge(
+  clin.sample.event.individ, mngs.metadata[,c("sample_id","sc2_rpm")],
+  by = "sample_id", all = FALSE, sort = FALSE
+)
+# Remove participant_id 014-2038 & 002-0040 visit 1, 010-0024 visit 6: they have 2 very different sc2_rpm for the duplicates
+clin.sample.event.individ.sc2 <- subset(
+  clin.sample.event.individ.sc2,
+  !(participant_id == "014-2038" & event_type == "Visit 1"))
+clin.sample.event.individ.sc2 <- subset(
+  clin.sample.event.individ.sc2,
+  !(participant_id == "002-0040" & event_type == "Visit 1"))
+clin.sample.event.individ.sc2 <- subset(
+  clin.sample.event.individ.sc2,
+  !(participant_id == "010-0024" & event_type == "Visit 6"))
+
+# Keep samples within 30 days of hospitalization
+clin.sample.event.individ.sc2 <- subset(
+  clin.sample.event.individ.sc2, event_date <= 30
+)
+```
+
+# Get metadata of unique patients
+
+```{r}
+# Keep unique patients
+clin.sample.event.individ.sc2.unique <- clin.sample.event.individ.sc2[!duplicated(clin.sample.event.individ.sc2$participant_id),]
+
+# Add age quintile
+clin.sample.event.individ.sc2.unique$age_group <- cut(
+  clin.sample.event.individ.sc2.unique$admit_age,
+  breaks=c(17,46,54,62,70,96)
+  )
+# Rename levels: convert round bracket to square bracket
+levels(clin.sample.event.individ.sc2.unique$age_group) <- c("[18,46]","[47,54]","[55,62]","[63,70]","[71,96]")
+```
+
+Extract visit 1 samples for reference
+
+```{r}
+clin.sample.event.individ.visit1.unique <- clin.sample.event.individ %>%
+  subset(event_type=="Visit 1") %>%
+  subset(!duplicated(participant_id))
+```
+
+## Age
+
+```{r}
+# Age quintiles
+print("Age quintiles")
+print(
+  table(clin.sample.event.individ.sc2.unique$age_group)
+)
+
+# Age
+print("Age: median")
+print(median(clin.sample.event.individ.sc2.unique$admit_age))
+print("Age: 1st quartile")
+print(quantile(clin.sample.event.individ.sc2.unique$admit_age, 0.25))
+print("Age: 3rd quartile")
+print(quantile(clin.sample.event.individ.sc2.unique$admit_age, 0.75))
+```
+
+```{r}
+print(
+  clin.sample.event.individ.sc2.unique %>%
+    group_by(age_group) %>%
+    summarise(med = median(admit_age),
+              q1 = quantile(admit_age, 0.25),
+              q3 = quantile(admit_age, 0.75))
+)
+```
+
+Plot age histogram.
+
+```{r}
+# Figure 2A
+p1 <- ggplot(data=clin.sample.event.individ.sc2.unique,
+            aes(x=admit_age, fill=age_group)) +
+  geom_histogram(breaks=seq(18,96,by=2), color="black") +
+  labs(x="Age", y="Number of individuals") +
+  scale_fill_viridis_d(guide="none") +
+  scale_x_continuous(breaks=seq(20,90,10)) +
+  scale_y_continuous(limits=c(0,65), expand=c(0,0)) +
+  my.theme # age_histogram.pdf, 3.5 x 3 in
+```
+
+Plot age vs TG.
+
+```{r}
+# Figure 2B
+red.palette <- colorRampPalette(c("#fcbba1", "#a50f15"), space="Lab")
+
+p2 <- ggplot(clin.sample.event.individ.sc2.unique,
+            aes(x=trajectory_group,
+                y=admit_age,
+                color=trajectory_group)) + 
+  stat_boxplot(geom ='errorbar', width=0.3) + 
+  geom_boxplot(fill="white", outlier.shape=NA) +
+  ggbeeswarm::geom_quasirandom(width=0.35, size = 0.5) +
+  # geom_jitter(width = 0.2, size = 1) +
+  labs(x="Trajectory group", y="Age") +
+  # scale_fill_brewer(palette="Oranges") +
+  scale_color_manual(values=red.palette(5)) +
+  scale_y_continuous(breaks=seq(20,100,20), limits = c(15, 100)) +
+  my.theme + theme(legend.position = "none") # age-vs-TG.pdf, 3.3 x 3 in
+      
+
+print(kruskal.test(admit_age~trajectory_group, data=clin.sample.event.individ.sc2.unique))
+```
+
+Plot age vs 28-day mortality.
+
+```{r}
+# Overall mortality
+p3 <- ggplot(clin.sample.event.individ.sc2.unique,
+             aes(x=as.factor(diedever),
+                 y=admit_age,
+                 fill=as.factor(diedever))) + 
+  stat_boxplot(geom ='errorbar', width=0.3) + 
+  geom_boxplot(outlier.shape = NA) +
+  ggbeeswarm::geom_quasirandom(width = 0.2, size = 0.5) +
+  # geom_jitter(width = 0.2, size = 1) +
+  labs(x="Overall mortality", y="Age") +
+  scale_fill_brewer(palette="Oranges") +
+  scale_y_continuous(breaks=seq(20,100,20), limits = c(15, 100)) +
+  my.theme + theme(legend.position = "none")
+print(kruskal.test(admit_age~as.factor(diedever), data=clin.sample.event.individ.sc2.unique))
+
+# Figure 2C
+# 28-day mortality
+clin.sample.event.individ.sc2.unique$died28d <- ifelse(
+  is.na(clin.sample.event.individ.sc2.unique$timetodeath) | clin.sample.event.individ.sc2.unique$timetodeath>28,
+  "No", "Yes")
+p3 <- ggplot(clin.sample.event.individ.sc2.unique,
+             aes(x=died28d,
+                 y=admit_age,
+                 color=died28d)) + 
+  stat_boxplot(geom ='errorbar', width=0.25) + 
+  geom_boxplot(fill="white", outlier.shape = NA) +
+  ggbeeswarm::geom_quasirandom(width=0.25, size=0.3) +
+  # geom_jitter(width = 0.2, size = 1) +
+  labs(x="28-day mortality", y="Age") +
+  # scale_fill_brewer(palette="Oranges") +
+  scale_color_manual(values=red.palette(2)) +
+  scale_y_continuous(breaks=seq(20,100,20), limits = c(15, 100)) +
+  my.theme + theme(legend.position = "none") # age-vs-died28d.pdf, 3 x 3 in
+print(kruskal.test(admit_age~as.factor(diedever), data=clin.sample.event.individ.sc2.unique))
+```

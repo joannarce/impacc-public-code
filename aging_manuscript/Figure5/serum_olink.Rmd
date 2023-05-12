@@ -1,0 +1,1100 @@
+---
+title: "serum_olink"
+output: html_document
+---
+
+Source: 20230124_olink.Rmd
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(pheatmap)
+library(RColorBrewer)
+library(patchwork)
+
+library(lme4)
+library(gamm4)
+
+# library(fgsea)
+
+setwd("~/20220902_IMPACC_aging")
+
+my.theme <- theme_classic() + 
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text = element_text(size=12, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm")
+  )
+
+```
+
+# Import data
+
+## Clinical metadata
+
+```{r}
+# Clinical characteristics
+clin.individ <- read.csv(
+  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-frozen.csv",
+  header = TRUE, row.names = NULL
+)
+# Filter COVID positive samples
+clin.individ <- subset(clin.individ, participant_type == "COVID-19 Positive")
+print(head(clin.individ))
+
+# Clinical characteristics supp
+clin.individ.supp <- read.csv(
+  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-supp-frozen.csv",
+  header = TRUE, row.names = NULL
+)
+print(clin.individ.supp[1:6,1:6])
+```
+
+Import event data.
+
+```{r}
+# For mapping sample_id to event_id
+clin.sample <- read.csv(
+  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-sample-frozen.csv",
+  header = TRUE, row.names = NULL
+)
+print(head(clin.sample))
+
+# Explanation of event_id
+clin.event <- read.csv(
+  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-event-frozen.csv",
+  header = TRUE, row.names = NULL
+)
+print(head(clin.event))
+```
+
+### Clinical metadata processing
+
+I will annotate if an event_id has received steroids, by comparing clin.event's event_date with clin.individ.supp's steroids_start.
+
+```{r}
+clin.event <- merge(
+  clin.event, clin.individ.supp[,c("participant_id","steroids_start")],
+  by = "participant_id",
+  all.x = TRUE, all.y = FALSE,
+  sort = FALSE
+)
+
+clin.event$steroids <- clin.event$steroids_start <= clin.event$event_date
+clin.event[is.na(clin.event$steroids),"steroids"] <- FALSE
+clin.event$steroids <- as.factor(clin.event$steroids)
+```
+
+```{r}
+# Convert ordinal score to factor
+clin.event$respiratory_status <- as.factor(clin.event$respiratory_status)
+
+# Convert some columns to factor
+clin.individ$sex <- as.factor(clin.individ$sex)
+clin.individ$trajectory_group <- as.factor(clin.individ$trajectory_group)
+clin.individ$enrollment_site <- as.factor(clin.individ$enrollment_site)
+clin.individ$participant_id <- as.factor(clin.individ$participant_id)
+```
+
+## Olink concentration
+
+```{r}
+# Concentration
+olink <- read.csv(
+  "/data/serum-olink/current/Olink-Counts.csv",
+  header = TRUE, row.names = 1
+)
+olink <- t(olink)
+
+# Row data
+rData <- read.csv(
+  "/data/serum-olink/current/Olink-RowFeature.csv",
+  header = TRUE, row.names = 3
+)
+print(all(rownames(olink) == rownames(rData)))
+
+# Olink metadata
+olink.metadata <- read.csv(
+  "/data/serum-olink/current/Olink-Metadata.csv",
+  header = TRUE, row.names = NULL
+)
+```
+
+## Viral load data
+
+Get SARS-CoV-2 viral load from nasal-metagenomics-AllGenera-Counts_RPM.csv, sc2_rpm column.
+
+```{r}
+# mNGS metadata
+mngs.metadata <- read.csv(
+  "/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv",
+  header = TRUE, row.names = NULL,
+  check.names = FALSE
+)
+```
+
+Check viral load in metadata vs that in counts.csv
+
+```{r}
+# mngs <- read.csv(
+#   "/data/nasal-metagenomics/current/nasal-metagenomics-AllGenera-Counts_RPM.csv",
+#   header = TRUE, row.names = NULL,
+#   check.names = FALSE
+# )
+# 
+# mngs.rData <- read.csv(
+#   "/data/nasal-metagenomics/current/nasal-metagenomics-AllGenera-RowFeatures.csv",
+#   skip = 1, header = TRUE, row.names = 1,
+#   check.names = FALSE
+# )
+# 
+# sc2.id <- mngs.rData %>%
+#   subset(name == "Betacoronavirus") %>%
+#   rownames()
+# 
+# # Replace sc2_rpm column in mngs.rData with the viral load from mngs
+# temp <- merge(
+#   mngs.metadata, mngs[,c("sample_id",sc2.id)],
+#   by = "sample_id", all = FALSE,
+#   sort = FALSE
+# )
+# 
+# plot(log10(temp$sc2_rpm+1), log10(temp[,sc2.id]+1),
+#      xlab="metadata viral load", ylab="counts viral load", main="log10(viral_load + 1)")
+# remove(temp)
+```
+
+# Merge metadata
+
+```{r}
+# Combine sample and event metadata
+clin.sample.event <- merge(
+  clin.sample, clin.event,
+  by = "event_id",
+  all.x = TRUE, all.y = FALSE,
+  suffixes = c("",".y"),
+  sort = FALSE
+)
+
+# Add patient metadata
+clin.sample.event.individ <- merge(
+  clin.sample.event, clin.individ,
+  by = "participant_id", all = FALSE, sort = FALSE
+)
+```
+
+```{r}
+# Only keep samples that pass QC
+olink.metadata <- subset(olink.metadata, sample_status=="IMPACC sample assayed and passed QC")
+pass.qc <- Reduce(
+  intersect, 
+  list(colnames(olink), olink.metadata$sample_id, clin.sample.event.individ$sample_id)
+)
+
+# mNGS QC
+mngs.metadata <- mngs.metadata[!is.na(mngs.metadata$sc2_rpm),]
+mngs.metadata <- subset(mngs.metadata,
+                        sample_status == "IMPACC sample assayed and passed QC")
+
+# Add viral load to clin.sample.event.individ
+clin.sample.event.individ.sc2 <- merge(
+  clin.sample.event.individ, mngs.metadata[,c("sample_id","sc2_rpm")],
+  by = "sample_id", all = FALSE, sort = FALSE
+)
+# Remove participant_id 014-2038 & 002-0040 visit 1, 010-0024 visit 6: they have 2 very different sc2_rpm for the duplicates
+clin.sample.event.individ.sc2 <- subset(
+  clin.sample.event.individ.sc2,
+  !(participant_id == "014-2038" & event_type == "Visit 1"))
+clin.sample.event.individ.sc2 <- subset(
+  clin.sample.event.individ.sc2,
+  !(participant_id == "002-0040" & event_type == "Visit 1"))
+clin.sample.event.individ.sc2 <- subset(
+  clin.sample.event.individ.sc2,
+  !(participant_id == "010-0024" & event_type == "Visit 6"))
+
+olink <- olink[,pass.qc]
+clin.sample.event.individ <- subset(clin.sample.event.individ, sample_id %in% pass.qc)
+```
+
+```{r}
+# Set concentrations below LOD to 0
+lod <- replicate(ncol(olink), rData$LOD)
+olink[olink < lod] <- 0
+
+# Only keep cytokines detected in at least 20% of the samples
+olink <- olink[rowSums(olink>0, na.rm = TRUE) >= 0.2*ncol(olink),]
+```
+
+# Analysis: Visit 1
+
+## Prepare Visit 1 data
+
+```{r}
+# Keep visit 1 samples for RNA-seq
+clin.sample.event.individ.1 <- clin.sample.event.individ %>%
+  subset(event_type=="Visit 1" & event_location=="Hospital")
+
+# Keep visit 1 samples for viral load
+clin.sample.event.individ.sc2.1 <- clin.sample.event.individ.sc2 %>%
+  subset(event_type=="Visit 1" & event_location=="Hospital")
+
+# Add viral load
+clin.sample.event.individ.1 <- merge(
+  clin.sample.event.individ.1, clin.sample.event.individ.sc2.1[,c("event_id","sc2_rpm")],
+  by = "event_id", all = FALSE, sort = FALSE
+)
+# Convert viral load to log10(rpm + 1)
+clin.sample.event.individ.1$sc2_rpm <- log10(clin.sample.event.individ.1$sc2_rpm + 1)
+
+# Drop unused levels
+clin.sample.event.individ.1 <- droplevels(clin.sample.event.individ.1)
+
+# Any row with no sc2_rpm?
+print(any(is.na(clin.sample.event.individ.1$sc2_rpm)))
+
+# Any duplicated participant?
+print(any(duplicated(clin.sample.event.individ.1$participant_id)))
+```
+
+```{r}
+# Subset visit 1 samples
+olink.1 <- olink[,clin.sample.event.individ.1$sample_id]
+
+# Scale protein concentration
+olink.1.2 <- t(scale(t(olink.1)))
+```
+
+## Continuous age
+
+### Not control for viral load
+
+```{r}
+# Linear model
+res.noviralload <- data.frame(matrix(NA, nrow=nrow(olink.1.2), ncol=4))
+colnames(res.noviralload) <- c("cytokine","slope","PVal","adj.PVal")
+rownames(res.noviralload) <- rownames(olink.1.2)
+res.noviralload$cytokine <- rownames(res.noviralload)
+
+for (i in rownames(res.noviralload)) {
+  temp <- data.frame(conc=olink.1.2[i,], 
+                     age=clin.sample.event.individ.1$admit_age,
+                     sex=clin.sample.event.individ.1$sex,
+                     steroids=clin.sample.event.individ.1$steroids,
+                     sc2=clin.sample.event.individ.1$sc2_rpm,
+                     resp=clin.sample.event.individ.1$respiratory_status) %>%
+    subset(!is.na(conc))
+  my.lm <- lm(conc ~ age + sex + resp, data=temp)
+  res.noviralload[i,"slope"] <- summary(my.lm)$coefficients["age",1]
+  res.noviralload[i,"PVal"] <- summary(my.lm)$coefficients["age",4]
+  
+  remove(temp, my.lm)
+}
+
+# Correct P-values
+res.noviralload$adj.PVal <- p.adjust(res.noviralload$PVal, method = "BH")
+
+# Save results
+write.csv(
+  res.noviralload,
+  "20230124_olink_visit1_DE_no-viralload.csv"
+)
+```
+
+### Control for viral load
+
+```{r}
+# Linear model
+res <- data.frame(matrix(NA, nrow=nrow(olink.1.2), ncol=4))
+colnames(res) <- c("cytokine","slope","PVal","adj.PVal")
+rownames(res) <- rownames(olink.1.2)
+res$cytokine <- rownames(res)
+
+for (i in rownames(res)) {
+  temp <- data.frame(conc=olink.1.2[i,], 
+                     age=clin.sample.event.individ.1$admit_age,
+                     sex=clin.sample.event.individ.1$sex,
+                     steroids=clin.sample.event.individ.1$steroids,
+                     sc2=clin.sample.event.individ.1$sc2_rpm,
+                     resp=clin.sample.event.individ.1$respiratory_status) %>%
+    subset(!is.na(conc))
+  my.lm <- lm(conc ~ age + sc2 + sex + resp, data=temp)
+  res[i,"slope"] <- summary(my.lm)$coefficients["age",1]
+  res[i,"PVal"] <- summary(my.lm)$coefficients["age",4]
+  
+  remove(temp, my.lm)
+}
+
+# Correct P-values
+res$adj.PVal <- p.adjust(res$PVal, method = "BH")
+```
+
+### Plotting
+
+Plot slope of all significant cytokines, without controlling for viral load.
+
+```{r}
+# Figure 5A
+p <- ggplot(data = subset(res.noviralload, adj.PVal < 0.05)) +
+  geom_col(aes(y = reorder(cytokine,slope), x = slope,
+               fill = as.factor(slope>0)),
+           width=0.7) +
+  geom_vline(xintercept=0, color="black", size=0.5) +
+  scale_fill_manual(values=c("TRUE"="darkred", "FALSE"="dodgerblue4"), guide="none") +
+  # coord_flip() +
+  labs(x = "Slope\n(change per 1 year of age)", y = "",
+       title = "Proteins associated\nwith age at Visit 1") +
+  scale_x_continuous(limits=c(-0.02, 0.02), expand=c(0,0)) +
+  theme_bw() + theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text.x = element_text(size=11, color="black"),
+    axis.text.y = element_text(size=10, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm"),
+    panel.grid.minor=element_blank()
+  ) # olink_visit1_age_no-viralload, 3.7 x 7.5 in (w x h)
+```
+
+Plot slope of all significant cytokines, controlling for viral load.
+
+```{r}
+# Supplementary Figure 7A
+p <- ggplot(data = subset(res, adj.PVal < 0.05)) +
+  geom_col(aes(y = reorder(cytokine,slope), x = slope,
+               fill = as.factor(slope>0)),
+           width=0.7) +
+  geom_vline(xintercept=0, color="black", size=0.5) +
+  scale_fill_manual(values=c("TRUE"="darkred", "FALSE"="dodgerblue4"), guide="none") +
+  # coord_flip() +
+  labs(x = "Slope\n(change per 1 year of age)", y = "",
+       title = "Proteins associated\nwith age at Visit 1\n(controlled for viral load)") +
+  scale_x_continuous(limits=c(-0.02, 0.02), expand=c(0,0)) +
+  theme_bw() + theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text.x = element_text(size=11, color="black"),
+    axis.text.y = element_text(size=12, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm"),
+    panel.grid.minor=element_blank()
+  ) # olink_visit1_age_viralload, 3.7 x 9.5 in (w x h)
+```
+
+Plot some example cytokines (not controlling for viral load).
+
+```{r}
+# Figure 5B
+p <- list()
+counter <- 1
+my.colors <- c("darkred","dodgerblue4")
+for (i in c("CXCL9","SIRT2")) {
+  temp <- data.frame(conc=olink.1.2[i,],
+                     age=clin.sample.event.individ.1$admit_age,
+                     sex=clin.sample.event.individ.1$sex,
+                     steroids=clin.sample.event.individ.1$steroids,
+                     sc2=clin.sample.event.individ.1$sc2_rpm,
+                     resp=clin.sample.event.individ.1$respiratory_status)
+  my.lm <- lm(conc ~ age + sex + resp, data=temp)
+  my.pred <- ggeffects::ggpredict(my.lm, "age")
+  
+  p[[i]] <- ggplot() +
+    geom_point(data = temp, aes(age,conc), size = 0.5) +
+    geom_line(data = my.pred, aes(x,predicted), size = 1, color = my.colors[counter]) +
+    geom_ribbon(data = my.pred, 
+                aes(x = x, y = predicted, ymin = conf.low, ymax = conf.high),
+                fill = my.colors[counter], alpha = .4) +
+    # annotate(geom = "text", label = sprintf("P = %.1e", res.noviralload[i,"adj.PVal"]),
+    #          x = 0.6*min(temp$age), y = 1.3*min(temp$conc), hjust=0) +
+    labs(x = "Age", y = "NPX (z-score)", 
+         title = i) +
+    theme_classic() + 
+    theme(
+      plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+      axis.text = element_text(size=12, family="Arial", color="black"),
+      text = element_text(size=12, family="Arial", color="black"),
+      plot.margin = unit(c(0,1,0.5,0), "cm")
+    )
+  
+  counter <- counter + 1
+}
+
+p[[1]]+p[[2]] + plot_layout(ncol = 1) # olink_visit1_age_no-viralload_examples, 3.3 x 7 in
+```
+
+## Age and viral load interaction
+
+### Stratified analysis
+
+```{r}
+res.y <- data.frame(matrix(NA, nrow=nrow(olink.1), ncol=4))
+colnames(res.y) <- c("cytokine","slope","PVal","adj.PVal")
+rownames(res.y) <- rownames(olink.1)
+res.y$cytokine <- rownames(res.y)
+res.o <- data.frame(matrix(NA, nrow=nrow(olink.1), ncol=4))
+colnames(res.o) <- c("cytokine","slope","PVal","adj.PVal")
+rownames(res.o) <- rownames(olink.1)
+res.o$cytokine <- rownames(res.o)
+
+for (i in rownames(olink.1.2)) {
+  # Prepare data
+  temp <- data.frame(value=scale(olink.1[i,]),
+                     age=clin.sample.event.individ.1$admit_age,
+                     sex=clin.sample.event.individ.1$sex,
+                     steroids=clin.sample.event.individ.1$steroids,
+                     sc2=clin.sample.event.individ.1$sc2_rpm,
+                     resp=clin.sample.event.individ.1$respiratory_status) %>%
+    subset(!is.na(value))
+  
+  # Young
+  temp.y <- temp %>%
+    subset(age<=46) %>%
+    droplevels()
+  # temp.y$value <- scale(temp.y$value)
+  my.lm <- lm(value ~ sc2 + sex + resp, data=temp.y)
+  aa <- summary(my.lm)
+  res.y[i,"slope"] <- aa$coefficients["sc2","Estimate"]
+  res.y[i,"PVal"] <- aa$coefficients["sc2","Pr(>|t|)"]
+  
+  remove(my.lm)
+  
+  # Old
+  temp.o <- temp %>%
+    subset(age > 70) %>%
+    droplevels()
+  # temp.o$value <- scale(temp.o$value)
+  my.lm <- lm(value ~ sc2 + sex + resp, data=temp.o)
+  aa <- summary(my.lm)
+  res.o[i,"slope"] <- aa$coefficients["sc2","Estimate"]
+  res.o[i,"PVal"] <- aa$coefficients["sc2","Pr(>|t|)"]
+  
+  remove(temp, temp.y, temp.o, my.lm)
+}
+
+# Correct P-values
+res.y$adj.PVal <- p.adjust(res.y$PVal, method = "BH")
+res.o$adj.PVal <- p.adjust(res.o$PVal, method = "BH")
+```
+
+Plot slope of old vs young.
+
+```{r}
+x <- res.y$slope
+names(x) <- rownames(res.y)
+# x[res.y$adj.PVal>0.05] <- 0
+y <- res.o$slope
+names(y) <- rownames(res.o)
+# y[res.o$adj.PVal>0.05] <- 0
+
+print(all(names(x) == names(y)))
+
+temp <- data.frame(
+  cytokine=names(x),
+  y.slope=x, o.slope=y,
+  y.sig=res.y$adj.PVal<0.05,
+  o.sig=res.o$adj.PVal<0.05,
+  sig = (res.y$adj.PVal<0.05) | (res.o$adj.PVal<0.05)
+)
+ggplot(data=temp, aes(x=y.slope, y=o.slope)) +
+  geom_abline(slope=1, intercept=0,
+              linetype="dashed", color="red", size=1) +
+  geom_point(aes(color=sig), size=1.2) +
+  geom_text(
+    data=subset(temp, cytokine %in% c("CXCL10","CX3CL1","CCL23","SLAMF1","CCL8","TNFSF10")),
+    aes(label=cytokine), hjust=0.5, vjust=0.1, size=3) +
+  labs(x="Slope in age group [18,46]",
+       y="Slope in age group [71,96]",
+       title="Association with viral load\nat visit 1") + 
+  my.theme + theme(aspect.ratio = 1)
+# olink_visit1_viralload_age1vs5, 3.5 x 3.8 in
+
+# Dot plot of sig cytokines
+temp2 <- rbind(
+  res.y[(res.y$adj.PVal<0.05) | (res.o$adj.PVal<0.05),c("cytokine","slope","adj.PVal")] %>% mutate(age_group="[18,46]"),
+  res.o[(res.y$adj.PVal<0.05) | (res.o$adj.PVal<0.05),c("cytokine","slope","adj.PVal")] %>% mutate(age_group="[71,96]")
+)
+
+# Figure 5C
+p <- ggplot(data=temp2,
+       aes(x=age_group,
+           y=reorder(cytokine, slope, FUN=function(x) x[1]),
+           color=slope)) +
+  geom_point(color="white", size=3) +
+  geom_point(shape=1, size=3, stroke=1.5) +
+  geom_point(data=. %>% subset(adj.PVal<0.05), size=5) +
+  scale_color_distiller(palette = "BrBG",
+                        limits=c(-0.2,0.2),
+                        breaks=c(-0.2,0,0.2),
+                        name="") +
+  labs(
+    x = "Age group", y = "Protein",
+    title = "Proteins associated with\nviral load at Visit 1"
+  ) +
+  theme_bw() + theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text.x = element_text(size=11, color="black", angle=45, hjust=1),
+    axis.text.y = element_text(size=11, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm"),
+    panel.grid.minor=element_blank(),
+    legend.direction = "horizontal",
+    legend.position = "bottom"
+  ) # olink_visit1_viralload_age1vs5_dotplot, 3 x 4.5 in
+```
+
+Plot example cytokines
+
+```{r}
+p <- list()
+for (i in c("IL10","CX3CL1")) {
+  # Prepare data
+  temp <- data.frame(value=scale(olink.1[i,]),
+                     age=clin.sample.event.individ.1$admit_age,
+                     sex=clin.sample.event.individ.1$sex,
+                     steroids=clin.sample.event.individ.1$steroids,
+                     sc2=clin.sample.event.individ.1$sc2_rpm,
+                     resp=clin.sample.event.individ.1$respiratory_status) %>%
+    subset(!is.na(value))
+  
+  # Young
+  temp.y <- temp %>%
+    subset(age<=46) %>%
+    droplevels()
+  # temp.y$value <- scale(temp.y$value)
+  my.lm <- lm(value ~ sc2 + sex + resp, data=temp.y)
+  my.pred.y <- ggeffects::ggpredict(my.lm, terms=c("sc2"))
+  remove(my.lm)
+  
+  # Old
+  temp.o <- temp %>%
+    subset(age >= 71) %>%
+    droplevels()
+  # temp.o$value <- scale(temp.o$value)
+  my.lm <- lm(value ~ sc2 + sex + resp, data=temp.o)
+  my.pred.o <- ggeffects::ggpredict(my.lm, terms=c("sc2"))
+  
+  # Brewer paired palette
+  p[[i]] <- ggplot() +
+    geom_point(data=temp.y, aes(x=sc2,y=value),
+               shape = 21, fill = "#440154", color = "black", 
+               size = 1, stroke = 0.3) +
+    geom_point(data=temp.o, aes(x=sc2,y=value),
+               shape = 21, fill = "#fde725", color = "black", 
+               size = 1, stroke = 0.3) +
+    geom_line(data = my.pred.y, aes(x,predicted),
+              color = "#440154", size = 1) +
+    # geom_ribbon(data = my.pred.y, 
+    #             aes(x = x, y = predicted, ymin = conf.low, ymax = conf.high),
+    #             fill = "#440154", alpha = .4) +
+    geom_line(data = my.pred.o, aes(x,predicted),
+              color = "#fde725", size = 1) +
+    # geom_ribbon(data = my.pred.o, 
+    #             aes(x = x, y = predicted, ymin = conf.low, ymax = conf.high),
+    #             fill = "#fde725", alpha = .4) +
+    labs(x = "Viral load, log10(rpM+1)", y = "NPX (z-score)",
+         title = i) +
+    my.theme + theme(aspect.ratio=1)
+}
+
+p[[1]]+p[[2]]+ plot_layout(ncol=1) # olink_visit1_viralload_age1vs5_2examples, 3.5 x 7.5 in
+```
+
+## Age and severity: stratified by age
+
+```{r}
+clin.sample.event.individ.1.y <- clin.sample.event.individ.1 %>% 
+  subset((admit_age <= 46)) %>%
+  droplevels()
+clin.sample.event.individ.1.o <- clin.sample.event.individ.1 %>% 
+  subset((admit_age > 70)) %>%
+  droplevels()
+
+# olink.1.y <- olink.1[,clin.sample.event.individ.1.y$sample_id]
+# olink.1.o <- olink.1[,clin.sample.event.individ.1.o$sample_id]
+```
+
+Mild is 3 & 4, severe is 5 & 6.
+
+```{r}
+clin.sample.event.individ.1.y$severity <- "Severe"
+clin.sample.event.individ.1.y[clin.sample.event.individ.1.y$respiratory_status %in% c("3","4"),"severity"] <- "Mild"
+
+clin.sample.event.individ.1.o$severity <- "Severe"
+clin.sample.event.individ.1.o[clin.sample.event.individ.1.o$respiratory_status %in% c("3","4"),"severity"] <- "Mild"
+
+print(table(clin.sample.event.individ.1.y$severity))
+print(table(clin.sample.event.individ.1.o$severity))
+```
+
+### Not control for viral load
+
+Linear model
+
+```{r}
+# Prepare data frame for young patients
+res.y <- data.frame(matrix(NA, nrow=nrow(olink.1.2), ncol=4))
+colnames(res.y) <- c("cytokine","slope","PVal","adj.PVal")
+rownames(res.y) <- rownames(olink.1.2)
+res.y$cytokine <- rownames(olink.1.2)
+
+# Prepare data frame for old patients
+res.o <- data.frame(matrix(NA, nrow=nrow(olink.1.2), ncol=4))
+colnames(res.o) <- c("cytokine","slope","PVal","adj.PVal")
+rownames(res.o) <- rownames(olink.1.2)
+res.o$cytokine <- rownames(olink.1.2)
+
+for (i in rownames(res.y)) {
+  # Young
+  temp <- data.frame(value=olink.1.2[i,clin.sample.event.individ.1.y$sample_id],
+                     severity=as.factor(clin.sample.event.individ.1.y$severity),
+                     sex=clin.sample.event.individ.1.y$sex,
+                     sc2=clin.sample.event.individ.1.y$sc2_rpm
+                     ) %>%
+    subset(!is.na(value))
+  my.lm <- lm(value ~ severity + sex, data = temp)
+  aa <- summary(my.lm)
+  res.y[i,"slope"] <- coefficients(aa)["severitySevere",1]
+  res.y[i,"PVal"] <- coefficients(aa)["severitySevere",4]
+  
+  # Old
+  temp <- data.frame(value=olink.1.2[i,clin.sample.event.individ.1.o$sample_id],
+                     severity=as.factor(clin.sample.event.individ.1.o$severity),
+                     sex=clin.sample.event.individ.1.o$sex,
+                     sc2=clin.sample.event.individ.1.o$sc2_rpm
+                     ) %>%
+    subset(!is.na(value))
+  my.lm <- lm(value ~ severity + sex, data = temp)
+  aa <- summary(my.lm)
+  res.o[i,"slope"] <- coefficients(aa)["severitySevere",1]
+  res.o[i,"PVal"] <- coefficients(aa)["severitySevere",4]
+}
+
+# BH adjust P value
+res.y$adj.PVal <- p.adjust(res.y$PVal, method = "BH")
+res.o$adj.PVal <- p.adjust(res.o$PVal, method = "BH")
+
+# Show number of significant cytokines
+print(sum(res.y$adj.PVal < 0.05))
+print(sum(res.o$adj.PVal < 0.05))
+```
+
+Plot significant cytokines only
+
+```{r}
+# Which cytokines are significant in at least one age group
+my.cytokines <- union(
+  res.y[res.y$adj.PVal < 0.05,"cytokine"],
+  res.o[res.o$adj.PVal < 0.05,"cytokine"]
+)
+
+res.toplot <- rbind(
+  res.y[my.cytokines,] %>% mutate(age_group="[18,46]"),
+  res.o[my.cytokines,] %>% mutate(age_group="[71,96]")
+)
+
+p1 <- ggplot(data=res.toplot, aes(x=reorder(cytokine,slope), y=slope)) +
+  geom_point(aes(color=as.factor(slope>0), 
+                 # fill=as.factor(slope>0),
+                 # fill=as.factor(adj.PVal<0.05),
+                 shape=interaction(age_group,as.factor(adj.PVal<0.05))),
+             size=2, stroke=1) +
+  geom_hline(yintercept=0, color="black") +
+  scale_color_manual(values=c("TRUE"="darkgoldenrod1", "FALSE"="limegreen"), guide="none") +
+  scale_shape_manual(values=c(1,2,19,17)) +
+  # scale_shape_manual(values=c("\u25BD","\u25B3","\u25BE","\u25B4")) + # can't mix & match unicode and numeric shapes
+  scale_y_continuous(breaks=c(-1,-0.5,0,0.5,1), limits=c(-1,1), expand=c(0,0)) +
+  labs(x="",
+       y="Increase in NPX (z-score)",
+       title="Proteins associated\nwith severity at Visit 1") +
+  coord_flip() + #facet_wrap(~ age_group) +
+  theme_bw() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text.x = element_text(size=11, color="black"),
+    axis.text.y = element_text(size=10, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm"),
+    panel.spacing = unit(0.5, "cm"),
+    legend.key = element_rect(fill = "gray90"),
+    panel.grid.minor=element_blank()
+  ) # olink_visit1_severity_young-vs-old, 7.5 x 7 in
+
+# Dotplot
+p2 <- ggplot(data=res.toplot,
+             aes(y=age_group, 
+                 x=reorder(cytokine, slope, FUN=function(x) x[1]),
+                 color=slope)) +
+  geom_point(color="white", size=3) +
+  geom_point(shape=1, size=3, stroke=1.5) +
+  geom_point(data=. %>% subset(adj.PVal < 0.05), size=4) +
+  scale_y_discrete(limits=c("[71,96]","[18,46]")) +
+  scale_color_gradientn(
+    colors=c("limegreen","#f7f7f7","coral2"),
+    limits=c(-1,1),
+    breaks=c(-1,0,1),
+    name="") +
+  labs(
+    y="Age group", x="",
+    title="Proteins associated with severity at Visit 1"
+  ) +
+  theme_bw() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text.x = element_text(size=10, color="black", angle=45, hjust=1),
+    axis.text.y = element_text(size=11, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,2,1,0), "cm"),
+    panel.grid.minor=element_blank(),
+    legend.direction = "horizontal",
+    legend.position = "bottom"
+  ) # olink_visit1_severity_young-vs-old_dotplot, 11 x 3.4 in
+```
+
+### Control for viral load
+
+```{r}
+# Prepare data frame for young patients
+res.y <- data.frame(matrix(NA, nrow=nrow(olink.1.2), ncol=4))
+colnames(res.y) <- c("cytokine","slope","PVal","adj.PVal")
+rownames(res.y) <- rownames(olink.1.2)
+res.y$cytokine <- rownames(olink.1.2)
+
+# Prepare data frame for old patients
+res.o <- data.frame(matrix(NA, nrow=nrow(olink.1.2), ncol=4))
+colnames(res.o) <- c("cytokine","slope","PVal","adj.PVal")
+rownames(res.o) <- rownames(olink.1.2)
+res.o$cytokine <- rownames(olink.1.2)
+
+for (i in rownames(res.y)) {
+  # Young
+  temp <- data.frame(value=olink.1.2[i,clin.sample.event.individ.1.y$sample_id],
+                     severity=as.factor(clin.sample.event.individ.1.y$severity),
+                     sex=clin.sample.event.individ.1.y$sex,
+                     sc2=clin.sample.event.individ.1.y$sc2_rpm
+                     ) %>%
+    subset(!is.na(value))
+  my.lm <- lm(value ~ severity + sex + sc2, data = temp)
+  aa <- summary(my.lm)
+  res.y[i,"slope"] <- coefficients(aa)["severitySevere",1]
+  res.y[i,"PVal"] <- coefficients(aa)["severitySevere",4]
+  
+  # Old
+  temp <- data.frame(value=olink.1.2[i,clin.sample.event.individ.1.o$sample_id],
+                     severity=as.factor(clin.sample.event.individ.1.o$severity),
+                     sex=clin.sample.event.individ.1.o$sex,
+                     sc2=clin.sample.event.individ.1.o$sc2_rpm
+                     ) %>%
+    subset(!is.na(value))
+  my.lm <- lm(value ~ severity + sex + sc2, data = temp)
+  aa <- summary(my.lm)
+  res.o[i,"slope"] <- coefficients(aa)["severitySevere",1]
+  res.o[i,"PVal"] <- coefficients(aa)["severitySevere",4]
+}
+
+# BH adjust P value
+res.y$adj.PVal <- p.adjust(res.y$PVal, method = "BH")
+res.o$adj.PVal <- p.adjust(res.o$PVal, method = "BH")
+
+# Show number of significant cytokines
+print(sum(res.y$adj.PVal < 0.05))
+print(sum(res.o$adj.PVal < 0.05))
+```
+
+Plot significant cytokines only
+
+```{r}
+# Which cytokines are significant in at least one age group
+my.cytokines <- union(
+  res.y[res.y$adj.PVal < 0.05,"cytokine"],
+  res.o[res.o$adj.PVal < 0.05,"cytokine"]
+)
+
+res.toplot <- rbind(
+  res.y[my.cytokines,] %>% mutate(age_group="[18,46]"),
+  res.o[my.cytokines,] %>% mutate(age_group="[71,96]")
+)
+
+# Supplementary Figure 9B
+# Dotplot
+p2 <- ggplot(data=res.toplot,
+             aes(x=age_group, 
+                 y=reorder(cytokine, slope, FUN=function(x) x[1]),
+                 color=slope)) +
+  geom_point(color="white", size=3) +
+  geom_point(shape=1, size=3, stroke=1.5) +
+  geom_point(data=. %>% subset(adj.PVal < 0.05), size=4) +
+  scale_color_gradientn(
+    colors=c("limegreen","#f7f7f7","coral2"),
+    limits=c(-1,1),
+    breaks=c(-1,0,1),
+    name="") +
+  labs(
+    x="Age group", y="",
+    title="Proteins associated\nwith severity at Visit 1\n(controlled for viral load)"
+  ) +
+  theme_bw() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text.x = element_text(size=11, color="black", angle=45, hjust=1),
+    axis.text.y = element_text(size=11, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,2,1,0), "cm"),
+    panel.grid.minor=element_blank(),
+    legend.direction = "horizontal",
+    legend.position = "bottom"
+  ) # olink_visit1_severity_viralload_young-vs-old_dotplot, 3 x 11.3 in
+```
+
+# Longitudinal analysis
+
+```{r}
+# Add viral load to clin.sample.event.individ
+clin.sample.event.individ.long <- merge(
+  clin.sample.event.individ, clin.sample.event.individ.sc2[,c("event_id","sc2_rpm")],
+  by = "event_id",
+  all = FALSE, sort = FALSE
+)
+# Log-transform viral load
+clin.sample.event.individ.long$sc2_rpm <- log10(clin.sample.event.individ.long$sc2_rpm+1)
+
+# Remove escalation samples
+clin.sample.event.individ.long <- clin.sample.event.individ.long %>%
+  subset(!grepl("Escalation", event_type) & event_date<=30)
+
+# Divide into age groups
+clin.sample.event.individ.long$age_group <- cut(
+  clin.sample.event.individ.long$admit_age,
+  breaks=c(17,46,54,62,70,96)
+  )
+
+# Rename levels: convert round bracket to square bracket
+levels(clin.sample.event.individ.long$age_group) <- c("[18,46]","[47,54]","[55,62]","[63,70]","[71,96]")
+
+# Subset olink samples
+olink.long <- olink[,clin.sample.event.individ.long$sample_id]
+```
+
+Look at event_date per visit.
+
+```{r}
+p1 <- ggplot(data=clin.sample.event.individ.long,
+             aes(x=event_type, y=event_date, color=age_group)) +
+  geom_boxplot()
+```
+
+## Without controlling for viral load
+
+Linear mixed effects model
+
+```{r}
+res <- data.frame(matrix(NA, nrow=nrow(olink.long), ncol=11))
+colnames(res) <- c("slope.2vs1","slope.3vs1","slope.4vs1","slope.5vs1",
+                   "slope.1","slope.2","slope.3","slope.4","slope.5",
+                   "PVal","adj.PVal")
+# res$cytokine <- rownames(olink.long)
+rownames(res) <- rownames(olink.long)
+
+for (i in rownames(res)) {
+  temp <- data.frame(
+    value = scale(olink.long[i,]),
+    event_date = clin.sample.event.individ.long$event_date,
+    age_group = clin.sample.event.individ.long$age_group,
+    sc2 = clin.sample.event.individ.long$sc2_rpm,
+    sex = clin.sample.event.individ.long$sex,
+    tg = clin.sample.event.individ.long$trajectory_group,
+    site = clin.sample.event.individ.long$enrollment_site,
+    pid = clin.sample.event.individ.long$participant_id
+  ) %>%
+    subset(!is.na(value)) %>%
+    droplevels()
+  
+  fit1 <- lmer(
+    value ~ event_date + event_date:age_group + age_group + sex + tg + (1|pid), 
+    data = temp, REML = FALSE)
+  fit2 <- lmer(
+    value ~ event_date + age_group + sex + tg + (1|pid), 
+    data = temp, REML = FALSE)
+  
+  # Get P-values for the interaction term across all age-groups
+  aa <- anova(fit2, fit1, test = "LRT")
+  res[i,"PVal"] <- aa[2,"Pr(>Chisq)"]
+  
+  # Get interaction term
+  aa <- summary(fit1)
+  res[i,"slope.2vs1"] <- coefficients(aa)["event_date:age_group[47,54]","Estimate"]
+  res[i,"slope.3vs1"] <- coefficients(aa)["event_date:age_group[55,62]","Estimate"]
+  res[i,"slope.4vs1"] <- coefficients(aa)["event_date:age_group[63,70]","Estimate"]
+  res[i,"slope.5vs1"] <- coefficients(aa)["event_date:age_group[71,96]","Estimate"]
+  
+  # Calculate slope
+  res[i,"slope.1"] <- coefficients(aa)["event_date","Estimate"]
+  res[i,"slope.2"] <- res[i,"slope.1"] + res[i,"slope.2vs1"]
+  res[i,"slope.3"] <- res[i,"slope.1"] + res[i,"slope.3vs1"]
+  res[i,"slope.4"] <- res[i,"slope.1"] + res[i,"slope.4vs1"]
+  res[i,"slope.5"] <- res[i,"slope.1"] + res[i,"slope.5vs1"]
+}
+
+# Correct P-values
+res$adj.PVal <- p.adjust(res$PVal, method = "BH")
+```
+
+```{r}
+# Display significant cytokines
+ggplot() +
+  geom_col(data=arrange(res, desc(-adj.PVal)) %>% slice(1:25),
+           aes(x=reorder(cytokine, -adj.PVal), 
+               y=-log10(adj.PVal),
+               fill=as.factor(adj.PVal<0.05))) +
+  scale_fill_manual(values = c("FALSE"="gray","TRUE"="#F8766D")) +
+  geom_hline(yintercept=-log10(0.05), linetype="dashed") +
+  coord_flip() +
+  labs(x = "Cytokine", y = "-log10(adjusted P)",
+       title = "Top 25 cytokines") +
+  theme_bw() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    text = element_text(size=12, family="Arial"),
+    axis.text = element_text(size=12, color="black"),
+    plot.margin = unit(c(0,1,1,0), "cm"),
+    legend.position = "bottom"
+  )
+```
+
+Plot heatmap of significant cytokines' slopes.
+
+```{r}
+# Figure 5D
+res.toplot <- res[res$adj.PVal<0.05, c("slope.1","slope.2","slope.3","slope.4","slope.5")]
+colnames(res.toplot) <- levels(clin.sample.event.individ.long$age_group)
+out <- pheatmap(
+  res.toplot,
+  breaks = seq(-0.06,0.06, length.out = 255),
+  legend_breaks = c(-0.06,-0.03,0,0.03,0.06),
+  # color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdBu")))(99),
+  color = rgb(colorRamp(c ("deepskyblue3", "#F9F4EC", "deeppink4"), space="rgb", interpolate="linear")(0:255/255), maxColorValue=255),
+  cluster_cols = FALSE,
+  clustering_distance_rows = "euclidean", clustering_method = "complete",
+  angle_col = 45,
+  cutree_rows = 3, border_color = "gray75"
+) # olink_longitudinal_heatmap, 4 x 6.5 in
+```
+
+Plot example significant cytokines.
+
+```{r}
+# Supplementary Figure 7B
+p <- list()
+for (i in c("TNFSF11","CXCL8","CXCL9","IL6")) {
+  temp <- data.frame(
+    value = scale(olink.long[i,]),
+    event_date = clin.sample.event.individ.long$event_date,
+    age_group = clin.sample.event.individ.long$age_group,
+    sc2 = clin.sample.event.individ.long$sc2_rpm,
+    sex = clin.sample.event.individ.long$sex,
+    tg = clin.sample.event.individ.long$trajectory_group,
+    site = clin.sample.event.individ.long$enrollment_site,
+    pid = clin.sample.event.individ.long$participant_id
+  ) %>%
+    subset(!is.na(value)) %>%
+    droplevels()
+  
+  # Predict
+  fit <- lmer(
+    value ~ event_date + event_date:age_group + age_group + sex + tg + (1|pid), 
+    data = temp, REML = FALSE)
+  my.pred <- ggeffects::ggpredict(fit, terms=c("event_date","age_group"),
+                                  type="fixed")
+  colnames(my.pred)[colnames(my.pred)=="group"] <- "age_group"
+  
+  temp$yhat <- predict(fit)
+
+  # Calculate IQR and quartile values for limiting y-axes
+  q1 <- quantile(temp$value, 0.25)
+  q3 <- quantile(temp$value, 0.75)
+  iqr <- IQR(temp$value)
+  p[[i]] <- ggplot(data = temp, aes(x=event_date, y=value, color=age_group)) +
+    geom_line(aes(group=pid), color="gray", alpha=0.4) +
+    # geom_line(inherit.aes=FALSE, aes(x=event_date, y=yhat, group=pid),
+    #           color="#5F5F5F", alpha=0.9) +
+    geom_point(aes(color=age_group), shape=20, size=0.5) +
+    geom_line(inherit.aes=FALSE, data=my.pred, aes(x,predicted),
+              color = "black", size=1) +
+    geom_ribbon(inherit.aes=FALSE, data=my.pred,
+                aes(x = x, y = predicted,
+                    ymin = conf.low, ymax = conf.high),
+                fill = "black", alpha = 0.5) +
+    coord_cartesian(ylim = c(q1-1.5*iqr, q3+1.5*iqr)) +
+    labs(x="Days from admission", y="NPX (z-score)",
+         title=sprintf("%s (P = %.1e)",i,res[i,"adj.PVal"])) +
+    scale_color_viridis_d(begin=0.4, guide="none") +
+    # scale_fill_viridis_d(begin=0.4, guide="none") +
+    facet_wrap(~ age_group, nrow=1) + theme_bw() +
+    theme(
+      plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+      axis.text.x = element_text(size=11, color="black"),
+      axis.text.y = element_text(size=12, color="black"),
+      text = element_text(size=12, family="Arial"),
+      plot.margin = unit(c(0,1,0.5,0), "cm"),
+      panel.spacing = unit(0.35, "cm"),
+      panel.grid.minor=element_blank()
+    )
+
+p[[1]] +
+  p[[2]] +
+  p[[3]] + 
+  p[[4]] + plot_layout(ncol = 1) # olink_longitudinal, 7 x 10 in
+```
+
+Try plotting all 5 trend lines on one plot
+
+```{r}
+# Figure 5E
+p <- list()
+for (i in c("TNFSF11","CXCL8","CXCL9","IL6")) {
+  temp <- data.frame(
+    value = scale(olink.long[i,]),
+    event_date = clin.sample.event.individ.long$event_date,
+    age_group = clin.sample.event.individ.long$age_group,
+    sc2 = clin.sample.event.individ.long$sc2_rpm,
+    sex = clin.sample.event.individ.long$sex,
+    tg = clin.sample.event.individ.long$trajectory_group,
+    site = clin.sample.event.individ.long$enrollment_site,
+    pid = clin.sample.event.individ.long$participant_id
+  ) %>%
+    subset(!is.na(value)) %>%
+    droplevels()
+  
+  # Predict
+  fit <- lmer(
+    value ~ event_date + event_date:age_group + age_group + sex + tg + (1|pid), 
+    data = temp, REML = FALSE)
+  my.pred <- ggeffects::ggpredict(fit, terms=c("event_date","age_group"),
+                                  type="fixed")
+  colnames(my.pred)[colnames(my.pred)=="group"] <- "age_group"
+  
+  temp$yhat <- predict(fit)
+
+  
+  p[[i]] <- ggplot() +
+    # geom_line(aes(group=pid), color="gray", alpha=0.4) +
+    # geom_line(inherit.aes=FALSE, aes(x=event_date, y=yhat, group=pid),
+              # color="#5F5F5F", alpha=0.9) +
+    # geom_point(aes(color=age_group), size=1, alpha=0.8) +
+    geom_line(data=my.pred, aes(x,predicted,color=age_group),
+              size=1.5) +
+    labs(x="Days from admission", y="NPX (z-score)",
+         title=sprintf("%s (P = %.1e)",i,res[i,"adj.PVal"])) +
+    # scale_colour_brewer(palette="Paired") +
+    # scale_color_manual(values=c("#6699CC","mediumpurple1","#44AA99","#DDCC77","#CC6677"),
+    #                    name="Age group") +
+    scale_color_viridis_d(name = "Age group", guide = "none") +
+    theme_classic() + 
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text = element_text(size=12, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm")
+  )
+}
+
+p[[1]]+p[[2]]+p[[3]] + 
+  p[[4]]+ylim(-1.5,0) + plot_layout(nrow = 1) # olink_longitudinal_combined, 13.5 x 3.7 in
+```
