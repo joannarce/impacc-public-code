@@ -71,10 +71,7 @@ out_dir = "../output/"
 
 ## From the gene_set_functions.R sourced document
 signif <- pbmc_data[pbmc_data$adj.P.Val <= 0.05,]
-omnipath_connections <- omnipath_connection_pull(signif$gene_name)
-
 signif_olink <- olink_data[olink_data$adj.PVal <= 0.05,]
-top_mag <- signif_olink[order(abs(signif_olink$slope),decreasing = T)[1:10],]
 
 omnipath_connections <- omnipath_connection_pull(unique(c(signif_olink$cytokine, signif$gene_name)), gr_network = FALSE, double_step = FALSE)
 
@@ -129,12 +126,13 @@ base_df <- so_ligands_rec %>%
 
 
 col_fun = colorRamp2(c(-0.03, 0, 0.03), c("blue", "white", "red"))
-## pdf(paste0(out_dir, "panelB.pdf"), width = 12, height = 12)
+pdf(paste0(out_dir, "panelB.pdf"), width = 8, height = 8)
 circos.clear()
 heatdf1tmp <- base_df %>% distinct() %>%
   filter(!(is.na(logFC.nt) & is.na(logFC.pbmc))) %>%
-  mutate(logFC.nt = ifelse(adj.P.Val.nt > 0.05, 0, logFC.nt),
-         logFC.pbmc = ifelse(adj.P.Val.pbmc > 0.05, 0, logFC.pbmc)) %>%
+  ## Filter to white out non-significant genes, we optted not to use
+  # mutate(logFC.nt = ifelse(adj.P.Val.nt > 0.05, 0, logFC.nt),
+  #        logFC.pbmc = ifelse(adj.P.Val.pbmc > 0.05, 0, logFC.pbmc)) %>%
   select(to, logFC.nt, logFC.pbmc, from)
 split <- factor(heatdf1tmp$from)
 
@@ -201,7 +199,7 @@ circos.track(ylim = c(0, 1), track.index = 4, panel.fun = function(x, y) {
 library(ComplexHeatmap)
 lgd = Legend(title = "Slope\n(change per\n1 year of age)", col_fun = col_fun)
 draw(lgd, x = unit(0.95, "npc"), y = unit(0.85, "npc"), just = c("right", "top"))
-## dev.off()
+dev.off()
 
 ```
 

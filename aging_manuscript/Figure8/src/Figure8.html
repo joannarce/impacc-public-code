@@ -288,12 +288,13 @@ base_df &lt;- so_ligands_rec %&gt;%
 
 
 col_fun = colorRamp2(c(-0.03, 0, 0.03), c(&quot;blue&quot;, &quot;white&quot;, &quot;red&quot;))
-pdf(paste0(out_dir, &quot;panelB.pdf&quot;), width = 12, height = 12)
+pdf(paste0(out_dir, &quot;panelB.pdf&quot;), width = 8, height = 8)
 circos.clear()
 heatdf1tmp &lt;- base_df %&gt;% distinct() %&gt;%
   filter(!(is.na(logFC.nt) &amp; is.na(logFC.pbmc))) %&gt;%
-  mutate(logFC.nt = ifelse(adj.P.Val.nt &gt; 0.05, 0, logFC.nt),
-         logFC.pbmc = ifelse(adj.P.Val.pbmc &gt; 0.05, 0, logFC.pbmc)) %&gt;%
+  ## Filter to white out non-significant genes, we optted not to use
+  # mutate(logFC.nt = ifelse(adj.P.Val.nt &gt; 0.05, 0, logFC.nt),
+  #        logFC.pbmc = ifelse(adj.P.Val.pbmc &gt; 0.05, 0, logFC.pbmc)) %&gt;%
   select(to, logFC.nt, logFC.pbmc, from)
 split &lt;- factor(heatdf1tmp$from)
 
