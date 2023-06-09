@@ -1,0 +1,213 @@
+Module (or Feature),Analysis,P value,Adj. p value,Direction
+Olink_mod1,Visit 1 analysis - overall,1.7180286718997523e-6,4.008733567766089e-6,Severe
+Olink_mod2,Visit 1 analysis - overall,5.068732213543241e-19,3.548112549480269e-18,Severe
+Olink_mod3,Visit 1 analysis - overall,2.527155018582334e-11,8.845042565038169e-11,Mild
+Olink_mod4,Visit 1 analysis - overall,2.9134609202941127e-4,4.078845288411758e-4,Severe
+Olink_mod6,Visit 1 analysis - overall,1.361918458417445e-5,2.383357302230529e-5,Severe
+Olink_mod1,Visit 1 analysis - 1|4,0.010664341279571743,0.03245669085087052,Severe
+Olink_mod1,Visit 1 analysis - 1|5,3.2610491470102734e-5,1.868299527920874e-4,Severe
+Olink_mod1,Visit 1 analysis - 2|4,0.02694937524762608,0.06505021611495951,Severe
+Olink_mod1,Visit 1 analysis - 2|5,1.1695481472683505e-5,9.096485589864949e-5,Severe
+Olink_mod1,Visit 1 analysis - 3|4,0.00853744270704048,0.02716459043149243,Severe
+Olink_mod1,Visit 1 analysis - 3|5,3.469699123281623e-5,1.868299527920874e-4,Severe
+Olink_mod1,Visit 1 analysis - 4|5,0.022789175418723575,0.05723090714771454,Severe
+Olink_mod2,Visit 1 analysis - 1|2,9.249894448251173e-7,9.249894448251174e-6,Severe
+Olink_mod2,Visit 1 analysis - 1|3,0.04012714934888648,0.08777813920068918,Severe
+Olink_mod2,Visit 1 analysis - 1|4,1.3747979616203587e-11,5.810620480686138e-10,Severe
+Olink_mod2,Visit 1 analysis - 1|5,1.6601772801960394e-11,5.810620480686138e-10,Severe
+Olink_mod2,Visit 1 analysis - 2|4,1.4719558010036702e-5,1.0303690607025692e-4,Severe
+Olink_mod2,Visit 1 analysis - 2|5,7.856803673293198e-8,1.0999525142610477e-6,Severe
+Olink_mod2,Visit 1 analysis - 3|4,3.779871206844996e-7,4.409849741319162e-6,Severe
+Olink_mod2,Visit 1 analysis - 3|5,1.5520749572341846e-8,2.716131175159823e-7,Severe
+Olink_mod2,Visit 1 analysis - 4|5,0.0491015952289509,0.1041548989705019,Severe
+Olink_mod3,Visit 1 analysis - 1|2,2.576564511845679e-4,0.0010609383284070442,Mild
+Olink_mod3,Visit 1 analysis - 1|3,0.002734519869130761,0.009570819541957664,Mild
+Olink_mod3,Visit 1 analysis - 1|4,2.6950730253093643e-9,6.28850372572185e-8,Mild
+Olink_mod3,Visit 1 analysis - 1|5,9.681771246151405e-6,8.47154984038248e-5,Mild
+Olink_mod3,Visit 1 analysis - 2|4,3.290605290180279e-5,1.868299527920874e-4,Mild
+Olink_mod3,Visit 1 analysis - 2|5,0.01167164938065111,0.03404231069356574,Mild
+Olink_mod3,Visit 1 analysis - 3|4,7.609035514602123e-5,3.328953037638429e-4,Mild
+Olink_mod3,Visit 1 analysis - 3|5,0.01815949748514533,0.04889095476769897,Mild
+Olink_mod4,Visit 1 analysis - 1|4,0.0019076594297880159,0.007028218951850585,Severe
+Olink_mod4,Visit 1 analysis - 1|5,0.0030925887240864356,0.01030862908028812,Severe
+Olink_mod4,Visit 1 analysis - 2|4,0.0012231894428995649,0.0047568478334983075,Severe
+Olink_mod4,Visit 1 analysis - 2|5,0.013925990603568951,0.03899277368999306,Severe
+Olink_mod4,Visit 1 analysis - 3|4,0.029104707604369832,0.06791098441019627,Severe
+Olink_mod6,Visit 1 analysis - 1|4,5.2430075800532705e-5,2.621503790026635e-4,Severe
+Olink_mod6,Visit 1 analysis - 1|5,0.03819136112568569,0.0862385573805806,Severe
+Olink_mod6,Visit 1 analysis - 2|4,6.229166529825819e-5,2.9069443805853826e-4,Severe
+Olink_mod6,Visit 1 analysis - 3|4,0.022892362859085816,0.05723090714771454,Severe
+Olink_mod0,Longitudinal analysis - overall shape,0.0044321789639926315,0.005170875457991404,Mild
+Olink_mod1,Longitudinal analysis - overall shape,2.0100281656055089e-10,4.690065719746187e-10,Severe
+Olink_mod1,Longitudinal analysis - overall average,5.557023153994111e-13,9.724790519489694e-13,Severe
+Olink_mod2,Longitudinal analysis - overall shape,1.690100914235569e-10,4.690065719746187e-10,Severe
+Olink_mod2,Longitudinal analysis - overall average,6.2816058231131925e-43,4.397124076179235e-42,Severe
+Olink_mod3,Longitudinal analysis - overall shape,6.359856398294246e-13,4.451899478805972e-12,Mild
+Olink_mod3,Longitudinal analysis - overall average,9.68316179544979e-19,3.389106628407427e-18,Mild
+Olink_mod4,Longitudinal analysis - overall shape,0.012357312151746196,0.012357312151746196,Severe
+Olink_mod4,Longitudinal analysis - overall average,1.8839025239263443e-6,2.6374635334968817e-6,Severe
+Olink_mod5,Longitudinal analysis - overall shape,0.0016764056462597033,0.0023469679047635845,Severe
+Olink_mod6,Longitudinal analysis - overall shape,1.8547622889049487e-5,3.2458340055836605e-5,Severe
+Olink_mod6,Longitudinal analysis - overall average,1.3528780020104792e-13,3.1567153380244514e-13,Severe
+Olink_mod0,Longitudinal analysis - 1|3 shape,0.0073774647743398425,0.02582112671018945,Mild
+Olink_mod0,Longitudinal analysis - 2|3 shape,0.024017916410720548,0.08406270743752192,Mild
+Olink_mod0,Longitudinal analysis - 3|4 shape,0.0413975297168934,0.0482971180030423,Severe
+Olink_mod1,Longitudinal analysis - 1|4 average,2.1451270836511508e-6,3.753972396389514e-6,Severe
+Olink_mod1,Longitudinal analysis - 1|4 shape,2.4271007674410314e-4,0.001315491276579053,Severe
+Olink_mod1,Longitudinal analysis - 1|5 average,6.301705994759614e-10,1.4703980654439102e-9,Severe
+Olink_mod1,Longitudinal analysis - 1|5 shape,7.070726207398672e-10,4.94950834517907e-9,Severe
+Olink_mod1,Longitudinal analysis - 2|4 average,1.834847430706829e-5,3.2109830037369505e-5,Severe
+Olink_mod1,Longitudinal analysis - 2|4 shape,0.0019461877695627731,0.006811657193469706,Severe
+Olink_mod1,Longitudinal analysis - 2|5 average,4.521961056037024e-9,1.5826863696129583e-8,Severe
+Olink_mod1,Longitudinal analysis - 2|5 shape,6.231487722918308e-8,1.454013802014272e-7,Severe
+Olink_mod1,Longitudinal analysis - 3|4 average,2.150340268998023e-4,3.7630954707465404e-4,Severe
+Olink_mod1,Longitudinal analysis - 3|4 shape,4.308811840964459e-4,0.0015080841443375608,Severe
+Olink_mod1,Longitudinal analysis - 3|5 average,9.11177066323625e-7,2.1424770361502848e-6,Severe
+Olink_mod1,Longitudinal analysis - 3|5 shape,6.901797609872689e-12,4.8312583269108825e-11,Severe
+Olink_mod1,Longitudinal analysis - 4|5 average,0.025979813361412127,0.09092934676494244,Mild
+Olink_mod1,Longitudinal analysis - 4|5 shape,0.001162330787466477,0.002034078878066335,Severe
+Olink_mod2,Longitudinal analysis - 1|2 average,3.3662020781696795e-7,2.3563414547187757e-6,Severe
+Olink_mod2,Longitudinal analysis - 1|2 shape,0.04059525242537802,0.14208338348882307,Mild
+Olink_mod2,Longitudinal analysis - 1|3 average,1.544935742947396e-4,0.001081455020063177,Severe
+Olink_mod2,Longitudinal analysis - 1|3 shape,0.03895658401943822,0.09089869604535585,Mild
+Olink_mod2,Longitudinal analysis - 1|4 average,2.0639271031654217e-14,1.4447489722157953e-13,Severe
+Olink_mod2,Longitudinal analysis - 1|5 average,3.908278258457688e-19,2.7357947809203815e-18,Severe
+Olink_mod2,Longitudinal analysis - 1|5 shape,2.3391150111322964e-7,8.186902538963038e-7,Severe
+Olink_mod2,Longitudinal analysis - 2|4 average,4.107321250021871e-17,2.8751248750153094e-16,Severe
+Olink_mod2,Longitudinal analysis - 2|4 shape,0.00678869982045954,0.015840299581072262,Severe
+Olink_mod2,Longitudinal analysis - 2|5 average,3.534822001963328e-18,2.4743754013743298e-17,Severe
+Olink_mod2,Longitudinal analysis - 2|5 shape,4.1052024598613036e-13,1.4368208609514563e-12,Severe
+Olink_mod2,Longitudinal analysis - 3|4 average,3.2847451076163074e-14,2.299321575331415e-13,Severe
+Olink_mod2,Longitudinal analysis - 3|4 shape,0.01425792835701337,0.019961099699818716,Severe
+Olink_mod2,Longitudinal analysis - 3|5 average,1.5148603301631688e-18,1.0604022311142181e-17,Severe
+Olink_mod2,Longitudinal analysis - 3|5 shape,8.344674337067608e-10,2.9206360179736627e-9,Severe
+Olink_mod2,Longitudinal analysis - 4|5 average,0.0039152334388562905,0.027406634071994035,Mild
+Olink_mod2,Longitudinal analysis - 4|5 shape,2.175616973056405e-5,7.614659405697417e-5,Severe
+Olink_mod3,Longitudinal analysis - 1|2 average,0.043996750243646535,0.10265908390184192,Mild
+Olink_mod3,Longitudinal analysis - 1|2 shape,0.0039286782633124835,0.027500747843187383,Severe
+Olink_mod3,Longitudinal analysis - 1|3 average,0.03556990657601447,0.08299644867736711,Mild
+Olink_mod3,Longitudinal analysis - 1|4 average,5.535754818377761e-10,1.9375141864322163e-9,Mild
+Olink_mod3,Longitudinal analysis - 1|4 shape,5.290003092255802e-4,0.001315491276579053,Severe
+Olink_mod3,Longitudinal analysis - 1|5 average,5.099731933121707e-11,1.7849061765925975e-10,Mild
+Olink_mod3,Longitudinal analysis - 1|5 shape,5.423006765334053e-7,1.2653682452446126e-6,Mild
+Olink_mod3,Longitudinal analysis - 2|3 shape,0.021526134917537597,0.08406270743752192,Mild
+Olink_mod3,Longitudinal analysis - 2|4 average,2.5311566940682553e-11,8.859048429238893e-11,Mild
+Olink_mod3,Longitudinal analysis - 2|5 average,1.4042764771292076e-8,3.276645113301485e-8,Severe
+Olink_mod3,Longitudinal analysis - 2|5 shape,8.798663458961872e-14,6.159064421273311e-13,Mild
+Olink_mod3,Longitudinal analysis - 3|4 average,1.4786519076171512e-6,3.45018778444002e-6,Mild
+Olink_mod3,Longitudinal analysis - 3|4 shape,0.014014560552970977,0.019961099699818716,Severe
+Olink_mod3,Longitudinal analysis - 3|5 average,9.182044440644077e-7,2.1424770361502848e-6,Severe
+Olink_mod3,Longitudinal analysis - 3|5 shape,5.520138422875772e-8,1.2880322986710136e-7,Mild
+Olink_mod3,Longitudinal analysis - 4|5 shape,1.244858900483475e-11,8.714012303384325e-11,Mild
+Olink_mod4,Longitudinal analysis - 1|4 average,0.002092778399831576,0.002929889759764206,Severe
+Olink_mod4,Longitudinal analysis - 1|5 average,1.8231659959223686e-4,2.552432394291316e-4,Severe
+Olink_mod4,Longitudinal analysis - 1|5 shape,0.004305023644346826,0.0075337913776069455,Severe
+Olink_mod4,Longitudinal analysis - 2|4 average,0.007139256051533267,0.009994958472146574,Severe
+Olink_mod4,Longitudinal analysis - 2|5 average,0.007055514548892192,0.009877720368449068,Severe
+Olink_mod4,Longitudinal analysis - 2|5 shape,0.002247276659397205,0.003146187323156087,Severe
+Olink_mod4,Longitudinal analysis - 3|4 average,7.520077862587747e-4,0.0010528109007622846,Severe
+Olink_mod4,Longitudinal analysis - 3|5 average,0.006375550666683477,0.008925770933356867,Mild
+Olink_mod4,Longitudinal analysis - 3|5 shape,3.4900917927397257e-4,4.886128509835615e-4,Severe
+Olink_mod4,Longitudinal analysis - 4|5 shape,8.504270614824956e-4,0.001984329810125823,Severe
+Olink_mod5,Longitudinal analysis - 1|4 average,0.04472893112407497,0.05218375297808747,Severe
+Olink_mod5,Longitudinal analysis - 1|4 shape,5.63781975676737e-4,0.001315491276579053,Severe
+Olink_mod5,Longitudinal analysis - 2|4 shape,0.009761476604441117,0.017082584057771955,Severe
+Olink_mod5,Longitudinal analysis - 3|4 shape,0.001813869484006292,0.004232362129348015,Severe
+Olink_mod6,Longitudinal analysis - 1|2 average,0.0033580164254694224,0.011753057489142979,Severe
+Olink_mod6,Longitudinal analysis - 1|3 average,0.028637316679268183,0.08299644867736711,Severe
+Olink_mod6,Longitudinal analysis - 1|3 shape,0.004532750781054641,0.02582112671018945,Mild
+Olink_mod6,Longitudinal analysis - 1|4 average,3.1227659397096756e-8,7.286453859322577e-8,Severe
+Olink_mod6,Longitudinal analysis - 1|5 average,5.471815002161262e-7,9.575676253782209e-7,Severe
+Olink_mod6,Longitudinal analysis - 1|5 shape,0.025312430107512083,0.03543740215051691,Severe
+Olink_mod6,Longitudinal analysis - 2|4 average,3.75705486066159e-9,8.76646134154371e-9,Severe
+Olink_mod6,Longitudinal analysis - 2|4 shape,6.204119334088842e-5,4.3428835338621896e-4,Mild
+Olink_mod6,Longitudinal analysis - 2|5 average,2.988203918591218e-4,5.229356857534631e-4,Mild
+Olink_mod6,Longitudinal analysis - 2|5 shape,2.3541311978584896e-4,4.1197295962523564e-4,Severe
+Olink_mod6,Longitudinal analysis - 3|4 average,1.2038381080147494e-6,3.45018778444002e-6,Severe
+Olink_mod6,Longitudinal analysis - 3|4 shape,2.3447790048681886e-5,1.641345303407732e-4,Severe
+Olink_mod6,Longitudinal analysis - 3|5 average,0.004982580283774402,0.008719515496605204,Mild
+Olink_mod6,Longitudinal analysis - 3|5 shape,9.507438471557826e-6,1.6638017325226197e-5,Severe
+Olink_mod6,Longitudinal analysis - 4|5 shape,0.001978839477281763,0.002770375268194468,Severe
+Olink_mod1,Longitudinal analysis DFSO - overall shape,9.473232782177945e-8,3.3156314737622807e-7,Severe
+Olink_mod1,Longitudinal analysis DFSO- overall average,6.810868863189723e-10,1.1919020510582016e-9,Severe
+Olink_mod2,Longitudinal analysis DFSO - overall shape,1.695606058317961e-5,3.956414136075243e-5,Severe
+Olink_mod2,Longitudinal analysis DFSO- overall average,2.1015661492773962e-35,1.4710963044941773e-34,Severe
+Olink_mod3,Longitudinal analysis DFSO - overall shape,1.103234846551808e-9,7.722643925862657e-9,Mild
+Olink_mod3,Longitudinal analysis DFSO- overall average,2.5303346419613234e-15,8.856171246864632e-15,Mild
+Olink_mod4,Longitudinal analysis DFSO- overall average,1.7062392495898616e-5,2.388734949425806e-5,Severe
+Olink_mod5,Longitudinal analysis DFSO - overall shape,0.004435049646032961,0.006209069504446145,Severe
+Olink_mod5,Longitudinal analysis DFSO- overall average,0.005838904309818497,0.006812055028121581,Mild
+Olink_mod6,Longitudinal analysis DFSO - overall shape,4.1697615334355677e-4,7.297082683512243e-4,Severe
+Olink_mod6,Longitudinal analysis DFSO- overall average,7.615616615351081e-14,1.7769772102485857e-13,Severe
+Olink_mod1,Longitudinal analysis DFSO - 1|4 average,9.680537615283946e-6,1.6940940826746906e-5,Severe
+Olink_mod1,Longitudinal analysis DFSO - 1|4 shape,7.029491897184211e-4,0.004920644328028948,Severe
+Olink_mod1,Longitudinal analysis DFSO - 1|5 average,2.5286463453962144e-8,5.9001748059245005e-8,Severe
+Olink_mod1,Longitudinal analysis DFSO - 1|5 shape,8.070368189823765e-7,2.824628866438318e-6,Severe
+Olink_mod1,Longitudinal analysis DFSO - 2|4 average,2.692433063323734e-4,4.7117578608165344e-4,Severe
+Olink_mod1,Longitudinal analysis DFSO - 2|4 shape,8.034985544156933e-4,0.005624489880909853,Severe
+Olink_mod1,Longitudinal analysis DFSO - 2|5 average,4.5536664507931966e-6,1.062522171851746e-5,Severe
+Olink_mod1,Longitudinal analysis DFSO - 2|5 shape,6.25381220769153e-5,1.459222848461357e-4,Severe
+Olink_mod1,Longitudinal analysis DFSO - 3|4 average,5.929854888383042e-4,0.0010377246054670325,Severe
+Olink_mod1,Longitudinal analysis DFSO - 3|4 shape,1.67907188218284e-5,1.1753503175279879e-4,Severe
+Olink_mod1,Longitudinal analysis DFSO - 3|5 average,7.149823460770348e-5,2.5024382112696214e-4,Severe
+Olink_mod1,Longitudinal analysis DFSO - 3|5 shape,1.6247231268411798e-8,5.686530943944129e-8,Severe
+Olink_mod1,Longitudinal analysis DFSO - 4|5 shape,0.0017532125295776403,0.0030681219267608703,Severe
+Olink_mod2,Longitudinal analysis DFSO - 1|2 average,6.331739547948845e-4,0.004432217683564192,Severe
+Olink_mod2,Longitudinal analysis DFSO - 1|3 average,0.007163803907527576,0.025073313676346517,Severe
+Olink_mod2,Longitudinal analysis DFSO - 1|4 average,1.5959398949022395e-12,1.1171579264315676e-11,Severe
+Olink_mod2,Longitudinal analysis DFSO - 1|5 average,9.633463077893282e-16,6.743424154525298e-15,Severe
+Olink_mod2,Longitudinal analysis DFSO - 1|5 shape,4.943623767157591e-5,1.1535122123367713e-4,Severe
+Olink_mod2,Longitudinal analysis DFSO - 2|4 average,7.271442666115025e-15,5.090009866280517e-14,Severe
+Olink_mod2,Longitudinal analysis DFSO - 2|5 average,1.297949459630994e-12,9.085646217416958e-12,Severe
+Olink_mod2,Longitudinal analysis DFSO - 2|5 shape,4.071409609325689e-9,1.4249933632639912e-8,Severe
+Olink_mod2,Longitudinal analysis DFSO - 3|4 average,1.1172568936603311e-14,7.820798255622317e-14,Severe
+Olink_mod2,Longitudinal analysis DFSO - 3|4 shape,0.03970517211883053,0.06790462262324519,Severe
+Olink_mod2,Longitudinal analysis DFSO - 3|5 average,2.3875013285633723e-15,1.6712509299943604e-14,Severe
+Olink_mod2,Longitudinal analysis DFSO - 3|5 shape,4.2942889565537124e-10,3.0060022695875985e-9,Severe
+Olink_mod2,Longitudinal analysis DFSO - 4|5 shape,1.684197849239976e-4,5.894692472339915e-4,Severe
+Olink_mod3,Longitudinal analysis DFSO - 1|2 shape,0.024734970924328067,0.17314479647029646,Severe
+Olink_mod3,Longitudinal analysis DFSO - 1|4 average,1.744151387613327e-8,4.069686571097763e-8,Mild
+Olink_mod3,Longitudinal analysis DFSO - 1|4 shape,0.002196119862946085,0.007686419520311297,Severe
+Olink_mod3,Longitudinal analysis DFSO - 1|5 average,5.790207147269843e-9,2.026572501544445e-8,Mild
+Olink_mod3,Longitudinal analysis DFSO - 1|5 shape,3.4163664778671525e-10,2.391456534507007e-9,Mild
+Olink_mod3,Longitudinal analysis DFSO - 2|3 shape,0.0205572666985996,0.0719504334450986,Mild
+Olink_mod3,Longitudinal analysis DFSO - 2|4 average,3.920347971336221e-10,1.3721217899676774e-9,Mild
+Olink_mod3,Longitudinal analysis DFSO - 2|5 average,2.9310720630621187e-7,1.0258752220717415e-6,Severe
+Olink_mod3,Longitudinal analysis DFSO - 2|5 shape,1.6461981014308682e-10,1.1523386710016076e-9,Mild
+Olink_mod3,Longitudinal analysis DFSO - 3|4 average,2.574134967189026e-5,6.006314923441061e-5,Mild
+Olink_mod3,Longitudinal analysis DFSO - 3|4 shape,0.006105815981090836,0.014246903955878618,Severe
+Olink_mod3,Longitudinal analysis DFSO - 3|5 average,2.5711183845542567e-4,5.999276230626599e-4,Severe
+Olink_mod3,Longitudinal analysis DFSO - 3|5 shape,5.899777025825243e-6,1.3766146393592234e-5,Mild
+Olink_mod3,Longitudinal analysis DFSO - 4|5 average,0.040049294947010664,0.14017253231453733,Severe
+Olink_mod3,Longitudinal analysis DFSO - 4|5 shape,2.1884340533977075e-15,1.5319038373783954e-14,Mild
+Olink_mod4,Longitudinal analysis DFSO - 1|4 average,9.069934683070544e-4,0.001269790855629876,Severe
+Olink_mod4,Longitudinal analysis DFSO - 1|5 average,2.372894176059552e-5,3.3220518464833725e-5,Severe
+Olink_mod4,Longitudinal analysis DFSO - 1|5 shape,0.047536418795773014,0.055459155261735185,Severe
+Olink_mod4,Longitudinal analysis DFSO - 2|3 shape,0.010576618740852424,0.0719504334450986,Mild
+Olink_mod4,Longitudinal analysis DFSO - 2|4 average,0.0062768274386972795,0.00878755841417619,Severe
+Olink_mod4,Longitudinal analysis DFSO - 2|4 shape,0.03816581072289678,0.08905355835342582,Mild
+Olink_mod4,Longitudinal analysis DFSO - 2|5 average,0.03066440821895717,0.042930171506540035,Severe
+Olink_mod4,Longitudinal analysis DFSO - 3|4 average,0.001051627979271174,0.0014722791709796436,Severe
+Olink_mod4,Longitudinal analysis DFSO - 3|5 shape,0.012582569954275155,0.017615597935985217,Severe
+Olink_mod4,Longitudinal analysis DFSO - 4|5 shape,0.015999703888286525,0.022399585443601135,Severe
+Olink_mod5,Longitudinal analysis DFSO - 1|4 average,0.035168129468996376,0.04102948438049577,Severe
+Olink_mod5,Longitudinal analysis DFSO - 1|5 shape,0.039132041497924624,0.05478485809709447,Severe
+Olink_mod5,Longitudinal analysis DFSO - 2|3 shape,0.03887743967620007,0.09071402591113349,Mild
+Olink_mod5,Longitudinal analysis DFSO - 2|5 shape,0.0012637899845994506,0.0017693059784392306,Severe
+Olink_mod5,Longitudinal analysis DFSO - 3|4 shape,1.6793214382387165e-4,5.877625033835508e-4,Severe
+Olink_mod5,Longitudinal analysis DFSO - 3|5 shape,0.030119406421267713,0.035139307491479,Severe
+Olink_mod5,Longitudinal analysis DFSO - 4|5 average,0.01216160922646481,0.08513126458525368,Mild
+Olink_mod6,Longitudinal analysis DFSO - 1|2 average,0.004296096755919294,0.01503633864571753,Severe
+Olink_mod6,Longitudinal analysis DFSO - 1|3 average,0.0042325324545727395,0.025073313676346517,Severe
+Olink_mod6,Longitudinal analysis DFSO - 1|3 shape,0.007972035782580995,0.05580425047806697,Mild
+Olink_mod6,Longitudinal analysis DFSO - 1|4 average,6.690198332105341e-11,2.3415694162368695e-10,Severe
+Olink_mod6,Longitudinal analysis DFSO - 1|5 average,5.063301485129703e-8,8.86077759897698e-8,Severe
+Olink_mod6,Longitudinal analysis DFSO - 1|5 shape,0.010805545678818614,0.018909704937932575,Severe
+Olink_mod6,Longitudinal analysis DFSO - 2|4 average,6.741078502780372e-10,1.5729183173154202e-9,Severe
+Olink_mod6,Longitudinal analysis DFSO - 2|4 shape,0.007838808614389462,0.02743583015036312,Mild
+Olink_mod6,Longitudinal analysis DFSO - 2|5 average,0.0023446204887034184,0.004103085855230983,Mild
+Olink_mod6,Longitudinal analysis DFSO - 2|5 shape,1.8748563208452338e-4,3.280998561479159e-4,Severe
+Olink_mod6,Longitudinal analysis DFSO - 3|4 average,8.801573210858048e-6,3.0805506238003165e-5,Severe
+Olink_mod6,Longitudinal analysis DFSO - 3|4 shape,0.04850330187374657,0.06790462262324519,Severe
+Olink_mod6,Longitudinal analysis DFSO - 3|5 shape,1.6354080383339755e-5,2.861964067084457e-5,Severe
+Olink_mod6,Longitudinal analysis DFSO - 4|5 shape,5.292401335564943e-4,0.0012348936449651533,Severe

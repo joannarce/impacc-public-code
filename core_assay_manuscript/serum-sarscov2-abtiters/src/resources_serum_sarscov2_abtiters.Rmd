@@ -1,0 +1,365 @@
+---
+title: "Resources Serum SARS-CoV2 VirScan analysis for core assay manuscript"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Load libraries
+```{r load-packages}
+suppressPackageStartupMessages(library(package = "knitr"))
+suppressPackageStartupMessages(library(package = "data.table"))
+suppressPackageStartupMessages(library(package = "stringr"))
+suppressPackageStartupMessages(library(package = "dplyr"))
+suppressPackageStartupMessages(library(package = "Biostrings"))
+suppressPackageStartupMessages(library(package = "seqinr"))
+suppressPackageStartupMessages(library(package = "ggplot2"))
+suppressPackageStartupMessages(library(package = "rlist"))
+suppressPackageStartupMessages(library(package = "cowplot"))
+suppressPackageStartupMessages(library(package = "pals"))
+suppressPackageStartupMessages(library(package = "RColorBrewer"))
+suppressPackageStartupMessages(library(package = "corrr"))
+suppressPackageStartupMessages(library(package = "ComplexHeatmap"))
+suppressPackageStartupMessages(library(package = "tidyr"))
+suppressPackageStartupMessages(library(package = "ggpubr"))
+suppressPackageStartupMessages(library(package = "tibble"))
+suppressPackageStartupMessages(library(package = "egg"))
+suppressPackageStartupMessages(library(package = "qvalue"))
+suppressPackageStartupMessages(library(package = "lme4"))
+suppressPackageStartupMessages(library(package = "ordinal"))
+suppressPackageStartupMessages(library(package = "gridExtra"))
+suppressPackageStartupMessages(library(package = "nlme"))
+suppressPackageStartupMessages(library(package = "mgcv"))
+suppressPackageStartupMessages(library(package = "gam"))
+suppressPackageStartupMessages(library(package = "gamm4"))
+suppressPackageStartupMessages(library(package = "ggsignif"))
+suppressPackageStartupMessages(library(package = "effects"))
+suppressPackageStartupMessages(library(package = "tidyverse"))
+suppressPackageStartupMessages(library(package = "ggeffects"))
+suppressPackageStartupMessages(library(package = "pvca"))
+
+# set session options
+options(show_col_types = FALSE)
+VarCorr <- lme4::VarCorr
+```
+
+
+### Load codebase.R, load data matrices and set path to a local output directory
+```{r load-codebase, results="hide", fig.show="hide", message=FALSE, warning=FALSE,eval=FALSE}
+# load codebase.R, olink data and clinical information
+source("../../Codebase/codebase_v2.R")
+
+# Final Cohort
+data_env <- load_IMPACC_datasets(DATA_VERSION                = "2022-01-01", 
+                                 KEEP_COVID19_POS            = TRUE, 
+                                 FILTER_BY_CORE_ASSAY_COHORT = TRUE)
+for (n in grep(pattern = "serum_sarscov2_abtiters|clinical_data", 
+               names(data_env), 
+               value   = TRUE)) {
+  assign(n, value = data_env[[n]])
+}
+
+# Setup the assay specific resource directory
+resource_dir <- "resources"
+
+# Pre-Pandemic Controls
+prepandemic_controls_fh <- "/data/resources/serum-sarscov2-abtiters/healthy_controls/Run1-PhIPseqCOVID19-Counts.Controls.tsv"
+# Pre-Pandemic Controls with Down-sampling
+prepandemic_controls_ds_fh <- "/data/resources/serum-sarscov2-abtiters/healthy_controls/HC_downsampled_1500K_raw_count.csv"
+
+# BLAST and CD-HIT results prior to formatting
+blast_results_fh  <- "resources/Results_cluterPepts_covid19bigorf.3745pep.blastp"
+cdhit_clusters_fh <- "resources/covid19lib_v3_collapse.clstr"
+
+# BLAST and CDhit results - peptide coordinates aligned to SARS-CoV2 genome in addition to sequence clusters
+blast_results_final_fh   <- "/data/resources/serum-sarscov2-abtiters/formatted_aln_files/blast_df_formatted.csv"
+cdhit_clusters_final_fh  <- "/data/resources/serum-sarscov2-abtiters/formatted_aln_files/cluster_df_formatted.csv"
+
+# annotation output files
+annot_table_fh  <- "/data/resources/serum-sarscov2-abtiters/annotations/blast_covid19_bigorf_region_annotations.csv"
+spike_region_fh <- "/data/resources/serum-sarscov2-abtiters/annotations/SARS2_spike_region_annotations.csv"
+
+# Load peptide sequences and output to FASTA file
+feature_df          <- data_env$serum_sarscov2_abtiters_rowfeature
+peptide_seqs        <- feature_df$AA_sequence
+write.fasta(as.list(peptide_seqs),names = row.names(feature_df),as.string = TRUE,
+            file.out = file.path(resource_dir,"peptide_aa_seqs.fasta"))
+```
+
+
+### Align Peptides to SARS-CoV2 full Amino acid sequence
+* Full Nucleotide and AA sequence for the SARS-CoV2 genome was downloaded from RefSeq (Accession: NC_045512)
+* BLAST 2.11.0 was used
+* Manually upload the full AA sequence to the resource folder:
+  * resources/blast_ref/covid19_bigorf.fa
+```{bash,eval=FALSE}
+# Make BLAST Protein database
+makeblastdb -in resources/blast_ref/covid19_bigorf.fa -dbtype prot -parse_seqids -out resources/blast_ref/covid19_bigorf -title "COVID19 Protein Reference all ORFs"
+
+# BLASTP
+blastp -query resources/peptide_aa_seqs.fasta -db blast_ref/covid19_bigorf -evalue 0.001 -outfmt "6 qseqid qlen sseqid slen pident length mismatch gapopen qstart qend sstart send evalue bitscore" -out resources/Results_cluterPepts_covid19bigorf_blastp.3745pep.txt
+
+# Add proper header columns to BLASTP results
+echo "qseqid  qlen    sseqid  slen    pident  length  mismatch        gapopen qstart  qend    sstart  send    evalue  bitscore" > resources/blast_results_header.txt
+cat resources/blast_results_header.txt > resources/Results_cluterPepts_covid19bigorf.3745pep.blastp
+cat resources/Results_cluterPepts_covid19bigorf_blastp.3745pep.txt >> resources/Results_cluterPepts_covid19bigorf.3745pep.blastp
+```
+
+
+### Multiple Alignment with CD-HIT
+* Use CD-HIT webserver (http://weizhong-lab.ucsd.edu/cd-hit/)
+* upload 'resources/peptide_aa_seqs.fasta' to CD-HIT webserver
+* download and move CD-HIT results (covid19lib_v3_collapse.clstr) to 'resources'
+* Use custom perl script (command bellow) to format CD-HIT results for further Analysis
+```{bash,eval = FALSE}
+format_cdhit_results.pl resources/covid19lib_v3_collapse.clstr resources/covid19lib_v3_collapse.FORMATTED.clstr
+```
+
+
+### Format Alignment files
+
+### a. Load files and create analysis interaction groups
+```{r,eval=FALSE}
+# Load
+blast_df   <- read.delim(blast_results_fh,stringsAsFactors = F)
+cluster_df <- read.delim(cdhit_clusters_fh,stringsAsFactors = F)
+
+# Keep full length alignments 
+blast_df <- blast_df[blast_df$length == 38,]
+blast_df <- blast_df[blast_df$gapopen == 0,]
+
+
+# Label interaction groups in CD-HIT results
+sars_labels     <- c("SARS1","SARS2","spikevar")
+cluster_df$type <- tstrsplit(cluster_df$Peptide,"_")[[1]]
+
+sars_status_vec   <- cluster_df$ClusterID
+interac_group_vec <- cluster_df$ClusterID
+for (clus in unique(cluster_df$ClusterID)) {
+  cluster_sub <- cluster_df[cluster_df$ClusterID %in% clus,]
+  clus_types  <- unique(cluster_sub$type)
+  
+  sars_status  <- FALSE
+  other_status <- FALSE
+  if(any(clus_types %in% sars_labels))  {sars_status  <- TRUE}
+  if(any(! clus_types %in% sars_labels)){other_status <- TRUE}
+  
+  sars_exclusive <- "no"
+  interac_type   <- "nonsars"
+  if (sars_status == TRUE & other_status == FALSE){
+    sars_exclusive <- "yes"
+    interac_type   <- "sars_exclusive"
+  }
+  if(sars_status == TRUE & other_status == TRUE){
+    interac_type   <- "sars_crossreactive"
+  }
+  
+  sars_status_vec[sars_status_vec %in% clus]     <- sars_exclusive
+  interac_group_vec[interac_group_vec %in% clus] <- interac_type
+}
+
+cluster_df$SARS_exclusiveClusterStatus <- sars_status_vec
+cluster_df$InteractionGroup            <- interac_group_vec
+
+
+# list SARS2 exclusive clusters
+exclusive_status        <- cluster_df$InteractionGroup
+names(exclusive_status) <- cluster_df$ClusterID
+
+sars_exclusive_cluster_list     <- names(exclusive_status[exclusive_status %in% "sars_exclusive"])
+sars_crossreactive_cluster_list <- names(exclusive_status[exclusive_status %in% "sars_crossreactive"])
+non_sars_exclusive_cluster_list <- names(exclusive_status[exclusive_status %in% "nonsars"])
+```
+
+
+### b. Create Virus Types data frame and add to CD-HIT data frame
+```{r,eval=FALSE}
+# Create data frame to label alpha and beta viruses
+virus_annot_df <- data.frame(matrix(nrow = 12,ncol = 2))
+names(virus_annot_df) <- c("Virus","Type")
+virus_annot_df$Virus  <- c("BetaCoVEngland1","HCoV229E","HCoVHKU1","HCoVNL63",
+                           "HCoVOC43","InfectiousBronchitisCoV","MERS","SARS1",
+                           "SARS2","spikevar","GFAP","tubulin")
+virus_annot_df$Type   <- c("beta","alpha","beta","alpha",
+                           "beta","bronchitis","beta","beta",
+                           "beta","beta","control","control")
+
+# Add virus type to CD-HIT results
+strain_status_vec <- cluster_df$type
+for (vtype in unique(cluster_df$type)) {
+  virus_strain <- virus_annot_df[virus_annot_df$Virus %in% vtype,]
+  virus_strain <- sort(unique(virus_strain$Type))
+
+  strain_status_vec[strain_status_vec %in% vtype] <- virus_strain
+}
+
+cluster_df$strain_type <- strain_status_vec
+```
+
+
+### c. Add in cluster IDs to BLAST data frame
+```{r,eval=FALSE}
+# Convertion vector
+conv_clus_id        <- cluster_df$ClusterID
+names(conv_clus_id) <- cluster_df$Peptide
+
+conv_clus_size        <- cluster_df$ClusterSize
+names(conv_clus_size) <- cluster_df$Peptide
+
+cluster_id_col   <- blast_df$qseqid
+for (pep in unique(blast_df$qseqid)) {
+  if(pep %in% names(conv_clus_id)){
+    clusid <- unique(as.character(conv_clus_id[pep]))
+    cluster_id_col[cluster_id_col %in% pep] <- clusid
+  }
+}
+blast_df$clusterid <- cluster_id_col
+```
+
+
+### Create Region Annotations
+
+### a. SARS-CoV2 full genome (AA sequence) region annotations
+```{r,eval=FALSE}
+annot_table <- data.frame(matrix(nrow = 13,ncol = 3))
+names(annot_table) <- c("ref_start_pos","ref_end_pos","ref_region_annotation")
+
+annot_table$ref_start_pos <- c(1,7096,7427,7680,8368,8642,8716,8937,8997,9117,9159,9279,9697)
+annot_table$ref_end_pos   <- c(7096,7427,7680,8368,8642,8716,8937,8997,9117,9159,9279,9697,9744)
+annot_table$ref_region_annotation <- c("Orf1ab","Spike","RBD","Spike","Orf3a","E","M","Orf6","Orf7a","Orf7b","Orf8","N","Orf10")
+```
+
+
+### b. SARS-CoV2 full spike (AA sequence) sub-region annotations
+```{r,eval=FALSE}
+spike_region_df <- data.frame(matrix(nrow = 4,ncol = 3))
+names(spike_region_df) <- c("ref_start_pos","ref_end_pos","ref_region_annotation")
+
+spike_region_df$ref_start_pos <- c(7096,7111,7426,7781)
+spike_region_df$ref_end_pos   <- c(7781,7401,7617,8368)
+spike_region_df$ref_region_annotation <- c("S1","NTD","RBD","S2")
+```
+
+
+### Down-sample Pre-Pandemic Controls
+
+### Functions: data processing and analysis
+```{r,eval=FALSE}
+## scaleReadCounts
+#  - sample.loc = c("col","row")
+scaleReadCounts <- function(df, samples, rpk = FALSE,sample.loc="col") {
+  for (s in samples) {
+    if(sample.loc =="col"){
+      col   <- df[,s]
+      total <- sum(col)
+      col <- col / total
+      if(rpk){col <- col * 100000}
+      df[,names(df) %in% s] <- col
+    }
+    
+    if(sample.loc == "row"){
+      row   <- df[s,]
+      total <- sum(row)
+      row <- row / total
+      if(rpk){row <- row * 100000}
+      df[row.names(df) %in% s,] <- row
+    }
+  }
+  
+  return(df)
+}
+
+## downsampler
+downsampler <- function(df,samples,reps = 100000, read.prop = FALSE) {
+  peptides <- row.names(df)
+  
+  # Create new data frame for downsampled matrix
+  df_ds <- data.frame(matrix(0,nrow = length(peptides),ncol = length(samples)))
+  names(df_ds)     <- samples
+  row.names(df_ds) <- peptides
+  
+  for (s in samples) {
+    col <- df[,s]
+    names(col) <- peptides
+    col_prob <- as.numeric(col) 
+    if(read.prop){col_prob <- col_prob/sum(col_prob)}
+    
+    # Downsample
+    newout <- sample(peptides,size=reps,prob=col_prob,replace=TRUE)
+    t <- table(newout)
+    s_peptides <- names(t)
+
+    new_col <- df_ds[,s]
+    names(new_col) <- peptides
+    for (p in s_peptides) {
+      new_col[names(new_col) %in% p] <- as.numeric(t[p])
+    }
+    df_ds[,s] <- new_col
+  }
+  
+  return(df_ds)
+}
+```
+
+
+### a. Load and filter out low depth samples
+```{r,eval=FALSE}
+# Load 
+hc_df <- read.delim(prepandemic_controls_fh,row.names = 1)
+
+# Get sample sums
+hc_sample_sums <- colSums(hc_df)
+hc_sample_sums <- hc_sample_sums[hc_sample_sums > 1]
+
+# Read count Threshold Filter
+READ_COUNT_THRESH = 500000
+samples_to_keep <- names(hc_sample_sums[hc_sample_sums >= READ_COUNT_THRESH])
+hc_df           <- hc_df[,names(hc_df) %in% samples_to_keep]
+
+# Convert raw counts into proportion values
+samples_hc <- names(hc_df)
+hc_df_fmt  <- scaleReadCounts(df = hc_df, samples = samples_hc, rpk = FALSE)
+```
+
+
+### b. Down-sample Control Count data frame
+```{r,eval=FALSE}
+set.seed(12345)
+
+CUTOFF = 1500000 
+
+cols_to_keep  <- colSums(hc_df)[colSums(hc_df) > CUTOFF]
+hc_df_fmt_sub <- hc_df_fmt[,names(hc_df_fmt) %in% names(cols_to_keep)]
+hc_df_ds      <- downsampler(df = hc_df_fmt_sub,samples = names(hc_df_fmt_sub),reps = CUTOFF)
+```
+
+
+### c. QC - Keep only downsampled controls with good coverage
+```{r,eval=FALSE}
+PCT_THRESH = 90
+hc_to_keep <- c()
+for (s in names(hc_df_ds)) {
+  col_vec     <- hc_df_ds[,s]
+  pct_nonzero <- (length(col_vec[col_vec > 0]) / length(col_vec)) * 100
+  pct_nonzero <- round(pct_nonzero)
+  if(pct_nonzero >= PCT_THRESH){hc_to_keep <- c(hc_to_keep,s)}
+}
+
+hc_df_ds <- hc_df_ds[,names(hc_df_ds) %in% hc_to_keep]
+```
+
+
+### Output all resource files
+```{r,eval=FALSE}
+# Alignment files
+write.csv(blast_df,file = blast_results_final_fh,quote = F,row.names = F)
+write.csv(cluster_df,file = cdhit_clusters_final_fh,quote = F,row.names = F)
+# Annotation files
+write.csv(annot_table,file = annot_table_fh,quote = F,row.names = F)
+write.csv(spike_region_df,file = spike_region_fh,quote = F,row.names = F)
+# Down-sampled Pre-Pandemic controls
+write.csv(hc_df_ds,file = prepandemic_controls_ds_fh,quote = F,row.names = T)
+```
+

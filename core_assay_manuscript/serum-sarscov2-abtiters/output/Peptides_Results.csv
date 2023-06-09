@@ -1,0 +1,56 @@
+Module (or Feature),Analysis,P value,Q value,Direction
+Peptides.Region1,Longitudinal analysis - overall shape,3.389403496511735e-6,6.77880699302347e-6,Mild
+Peptides.Region1,Longitudinal analysis - overall average,0.007281478613654135,0.05825182890923308,Mild
+Peptides.Region3,Longitudinal analysis - overall shape,3.672637638629104e-7,9.79370036967761e-7,Mild
+Peptides.Region4,Longitudinal analysis - overall shape,4.9599770903607365e-9,3.967981672288589e-8,Severe
+Peptides.Region5,Longitudinal analysis - overall shape,0.001560209042198703,0.0024963344675179248,Severe
+Peptides.Region6,Longitudinal analysis - overall shape,3.5077963593890677e-7,9.79370036967761e-7,Mild
+Peptides.Region6,Longitudinal analysis - overall average,0.018840187011956694,0.07536074804782678,Severe
+Peptides.Region7,Longitudinal analysis - overall shape,0.007676136218008579,0.008772727106295519,Severe
+Peptides.Region8,Longitudinal analysis - overall shape,0.003703889182903729,0.004938518910538306,Mild
+Peptides.Region1,Longitudinal analysis - 1|2 average,0.030384063963307006,0.704428387730878,Mild
+Peptides.Region1,Longitudinal analysis - 1|2 shape,0.04497465927891525,0.10582272771509471,Mild
+Peptides.Region1,Longitudinal analysis - 1|3 average,0.03779434212320449,0.704428387730878,Mild
+Peptides.Region1,Longitudinal analysis - 1|4 average,0.023296559178060085,0.704428387730878,Mild
+Peptides.Region1,Longitudinal analysis - 1|4 shape,0.04438109781629429,0.10582272771509471,Mild
+Peptides.Region1,Longitudinal analysis - 2|3 shape,5.9270566726568675e-5,6.773779054464991e-4,Severe
+Peptides.Region1,Longitudinal analysis - 2|5 shape,0.03252217528087064,0.09826175261572286,Mild
+Peptides.Region3,Longitudinal analysis - 1|3 shape,0.014110650242001551,0.06271400107556245,Mild
+Peptides.Region3,Longitudinal analysis - 1|4 shape,4.6473129880608007e-7,3.7178503904486404e-5,Mild
+Peptides.Region4,Longitudinal analysis - 1|2 shape,4.3521145572455897e-05,5.802819409660786e-4,Severe
+Peptides.Region4,Longitudinal analysis - 1|3 shape,1.963168786106755e-5,3.2806262933350003e-4,Severe
+Peptides.Region4,Longitudinal analysis - 1|4 average,0.033296762824399896,0.704428387730878,Mild
+Peptides.Region4,Longitudinal analysis - 1|5 shape,0.02307644610611988,0.08791027088045669,Severe
+Peptides.Region4,Longitudinal analysis - 2|3 shape,5.028501147774653e-4,0.0040228009182197225,Severe
+Peptides.Region4,Longitudinal analysis - 2|4 shape,0.034391613415502995,0.09826175261572286,Mild
+Peptides.Region4,Longitudinal analysis - 2|5 shape,0.025556236919216147,0.0910728049765726,Mild
+Peptides.Region4,Longitudinal analysis - 3|4 shape,1.1433580979438614e-4,0.0010163183092834324,Mild
+Peptides.Region4,Longitudinal analysis - 3|5 shape,0.017428416370893703,0.07338280577218402,Mild
+Peptides.Region5,Longitudinal analysis - 1|3 shape,0.02884105161794978,0.09613683872649927,Severe
+Peptides.Region5,Longitudinal analysis - 1|4 shape,0.0013054315030230823,0.0080334246339882,Mild
+Peptides.Region5,Longitudinal analysis - 2|3 shape,0.0010225587466766448,0.006817058311177632,Severe
+Peptides.Region5,Longitudinal analysis - 2|4 shape,0.007007776842219365,0.032977773375149955,Severe
+Peptides.Region5,Longitudinal analysis - 3|4 shape,1.0759363602589106e-4,0.0010163183092834324,Mild
+Peptides.Region6,Longitudinal analysis - 1|2 shape,9.371638552992569e-7,3.7486554211970275e-5,Severe
+Peptides.Region6,Longitudinal analysis - 1|4 shape,0.0018105009096689344,0.010345719483822482,Mild
+Peptides.Region6,Longitudinal analysis - 1|5 shape,0.033472873659437366,0.09826175261572286,Mild
+Peptides.Region6,Longitudinal analysis - 2|4 average,0.026749928893233597,0.704428387730878,Severe
+Peptides.Region6,Longitudinal analysis - 2|5 shape,6.728901785088919e-4,0.004893746752791941,Mild
+Peptides.Region6,Longitudinal analysis - 3|5 average,0.03381560770584039,0.704428387730878,Mild
+Peptides.Region6,Longitudinal analysis - 4|5 average,0.03441166136196853,0.704428387730878,Mild
+Peptides.Region7,Longitudinal analysis - 1|2 shape,0.038889103913009385,0.10370427710135835,Severe
+Peptides.Region7,Longitudinal analysis - 1|4 shape,0.04119681558907327,0.10582272771509471,Severe
+Peptides.Region7,Longitudinal analysis - 2|4 shape,1.9029379977391304e-6,5.074501327304348e-5,Mild
+Peptides.Region8,Longitudinal analysis - 1|3 shape,0.026183431430764622,0.0910728049765726,Mild
+Peptides.Region8,Longitudinal analysis - 1|4 shape,0.04291646414313144,0.10582272771509471,Mild
+Peptides.Region8,Longitudinal analysis - 1|5 shape,0.0042949474796578815,0.02290638655817537,Mild
+Peptides.Region8,Longitudinal analysis - 2|3 shape,0.036343074641743287,0.10025675763239528,Mild
+Peptides.Region8,Longitudinal analysis - 2|5 shape,0.02205966806092173,0.08791027088045669,Mild
+Peptides.Region8,Longitudinal analysis - 3|5 shape,0.03357521548297447,0.09826175261572286,Mild
+Peptides.Region1,Longitudinal analysis DFSO - overall shape,2.667429457982022e-6,1.0669717831928089e-5,Mild
+Peptides.Region1,Longitudinal analysis DFSO- overall average,0.029326077759201825,0.1173043110368073,Mild
+Peptides.Region3,Longitudinal analysis DFSO - overall shape,1.4253983083647315e-4,2.850796616729463e-4,Mild
+Peptides.Region4,Longitudinal analysis DFSO - overall shape,2.0213598240479705e-5,5.390292864127921e-5,Severe
+Peptides.Region5,Longitudinal analysis DFSO - overall shape,5.188471359645043e-15,4.150777087716034e-14,Severe
+Peptides.Region6,Longitudinal analysis DFSO- overall average,0.009272680473628033,0.07418144378902426,Severe
+Peptides.Region7,Longitudinal analysis DFSO - overall shape,0.04535118890165428,0.07256190224264684,Severe

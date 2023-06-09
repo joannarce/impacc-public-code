@@ -1,0 +1,647 @@
+GWAS SNP Array QC
+================
+09 June, 2023
+
+### Load libraries
+
+``` r
+suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(tidyr))
+suppressPackageStartupMessages(library(plotrix))
+suppressPackageStartupMessages(library(readxl))
+suppressPackageStartupMessages(library(readr))
+suppressPackageStartupMessages(library(tinytex))
+suppressPackageStartupMessages(library(latexpdf))
+suppressPackageStartupMessages(library(plotrix))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(qqman))
+```
+
+### Load codebase.R, load data matrices and set path to a local output directory
+
+``` r
+config = read.table("../../Codebase/config.txt", header = T)
+data_base_dir = config$value[config$key == "data_base_dir"]
+
+# set directories in R
+out_dir = "../output"
+tmp_dir = "../tmp_files"
+if(!dir.exists(tmp_dir)) {
+  dir.create(tmp_dir)
+}
+
+# set directories in bash
+Sys.setenv(inp_dir = file.path(data_base_dir, "bld-gwas/bld-gwas-snparray/"))
+Sys.setenv(ped = file.path(data_base_dir, "../raw-data/bld-gwas-snparray/bld-snparray-Counts_G.ped"))
+Sys.setenv(map = file.path(data_base_dir, "../raw-data/bld-gwas-snparray/bld-snparray-RowFeature.map"))
+
+Sys.setenv(out_dir = "../output")
+Sys.setenv(tmp_dir = "../tmp_files")
+```
+
+### Functions: data loading
+
+``` bash
+source /programs/biogrids.shrc
+
+# Convert .ped/map files to .bed/bim/fam files
+
+plink --ped ${ped} \
+      --file ${inp_dir} \
+      --map ${map} \
+      --make-bed \
+      --out ${tmp_dir}/bld-snparray_Counts 
+```
+
+### Functions: data analysis
+
+Objective: Heterozygosity and Missingness QC.
+
+1.  Check for elevated missing data & heterozygosity rate.
+
+### Supplementary Panel A & B: analysis code
+
+``` bash
+source /programs/biogrids.shrc
+
+# Check for elevated missing data rates. 
+plink    --bfile ${tmp_dir}/bld-snparray_Counts  \
+         --missing \
+         --out ${tmp_dir}/bld-snparray_Counts.mis
+         
+# Check for elevated heterozygosity rate.
+plink   --bfile ${tmp_dir}/bld-snparray_Counts  \
+        --het \
+        --out ${tmp_dir}/bld-snparray_Counts
+```
+
+Objective: Take Heterozygosity results and visualize them in R.
+
+-   Calculate the observed heterozygosity rate per individual using the
+    formula (N(NM) - O(Hom))/N(NM). The third column in the .het.het
+    file gives the observed number of homozygous genotypes \[O(Hom)\]
+    and the fifth column gives the number of non-missing genotypes
+    \[N(NM)\], per individual. After doing this calculation, we suggest
+    removing individuals who deviate ±3 SD from the samples’
+    heterozygosity rate mean. For missingness, we suggest removing
+    individuals with greater than 5% missingness (mis.rate = 0.05).
+    Then, in order to visualize the results, we will plot the proportion
+    of missing genotypes and the heterozygosity rate.
+
+### Supplementary Panel A: output generation code
+
+``` r
+# Generate figure for missingness and heterozygosity.
+
+het=read.table(file.path(tmp_dir, "bld-snparray_Counts.het"), header = TRUE)
+mis=read.table(file.path(tmp_dir, "bld-snparray_Counts.mis.imiss"), header = TRUE)
+
+mishet=data.frame(FID=het$FID, IID=het$IID, het.rate=(het$N.NM- het$O.HOM)/het$N.NM, mis.rate=mis$F_MISS)
+
+upper_het_3sd = mean(mishet$het.rate) + 3*sd(mishet$het.rate)
+lower_het_3sd = mean(mishet$het.rate) - 3*sd(mishet$het.rate)
+
+# Plot the proportion of missing genotypes and the heterozygosity rate
+
+plot(y=mishet$het.rate, x=mishet$mis.rate, ylab="Heterozygosity rate", xlab="Proportion of missing genotypes", ylim = c(0,0.8)) 
+abline(v=0.05, lty=2, col = "red") #vertical dashed line 
+abline(h= upper_het_3sd, lty=2, col = "red") #horizontal dashed line
+abline(h= lower_het_3sd, lty=2, col = "red") #horizontal dashed line
+```
+
+![](bld_gwas_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+
+``` r
+mishet_plot = recordPlot()       
+plot.new()
+mishet_plot
+```
+
+![](bld_gwas_files/figure-gfm/unnamed-chunk-3-2.png)<!-- -->
+
+``` r
+pdf(file.path(out_dir, "suppl_A.pdf"), width = 5, height = 5)
+print(mishet_plot)
+dev.off()
+```
+
+    ## png 
+    ##   2
+
+``` r
+# identify individuals with mis.rate > 0.05 (Greater than 5% Missingness)
+fail_mis_qc=mishet[mishet$mis.rate > 0.05,]
+
+# identify individuals with het.rate < 0.103 or with het.rate > upper_het_3sd
+fail_het_qc=mishet[mishet$het.rate < lower_het_3sd | mishet$het.rate > upper_het_3sd,]
+
+# Create files fail_mis_qc.txt and fail_het_qc.txt with the individuals that do not pass the thresholds:
+write.table(fail_mis_qc, file.path(tmp_dir, "fail_mis_qc.txt"), row.names=F, col.names=T, quote=F)
+write.table(fail_het_qc, file.path(tmp_dir, "fail_het_qc.txt"), row.names=F, col.names=T, quote=F)
+```
+
+``` bash
+source /programs/biogrids.shrc
+
+# Remove samples from "fail.het_qc.txt" (deviated ±3 SD from the samples' heterozygosity rate mean).
+# Remove samples from "fail.mis_qc.txt" ( greater than 5% missingness).
+
+plink --bfile ${tmp_dir}/bld-snparray_Counts \
+      --remove ${tmp_dir}/fail_mis_qc.txt \
+      --make-bed \
+      --out ${tmp_dir}/bld-snparray_Counts_rmmishet.ind
+```
+
+Results from Heterozygosity and Missingness QC.
+
+3.  Result: Total genotyping rate is 0.989271.
+4.  8 individuals were removed for having high missingness
+
+QC Progress: 483 samples remaining.
+
+### Supplementary Panel B: output generation code
+
+``` r
+#Plot a histogram of the fraction of missing genotypes to determine the threshold to remove SNPs with missing data (typically about 5% missing data SNPs are removed).
+
+lmis = read.table(file.path(tmp_dir, "bld-snparray_Counts.mis.lmiss"), header = TRUE)
+
+# plot histogram of the fraction of missing genotypes:
+hist(lmis$F_MISS, breaks=35, ylim = c(0,2000000), ylab="Number of SNPs",xlab="Fraction of missing genotypes", main="Missing Data Analysis")
+# dashed vertical line corresponding to 5% missing data
+abline(v=0.05,lty=2, col = "red")
+```
+
+![](bld_gwas_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+
+``` r
+snp_miss_hist = recordPlot()       
+plot.new()
+snp_miss_hist
+```
+
+![](bld_gwas_files/figure-gfm/unnamed-chunk-5-2.png)<!-- -->
+
+``` r
+pdf(file.path(out_dir, "suppl_B.pdf"), width = 5, height = 5)
+print(snp_miss_hist)
+dev.off()
+```
+
+    ## png 
+    ##   2
+
+``` bash
+source /programs/biogrids.shrc
+
+# Remove high-missingness SNPs & very rare SNPs with MAF < 0.01.
+# SNPs with a low MAF are rare, therefore power is lacking for detecting SNP‐phenotype associations. 
+
+plink --bfile ${tmp_dir}/bld-snparray_Counts_rmmishet.ind \
+      --maf 0.01 \
+      --geno 0.05 \
+      --make-bed \
+      --out ${tmp_dir}/bld-snparray_Counts_rmmishet_rmSNPmis_rmSNPgeno.ind
+      
+# Result: 
+
+# Total genotyping rate is 0.989271.
+# 24581 variants removed due to missing genotype data (--geno).
+# 815644 variants removed due to minor allele threshold(s)
+# 1074710 variants and 483 people pass filters and QC.
+```
+
+Objective: Sex Check QC.
+
+Note: (Sex Check is done after removing samples and SNPs with high
+missingness and removing rare SNPs with MAF &lt;5%, so as to not bias
+results).
+
+1.  Select individuals with mismatched SNPSEX and PEDSEX in the file
+    bld-snparray\_Counts\_rmmishet\_rmSNPmis\_rmSNPgeno\_sexcheck\_sexcheck.sexcheck
+2.  Remove samples that failed sex check.
+
+### Supplementary Panel C: analysis code
+
+``` bash
+source /programs/biogrids.shrc
+
+# Objective: Sex Check QC
+plink --bfile ${tmp_dir}/bld-snparray_Counts_rmmishet.ind \
+      --maf 0.05 \
+      --geno 0.05 \
+      --make-bed \
+      --out ${tmp_dir}/bld-snparray_Counts_rmmishet_rmSNPmis_rmSNPgeno_sexcheck.ind
+      
+# Result (THIS IS AN INTERMEDIATE FILE FOR SEX CHECK ONLY):
+plink --bfile ${tmp_dir}/bld-snparray_Counts_rmmishet_rmSNPmis_rmSNPgeno_sexcheck.ind \
+      --check-sex 0.5 0.8 \
+      --out ${tmp_dir}/bld-snparray_Counts_rmmishet_rmSNPmis_rmSNPgeno_sexcheck
+        
+# Try to identify the problem, and write the IDs of individuals with discordant sex info to a file called "fail_sex_check.txt"
+
+grep "PROBLEM" ${tmp_dir}/bld-snparray_Counts_rmmishet_rmSNPmis_rmSNPgeno_sexcheck.sexcheck > ${tmp_dir}/fail_sex_check.txt
+
+# 5 samples had problematic sex, as determined by mismatches between SNPSEX and PEDSEX (clinical sex).
+```
+
+### Supplementary Panel C: output generation code
+
+``` r
+# make a file for the 5 samples in PLINK format in order to use --remove.
+
+failed_sex_check = read.table(file.path(tmp_dir, "fail_sex_check.txt"), header = F, as.is = T)
+
+failed_sex_check_to_remove = select(failed_sex_check, "V1", "V2") %>%
+  rename("FID" = "V1") %>%
+  rename("IID" = "V2")
+
+write.table(failed_sex_check_to_remove, file.path(tmp_dir, "failed_sex_check_to_remove.txt"), row.names=F, col.names=T, quote=F)
+
+# Make a plot of the sex_check into a histogram to show the distribution of the x-chromosome heterozygosity.
+
+sex_check = read.table(file.path(tmp_dir, "bld-snparray_Counts_rmmishet_rmSNPmis_rmSNPgeno_sexcheck.sexcheck"),  header = T, as.is = T)
+
+hist(sex_check$F, ylab="Frequency", xlab="XHE", main="Phase 1 & 2 Sex Check", breaks = 65, xaxp=c(-0.1,1, 10), yaxp=c(0,500, 25), col= "blue")
+abline(v=0.5, lty=2, col = "red") #vertical dashed line 
+abline(v=0.8, lty=2, col = "red")
+```
+
+![](bld_gwas_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+``` r
+sexcheck_plot = recordPlot()
+plot.new()
+sexcheck_plot
+```
+
+![](bld_gwas_files/figure-gfm/unnamed-chunk-8-2.png)<!-- -->
+
+``` r
+pdf(file.path(out_dir, "suppl_C.pdf"), width = 8, height = 8)
+print(sexcheck_plot)
+dev.off()
+```
+
+    ## png 
+    ##   2
+
+Results from Sex Check QC: Exclude 5 mismatches between PEDSEX and
+SNPSEX.
+
+QC Progress: 478 individuals remaining.
+
+``` bash
+source /programs/biogrids.shrc
+
+plink --bfile ${tmp_dir}/bld-snparray_Counts_rmmishet_rmSNPmis_rmSNPgeno.ind \
+      --remove ${tmp_dir}/failed_sex_check_to_remove.txt \
+      --make-bed \
+      --out ${tmp_dir}/bld-snparray_Counts_rmmishet_rmSNPmis_rmSNPgeno_rmsexcheck.ind
+        
+```
+
+Objective: Duplicated or related individuals check
+
+1.  Duplicated or related individuals can be identified using the
+    identity-by-descent (IBD). IBD report is constructed from a reduced
+    subset of frequent SNPs. We first have to identify frequent SNPs by
+    pruning to create a subset of frequent snps (MAF &gt; 0.35) while
+    filtering out SNPs that have &gt; 5% missing rate and SNPs that
+    don’t pass the HWE test at p-value = 0.00000001. Start this pruning
+    using the files where we’ve already removed samples with high
+    missingness and sex mismatches. People who on average share two
+    alleles IBD are either monozygotic twins or duplicates. An IBD &gt;
+    0.98 identifies duplicates.
+
+### Supplementary Panel D: analysis code
+
+``` bash
+source /programs/biogrids.shrc
+
+plink --bfile ${tmp_dir}/bld-snparray_Counts_rmmishet_rmSNPmis_rmSNPgeno_rmsexcheck.ind \
+      --maf 0.35 \
+      --geno 0.05 \
+      --hwe 0.00000001 \
+      --make-bed \
+      --out ${tmp_dir}/bld-snparray_Counts_frequent
+
+plink --bfile ${tmp_dir}/bld-snparray_Counts_frequent \
+      --indep-pairwise 50 5 0.2 \
+      --out ${tmp_dir}/bld-snparray_Counts_prunedsnplist
+      
+# Reduce the subset of frequent SNPs by pruning so that no pair of SNPs (within 50 base-pairs) has an r2 greater that a 0.2.
+# Pruning complete. 121247 of 172432 variants removed.
+
+# Generate the identity-by-descent (IBD) report from the reduced subset of frequent SNPs:
+plink --bfile ${tmp_dir}/bld-snparray_Counts_frequent \
+      --extract ${tmp_dir}/bld-snparray_Counts_prunedsnplist.prune.in \
+      --genome \
+      --out ${tmp_dir}/bld-snparray_Counts_pruned
+```
+
+Results from duplicated or related individuals check.
+
+1.  12 twins / duplicates found
+2.  Four pairs of related individuals found, with IBD &gt; 0.1875.
+
+Note: For Phase 1 & 2, we decided to keep all four pairs of related
+individuals, but to remove 1 of each pair of duplicates.
+
+``` r
+# Identify pairs of individuals with PI_HAT > 0.9, to remove duplicate samples.
+# For current manuscript, we decided to keep pairs of related individuals and ONLY to remove duplicates.
+
+genome = read.table(file.path(tmp_dir, "bld-snparray_Counts_pruned.genome"), header=T, as.is=T)
+
+genome_new=genome[genome$PI_HAT > 0.9,] %>%
+  select(FID1, IID1, FID2, IID2, PI_HAT) %>%
+  arrange(desc(PI_HAT))
+
+# Append the mis.rate information onto each one of the pairs to identify which one had the higher mis.rate & remove the individual with the higher mis.rate.
+
+missingness_genome = left_join(x = genome_new, y = mishet, by = c("IID1" = "IID")) %>%
+  select(-"het.rate", - "FID") %>% 
+  rename ("mis.rate1" = "mis.rate")
+
+missingness_genome = left_join(x = missingness_genome, y = mishet, by = c("IID2" = "IID")) %>%
+  select(-"het.rate", - "FID") %>% 
+  rename ("mis.rate2" = "mis.rate")
+
+# Compare the miss.rates for each pair to determine which has a HIGHER miss rate. Print a list of all of the HIGHER missingness rates, i.e. the failures.
+
+failed_ibd_qc = c() 
+failed_ibd_qc = ifelse(missingness_genome$mis.rate1 > missingness_genome$mis.rate2, missingness_genome$IID1, missingness_genome$IID2)
+failed_ibd_qc = data.frame(failed_ibd_qc) %>% rename("IID" = "failed_ibd_qc")
+
+failed_ibd_qc = left_join(failed_ibd_qc, mishet, by = 'IID') %>% 
+  select("FID", "IID")
+
+# write a table of the FID and IID to print out for "failed_ibd_qc.txt"
+write.table(failed_ibd_qc , file.path(tmp_dir,"fail_ibd_qc.txt"), row.names=F, col.names=T, quote=F)
+```
+
+### Supplementary Panel D: output generation code
+
+``` r
+# Plot the IBD by PI_HAT to see the distribution of IBD.
+hist(genome$PI_HAT, ylab="Frequency", xlab="Pi-Hat",main="Sample Relatedness Check", breaks = 100, ylim = c (0,50)) # plot histogram of frequencies
+abline(v=0.1875,lty=2, col = "red") 
+```
+
+![](bld_gwas_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+
+``` r
+ibd_plot = recordPlot()
+plot.new()
+ibd_plot
+```
+
+![](bld_gwas_files/figure-gfm/unnamed-chunk-13-2.png)<!-- -->
+
+``` r
+pdf(file.path(out_dir, "suppl_D.pdf"), width = 8, height = 8)
+print(ibd_plot)
+dev.off()
+```
+
+    ## png 
+    ##   2
+
+Results from duplicated or related individuals check.
+
+1.  12 twins / duplicates found.
+
+Objective: Identify SNPs that fail QC
+
+``` bash
+source /programs/biogrids.shrc
+
+# Removes SNPs with MAF<0.01 and SNPs with > 5% missing genotypes and SNPs deviating from HWE (exclude 1e-10) 
+
+plink --bfile ${tmp_dir}/bld-snparray_Counts_rmmishet_rmSNPmis_rmSNPgeno_rmsexcheck_rmIBD.ind \
+        --maf 0.01 \
+        --hwe 1e-10 \
+        --geno 0.05 \
+        --make-bed \
+        --out ${tmp_dir}/bld-snparray_Counts.final.qc
+```
+
+Results:
+
+1.  Total genotyping rate is 0.998694.
+2.  101 variants removed due to missing genotype data (–geno).
+3.  3320 variants removed due to Hardy-Weinberg exact test.
+4.  8776 variants removed due to minor allele threshold(s)
+
+``` r
+# Concatenate all files listing individuals failing any QC steps into a single file "fail_qc.txt"
+
+fail_mis_qc=read.table(file.path(tmp_dir, "fail_mis_qc.txt"),header=T,as.is=T) %>% select("FID", "IID")
+fail_het_qc=read.table(file.path(tmp_dir, "fail_het_qc.txt"),header=T,as.is=T) %>% select("FID", "IID")
+fail_ibd_qc=read.table(file.path(tmp_dir, "fail_ibd_qc.txt"),header=T,as.is=T)
+fail_sex_qc=read.table(file.path(tmp_dir, "failed_sex_check_to_remove.txt"),header=T,as.is=T)
+
+
+fail_qc = bind_rows(fail_mis_qc, fail_het_qc, fail_ibd_qc, fail_sex_qc)
+fail_qc = unique(fail_qc)
+
+
+write.table(fail_qc, file.path(tmp_dir, "fail_qc.txt"), row.names=F, col.names=T, quote=F)
+```
+
+### Supplementary Panel E & F: analysis code
+
+``` bash
+source /programs/biogrids.shrc
+
+# Do the association between group 4+5 vs. 1+2+3.
+# In .ped file,each patient is coded as 2 (affected) if in group 4+5 or 1 (unaffected) in group 1+2+3.
+
+plink --bfile ${tmp_dir}/bld-snparray_Counts.final.qc \
+      --chr 1-22 \
+      --logistic beta \
+      --ci 0.95 \
+      --out ${tmp_dir}/group45.results
+      
+# We have genomic inflation. lambda = 2.038317. 
+
+# Steps to doing a population stratification correction to account for genomic inflation. 
+
+# 1. Prune data 
+# 2. Select autosomal SNPs only.
+# 3. MAF > 5%
+# 4. Visually inspect PCA space, and select PCA that are associated to disease. 
+# 5. Use those selected PCs as covariates in regression analysis. 
+
+# Set a MAF for variants > 5%, missing genotype rate of 5% and autosomal chromosomes only. 
+
+plink --bfile ${tmp_dir}/bld-snparray_Counts.final.qc \
+      --maf 0.05 \
+      --geno 0.05 \
+      --chr 1-22 \
+      --make-bed \
+      --out ${tmp_dir}/bld-snparray_Counts.pop.strat
+      
+# Prune dataset for LD.      
+
+plink --bfile ${tmp_dir}/bld-snparray_Counts.pop.strat \
+      --indep-pairwise 50 5 0.2 \
+      --out ${tmp_dir}/bld-snparray_Counts.pop.strat
+
+# Calculate pairwise IBS between samples & measure the extent of their genetic similarity across the set of independent SNPs.  
+
+plink --bfile ${tmp_dir}/bld-snparray_Counts.pop.strat \
+      --extract ${tmp_dir}/bld-snparray_Counts.pop.strat.prune.in \
+      --genome \
+      --out ${tmp_dir}/bld-snparray_Counts.pop.strat
+      
+# We perform MDS of the pairwise IBS.
+
+plink --bfile ${tmp_dir}/bld-snparray_Counts.pop.strat \
+      --read-genome ${tmp_dir}/bld-snparray_Counts.pop.strat.genome \
+      --cluster \
+      --mds-plot 10 \
+      --out ${tmp_dir}/bld-snparray_Counts.pop.strat
+
+# Use "significant" PCs as covariates in our trend test of association. 
+# Go back to the original Phase1_2.final.qc.updated file where you had the MAF cut-off at 0.01 in order to do the new association.
+# Using MAF of 0.01 leads to a QQ plot with deflated p-values. Use the file with 0.05 MAF to see what the QQ Plot looks like. 
+
+plink --bfile ${tmp_dir}/bld-snparray_Counts.pop.strat \
+      --logistic beta \
+      --ci 0.95 \
+      --covar ${tmp_dir}/bld-snparray_Counts.pop.strat.mds \
+      --covar-name C1, C3, C9 \
+      --hide-covar \
+      --out ${tmp_dir}/bld-snparray_Counts.pop.strat.covar
+ 
+```
+
+### Supplementary Panel E: output generation code
+
+``` r
+# Calculate the genomic control inflation factor:
+group45_assoc = read.table(file.path(tmp_dir, "group45.results.assoc.logistic"), header = T)
+  
+
+median(qchisq(group45_assoc$P,df=1,lower.tail=F),na.rm=T)/0.456
+```
+
+    ## [1] 1.942689
+
+``` r
+# 2.038317 lambda = genomic control factor
+
+# QQ plot of trajectory group 4 & 5 vs. 1,2,3 post-assoc test and corrected for population stratification.
+group45_assoc_covar = read.table(file.path(tmp_dir, "bld-snparray_Counts.pop.strat.covar.assoc.logistic"), header=T)
+
+#observed –log10 p-values 
+p.obs_covar=-log10(sort(group45_assoc_covar$P,decreasing=F))
+
+#expected –log10 p-values
+p.exp_covar=-log10( 1:length(p.obs_covar)/length(p.obs_covar) )
+
+#plot observed vs. expected –log10 p-values.
+plot(p.exp_covar, p.obs_covar, pch=19, main= "QQ plot Corrected for Population Stratification", xlab="expected -log10 p-value", ylab="observed -log10 p-value")
+abline(0, 1, lty=2, col="red") #equality line
+```
+
+![](bld_gwas_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+
+``` r
+qqplot = recordPlot()
+plot.new()
+qqplot
+```
+
+![](bld_gwas_files/figure-gfm/unnamed-chunk-17-2.png)<!-- -->
+
+``` r
+pdf(file.path(out_dir, "suppl_E.pdf"), width = 8, height = 8)
+print(qqplot)
+dev.off()
+```
+
+    ## png 
+    ##   2
+
+``` r
+# calculate the genomic inflation coefficient
+median(qchisq(group45_assoc_covar$P,df=1,lower.tail=F),na.rm=T)/0.456
+```
+
+    ## [1] 0.9897774
+
+### Supplementary Panel F: output generation code
+
+``` r
+# Manhattan Plot
+manhattan(x = group45_assoc_covar, main = "TG 4&5 vs. TG 1-3", chr="CHR", bp="BP", snp="SNP", p="P", logp = TRUE, ylim = c(0, 9), suggestiveline = F)
+```
+
+![](bld_gwas_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+
+``` r
+manhattanplot = recordPlot()
+plot.new()
+manhattanplot
+```
+
+![](bld_gwas_files/figure-gfm/unnamed-chunk-18-2.png)<!-- -->
+
+``` r
+pdf(file.path(out_dir, "suppl_F.pdf"), width = 8, height = 8)
+print(manhattanplot)
+dev.off()
+```
+
+    ## png 
+    ##   2
+
+### Session info
+
+``` r
+sessionInfo()
+```
+
+    ## R version 4.0.2 (2020-06-22)
+    ## Platform: x86_64-pc-linux-gnu (64-bit)
+    ## Running under: Ubuntu 22.04.2 LTS
+    ## 
+    ## Matrix products: default
+    ## BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
+    ## LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.20.so
+    ## 
+    ## locale:
+    ##  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+    ##  [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+    ##  [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+    ## [10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+    ## 
+    ## attached base packages:
+    ## [1] stats     graphics  grDevices utils     datasets  methods   base     
+    ## 
+    ## other attached packages:
+    ##  [1] qqman_0.1.8     forcats_0.5.1   stringr_1.4.0   purrr_0.3.4    
+    ##  [5] tibble_3.1.7    tidyverse_1.3.1 ggplot2_3.4.0   latexpdf_0.1.7 
+    ##  [9] tinytex_0.32    readr_2.1.2     readxl_1.3.1    plotrix_3.8-2  
+    ## [13] tidyr_1.2.0     dplyr_1.0.9     knitr_1.39     
+    ## 
+    ## loaded via a namespace (and not attached):
+    ##  [1] Rcpp_1.0.8       lubridate_1.7.10 assertthat_0.2.1 digest_0.6.27   
+    ##  [5] utf8_1.1.4       R6_2.5.0         cellranger_1.1.0 backports_1.2.0 
+    ##  [9] reprex_2.0.0     evaluate_0.15    httr_1.4.4       highr_0.8       
+    ## [13] pillar_1.7.0     rlang_1.1.1      rstudioapi_0.13  rmarkdown_2.9   
+    ## [17] munsell_0.5.0    broom_0.8.0      compiler_4.0.2   modelr_0.1.8    
+    ## [21] xfun_0.31        pkgconfig_2.0.3  htmltools_0.5.2  tidyselect_1.1.1
+    ## [25] fansi_0.4.1      calibrate_1.7.7  crayon_1.4.1     tzdb_0.4.0      
+    ## [29] dbplyr_2.1.1     withr_2.5.0      MASS_7.3-51.6    grid_4.0.2      
+    ## [33] jsonlite_1.7.2   gtable_0.3.0     lifecycle_1.0.3  DBI_1.1.1       
+    ## [37] magrittr_2.0.3   scales_1.2.1     cli_3.6.1        stringi_1.5.3   
+    ## [41] fs_1.5.2         xml2_1.3.3       ellipsis_0.3.2   generics_0.1.2  
+    ## [45] vctrs_0.6.2      tools_4.0.2      glue_1.6.2       hms_1.1.0       
+    ## [49] fastmap_1.1.0    yaml_2.2.1       colorspace_2.0-2 rvest_1.0.0     
+    ## [53] haven_2.4.1

@@ -1,0 +1,83 @@
+Module,Short Name,Annotation resource,Resource ID,P value,Adj. p value,Important features
+Olink.Olink_mod0,Others,ImmuneXpresso,B cell/cell,0.004981087860701969,1,IL4;IL2;IL5;IL13
+Olink.Olink_mod0,Others,ImmuneXpresso,basophil/cell,0.006058370757202048,1,IL4;IL13
+Olink.Olink_mod0,Others,ImmuneXpresso,CD103-positive dendritic cell/cell,0.04895104895104885,1,IL2
+Olink.Olink_mod0,Others,ImmuneXpresso,"CD4-positive, alpha-beta memory T cell/cell",0.04895104895104885,1,IL4
+Olink.Olink_mod0,Others,ImmuneXpresso,"CD4-positive, alpha-beta T cell/cell",0.030765424317471278,1,IL2;IL4;IL5
+Olink.Olink_mod0,Others,ImmuneXpresso,"CD8-positive, alpha-beta T cell/cell",0.007548298977570267,1,IL2;IL4;IL13
+Olink.Olink_mod0,Others,ImmuneXpresso,"effector memory CD4-positive, alpha-beta T cell/cell",0.04895104895104885,1,IL4
+Olink.Olink_mod0,Others,ImmuneXpresso,helper T cell/cell,0.0023527215793692877,1,IL2;IL4;IL5
+Olink.Olink_mod0,Others,ImmuneXpresso,lymphocyte/cell,0.0030751472056773166,1,IL2;IL4;IL5;IL33
+Olink.Olink_mod0,Others,ImmuneXpresso,mast cell/cell,0.02092867668219286,1,IL4;IL33;IL13
+Olink.Olink_mod0,Others,ImmuneXpresso,mature NK T cell/cell,0.011829644733450556,1,IL4;IL13
+Olink.Olink_mod0,Others,ImmuneXpresso,naive B cell/cell,0.04895104895104885,1,IL4
+Olink.Olink_mod0,Others,ImmuneXpresso,naive T cell/cell,0.006058370757202048,1,IL2;IL4
+Olink.Olink_mod0,Others,ImmuneXpresso,"naive thymus-derived CD4-positive, alpha-beta T cell/cell",0.04895104895104885,1,IL2
+Olink.Olink_mod0,Others,ImmuneXpresso,T cell/cell,0.011037840154438195,1,IL2;IL4;IL5;IL13
+Olink.Olink_mod0,Others,ImmuneXpresso,T-helper 1 cell/cell,0.02818469664841691,1,IL4;IL13
+Olink.Olink_mod0,Others,ImmuneXpresso,T-helper 2 cell/cell,2.4179710976538063e-4,0.7667386350660219,IL4;IL5;IL33;IL13
+Olink.Olink_mod0,Others,ImmuneXpresso,thymocyte/cell,0.02818469664841691,1,IL2;IL4
+Olink.Olink_mod0,Others,ImmuneXpresso,alternatively activated macrophage/cytoPos,0.02818469664841691,1,IL4;IL33
+Olink.Olink_mod0,Others,ImmuneXpresso,cholangiocyte/cytoPos,0.04895104895104885,1,IL33
+Olink.Olink_mod0,Others,ImmuneXpresso,decidual natural killer cell/cytoPos,0.04895104895104885,1,IL2
+Olink.Olink_mod0,Others,ImmuneXpresso,naive B cell/cytoPos,0.04895104895104885,1,IL2
+Olink.Olink_mod0,Others,ImmuneXpresso,"naive thymus-derived CD4-positive, alpha-beta T cell/cytoPos",0.04895104895104885,1,IL4
+Olink.Olink_mod0,Others,ImmuneXpresso,natural T-regulatory cell/cytoPos,0.04895104895104885,1,IL2
+Olink.Olink_mod0,Others,ImmuneXpresso,pro-B cell/cytoPos,0.04895104895104885,1,IL4
+Olink.Olink_mod0,Others,ImmuneXpresso,regulatory T cell/cytoPos,0.03851748667603593,1,IL4;IL5
+Olink.Olink_mod0,Others,ImmuneXpresso,stromal cell/cytoPos,0.019247876990690815,1,IL1A;IL33
+Olink.Olink_mod0,Others,ImmuneXpresso,B cell/cytoNeg,0.04281838536872521,1,IL2;IL13;IL1A
+Olink.Olink_mod0,Others,ImmuneXpresso,B-1 B cell/cytoNeg,0.002068354181030238,1,IL5;IL33
+Olink.Olink_mod0,Others,ImmuneXpresso,mature eosinophil/cytoNeg,0.04895104895104885,1,IL5
+Olink.Olink_mod0,Others,ImmuneXpresso,multinucleated giant cell/cytoNeg,0.04895104895104885,1,IL13
+Olink.Olink_mod0,Others,ImmuneXpresso,myeloid suppressor cell/cytoNeg,0.04895104895104885,1,IL4
+Olink.Olink_mod0,Others,ImmuneXpresso,naive B cell/cytoNeg,0.04895104895104885,1,IL4
+Olink.Olink_mod0,Others,ImmuneXpresso,odontoclast/cytoNeg,0.04895104895104885,1,IL4
+Olink.Olink_mod0,Others,ImmuneXpresso,thymocyte/cytoNeg,0.03851748667603593,1,IL2;IL4
+Olink.Olink_mod1,Cytokines produced by Neutrophils,ImmuneXpresso,"CD4-positive, alpha-beta T cell/cytoPos",0.01213348634227359,1,CCL3;CX3CL1;CXCL9
+Olink.Olink_mod1,Cytokines produced by Neutrophils,ImmuneXpresso,effector T cell/cytoPos,0.046478057746113334,1,CCL3;CXCL9
+Olink.Olink_mod1,Cytokines produced by Neutrophils,ImmuneXpresso,platelet/cytoPos,0.046478057746113334,1,IL17A;CCL3
+Olink.Olink_mod1,Cytokines produced by Neutrophils,ImmuneXpresso,alveolar macrophage/cytoNeg,0.01988889145017404,1,TNF;IL17A
+Olink.Olink_mod1,Cytokines produced by Neutrophils,ImmuneXpresso,erythroid progenitor cell/cytoNeg,0.032048974130669886,1,CCL3;CSF1
+Olink.Olink_mod1,Cytokines produced by Neutrophils,ImmuneXpresso,hematopoietic stem cell/cytoNeg,0.046478057746113334,1,CCL3;TNF
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,alternatively activated macrophage/cell,0.008347848106128392,1,IL10;IL6;CCL2
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,bronchial epithelial cell/cell,0.015620310194401927,1,CXCL8;IL10;CCL2
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,"CD4-positive, alpha-beta intraepithelial T cell/cell",0.008347848106128392,1,IFNG;IL6;IL10
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,endothelial cell/cell,0.02557349735900992,1,IL6;CCL2;CXCL8
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,endothelial cell of vascular tree/cell,0.029118319498900844,1,IL6;CCL7
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,fat cell/cell,0.02557349735900992,1,IL6;CCL2;CCL20
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,gamma-delta T cell/cell,0.029118319498900844,1,IFNG;IL10
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,leukocyte/cell,0.005842610749242426,1,IFNG;IL6;IL10;CCL2;IL18;LIF
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,macrophage/cell,0.025066440235173397,1,IFNG;IL10;IL6;CCL2;IL18;CXCL10;CCL20
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,monocyte/cell,0.0011714241591510319,1,IL6;CCL2;IL10;IFNG;CXCL8;IL18;CXCL10
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,peritoneal macrophage/cell,0.004398579567638058,1,IFNG;IL10;IL6;CCL2
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,adipose macrophage/cytoPos,0.010341770905151183,1,IFNG;CCL2
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,classical monocyte/cytoNeg,0.029118319498900844,1,CCL2;IL10
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,dendritic cell/cytoNeg,0.0023493939749246583,1,IL10;HGF;IL6;CXCL11
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,endothelial cell/cytoNeg,8.420534700865576e-4,1,CXCL8;CXCL10;HGF;IL6;IL10;CCL2;IL18;CXCL11
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,goblet cell/cytoNeg,0.015620310194401927,1,IL18;IL10;IFNG
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,granulocyte monocyte progenitor cell/cytoNeg,0.03827844803383301,1,IFNG;IL6;IL10
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,lymphocyte/cytoNeg,0.04215774186172296,1,IL10;CXCL8;IL24;CXCL11
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,peritoneal macrophage/cytoNeg,0.03827844803383301,1,IFNG;IL10;CCL2
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,professional antigen presenting cell/cytoNeg,0.008347848106128392,1,IL10;IFNG;IL6
+Olink.Olink_mod2,Cytokines produced by Macrophages,ImmuneXpresso,T-helper 2 cell/cytoNeg,0.011556614795819205,1,IFNG;IL10;IL18;IL6
+Olink.Olink_mod3,Activators of cytotoxic NKs,ImmuneXpresso,eosinophil progenitor cell/cytoPos,0.03496503496503478,1,CCL11
+Olink.Olink_mod3,Activators of cytotoxic NKs,ImmuneXpresso,hypertrophic chondrocyte/cytoNeg,0.03496503496503478,1,TNFSF11
+Olink.Olink_mod3,Activators of cytotoxic NKs,ImmuneXpresso,M cell/cytoNeg,0.03496503496503478,1,LTA
+Olink.Olink_mod5,Cytokines related to B cells,ImmuneXpresso,fibrocyte/cell,0.04195804195804187,1,TGFB1
+Olink.Olink_mod5,Cytokines related to B cells,ImmuneXpresso,precursor B cell/cell,0.04195804195804187,1,IL7
+Olink.Olink_mod5,Cytokines related to B cells,ImmuneXpresso,double negative thymocyte/cytoPos,0.04195804195804187,1,IL7
+Olink.Olink_mod5,Cytokines related to B cells,ImmuneXpresso,endothelial cell of lymphatic vessel/cytoPos,0.036858668669151017,1,TGFB1;CXCL1
+Olink.Olink_mod5,Cytokines related to B cells,ImmuneXpresso,fibroblast of outer membrane of prostatic capsule/cytoPos,0.04195804195804187,1,TGFB1
+Olink.Olink_mod5,Cytokines related to B cells,ImmuneXpresso,macrophage/cytoPos,0.028184696648416902,1,CXCL5;CCL13
+Olink.Olink_mod5,Cytokines related to B cells,ImmuneXpresso,mature neutrophil/cytoPos,0.004348363653128413,1,CXCL1;CXCL5
+Olink.Olink_mod5,Cytokines related to B cells,ImmuneXpresso,mesodermal cell/cytoPos,0.04195804195804187,1,TGFB1
+Olink.Olink_mod5,Cytokines related to B cells,ImmuneXpresso,promonocyte/cytoPos,0.04195804195804187,1,TGFB1
+Olink.Olink_mod5,Cytokines related to B cells,ImmuneXpresso,short term hematopoietic stem cell/cytoPos,0.04195804195804187,1,IL7
+Olink.Olink_mod5,Cytokines related to B cells,ImmuneXpresso,mesothelial cell of peritoneum/cytoNeg,0.04195804195804187,1,TGFB1
+Olink.Olink_mod5,Cytokines related to B cells,ImmuneXpresso,nasopharyngeal epithelial cell/cytoNeg,0.04195804195804187,1,TGFB1
+Olink.Olink_mod5,Cytokines related to B cells,ImmuneXpresso,pro-B cell/cytoNeg,0.0014773958435930247,1,IL7;TGFB1
+Olink.Olink_mod5,Cytokines related to B cells,ImmuneXpresso,stem cell/cytoNeg,0.008531773889879971,1,TGFB1;CXCL1
+Olink.Olink_mod5,Cytokines related to B cells,ImmuneXpresso,vein endothelial cell/cytoNeg,0.04195804195804187,1,TGFB1
+Olink.Olink_mod6,Activators of Macrophages,ImmuneXpresso,auditory hair cell/cytoPos,0.027972027972028024,1,TGFA
+Olink.Olink_mod6,Activators of Macrophages,ImmuneXpresso,macrophage/cytoPos,0.01182964473345055,1,CCL4;TNFSF14

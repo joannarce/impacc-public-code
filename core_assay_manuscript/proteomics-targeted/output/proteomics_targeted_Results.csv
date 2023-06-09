@@ -1,0 +1,157 @@
+Module (or Feature),Analysis,P value,Direction
+Proteomics_Targeted.Targetedprot_mod1,Visit 1 analysis - overall,5.47432682318163e-4,Mild
+Proteomics_Targeted.Targetedprot_mod3,Visit 1 analysis - overall,1.6449350744196245e-8,Severe
+Proteomics_Targeted.Targetedprot_mod1,Visit 1 analysis - 1|2,3.7247321866128836e-4,Mild
+Proteomics_Targeted.Targetedprot_mod1,Visit 1 analysis - 1|3,0.0023563177483841803,Mild
+Proteomics_Targeted.Targetedprot_mod1,Visit 1 analysis - 1|4,7.266519504797962e-5,Mild
+Proteomics_Targeted.Targetedprot_mod1,Visit 1 analysis - 1|5,0.03225687810495997,Mild
+Proteomics_Targeted.Targetedprot_mod3,Visit 1 analysis - 1|2,1.4607306970159394e-6,Severe
+Proteomics_Targeted.Targetedprot_mod3,Visit 1 analysis - 1|3,7.440724175651904e-5,Severe
+Proteomics_Targeted.Targetedprot_mod3,Visit 1 analysis - 1|4,1.7419045321638828e-7,Severe
+Proteomics_Targeted.Targetedprot_mod3,Visit 1 analysis - 1|5,0.0019620631671043607,Severe
+Proteomics_Targeted.Targetedprot_mod3,Visit 1 analysis - 3|4,0.005326728241982635,Severe
+Proteomics_Targeted.Targetedprot_mod4,Visit 1 analysis - 2|5,0.025058746342213285,Mild
+Proteomics_Targeted.Targetedprot_mod4,Visit 1 analysis - 3|5,0.030957044902640535,Mild
+Proteomics_Targeted.Targetedprot_mod6,Visit 1 analysis - 3|5,0.007351078062250554,Severe
+Proteomics_Targeted.Targetedprot_mod7,Visit 1 analysis - 1|4,0.006731690571099444,Mild
+Targetedprot_mod1,Longitudinal analysis - overall shape,7.659031334921795e-15,Mild
+Targetedprot_mod1,Longitudinal analysis - overall average,4.0377035874487105e-15,Mild
+Targetedprot_mod3,Longitudinal analysis - overall shape,6.896390227935422e-16,Severe
+Targetedprot_mod3,Longitudinal analysis - overall average,1.1119838356126834e-25,Severe
+Targetedprot_mod4,Longitudinal analysis - overall shape,7.240616721371043e-5,Severe
+Targetedprot_mod5,Longitudinal analysis - overall shape,0.0034387726667393175,Mild
+Targetedprot_mod6,Longitudinal analysis - overall average,0.004656919856911066,Severe
+Targetedprot_mod7,Longitudinal analysis - overall shape,9.436996628116783e-9,Mild
+Targetedprot_mod7,Longitudinal analysis - overall average,1.0696825375074987e-6,Mild
+Targetedprot_mod1,Longitudinal analysis - 1|2 average,7.293833151161595e-4,Mild
+Targetedprot_mod1,Longitudinal analysis - 1|3 average,0.005352229813725058,Mild
+Targetedprot_mod1,Longitudinal analysis - 1|4 average,5.306713167252328e-11,Mild
+Targetedprot_mod1,Longitudinal analysis - 1|4 shape,2.8647429317193708e-8,Mild
+Targetedprot_mod1,Longitudinal analysis - 1|5 average,3.5953124054675435e-9,Mild
+Targetedprot_mod1,Longitudinal analysis - 1|5 shape,2.650887973834078e-8,Mild
+Targetedprot_mod1,Longitudinal analysis - 2|4 average,1.0506858559569069e-6,Mild
+Targetedprot_mod1,Longitudinal analysis - 2|4 shape,1.6928720707699665e-10,Mild
+Targetedprot_mod1,Longitudinal analysis - 2|5 average,1.2705286945806802e-4,Severe
+Targetedprot_mod1,Longitudinal analysis - 2|5 shape,2.428344210097608e-10,Mild
+Targetedprot_mod1,Longitudinal analysis - 3|4 average,1.9648868968156672e-6,Mild
+Targetedprot_mod1,Longitudinal analysis - 3|4 shape,2.2424598070003924e-9,Mild
+Targetedprot_mod1,Longitudinal analysis - 3|5 average,5.4614333151546724e-5,Mild
+Targetedprot_mod1,Longitudinal analysis - 3|5 shape,1.1209284630529517e-8,Mild
+Targetedprot_mod1,Longitudinal analysis - 4|5 shape,0.01615438312047402,Mild
+Targetedprot_mod3,Longitudinal analysis - 1|2 average,5.7503795109126065e-6,Severe
+Targetedprot_mod3,Longitudinal analysis - 1|3 average,2.5980033267754983e-7,Severe
+Targetedprot_mod3,Longitudinal analysis - 1|4 average,3.4991377955986304e-12,Severe
+Targetedprot_mod3,Longitudinal analysis - 1|4 shape,2.2186197745326572e-4,Severe
+Targetedprot_mod3,Longitudinal analysis - 1|5 average,1.305648824182067e-13,Severe
+Targetedprot_mod3,Longitudinal analysis - 1|5 shape,7.141176805540176e-12,Severe
+Targetedprot_mod3,Longitudinal analysis - 2|3 shape,0.01977108344112681,Severe
+Targetedprot_mod3,Longitudinal analysis - 2|4 average,1.117409381540643e-7,Severe
+Targetedprot_mod3,Longitudinal analysis - 2|4 shape,9.486450120407292e-7,Severe
+Targetedprot_mod3,Longitudinal analysis - 2|5 average,1.5914037645806855e-10,Severe
+Targetedprot_mod3,Longitudinal analysis - 2|5 shape,4.8505882081358214e-18,Severe
+Targetedprot_mod3,Longitudinal analysis - 3|4 average,2.1600236593996415e-5,Severe
+Targetedprot_mod3,Longitudinal analysis - 3|4 shape,0.003707332113080928,Severe
+Targetedprot_mod3,Longitudinal analysis - 3|5 average,1.2293230218452301e-9,Severe
+Targetedprot_mod3,Longitudinal analysis - 3|5 shape,2.6032441279877135e-11,Severe
+Targetedprot_mod3,Longitudinal analysis - 4|5 average,0.006154550482917641,Mild
+Targetedprot_mod3,Longitudinal analysis - 4|5 shape,2.428871145607972e-7,Severe
+Targetedprot_mod4,Longitudinal analysis - 1|4 shape,6.359897395347572e-4,Severe
+Targetedprot_mod4,Longitudinal analysis - 1|5 shape,0.0418979270480173,Severe
+Targetedprot_mod4,Longitudinal analysis - 2|4 shape,0.0035506208919677696,Severe
+Targetedprot_mod4,Longitudinal analysis - 3|4 shape,0.0019395041681708467,Severe
+Targetedprot_mod5,Longitudinal analysis - 1|4 shape,0.0038671885716278945,Mild
+Targetedprot_mod5,Longitudinal analysis - 1|5 average,0.022588500902654487,Mild
+Targetedprot_mod5,Longitudinal analysis - 1|5 shape,0.004678282846280909,Mild
+Targetedprot_mod5,Longitudinal analysis - 2|4 shape,0.005926637814227458,Mild
+Targetedprot_mod5,Longitudinal analysis - 2|5 shape,0.008506154556706173,Mild
+Targetedprot_mod5,Longitudinal analysis - 3|4 shape,0.04366360870497644,Mild
+Targetedprot_mod6,Longitudinal analysis - 1|4 average,0.018469785445047418,Severe
+Targetedprot_mod6,Longitudinal analysis - 1|4 shape,0.04884924043219172,Severe
+Targetedprot_mod6,Longitudinal analysis - 1|5 average,0.007772107408241244,Severe
+Targetedprot_mod6,Longitudinal analysis - 2|5 average,0.014397184636885075,Severe
+Targetedprot_mod6,Longitudinal analysis - 3|4 average,0.04427030855696544,Severe
+Targetedprot_mod6,Longitudinal analysis - 3|5 average,0.003371721707027821,Severe
+Targetedprot_mod7,Longitudinal analysis - 1|3 average,0.022776455908961133,Mild
+Targetedprot_mod7,Longitudinal analysis - 1|4 average,4.767335940325651e-8,Mild
+Targetedprot_mod7,Longitudinal analysis - 1|4 shape,1.0902661894992545e-5,Mild
+Targetedprot_mod7,Longitudinal analysis - 1|5 average,1.3658724959290748e-4,Mild
+Targetedprot_mod7,Longitudinal analysis - 1|5 shape,2.8680296812853622e-5,Mild
+Targetedprot_mod7,Longitudinal analysis - 2|4 average,5.005192065458251e-5,Mild
+Targetedprot_mod7,Longitudinal analysis - 2|4 shape,7.283252019797604e-8,Mild
+Targetedprot_mod7,Longitudinal analysis - 2|5 shape,7.002168919725934e-7,Mild
+Targetedprot_mod7,Longitudinal analysis - 3|4 average,3.1233093367655083e-4,Mild
+Targetedprot_mod7,Longitudinal analysis - 3|4 shape,9.299158786592275e-5,Mild
+Targetedprot_mod7,Longitudinal analysis - 3|5 average,0.03271404085701433,Severe
+Targetedprot_mod7,Longitudinal analysis - 3|5 shape,2.1011070029327363e-4,Mild
+Targetedprot_mod1,Longitudinal analysis DFSO - overall shape,3.2236752960443453e-10,Mild
+Targetedprot_mod1,Longitudinal analysis DFSO- overall average,5.489927120240453e-10,Mild
+Targetedprot_mod3,Longitudinal analysis DFSO - overall shape,1.7149564549334043e-10,Severe
+Targetedprot_mod3,Longitudinal analysis DFSO- overall average,1.308891697999525e-15,Severe
+Targetedprot_mod4,Longitudinal analysis DFSO - overall shape,3.864864939362244e-5,Severe
+Targetedprot_mod5,Longitudinal analysis DFSO - overall shape,6.206534193198684e-4,Mild
+Targetedprot_mod6,Longitudinal analysis DFSO - overall shape,0.025487552828010077,Severe
+Targetedprot_mod6,Longitudinal analysis DFSO- overall average,0.01720266259085927,Severe
+Targetedprot_mod7,Longitudinal analysis DFSO - overall shape,9.945002185950103e-7,Mild
+Targetedprot_mod7,Longitudinal analysis DFSO- overall average,3.082692931171339e-4,Severe
+Targetedprot_mod1,Longitudinal analysis DFSO - 1|2 average,0.0013377311950573724,Mild
+Targetedprot_mod1,Longitudinal analysis DFSO - 1|3 average,0.01153469526767718,Mild
+Targetedprot_mod1,Longitudinal analysis DFSO - 1|4 average,4.748506015531743e-9,Mild
+Targetedprot_mod1,Longitudinal analysis DFSO - 1|4 shape,6.429396521981249e-7,Mild
+Targetedprot_mod1,Longitudinal analysis DFSO - 1|5 average,1.336579338650932e-7,Mild
+Targetedprot_mod1,Longitudinal analysis DFSO - 1|5 shape,1.0965439468372916e-4,Mild
+Targetedprot_mod1,Longitudinal analysis DFSO - 2|4 average,2.9288029751564847e-5,Severe
+Targetedprot_mod1,Longitudinal analysis DFSO - 2|4 shape,3.7637532407413225e-10,Mild
+Targetedprot_mod1,Longitudinal analysis DFSO - 2|5 average,0.002840833781375286,Severe
+Targetedprot_mod1,Longitudinal analysis DFSO - 2|5 shape,1.034071252563415e-5,Mild
+Targetedprot_mod1,Longitudinal analysis DFSO - 3|4 average,3.2613657104326273e-4,Severe
+Targetedprot_mod1,Longitudinal analysis DFSO - 3|4 shape,2.9582133527065834e-8,Mild
+Targetedprot_mod1,Longitudinal analysis DFSO - 3|5 average,0.00415969068570743,Severe
+Targetedprot_mod1,Longitudinal analysis DFSO - 3|5 shape,2.7632213684686486e-4,Mild
+Targetedprot_mod2,Longitudinal analysis DFSO - 1|3 average,0.03031134842669303,Mild
+Targetedprot_mod2,Longitudinal analysis DFSO - 1|4 shape,8.785086255624155e-4,Severe
+Targetedprot_mod2,Longitudinal analysis DFSO - 2|4 shape,0.00543107920732098,Severe
+Targetedprot_mod2,Longitudinal analysis DFSO - 3|4 average,0.04127994506094354,Severe
+Targetedprot_mod2,Longitudinal analysis DFSO - 3|4 shape,0.012193041756489012,Severe
+Targetedprot_mod3,Longitudinal analysis DFSO - 1|2 average,0.0040454726023393915,Severe
+Targetedprot_mod3,Longitudinal analysis DFSO - 1|3 average,8.496347420915735e-4,Severe
+Targetedprot_mod3,Longitudinal analysis DFSO - 1|4 average,6.679829267963574e-9,Severe
+Targetedprot_mod3,Longitudinal analysis DFSO - 1|4 shape,0.0018812537880023602,Severe
+Targetedprot_mod3,Longitudinal analysis DFSO - 1|5 average,2.7507847284912578e-9,Mild
+Targetedprot_mod3,Longitudinal analysis DFSO - 1|5 shape,1.4183875496026535e-8,Severe
+Targetedprot_mod3,Longitudinal analysis DFSO - 2|3 shape,0.03258773793905563,Severe
+Targetedprot_mod3,Longitudinal analysis DFSO - 2|4 average,1.300902548798856e-5,Mild
+Targetedprot_mod3,Longitudinal analysis DFSO - 2|4 shape,2.0820911819178288e-7,Severe
+Targetedprot_mod3,Longitudinal analysis DFSO - 2|5 average,2.4177502198252285e-6,Mild
+Targetedprot_mod3,Longitudinal analysis DFSO - 2|5 shape,8.733225185747625e-14,Severe
+Targetedprot_mod3,Longitudinal analysis DFSO - 3|4 average,1.2235933193430103e-4,Severe
+Targetedprot_mod3,Longitudinal analysis DFSO - 3|4 shape,0.005078914373593887,Severe
+Targetedprot_mod3,Longitudinal analysis DFSO - 3|5 average,1.3129504315191766e-5,Mild
+Targetedprot_mod3,Longitudinal analysis DFSO - 3|5 shape,3.5902182003309296e-9,Severe
+Targetedprot_mod3,Longitudinal analysis DFSO - 4|5 shape,3.0855167175506357e-6,Severe
+Targetedprot_mod4,Longitudinal analysis DFSO - 1|4 shape,6.896183351853928e-4,Severe
+Targetedprot_mod4,Longitudinal analysis DFSO - 2|4 shape,0.033699770757364765,Severe
+Targetedprot_mod5,Longitudinal analysis DFSO - 1|4 shape,0.01064234414211608,Mild
+Targetedprot_mod5,Longitudinal analysis DFSO - 1|5 average,0.018518150394901973,Severe
+Targetedprot_mod5,Longitudinal analysis DFSO - 1|5 shape,0.0026126906292382995,Mild
+Targetedprot_mod5,Longitudinal analysis DFSO - 2|5 shape,0.035615133528783184,Mild
+Targetedprot_mod5,Longitudinal analysis DFSO - 3|4 shape,0.03795494779787073,Mild
+Targetedprot_mod5,Longitudinal analysis DFSO - 3|5 shape,0.04330802693333845,Mild
+Targetedprot_mod6,Longitudinal analysis DFSO - 1|4 average,0.01886549249601586,Mild
+Targetedprot_mod6,Longitudinal analysis DFSO - 1|4 shape,0.011540021327741897,Severe
+Targetedprot_mod6,Longitudinal analysis DFSO - 1|5 average,0.004584416869073465,Severe
+Targetedprot_mod6,Longitudinal analysis DFSO - 1|5 shape,0.03636906329507848,Severe
+Targetedprot_mod6,Longitudinal analysis DFSO - 2|5 average,0.03772988117807247,Severe
+Targetedprot_mod6,Longitudinal analysis DFSO - 3|4 shape,0.002581686460387192,Severe
+Targetedprot_mod6,Longitudinal analysis DFSO - 3|5 average,0.021700229845523278,Severe
+Targetedprot_mod6,Longitudinal analysis DFSO - 3|5 shape,0.0478931495648694,Severe
+Targetedprot_mod7,Longitudinal analysis DFSO - 1|3 average,0.020295978397648684,Mild
+Targetedprot_mod7,Longitudinal analysis DFSO - 1|4 average,8.600875113782305e-7,Mild
+Targetedprot_mod7,Longitudinal analysis DFSO - 1|4 shape,2.433533516177254e-5,Mild
+Targetedprot_mod7,Longitudinal analysis DFSO - 1|5 average,0.003483043263524583,Mild
+Targetedprot_mod7,Longitudinal analysis DFSO - 1|5 shape,0.0031710551725239147,Mild
+Targetedprot_mod7,Longitudinal analysis DFSO - 2|4 average,2.1565447886775507e-4,Severe
+Targetedprot_mod7,Longitudinal analysis DFSO - 2|4 shape,3.90436126332338e-7,Mild
+Targetedprot_mod7,Longitudinal analysis DFSO - 2|5 shape,3.52810487710106e-4,Mild
+Targetedprot_mod7,Longitudinal analysis DFSO - 3|4 average,0.04143000279514912,Severe
+Targetedprot_mod7,Longitudinal analysis DFSO - 3|4 shape,8.105975005469911e-4,Mild
+Targetedprot_mod7,Longitudinal analysis DFSO - 3|5 shape,0.009169579057345716,Mild

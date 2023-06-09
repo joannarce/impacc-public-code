@@ -1,0 +1,246 @@
+Module,Short Name,Annotation resource,Raw p,Significance
+globalmet.globalmet_mod0,Betaine Metabolism,SMPDB,0.299,Not Significant
+globalmet.globalmet_mod0,Citric Acid Cycle,SMPDB,0.32,Not Significant
+globalmet.globalmet_mod0,Transfer of Acetyl Groups into Mitochondria,SMPDB,0.337,Not Significant
+globalmet.globalmet_mod0,Taurine and Hypotaurine Metabolism,SMPDB,0.351,Not Significant
+globalmet.globalmet_mod0,Glucose-Alanine Cycle,SMPDB,0.403,Not Significant
+globalmet.globalmet_mod0,Mitochondrial Electron Transport Chain,SMPDB,0.431,Not Significant
+globalmet.globalmet_mod0,Pyrimidine Metabolism,SMPDB,0.46,Not Significant
+globalmet.globalmet_mod0,Lactose Degradation,SMPDB,0.485,Not Significant
+globalmet.globalmet_mod0,De Novo Triacylglycerol Biosynthesis,SMPDB,0.485,Not Significant
+globalmet.globalmet_mod0,Methionine Metabolism,SMPDB,0.486,Not Significant
+globalmet.globalmet_mod0,Malate-Aspartate Shuttle,SMPDB,0.544,Not Significant
+globalmet.globalmet_mod0,Beta-Alanine Metabolism,SMPDB,0.562,Not Significant
+globalmet.globalmet_mod0,Gluconeogenesis,SMPDB,0.593,Not Significant
+globalmet.globalmet_mod0,Beta Oxidation of Very Long Chain Fatty Acids,SMPDB,0.593,Not Significant
+globalmet.globalmet_mod0,Alanine Metabolism,SMPDB,0.593,Not Significant
+globalmet.globalmet_mod0,Phosphatidylinositol Phosphate Metabolism,SMPDB,0.593,Not Significant
+globalmet.globalmet_mod0,Cardiolipin Biosynthesis,SMPDB,0.599,Not Significant
+globalmet.globalmet_mod0,Cysteine Metabolism,SMPDB,0.693,Not Significant
+globalmet.globalmet_mod0,Warburg Effect,SMPDB,0.712,Not Significant
+globalmet.globalmet_mod0,Glycine and Serine Metabolism,SMPDB,0.732,Not Significant
+globalmet.globalmet_mod0,Phenylalanine and Tyrosine Metabolism,SMPDB,0.75,Not Significant
+globalmet.globalmet_mod0,Aspartate Metabolism,SMPDB,0.761,Not Significant
+globalmet.globalmet_mod0,Carnitine Synthesis,SMPDB,0.769,Not Significant
+globalmet.globalmet_mod0,Urea Cycle,SMPDB,0.775,Not Significant
+globalmet.globalmet_mod0,Galactose Metabolism,SMPDB,0.823,Not Significant
+globalmet.globalmet_mod0,Thiamine Metabolism,SMPDB,0.824,Not Significant
+globalmet.globalmet_mod0,Homocysteine Degradation,SMPDB,0.824,Not Significant
+globalmet.globalmet_mod0,Glycerolipid Metabolism,SMPDB,0.841,Not Significant
+globalmet.globalmet_mod0,Glycolysis,SMPDB,0.841,Not Significant
+globalmet.globalmet_mod0,Arginine and Proline Metabolism,SMPDB,0.849,Not Significant
+globalmet.globalmet_mod0,Spermidine and Spermine Biosynthesis,SMPDB,0.851,Not Significant
+globalmet.globalmet_mod0,Pyruvaldehyde Degradation,SMPDB,0.855,Not Significant
+globalmet.globalmet_mod0,Butyrate Metabolism,SMPDB,0.872,Not Significant
+globalmet.globalmet_mod0,Glycerol Phosphate Shuttle,SMPDB,0.881,Not Significant
+globalmet.globalmet_mod0,Trehalose Degradation,SMPDB,0.881,Not Significant
+globalmet.globalmet_mod0,Glutamate Metabolism,SMPDB,0.885,Not Significant
+globalmet.globalmet_mod0,Fatty Acid Biosynthesis,SMPDB,0.887,Not Significant
+globalmet.globalmet_mod0,Lactose Synthesis,SMPDB,0.89,Not Significant
+globalmet.globalmet_mod0,Phosphatidylethanolamine Biosynthesis,SMPDB,0.902,Not Significant
+globalmet.globalmet_mod0,Glutathione Metabolism,SMPDB,0.906,Not Significant
+globalmet.globalmet_mod0,Pantothenate and CoA Biosynthesis,SMPDB,0.906,Not Significant
+globalmet.globalmet_mod0,Phospholipid Biosynthesis,SMPDB,0.907,Not Significant
+globalmet.globalmet_mod0,Ketone Body Metabolism,SMPDB,0.919,Not Significant
+globalmet.globalmet_mod0,Thyroid hormone synthesis,SMPDB,0.919,Not Significant
+globalmet.globalmet_mod0,Phosphatidylcholine Biosynthesis,SMPDB,0.933,Not Significant
+globalmet.globalmet_mod0,Ammonia Recycling,SMPDB,0.939,Not Significant
+globalmet.globalmet_mod0,Oxidation of Branched Chain Fatty Acids,SMPDB,0.958,Not Significant
+globalmet.globalmet_mod0,Phytanic Acid Peroxisomal Oxidation,SMPDB,0.958,Not Significant
+globalmet.globalmet_mod0,Inositol Phosphate Metabolism,SMPDB,0.958,Not Significant
+globalmet.globalmet_mod0,Mitochondrial Beta-Oxidation of Short Chain Saturated Fatty Acids,SMPDB,0.964,Not Significant
+globalmet.globalmet_mod0,Riboflavin Metabolism,SMPDB,0.979,Not Significant
+globalmet.globalmet_mod0,Pyruvate Metabolism,SMPDB,0.98,Not Significant
+globalmet.globalmet_mod0,Starch and Sucrose Metabolism,SMPDB,0.982,Not Significant
+globalmet.globalmet_mod0,Fructose and Mannose Degradation,SMPDB,0.985,Not Significant
+globalmet.globalmet_mod0,Purine Metabolism,SMPDB,0.985,Not Significant
+globalmet.globalmet_mod0,Sulfate/Sulfite Metabolism,SMPDB,0.986,Not Significant
+globalmet.globalmet_mod0,Inositol Metabolism,SMPDB,0.987,Not Significant
+globalmet.globalmet_mod0,Amino Sugar Metabolism,SMPDB,0.987,Not Significant
+globalmet.globalmet_mod0,Tryptophan Metabolism,SMPDB,0.988,Not Significant
+globalmet.globalmet_mod0,Histidine Metabolism,SMPDB,0.988,Not Significant
+globalmet.globalmet_mod0,Nicotinate and Nicotinamide Metabolism,SMPDB,0.993,Not Significant
+globalmet.globalmet_mod0,Plasmalogen Synthesis,SMPDB,0.994,Not Significant
+globalmet.globalmet_mod0,Selenoamino Acid Metabolism,SMPDB,0.996,Not Significant
+globalmet.globalmet_mod0,Sphingolipid Metabolism,SMPDB,0.996,Not Significant
+globalmet.globalmet_mod0,Pentose Phosphate Pathway,SMPDB,0.997,Not Significant
+globalmet.globalmet_mod0,Folate Metabolism,SMPDB,0.997,Not Significant
+globalmet.globalmet_mod0,"Valine, Leucine and Isoleucine Degradation",SMPDB,0.997,Not Significant
+globalmet.globalmet_mod0,Lysine Degradation,SMPDB,0.997,Not Significant
+globalmet.globalmet_mod0,Propanoate Metabolism,SMPDB,0.997,Not Significant
+globalmet.globalmet_mod0,Bile Acid Biosynthesis,SMPDB,0.998,Not Significant
+globalmet.globalmet_mod0,Tyrosine Metabolism,SMPDB,1,Not Significant
+globalmet.globalmet_mod0,Steroid Biosynthesis,SMPDB,1,Not Significant
+globalmet.globalmet_mod1,Methylhistidine Metabolism,SMPDB,0.29,Not Significant
+globalmet.globalmet_mod1,Nicotinate and Nicotinamide Metabolism,SMPDB,0.599,Not Significant
+globalmet.globalmet_mod1,Phosphatidylcholine Biosynthesis,SMPDB,0.701,Not Significant
+globalmet.globalmet_mod1,Amino Sugar Metabolism,SMPDB,0.771,Not Significant
+globalmet.globalmet_mod1,Catecholamine Biosynthesis,SMPDB,0.822,Not Significant
+globalmet.globalmet_mod1,Vitamin B6 Metabolism,SMPDB,0.822,Not Significant
+globalmet.globalmet_mod1,Ubiquinone Biosynthesis,SMPDB,0.822,Not Significant
+globalmet.globalmet_mod1,Betaine Metabolism,SMPDB,0.837,Not Significant
+globalmet.globalmet_mod1,Sulfate/Sulfite Metabolism,SMPDB,0.851,Not Significant
+globalmet.globalmet_mod1,Carnitine Synthesis,SMPDB,0.851,Not Significant
+globalmet.globalmet_mod1,Tyrosine Metabolism,SMPDB,0.861,Not Significant
+globalmet.globalmet_mod1,Caffeine Metabolism,SMPDB,0.875,Not Significant
+globalmet.globalmet_mod1,Estrone Metabolism,SMPDB,0.875,Not Significant
+globalmet.globalmet_mod1,Tryptophan Metabolism,SMPDB,0.887,Not Significant
+globalmet.globalmet_mod1,Starch and Sucrose Metabolism,SMPDB,0.932,Not Significant
+globalmet.globalmet_mod1,Fructose and Mannose Degradation,SMPDB,0.938,Not Significant
+globalmet.globalmet_mod1,Inositol Metabolism,SMPDB,0.943,Not Significant
+globalmet.globalmet_mod1,Androgen and Estrogen Metabolism,SMPDB,0.943,Not Significant
+globalmet.globalmet_mod1,Galactose Metabolism,SMPDB,0.964,Not Significant
+globalmet.globalmet_mod1,Sphingolipid Metabolism,SMPDB,0.97,Not Significant
+globalmet.globalmet_mod1,Methionine Metabolism,SMPDB,0.977,Not Significant
+globalmet.globalmet_mod1,Histidine Metabolism,SMPDB,0.977,Not Significant
+globalmet.globalmet_mod1,Arginine and Proline Metabolism,SMPDB,0.991,Not Significant
+globalmet.globalmet_mod1,Glycine and Serine Metabolism,SMPDB,0.995,Not Significant
+globalmet.globalmet_mod3,Methylhistidine Metabolism,SMPDB,0.0611,Not Significant
+globalmet.globalmet_mod3,Beta-Alanine Metabolism,SMPDB,0.42,Not Significant
+globalmet.globalmet_mod3,Histidine Metabolism,SMPDB,0.499,Not Significant
+globalmet.globalmet_mod4,Alpha Linolenic Acid and Linoleic Acid Metabolism,SMPDB,1.11e-11,Significant
+globalmet.globalmet_mod4,Fatty Acid Biosynthesis,SMPDB,0.178,Not Significant
+globalmet.globalmet_mod4,Glycerolipid Metabolism,SMPDB,0.283,Not Significant
+globalmet.globalmet_mod4,Beta Oxidation of Very Long Chain Fatty Acids,SMPDB,0.521,Not Significant
+globalmet.globalmet_mod4,Plasmalogen Synthesis,SMPDB,0.677,Not Significant
+globalmet.globalmet_mod4,Mitochondrial Beta-Oxidation of Medium Chain Saturated Fatty Acids,SMPDB,0.691,Not Significant
+globalmet.globalmet_mod4,Mitochondrial Beta-Oxidation of Long Chain Saturated Fatty Acids,SMPDB,0.704,Not Significant
+globalmet.globalmet_mod4,Fatty Acid Elongation In Mitochondria,SMPDB,0.783,Not Significant
+globalmet.globalmet_mod4,Galactose Metabolism,SMPDB,0.81,Not Significant
+globalmet.globalmet_mod4,Fatty acid Metabolism,SMPDB,0.848,Not Significant
+globalmet.globalmet_mod4,Steroid Biosynthesis,SMPDB,0.879,Not Significant
+globalmet.globalmet_mod4,Bile Acid Biosynthesis,SMPDB,0.944,Not Significant
+globalmet.globalmet_mod4,Arachidonic Acid Metabolism,SMPDB,0.953,Not Significant
+globalmet.globalmet_mod6,D-Arginine and D-Ornithine Metabolism,SMPDB,0.0235,Significant
+globalmet.globalmet_mod6,Carnitine Synthesis,SMPDB,0.0849,Not Significant
+globalmet.globalmet_mod6,Oxidation of Branched Chain Fatty Acids,SMPDB,0.113,Not Significant
+globalmet.globalmet_mod6,Beta Oxidation of Very Long Chain Fatty Acids,SMPDB,0.322,Not Significant
+globalmet.globalmet_mod6,Mitochondrial Beta-Oxidation of Short Chain Saturated Fatty Acids,SMPDB,0.463,Not Significant
+globalmet.globalmet_mod6,Mitochondrial Beta-Oxidation of Long Chain Saturated Fatty Acids,SMPDB,0.475,Not Significant
+globalmet.globalmet_mod6,Urea Cycle,SMPDB,0.487,Not Significant
+globalmet.globalmet_mod6,Lysine Degradation,SMPDB,0.499,Not Significant
+globalmet.globalmet_mod6,Histidine Metabolism,SMPDB,0.631,Not Significant
+globalmet.globalmet_mod6,Fatty acid Metabolism,SMPDB,0.631,Not Significant
+globalmet.globalmet_mod6,Arginine and Proline Metabolism,SMPDB,0.709,Not Significant
+globalmet.globalmet_mod6,Tryptophan Metabolism,SMPDB,0.754,Not Significant
+globalmet.globalmet_mod8,Phospholipid Biosynthesis,SMPDB,0.406,Not Significant
+globalmet.globalmet_mod8,Arachidonic Acid Metabolism,SMPDB,0.718,Not Significant
+globalmet.globalmet_mod9,Sphingolipid Metabolism,SMPDB,0.406,Not Significant
+globalmet.globalmet_mod9,Steroidogenesis,SMPDB,0.429,Not Significant
+globalmet.globalmet_mod9,Steroid Biosynthesis,SMPDB,0.466,Not Significant
+globalmet.globalmet_mod9,Bile Acid Biosynthesis,SMPDB,0.576,Not Significant
+globalmet.globalmet_mod12,Glycine and Serine Metabolism,SMPDB,1.83e-5,Significant
+globalmet.globalmet_mod12,Arginine and Proline Metabolism,SMPDB,0.00922,Significant
+globalmet.globalmet_mod12,Urea Cycle,SMPDB,0.0106,Significant
+globalmet.globalmet_mod12,Methionine Metabolism,SMPDB,0.0311,Significant
+globalmet.globalmet_mod12,Spermidine and Spermine Biosynthesis,SMPDB,0.034,Significant
+globalmet.globalmet_mod12,Methylhistidine Metabolism,SMPDB,0.0649,Not Significant
+globalmet.globalmet_mod12,Selenoamino Acid Metabolism,SMPDB,0.0761,Not Significant
+globalmet.globalmet_mod12,Ammonia Recycling,SMPDB,0.0961,Not Significant
+globalmet.globalmet_mod12,Biotin Metabolism,SMPDB,0.126,Not Significant
+globalmet.globalmet_mod12,Homocysteine Degradation,SMPDB,0.14,Not Significant
+globalmet.globalmet_mod12,Phosphatidylethanolamine Biosynthesis,SMPDB,0.183,Not Significant
+globalmet.globalmet_mod12,Glucose-Alanine Cycle,SMPDB,0.197,Not Significant
+globalmet.globalmet_mod12,Thyroid hormone synthesis,SMPDB,0.197,Not Significant
+globalmet.globalmet_mod12,Alanine Metabolism,SMPDB,0.249,Not Significant
+globalmet.globalmet_mod12,Tryptophan Metabolism,SMPDB,0.262,Not Significant
+globalmet.globalmet_mod12,Catecholamine Biosynthesis,SMPDB,0.287,Not Significant
+globalmet.globalmet_mod12,Threonine and 2-Oxobutanoate Degradation,SMPDB,0.287,Not Significant
+globalmet.globalmet_mod12,Glutathione Metabolism,SMPDB,0.299,Not Significant
+globalmet.globalmet_mod12,Betaine Metabolism,SMPDB,0.299,Not Significant
+globalmet.globalmet_mod12,Carnitine Synthesis,SMPDB,0.311,Not Significant
+globalmet.globalmet_mod12,Phenylalanine and Tyrosine Metabolism,SMPDB,0.378,Not Significant
+globalmet.globalmet_mod12,Lysine Degradation,SMPDB,0.399,Not Significant
+globalmet.globalmet_mod12,Beta-Alanine Metabolism,SMPDB,0.439,Not Significant
+globalmet.globalmet_mod12,Aspartate Metabolism,SMPDB,0.449,Not Significant
+globalmet.globalmet_mod12,Sphingolipid Metabolism,SMPDB,0.495,Not Significant
+globalmet.globalmet_mod12,Histidine Metabolism,SMPDB,0.521,Not Significant
+globalmet.globalmet_mod12,Glutamate Metabolism,SMPDB,0.568,Not Significant
+globalmet.globalmet_mod12,Tyrosine Metabolism,SMPDB,0.713,Not Significant
+globalmet.globalmet_mod13,Beta Oxidation of Very Long Chain Fatty Acids,SMPDB,0.14,Not Significant
+globalmet.globalmet_mod13,Oxidation of Branched Chain Fatty Acids,SMPDB,0.207,Not Significant
+globalmet.globalmet_mod13,Mitochondrial Beta-Oxidation of Short Chain Saturated Fatty Acids,SMPDB,0.215,Not Significant
+globalmet.globalmet_mod15,Sphingolipid Metabolism,SMPDB,1.59e-4,Significant
+globalmet.globalmet_mod15,Urea Cycle,SMPDB,0.0074,Significant
+globalmet.globalmet_mod15,Malate-Aspartate Shuttle,SMPDB,0.00843,Significant
+globalmet.globalmet_mod15,Ammonia Recycling,SMPDB,0.00978,Significant
+globalmet.globalmet_mod15,Aspartate Metabolism,SMPDB,0.0126,Significant
+globalmet.globalmet_mod15,Nicotinate and Nicotinamide Metabolism,SMPDB,0.0147,Significant
+globalmet.globalmet_mod15,Phosphatidylcholine Biosynthesis,SMPDB,0.0165,Significant
+globalmet.globalmet_mod15,Alanine Metabolism,SMPDB,0.024,Significant
+globalmet.globalmet_mod15,Glutamate Metabolism,SMPDB,0.0312,Significant
+globalmet.globalmet_mod15,Arginine and Proline Metabolism,SMPDB,0.0383,Significant
+globalmet.globalmet_mod15,Cysteine Metabolism,SMPDB,0.0532,Not Significant
+globalmet.globalmet_mod15,Phenylalanine and Tyrosine Metabolism,SMPDB,0.0608,Not Significant
+globalmet.globalmet_mod15,Beta-Alanine Metabolism,SMPDB,0.0858,Not Significant
+globalmet.globalmet_mod15,Purine Metabolism,SMPDB,0.0879,Not Significant
+globalmet.globalmet_mod15,Propanoate Metabolism,SMPDB,0.123,Not Significant
+globalmet.globalmet_mod15,Thiamine Metabolism,SMPDB,0.125,Not Significant
+globalmet.globalmet_mod15,Phenylacetate Metabolism,SMPDB,0.125,Not Significant
+globalmet.globalmet_mod15,Histidine Metabolism,SMPDB,0.128,Not Significant
+globalmet.globalmet_mod15,Taurine and Hypotaurine Metabolism,SMPDB,0.163,Not Significant
+globalmet.globalmet_mod15,Phosphatidylethanolamine Biosynthesis,SMPDB,0.163,Not Significant
+globalmet.globalmet_mod15,Glucose-Alanine Cycle,SMPDB,0.176,Not Significant
+globalmet.globalmet_mod15,Glycine and Serine Metabolism,SMPDB,0.212,Not Significant
+globalmet.globalmet_mod15,Butyrate Metabolism,SMPDB,0.246,Not Significant
+globalmet.globalmet_mod15,Ethanol Degradation,SMPDB,0.246,Not Significant
+globalmet.globalmet_mod15,Riboflavin Metabolism,SMPDB,0.258,Not Significant
+globalmet.globalmet_mod15,Glutathione Metabolism,SMPDB,0.269,Not Significant
+globalmet.globalmet_mod15,Pantothenate and CoA Biosynthesis,SMPDB,0.269,Not Significant
+globalmet.globalmet_mod15,Tyrosine Metabolism,SMPDB,0.285,Not Significant
+globalmet.globalmet_mod15,Mitochondrial Beta-Oxidation of Short Chain Saturated Fatty Acids,SMPDB,0.332,Not Significant
+globalmet.globalmet_mod15,Mitochondrial Beta-Oxidation of Medium Chain Saturated Fatty Acids,SMPDB,0.332,Not Significant
+globalmet.globalmet_mod15,Selenoamino Acid Metabolism,SMPDB,0.342,Not Significant
+globalmet.globalmet_mod15,Mitochondrial Beta-Oxidation of Long Chain Saturated Fatty Acids,SMPDB,0.342,Not Significant
+globalmet.globalmet_mod15,Phospholipid Biosynthesis,SMPDB,0.352,Not Significant
+globalmet.globalmet_mod15,Pentose Phosphate Pathway,SMPDB,0.352,Not Significant
+globalmet.globalmet_mod15,Folate Metabolism,SMPDB,0.352,Not Significant
+globalmet.globalmet_mod15,Lysine Degradation,SMPDB,0.362,Not Significant
+globalmet.globalmet_mod15,Amino Sugar Metabolism,SMPDB,0.39,Not Significant
+globalmet.globalmet_mod15,Methionine Metabolism,SMPDB,0.477,Not Significant
+globalmet.globalmet_mod15,Fatty acid Metabolism,SMPDB,0.477,Not Significant
+globalmet.globalmet_mod15,Pyruvate Metabolism,SMPDB,0.516,Not Significant
+globalmet.globalmet_mod15,Warburg Effect,SMPDB,0.586,Not Significant
+globalmet.globalmet_mod15,"Valine, Leucine and Isoleucine Degradation",SMPDB,0.598,Not Significant
+globalmet.globalmet_mod15,Tryptophan Metabolism,SMPDB,0.598,Not Significant
+globalmet.globalmet_mod15,Bile Acid Biosynthesis,SMPDB,0.629,Not Significant
+globalmet.globalmet_mod15,Arachidonic Acid Metabolism,SMPDB,0.651,Not Significant
+globalmet.globalmet_mod16,Phospholipid Biosynthesis,SMPDB,0.0303,Significant
+globalmet.globalmet_mod16,Retinol Metabolism,SMPDB,0.309,Not Significant
+globalmet.globalmet_mod17,Ketone Body Metabolism,SMPDB,0.132,Not Significant
+globalmet.globalmet_mod17,Fatty Acid Biosynthesis,SMPDB,0.319,Not Significant
+globalmet.globalmet_mod18,Androstenedione Metabolism,SMPDB,0.00746,Significant
+globalmet.globalmet_mod18,Steroidogenesis,SMPDB,0.0232,Significant
+globalmet.globalmet_mod20,"Valine, Leucine and Isoleucine Degradation",SMPDB,1.6e-4,Significant
+globalmet.globalmet_mod20,Propanoate Metabolism,SMPDB,0.0248,Significant
+globalmet.globalmet_mod20,Homocysteine Degradation,SMPDB,0.133,Not Significant
+globalmet.globalmet_mod20,Threonine and 2-Oxobutanoate Degradation,SMPDB,0.272,Not Significant
+globalmet.globalmet_mod20,Selenoamino Acid Metabolism,SMPDB,0.36,Not Significant
+globalmet.globalmet_mod20,Methionine Metabolism,SMPDB,0.499,Not Significant
+globalmet.globalmet_mod20,Glycine and Serine Metabolism,SMPDB,0.616,Not Significant
+globalmet.globalmet_mod23,Mitochondrial Beta-Oxidation of Long Chain Saturated Fatty Acids,SMPDB,0.2,Not Significant
+globalmet.globalmet_mod23,Fatty acid Metabolism,SMPDB,0.291,Not Significant
+globalmet.globalmet_mod28,Starch and Sucrose Metabolism,SMPDB,0.116,Not Significant
+globalmet.globalmet_mod28,Fructose and Mannose Degradation,SMPDB,0.119,Not Significant
+globalmet.globalmet_mod28,Amino Sugar Metabolism,SMPDB,0.123,Not Significant
+globalmet.globalmet_mod28,Galactose Metabolism,SMPDB,0.141,Not Significant
+globalmet.globalmet_mod34,Ammonia Recycling,SMPDB,8.93e-4,Significant
+globalmet.globalmet_mod34,Aspartate Metabolism,SMPDB,0.00117,Significant
+globalmet.globalmet_mod34,Urea Cycle,SMPDB,0.0149,Significant
+globalmet.globalmet_mod34,Glutamate Metabolism,SMPDB,0.0404,Significant
+globalmet.globalmet_mod34,Arginine and Proline Metabolism,SMPDB,0.0467,Significant
+globalmet.globalmet_mod34,Phenylacetate Metabolism,SMPDB,0.0601,Not Significant
+globalmet.globalmet_mod34,Purine Metabolism,SMPDB,0.0854,Not Significant
+globalmet.globalmet_mod34,Alanine Metabolism,SMPDB,0.111,Not Significant
+globalmet.globalmet_mod34,Glutathione Metabolism,SMPDB,0.135,Not Significant
+globalmet.globalmet_mod34,Carnitine Synthesis,SMPDB,0.141,Not Significant
+globalmet.globalmet_mod34,Amino Sugar Metabolism,SMPDB,0.205,Not Significant
+globalmet.globalmet_mod34,Nicotinate and Nicotinamide Metabolism,SMPDB,0.228,Not Significant
+globalmet.globalmet_mod34,Porphyrin Metabolism,SMPDB,0.244,Not Significant
+globalmet.globalmet_mod34,Methionine Metabolism,SMPDB,0.26,Not Significant
+globalmet.globalmet_mod34,Warburg Effect,SMPDB,0.336,Not Significant
+globalmet.globalmet_mod34,Glycine and Serine Metabolism,SMPDB,0.341,Not Significant
+globalmet.globalmet_mod34,Pyrimidine Metabolism,SMPDB,0.341,Not Significant
+globalmet.globalmet_mod34,Bile Acid Biosynthesis,SMPDB,0.369,Not Significant
+globalmet.globalmet_mod35,Phenylalanine and Tyrosine Metabolism,SMPDB,0.2,Not Significant
+globalmet.globalmet_mod35,"Valine, Leucine and Isoleucine Degradation",SMPDB,0.384,Not Significant

@@ -1,0 +1,9 @@
+Module,Feature,Start Position,End Position
+Peptides.Region1,Spike Protein,7097,7228
+Peptides.Region2,Spike Protein,7359,7383
+Peptides.Region3,Spike Protein,7769,7838
+Peptides.Region4,Spike Protein,7892,8004
+Peptides.Region5,Spike Protein,8164,8188
+Peptides.Region6,Nucleoprotein,9308,9364
+Peptides.Region7,Nucleoprotein,9381,9421
+Peptides.Region8,Nucleoprotein,9523,9547

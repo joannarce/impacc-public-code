@@ -1,0 +1,272 @@
+---
+title: "Combine Sup Table and extract overlap from the longitudinal analysis"
+author: "Naresh Doni Jayavelu, Slim Fourati, Jingjing Qi"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: github_document
+---
+
+# Load required packages
+```{r load-packages}
+suppressPackageStartupMessages(library(package = "knitr"))
+suppressPackageStartupMessages(library(package = "readxl"))
+suppressPackageStartupMessages(library(package = "fuzzyjoin"))
+suppressPackageStartupMessages(library(package = "igraph"))
+suppressPackageStartupMessages(library(package = "ComplexHeatmap"))
+suppressPackageStartupMessages(library(package = "tidyverse"))
+```
+
+```{r session-options}
+out_dir <- "../output/"
+opts_chunk$set(tidy = FALSE, fig.path = out_dir)
+#knitr::opts_chunk$set(dev = 'svg')
+```
+
+# Read supplemental tables
+two data.frame will created, resTabDF with the results of the regression analysis and annotTabDF with the  
+annotation of each WGCNA module
+```{r read-sup-tables}
+
+supTabDir <- "../input_suppl_files/"
+
+supTabFiles <- list.files(path = supTabDir, full.names = TRUE)
+supTabFiles <- grep(pattern = "EA_", supTabFiles, value = TRUE, invert = TRUE)
+
+lookup <- c("Module (or Feature)" = "Module")
+
+# compile results
+resTabDF <- NULL
+for (supTabFile in supTabFiles) {
+  # print(basename(supTabFile))
+  sheetName <- excel_sheets(path = supTabFile) %>%
+    grep(pattern = "assoc|result", ignore.case = TRUE, value = TRUE)
+  read_excel(path = supTabFile, sheet = sheetName, skip = 1) %>%
+    dplyr::rename(dplyr::any_of(lookup)) %>% # rename column Module to 'Module (or Feature)'
+    plyr::rbind.fill(resTabDF, .) -> resTabDF # rbind and fill missing 'Q value' column
+}
+
+message("header of resTabDF:")
+kable(head(resTabDF))
+
+# compile annotation
+annotTabDF <- NULL
+for (supTabFile in supTabFiles) {
+  # print(basename(supTabFile))
+  sheetName <- excel_sheets(path = supTabFile) %>%
+    grep(pattern = "annot", ignore.case = TRUE, value = TRUE)
+  if(length(sheetName) > 0) {
+    # PBMC annot is not formatted like other files (no title line)
+    skipFirstLine <- any(grepl(pattern = "Table", 
+                               read_excel(path         = supTabFile, 
+                                          sheet        = sheetName, 
+                                          n_max        = 1, 
+                                          col_names    = FALSE,
+                                          .name_repair = make.unique)))
+    annotTabTemp <- read_excel(path = supTabFile, sheet = sheetName, skip = as.numeric(skipFirstLine)) %>%
+      dplyr::rename(dplyr::any_of(c("Module" = "module_name")))
+    # Except for Olink, none of the assay included the short name of the modules in the supplementary annotation
+    # Each module will be annotate based on the top pathways enriched in that modules
+    if (!("Resource ID" %in% names(annotTabTemp))) {
+      annotTabTemp <- annotTabTemp %>%
+        dplyr::rename(dplyr::any_of(c("Resource ID" = "Term",
+                                      "Resource ID" = "Short Name",
+                                      "Resource ID" = "ID_HALLMARK"))) # rename column Module to 'Module (or Feature)'  
+    }
+    if (!("P.value" %in% names(annotTabTemp))) {
+      annotTabTemp <- annotTabTemp %>%
+        dplyr::rename(dplyr::any_of(c("P.value" = "Adjusted.P.value",
+                                      "P.value" = "Raw p",
+                                      "P.value" = "P value",
+                                      "P.value" = "pvalue")))
+    }
+    annotTabTemp %>%
+      filter(`P.value` <= 0.05) %>%
+      select(Module, `Resource ID`, `P.value`) %>%
+      rbind(annotTabDF, .) -> annotTabDF
+  }
+}
+
+message("header of annotTabDF:")
+kable(head(annotTabDF))
+```
+
+# Identify common annotation-across assay
+```{r Longitudinal-alltgs}
+### PLEASE MAKE SURE TO SELECT THE SUBSET OF ANALYSIS YOU ARE ASSIGNED HERE
+resTabLongitudinalOverall <- resTabDF %>%
+  filter(grepl(pattern = "Longitudinal analysis - overall shape|Longitudinal analysis Child population - overall shape|Longitudinal analysis Parent population - overall shape|Longitudinal analysis Child population of non granulocytes - overall shape|Longitudinal analysis Parent population of non granulocytes - overall shape|Longitudinal analysis Child to parent ratio - overall shape", Analysis) & `P value` <= 0.05)
+
+# proteomic are missing annotation currently
+assayLS <- c("NasalRNAseq", "Olink", "plasma_proteomics_targeted", "plasma_proteomics_Global_dda", 
+             "globalmet.globalmet", "PBMC")
+
+# for each pair of assay assess overlap using fuzzy matching
+assayCombMat <- combn(assayLS, 2)
+transAssayDF <- NULL
+for (i in 1:ncol(assayCombMat)) {
+  assay1 <- assayCombMat[1, i]
+  assay2 <- assayCombMat[2, i]
+  assay1ResTab <- filter(resTabLongitudinalOverall, grepl(pattern = assay1, `Module (or Feature)`)) %>%
+    merge(y = annotTabDF, by.x = "Module (or Feature)", by.y = "Module")
+
+  assay2ResTab <- filter(resTabLongitudinalOverall, grepl(pattern = assay2, `Module (or Feature)`)) %>%
+    merge(y = annotTabDF, by.x = "Module (or Feature)", by.y = "Module")
+
+  # perform fuzzy matching left join
+  stringdist_join(assay1ResTab, 
+                  assay2ResTab, 
+                  by           = "Resource ID", # match based on pathway name
+                  mode         = "left", # use left join
+                  method       = "jw", # use jw distance metric
+                  max_dist     = 99, 
+                  distance_col = "dist") %>%
+  group_by(`Module (or Feature).x`) %>%
+  slice_min(order_by=dist, n=1) %>%
+  select(`Module (or Feature).x`, `Module (or Feature).y`, `Resource ID.x`, `Resource ID.y`, dist, `Direction.x`, `Direction.y`) %>%
+  rbind(transAssayDF, .) -> transAssayDF
+}
+kable(head(transAssayDF))
+```
+
+# Identify common pathways across assays
+```{r generate-network-edge}
+# MANUALLY FILTER transAssayDF TO REMOVE FALSE MATCHES
+idx_path <- c(4,16,36, 38:40,42:44, 46:52,54,55,58:61,71,91,107:124,268,272,358:361,362:370:377,407,413:414, 418:419)
+transAssayFilterDF <- transAssayDF[idx_path, ]
+
+edgeDF <- transAssayFilterDF %>% 
+  select(-`Resource ID.y`, -dist) %>%
+  rowid_to_column() %>% 
+  pivot_longer(cols = -c(`Resource ID.x`, rowid), names_to = c("name", "coord"), names_pattern = "(.*)\\.([xy])") %>% 
+  pivot_wider(names_from = name, values_from = value) %>% 
+  mutate(assay = gsub(pattern = ".mod.+$", replacement = "", `Module (or Feature)`)) %>% 
+  select(assay, `Resource ID.x`, Direction) %>% 
+  distinct() # %>% 
+  
+edgeDF <- edgeDF %>% 
+  mutate(across(`Resource ID.x`, str_replace,"COAGULATION", "Coagulation")) %>%
+  mutate(across(`Resource ID.x`, str_replace,"COMPLEMENT", "Complement")) %>%
+  mutate(across(`Resource ID.x`, str_replace,"XENOBIOTIC_METABOLISM", "Xenobiotic Metabolism"))
+
+# append CyTOF
+assayLS <- c(assayLS, "Bld.CyTOF")
+edgeDF <- rbind(edgeDF, c("Bld.CyTOF", "hematopoietic stem cell/cytoNeg", "Mild"),
+                          c("Bld.CyTOF", "Hematopoietic cell lineage", "Mild"),
+                c("Bld.CyTOF", "macrophage/cytoPos", "Mild"),
+                c("Bld.CyTOF", "leukocyte/cell", "Mild"),
+                c("Bld.CyTOF", "T cell mediated immunity (GO:0002456)", "Mild"),
+           c("Bld.CyTOF", "Th1 and Th2 cell differentiation", "Mild"),
+           c("Bld.CyTOF", "T cell receptor signaling pathway", "Mild"),
+           c("Bld.CyTOF", "Th17 cell differentiation", "Mild"))
+
+# PUT THE LIST OF PATHWAY DESCRIBE IN THE RESULT SECTION OF THE CORE PAPER
+highlighLS <- c("Hematopoietic cell lineage", 
+"Epithelial Mesenchymal Transition", 
+"TNF-alpha Signaling via NF-kB",
+"extracellular matrix organization (GO:0030198)",
+"Apical Junction",
+"Coagulation", 
+"Complement",
+"ECM-receptor interaction",
+"Th1 and Th2 cell differentiation",
+"Xenobiotic Metabolism")
+```
+
+```{r heatmap-longitudinal, fig.width=11, fig.height=8}
+assayOrder <- c("Nasal RNASeq", "PBMC RNASeq", "Blood CyTOF",
+                "Olink", "Targeted Plasma Proteomics", "Global Plasma Proteomics", "Plasma Metabolomics")
+
+mat <- edgeDF %>%
+  distinct() %>%
+  mutate(Direction = recode(Direction, Severe = "Increased", Mild= "Decreased"),
+         assay = recode(assay, NasalRNAseq = "Nasal RNASeq", 
+                        PBMC = "PBMC RNASeq",
+                        globalmet.globalmet = "Plasma Metabolomics",
+                        plasma_proteomics_targeted = "Targeted Plasma Proteomics",
+                        plasma_proteomics_Global_dda = "Global Plasma Proteomics",
+                        Bld.CyTOF = "Blood CyTOF")) %>%
+  pivot_wider(names_from  = `Resource ID.x`, 
+              values_from = Direction,
+              values_fn   = function(x) paste(sort(x), collapse = ";")) %>%
+  slice(match(assayOrder, table = .$assay)) %>%
+  column_to_rownames(var = "assay")
+
+geneset2group <- c("external encapsulating structure organization (GO:0045229)", "Cell Structure",
+                   "extracellular matrix organization (GO:0030198)", "Cell Structure",
+           "extracellular structure organization (GO:0043062)", "Cell Structure",
+           "ECM-receptor interaction", "Cell Structure",
+           "Axon guidance", "Cell Structure",
+           "Epithelial Mesenchymal Transition", "Cell Structure",
+           "regulation of anatomical structure morphogenesis (GO:0022603)", "Cell Structure",
+           "supramolecular fiber organization (GO:0097435)", "Cell Structure",
+           "Myogenesis", "Cell Structure",
+           "Angiogenesis", "Cell Structure",
+           "regulation of cell migration (GO:0030334)", "Cell Migration",
+           "Apical Junction", "Cell Migration",
+           "Xenobiotic Metabolism", "Metabolism",
+           "E2F Targets", "Cell Cycle",
+           "Mitotic Spindle", "Cell Cycle",
+           "Oocyte meiosis", "Cell Cycle",
+           "G2-M Checkpoint", "Cell Cycle",
+           "Myc Targets V1", "Cell Cycle",
+           "Glycolysis", "Metabolism",
+           "Cell cycle", "Cell Cycle",
+           "DNA metabolic process (GO:0006259)", "Metabolism",
+           "cellular macromolecule biosynthetic process (GO:0034645)", "Translation",
+           "regulation of chromosome organization (GO:0033044)", "Cell Cycle",
+           "DNA replication initiation (GO:0006270)",  "Cell Cycle",
+           "modification-dependent protein catabolic process (GO:0019941)", "Translation",
+           "regulation of cell cycle (GO:0051726)", "Cell Cycle",
+           "mitotic cell cycle phase transition (GO:0044772)", "Cell Cycle",
+           "regulation of ubiquitin protein ligase activity (GO:1904666)", "Translation",
+           "ubiquitin-dependent protein catabolic process (GO:0006511)", "Translation",
+           "retrograde vesicle-mediated transport, Golgi to endoplasmic reticulum (GO:0006890)", "Translation",
+           "hematopoietic stem cell/cytoNeg", "Cell Subset",
+           "leukocyte/cell", "Cell Subset",
+           "hypertrophic chondrocyte/cytoNeg", "Cell Subset",
+           "macrophage/cytoPos", "Cell Subset",
+           "COAGULATION",  "Coagulation/Complement",
+           "COMPLEMENT",  "Coagulation/Complement",
+           "Pyrimidine metabolism" , "Metabolism",
+           "Glutamate Metabolism", "Metabolism",
+           "Valine, Leucine and Isoleucine Degradation", "Metabolism",
+           "Sphingolipid Metabolism", "Metabolism",
+           "Coagulation", "Coagulation/Complement",
+           "Complement", "Coagulation/Complement",
+           "Hematopoietic cell lineage", "Cell Subset",
+           "T cell mediated immunity (GO:0002456)", "T cell Pathways",
+           "Th1 and Th2 cell differentiation", "T cell Pathways",
+           "T cell receptor signaling pathway", "T cell Pathways",
+           "Th17 cell differentiation", "T cell Pathways",
+           "Inflammatory Response", "Inflammatory/Anti-viral",
+           "Interferon Gamma Response", "Inflammatory/Anti-viral",
+           "IL-2/STAT5 Signaling", "Inflammatory/Anti-viral",
+           "IL-6/JAK/STAT3 Signaling", "Inflammatory/Anti-viral",
+           "TNF-alpha Signaling via NF-kB", "Inflammatory/Anti-viral",
+           "JAK-STAT signaling pathway", "Inflammatory/Anti-viral") %>%
+  matrix(nrow = 2) %>%
+  t() %>%
+  as.data.frame() %>%
+  column_to_rownames(var = "V1") %>%
+  `colnames<-`("Group")
+
+ht <- Heatmap(matrix        = t(mat), 
+              col = list(Increased = "red", Decreased= "blue", "Decreased;Increased" = "purple"),
+        row_split     = geneset2group[colnames(mat), "Group"],
+        name          = "Direction with Severity",
+        heatmap_width = unit(5, units = "in"), 
+        row_title_rot = 0,
+        row_title_gp = gpar(fontsize = 7),
+        row_names_gp = gpar(fontsize = 7, fontface = ifelse(test = colnames(mat) %in% highlighLS,
+                                                            yes  = 2,
+                                                            no   = 1)),
+        column_names_gp = gpar(fontsize = 7.5),
+        row_labels = gsub(pattern = "(^|[[:space:]])([[:alpha:]])", "\\1\\U\\2", 
+                          tolower(substring(colnames(mat), 1, 25)),
+                          perl=TRUE) %>%
+                    gsub(pattern = "(Jak-stat|Ecm|Tnf-|Il-2.stat5|Il-6.jak.stat3)", replace = "\\U\\1", perl = TRUE) %>%
+                    gsub(pattern = "T Cell", replace = "T cell"),
+        column_title = "Longitudinal - all TGs")
+draw(ht, heatmap_legend_side = "bottom")
+```
+
+

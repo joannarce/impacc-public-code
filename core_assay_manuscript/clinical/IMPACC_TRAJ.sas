@@ -1,0 +1,88 @@
+**CREATE TRAJECTORY GROUPINGS;
+data ordinal;
+	set allschedvisits_withBL;
+	**keep only necessary variables;
+	keep studyid dag visitnum visitday ordinal timesymptomcat timetowd;
+run;
+**TRANSPOSE DATA FOR PROC TRAJ;
+proc transpose
+	data=ordinal out=ordinal_wide prefix=ordinal_;
+	id visitday;
+	by studyid;
+	var ordinal;
+run;
+**MERGE WITH BL SX TIMING ETC.;
+data invariant;
+	set ordinal;
+	where visitday=0;
+	keep studyid visitday timesymptomcat timetowd ordinal;
+	rename ordinal=ordinal_BL;
+run;
+**IMPUTE MISSING ORDINAL SCORES USING LCVF;]
+data wide;
+	merge ordinal_wide invariant;
+	by studyid;
+
+	drop _name_;
+
+	array ordinal (*) ordinal_baseline ordinal_day_4 ordinal_day_7 ordinal_day_14 ordinal_day_21 ordinal_day_28;
+		do i=1 to dim(ordinal);
+			if ordinal(i)=999 then ordinal(i)=.;
+		end;
+	drop i;
+	**Drop if missing ALL ordinal scales;
+	if nmiss(ordinal_baseline, ordinal_day_4, ordinal_day_7, ordinal_day_14, ordinal_day_21, ordinal_day_28)=6 then delete;
+
+	**USE LAST VISIT CARRIED FORWARD FOR MISSING ORDINAL SCORES;
+		**WITH THE EXCEPTION OF EARLY WITHDRAWALS - only carry forward until the time of w/d;
+	if timetowd=. | timetowd>=5 then do;
+		if ordinal_day_4=. & ordinal_baseline ne . then ordinal_day_4=ordinal_baseline;
+	end;
+	if timetowd=. | timetowd>=8 then do;
+		if ordinal_day_7=. & ordinal_day_4 ne . then ordinal_day_7=ordinal_day_4;
+	end;
+	if timetowd=. | timetowd>=15 then do;
+		if ordinal_day_14=. & ordinal_day_7 ne . then ordinal_day_14=ordinal_day_7;
+	end;
+	if timetowd=. | timetowd>=22 then do;
+		if ordinal_day_21=. & ordinal_day_14 ne . then ordinal_day_21=ordinal_day_14;
+	end;
+	if timetowd=. | timetowd>=29 then do;
+		if ordinal_day_28=. & ordinal_day_21 ne . then ordinal_day_28=ordinal_day_21;
+	end;
+
+	**TIME VARS for PROC TRAJ;
+	baseline=0;
+	day_4=4;
+	day_7=7;
+	day_14=14;
+	day_21=21;
+	day_28=28;
+run;
+**FIVE GROUPS;
+**polynomial order for groups=cubic for all groups except 2 which fit better with quad term;
+proc traj
+	data=wide out=out_trajgroups outplot=out_plot outstat=out_stat;
+	id studyid;
+	var ordinal_baseline ordinal_day_4 ordinal_day_7 ordinal_day_14 ordinal_day_21 ordinal_day_28;
+	indep baseline day_4 day_7 day_14 day_21 day_28;
+	risk timesymptomcat;
+	refgroup 1;
+	model cnorm;
+	min 0; max 6;
+	ngroups 5; order 3 2 3 3 3;
+run;
+%TRAJPLOT(out_plot,out_stat,'Ordinal vs. Visit','Cnorm Model','Ordinal','Visit Day');
+proc freq data=out_trajgroups; table group; run;
+**put group #'s in order of severity;
+/*1=5 5=4 4=1 2=2 3=3*/
+data out_trajgroups_final;
+	set out_trajgroups;
+	**renumber the groups;
+	if group=1 then cluster5=1;
+		else if group=3 then cluster5=2;
+		else if group=2 then cluster5=3;
+		else if group=5 then cluster5=4;
+		else if group=4 then cluster5=5;
+	drop group GRP1PRB GRP2PRB GRP3PRB GRP4PRB GRP5PRB;
+run;
