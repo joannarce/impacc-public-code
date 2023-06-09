@@ -10,7 +10,7 @@ Joann Diray-Arce, Slim Fourati, Naresh Doni Jayavelu, Ravi Patel, Cole Maguire, 
 
 Manuscript with supplemental figures can be downloaded [here](https://doi.org/10.1016/j.xcrm.2023.101079).
 
-All code files related to this manuscript are standardized and organized by Ravi Patel (UCSF) |  [GitHub](https://github.com/ravipatel4) | [ORCiD](https://orcid.org/0000-0001-5203-899X)
+All code files related to this manuscript are standardized and organized by Ravi Patel, [UCSF](https://profiles.ucsf.edu/ravi.patel) | [ORCiD](https://orcid.org/0000-0001-5203-899X)
 
 </br>
 
