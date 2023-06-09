@@ -4,7 +4,7 @@
 
 This repository consists of code used for the analysis, figures and tables published in the article:
 
-![Graphical abstract](https://ars.els-cdn.com/content/image/1-s2.0-S2666379123001982-fx1_lrg.jpg){width=500px}
+![Graphical abstract](graphical_ab.jpg)
 
 Joann Diray-Arce, Slim Fourati, Naresh Doni Jayavelu, Ravi Patel, Cole Maguire, Ana C. Chang, Ravi Dandekar, Jingjing Qi, Brian Lee, Patrick van Zalm, Andrew Schroeder, Ernie Chen, Anna Konstorum, Anderson Brito, Jeremy P. Gygi, Alvin Kho, Jing Chen, Shrikant Pawar, Ana Silvia Gonzalez-Reiche, Annmarie Hoch, Carly E. Milliren, James A. Overton, Kerstin Westendorf, IMPACC Network, Charles B. Cairns, Nadine Rouphael, Steven Bosinger, Seunghee Kim-Schulze, Florian Krammer, Lindsey Rosen, Nathan Grubaugh, Harm van Bakel, Michael Wilson, Jayant Rajan, Hanno Steen, Walter Eckalbar, Chris Cotsapas, Charles R. Langelier, Ofer Levy, Matthew C. Altman, Holden Maecker, Ruth R. Montgomery, Elias K. Haddad, Rafick P. Sekaly, Denise Esserman, Al Ozonoff, Patrice M. Becker, Alison D. Augustine, Leying Guan, Bjoern Peters, Steven H. Kleinstein. **"Multi-omic longitudinal study reveals immune correlates of clinical course among hospitalized COVID-19 patients".** Cell Reports Medicine (2023).
 
