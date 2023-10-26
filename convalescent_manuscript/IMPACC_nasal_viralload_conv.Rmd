@@ -1,0 +1,499 @@
+---
+title: "Integrating nasal viral load data with clinical data: convalescent PRO clusters"
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+
+### Load libraries
+```{r load-packages}
+suppressPackageStartupMessages(library(package = "knitr"))
+suppressPackageStartupMessages(library(package = "impute"))
+suppressPackageStartupMessages(library(package = "igraph"))
+suppressPackageStartupMessages(library(package = "ggnetwork"))
+suppressPackageStartupMessages(library(package = "ordinal"))
+suppressPackageStartupMessages(library(package = "qvalue"))
+suppressPackageStartupMessages(library(package = "ggbeeswarm"))
+suppressPackageStartupMessages(library(package = "ggeffects"))
+suppressPackageStartupMessages(library(package = "pvca"))
+suppressPackageStartupMessages(library(package = "GSA"))
+suppressPackageStartupMessages(library(package = "lme4"))
+suppressPackageStartupMessages(library(package = "nlme"))
+suppressPackageStartupMessages(library(package = "tidyverse"))
+
+# set session options
+options(show_col_types = FALSE)
+VarCorr <- lme4::VarCorr
+```
+
+### Load codebase.R, load data matrices and set path to your local output directory
+```{r load-codebase, results="hide", fig.show="hide", message=FALSE}
+# load codebase.R, serum-rbd-abtiters data and clinical information
+# source("~/bitbucket/impacc/Analysis/data_analysis_template_codebase.R")
+source("/users/ndjayavelu/njayavelu/Scripts/impacc/Analysis/data_analysis_template_codebase.R")
+source("/users/ndjayavelu/njayavelu/Scripts/impacc/Analysis/clinical/codebase_conv_immune.R")
+source("/users/ndjayavelu/njayavelu/Scripts/plot_model_smooth_conv.R")
+
+data_env <- load_IMPACC_datasets(DATA_VERSION               = "current",
+                                KEEP_COVID19_POS            = FALSE,
+                                FILTER_BY_CORE_ASSAY_COHORT = FALSE,
+                                USE_LOCKED_CLINICAL = TRUE)
+
+for (n in grep(pattern = "nasal_viralload_counts|nasal_viralload_rowfeature|clinical_data", 
+               names(data_env), 
+               value   = TRUE)) {
+  assign(n, value = data_env[[n]])
+}
+
+
+
+```
+
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+
+#### Read clinical PRO clusters data
+
+```{r PrepareViralogyData, echo=FALSE}
+
+# read in the convalescent PRO clusters
+clinical_virology_conv_file <- file.path("/scratch/clinical/current", "impacc-convalescent.csv")
+clinical_virology_conv_data <- read.csv(clinical_virology_conv_file)
+  
+# add convalescent PRO clusters
+clinical_virology_data <- clinical_data %>%
+  inner_join(clinical_virology_conv_data)
+
+```
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+#### Prepare nasal-viral load (qPCR) data
+
+```{r PrepareNasalViralLoadData, echo=FALSE}
+
+# counts data
+nasal_viral_qPCR_data <- nasal_viralload_counts %>%
+    tibble::rownames_to_column(var = "sample_id") %>%
+    # select only relevant columns
+    dplyr::select(sample_id, N1_CT, N2_CT, N1_CTRL, N2_CTRL, 
+           RP_CT, RP_CTRL, HPRT_CT, HPRT_CTRL) %>% as.data.frame()
+
+```
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+#### Combine clinical data and nasal-viral load data
+
+```{r CombineClinicalNasalViralLoadData, echo=FALSE}
+
+clinical_viralload_data <- nasal_viral_qPCR_data %>% 
+  inner_join(clinical_virology_data, by = c("sample_id")) 
+
+# replace NA (undetermined) to 40
+imputeCT <- 40
+clinical_viralload_data <- clinical_viralload_data %>% 
+  mutate(N1_CT = replace_na(N1_CT, imputeCT), 
+                N2_CT = replace_na(N2_CT, imputeCT), 
+                RP_CT = replace_na(RP_CT, imputeCT),
+                HPRT_CT = replace_na(HPRT_CT, imputeCT)) %>% 
+  # replace values > 40 to 40
+  mutate(N1_CT = if_else(N1_CT > imputeCT, imputeCT, N1_CT),
+         N2_CT = if_else(N2_CT > imputeCT, imputeCT, N2_CT),
+         RP_CT = if_else(RP_CT > imputeCT, imputeCT, RP_CT),
+         HPRT_CT = if_else(HPRT_CT > imputeCT, imputeCT, HPRT_CT)) 
+# remove samples with undetected RP_CT values
+clinical_viralload_data <- clinical_viralload_data %>% 
+  filter(RP_CT != 40)
+
+# add days from symptom onset, "symptom_onset_days" as event_date - symptom_date
+clinical_viralload_data <- clinical_viralload_data %>%
+  mutate(symptom_onset_days = event_date - symptom_date)
+
+
+```
+
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+
+### Pooled analysis code
+```{r pooled analysis code, warning=FALSE, echo=TRUE, eval=TRUE, message=FALSE}
+
+data_use_pooled_4TG <- clinical_viralload_data %>%
+  mutate(conv_cluster4 = recode(conv_cluster6, `1` = 1, `3` = 1, `4` = 1, `2` = 2, `5` = 5, `6` = 6)) %>%
+  select(sample_id, N1_CT, N2_CT, 
+         enrollment_site,
+         conv_cluster4,
+         participant_id,
+         event_type,
+         event_date,
+         discretized_admit_age_quantile,
+         sex = sex) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(conv_cluster4 = factor(conv_cluster4, levels = c("1", "2", "5", "6"))) %>%
+  column_to_rownames(var = "sample_id")
+
+# save source data
+source_data <- data_use_pooled_4TG %>%
+  mutate(endpoints = recode(conv_cluster4, `1` = "MIN", `2` = "PHY", `5` = "COG", `6` = "MLT")) %>%
+  tibble::rownames_to_column(var = "sample_id") %>%
+  select(sample_id, participant_id, enrollment_site, event_type, discretized_admit_age_quantile, sex, endpoints, N1_CT, N2_CT)
+
+file_name_1 <- "/scratch/nasal-transcriptomics/impacc/Analysis/nasal-viralload/clinical_conv/source_data/Source_data_Viralload_pooled_analysis.txt"
+write.table(source_data, file = file_name_1, quote = FALSE, sep = "\t", row.names = FALSE)
+
+
+immune_assay <- data_use_pooled_4TG %>%
+  select(N1_CT, N2_CT)
+immune_meta <- data_use_pooled_4TG %>% 
+  tibble::rownames_to_column(var = "sample_id") %>%
+  select(sample_id, 
+         participant_id,
+         event_type,
+         event_date,
+         discretized_admit_age_quantile,
+         sex,
+         enrollment_site,
+         conv_cluster4)
+
+
+if(!(all(rownames(immune_assay) == immune_meta$sample_id))){
+  stop("make sure samples are ordered consistent between counts data and metadata")
+} else {message("samples are ordered consistent between counts data and metadata")}
+
+
+response_name = "conv_cluster4"
+random_effect_list = c("participant_id", "enrollment_site")
+fixed_effect_list = c("sex", "discretized_admit_age_quantile")
+# fixed_effect_list = c("event_type","sex", "discretized_admit_age_quantile")
+
+# over all association
+
+module_names <- c("N1_CT", "N2_CT")
+
+pval_overall <- NULL
+
+for (moduleName in module_names) {
+  my.formula0 <- paste0(moduleName, '~(1|enrollment_site)+(1|participant_id)+discretized_admit_age_quantile+sex')
+  my.formula1 <- paste0(moduleName,
+                        '~(1|enrollment_site)+(1|participant_id)+discretized_admit_age_quantile+sex+conv_cluster4')
+  av = anova(lme4::lmer(my.formula0, data = data_use_pooled_4TG),
+                 lme4::lmer(my.formula1, data = data_use_pooled_4TG))
+  res <- av$`Pr(>Chisq)`[2]
+  pval_overall <- rbind(pval_overall, res)
+}
+
+res_table_overall <- data.frame(feature = module_names, 
+                                pval = as.vector(pval_overall)) %>% 
+  mutate(qval =  qvalue::qvalue(pval, fdr.level = 0.05, pi0 = 1)$qvalues) %>%
+  tibble::column_to_rownames(var = "feature")
+
+
+# pairwise comparisons
+pooled_resDF_pairwise <- NULL
+for(feature_name in colnames(immune_assay)){
+  res0 = pooled_test(immune_assay=immune_assay, immune_meta=immune_meta, 
+                     feature_name = feature_name, response_name=response_name, 
+                     random_effect_list=random_effect_list , fix_effect_list=fixed_effect_list)
+  pooled_resDF_pairwise <- rbind(pooled_resDF_pairwise,res0)
+}
+rownames(pooled_resDF_pairwise) = colnames(immune_assay)
+
+res_table_pooled_all <- cbind(res_table_overall, pooled_resDF_pairwise)
+
+
+```
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+#### Pooled analysis figures: 4 cluster convalescent TGs classification
+```{r PlotViralDataByClinicalTrajectoryGroupV2, fig.width = 8, fig.height = 8, warning=FALSE, echo=FALSE, eval=TRUE}
+
+TrajGrpCol <- c("1" = "#999999", "2" = "#56B4E9", "5" = "#E69F00", "6" = "#FF0000")
+# col_sel <- c("MIN" = "#999999", "PHY" = "#56B4E9", "COG" = "#E69F00", "MLT" = "#FF0000")
+
+library(ggbeeswarm)
+
+res_table_pairwise_long_df <- pooled_resDF_pairwise %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column(var = "feature") %>%
+  pivot_longer(cols = -c("feature")) %>%
+  rename(Pvalue = value) %>%
+  tidyr::separate(col = "name", into = c("group1", "group2"), remove = FALSE)
+
+res_table_pairwise_long_df_temp <- res_table_pairwise_long_df %>%
+  filter(feature == "N1_CT") %>%
+  filter(Pvalue < 0.05) %>%
+  # mutate(Pvalue = round(Pvalue,4)) %>%
+  select(group1, group2, Pvalue) %>%
+  mutate(`y.position` = c(9,11)) %>%
+  mutate(label = case_when(
+  Pvalue < 0.001 ~ "***",
+  (Pvalue > 0.001 & Pvalue < 0.01) ~ "**",
+  (Pvalue > 0.01 & Pvalue < 0.05) ~ "*",
+  .default = "NS")) %>%
+  as.tibble()
+  
+  
+library(ggprism)
+
+
+## N1_CT figures
+
+df_pooled_mean <- data_use_pooled_4TG %>%
+  group_by(conv_cluster4) %>%
+  summarise(n = n(),
+            N1_CT_mean = mean(N1_CT),
+            N2_CT_mean = mean(N2_CT))
+
+boxplot_N1 <- ggplot(data_use_pooled_4TG, aes(x = conv_cluster4, y = N1_CT)) + 
+  geom_boxplot(aes(x = conv_cluster4, y = N1_CT, color = conv_cluster4), size = 0.8, outlier.shape = NA) +
+  geom_quasirandom(aes(x = conv_cluster4, y = N1_CT, color = conv_cluster4), width = 0.2, alpha = 0.7, size = 1) +
+  # geom_point(data = df_pooled_mean, aes(x = conv_cluster4, y = N1_CT_mean), color = "black", size = 5, alpha = 0.7) +
+  theme_bw() +
+  ylab("N1 Ct") + xlab("") +
+  theme_bw() +
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10),
+        axis.text.y = element_text(size = 10),
+        text = element_text(size=10)) +
+  # scale_fill_manual(values = TrajGrpCol) +
+  scale_color_manual(values = TrajGrpCol) +
+  add_pvalue(res_table_pairwise_long_df_temp, 
+             label = "label",
+             vjust = 0,
+             coord.flip = FALSE,
+             tip.length = 0,
+             bracket.nudge.y = 0,
+             label.size = 6) +
+  coord_cartesian(ylim = c(40, 8)) +
+  scale_x_discrete(labels=c('MIN', 'PHY', 'COG', 'MLT'))
+
+boxplot_N1
+
+
+ggsave(
+  filename = format(Sys.Date(), "/scratch/nasal-transcriptomics/impacc/Analysis/nasal-viralload/clinical_conv/Figures/%y%m%d-N1_CT_pooled_boxplot_PRO_clusters.pdf"),
+  width = 2.5,
+  height = 3
+)
+
+
+
+## N2_CT figures
+
+res_table_pairwise_long_df_temp <- res_table_pairwise_long_df %>%
+  filter(feature == "N2_CT") %>%
+  filter(Pvalue < 0.05) %>%
+  # mutate(Pvalue = round(Pvalue,4)) %>%
+  select(group1, group2, Pvalue) %>%
+  mutate(`y.position` = c(9,11)) %>%
+  mutate(label = case_when(
+  Pvalue < 0.001 ~ "***",
+  (Pvalue > 0.001 & Pvalue < 0.01) ~ "**",
+  (Pvalue > 0.01 & Pvalue < 0.05) ~ "*",
+  .default = "NS")) %>%
+  as.tibble()
+
+boxplot_N2 <- ggplot(data_use_pooled_4TG, aes(x = conv_cluster4, y = N2_CT)) + 
+  geom_boxplot(aes(x = conv_cluster4, y = N2_CT, color = conv_cluster4), size = 0.8, outlier.shape = NA) + 
+  geom_quasirandom(aes(x = conv_cluster4, y = N2_CT, color = conv_cluster4), width = 0.2, alpha = 0.7, size = 1) +
+  # geom_point(data = df_pooled_mean, aes(x = conv_cluster4, y = N1_CT_mean), color = "black", size = 5, alpha = 0.7) +
+  theme_bw() +
+  ylab("N2 Ct") + xlab("") +
+  theme_bw() +
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10, color = "black"),
+        axis.text.y = element_text(size = 10, color = "black"),
+        text = element_text(size=10)) +
+  # scale_fill_manual(values = TrajGrpCol) +
+  scale_color_manual(values = TrajGrpCol) +
+  add_pvalue(res_table_pairwise_long_df_temp, 
+             label = "label",
+             vjust = 0,
+             coord.flip = FALSE,
+             tip.length = 0,
+             bracket.nudge.y = 0,
+             label.size = 6) +
+  coord_cartesian(ylim = c(40, 8)) +
+  scale_x_discrete(labels=c('MIN', 'PHY', 'COG', 'MLT'))
+
+boxplot_N2
+
+
+ggsave(
+  filename = format(Sys.Date(), "/scratch/nasal-transcriptomics/impacc/Analysis/nasal-viralload/clinical_conv/Figures/%y%m%d-N2_CT_pooled_boxplot_PRO_clusters.pdf"),
+  width = 2.5,
+  height = 3
+)
+
+
+
+
+```
+
+
+
+### Longitudinal analysis code: 4 cluster convalescent TGs classification
+```{r Longitudinal-analysis, message=FALSE, results="hide"}
+
+data_use_longitudinal_4TG <- clinical_viralload_data %>%
+  rename(trajectory_group_original = trajectory_group) %>%
+  mutate(conv_cluster4 = recode(conv_cluster6, `1` = "MIN", `3` = "MIN", `4` = "MIN", `2` = "PHY", `5` = "COG", `6` = "MLT")) %>%
+  rename(trajectory_group = conv_cluster4) %>%
+  tidyr::drop_na(trajectory_group) %>%
+  filter(event_date <= 28) %>%
+  select(sample_id, N1_CT, N2_CT, participant_id,  
+         enrollment_site,
+         trajectory_group, event_date, event_type, sex, discretized_admit_age_quantile) %>% 
+  mutate(participant_id = factor(participant_id)) %>% 
+  mutate_if(is.character, as.factor) %>%
+  mutate(trajectory_group = factor(trajectory_group, levels = c("MIN", "PHY", "COG", "MLT"))) 
+  
+# save source data
+source_data <- data_use_longitudinal_4TG %>%
+  mutate(endpoints = trajectory_group) %>%
+  # tibble::rownames_to_column(var = "sample_id") %>%
+  select(sample_id, participant_id, enrollment_site, event_type, event_date, discretized_admit_age_quantile, sex, endpoints, N1_CT, N2_CT)
+
+file_name_1 <- "/scratch/nasal-transcriptomics/impacc/Analysis/nasal-viralload/clinical_conv/source_data/Source_data_Viralload_longitudinal_analysis.txt"
+write.table(source_data, file = file_name_1, quote = FALSE, sep = "\t", row.names = FALSE)
+
+
+
+inputDF <- data_use_longitudinal_4TG %>%
+  pivot_longer(cols = -c("sample_id", "event_date", "event_type", "participant_id",
+                         "enrollment_site", "trajectory_group", "sex", "discretized_admit_age_quantile"
+                         ))
+
+
+# smooth spline
+smooth_spline_model_loop_4TG <- model_loop(inputDF, 
+                                       modelType = "smoothSpline", 
+                                       endpoint = "trajectory_group")
+
+smooth_spline_model_loop_df_4TG <- smooth_spline_model_loop_4TG %>%
+  rownames_to_column(var = "feature")
+
+# filename_long = format(Sys.Date(), "/users/ndjayavelu/njayavelu/Scripts/impacc/Analysis/nasal-viralload/clinGroup/Figures/conv_symps/%y%m%d-P_values_longitudinal_smoothSpline_with_age_sex_for_conv_symps.csv")
+# write.csv(smooth_spline_model_loop_df, 
+#            file = filename_long, row.names = FALSE)
+
+```
+
+
+
+### Longitudinal analysis figures: template code
+```{r Longitudinal-analysis figures, message=FALSE, results="hide"}
+
+plotExample <- inputDF %>%
+  filter(name %in% "N1_CT") %>%
+  mutate(trajectory_group = ordered(as.factor(as.character(trajectory_group)),
+                                    levels = c("MIN", "PHY", "COG", "MLT"))) 
+
+# col_sel <- c("MIN" = "#999999", "PHY" = "#CC79A7", "COG" = "#0072B2", "MLT" = "#D55E00")
+# col_sel <- c("MIN" = "#009E73", "PHY" = "#CC79A7", "COG" = "#0072B2", "MLT" = "#D55E00")
+# col_sel <- c("MIN" = "#009E73", "PHY" = "#CC79A7", "COG" = "#56B4E9", "MLT" = "#E69F00")
+
+# from wesanderson colors
+# col_sel <- c("MIN" = "#899DA4", "PHY" = "#CC79A7", "COG" = "#56B4E9", "MLT" = "#C93312")
+# col_sel <- c("MIN" = "#74A089", "PHY" = "#9A8822", "COG" = "#56B4E9", "MLT" = "#C93312")
+# col_sel <- c("MIN" = "#00A08A", "PHY" = "#CC79A7", "COG" = "#56B4E9", "MLT" = "#FF0000")
+
+# final selection
+col_sel <- c("MIN" = "#999999", "PHY" = "#56B4E9", "COG" = "#E69F00", "MLT" = "#FF0000")
+
+temp_plot <- plot_model_smooth_conv(plotExample, model_loop = smooth_spline_model_loop_4TG, modelType = "smoothSpline",
+           p_adjust = F, endpoint = "trajectory_group", signif_markers = T, remove_NS = T,
+           title = "",
+           individual_points_size = 1,
+           individual_paths_size = 0.5,
+           group_trendline_line_width = 1.5,
+           title_size = 12,
+           bar_height = 5,
+           custom_theme_graph = 'text = element_text(size=10)',
+           # custom_theme_bars = 'text = element_text(size=6)',
+           knot_lines = F,
+           ylabel = "N1 Ct",
+           CI = FALSE,
+           individual_trendlines = T, individual_points = T, individual_paths = T,
+           p_value_text_size = 6,
+           return_multi_obj = F,
+           colors = col_sel,
+           y_axis_reverse = TRUE,
+           trajectory_labels = c("MIN", "PHY", "COG", "MLT"))
+ 
+
+print(temp_plot)
+ggsave(filename = format(Sys.Date(), "/scratch/nasal-transcriptomics/impacc/Analysis/nasal-viralload/clinical_conv/Figures/%y%m%d-N1_CT_longitudinal_PRO_clusters.pdf"),
+         plot = temp_plot,
+         width = 3.5,
+         height = 2.5)
+
+# N2 CT
+plotExample <- inputDF %>%
+  filter(name %in% "N2_CT") %>%
+  mutate(trajectory_group = ordered(as.factor(as.character(trajectory_group)),
+                                    levels = c("MIN", "PHY", "COG", "MLT"))) 
+temp_plot <- plot_model_smooth_conv(plotExample, model_loop = smooth_spline_model_loop_4TG, modelType = "smoothSpline",
+           p_adjust = F, endpoint = "trajectory_group", signif_markers = T, remove_NS = T,
+           title = "",
+           individual_points_size = 1,
+           individual_paths_size = 0.5,
+           group_trendline_line_width = 1.5,
+           title_size = 12,
+           bar_height = 5,
+           custom_theme_graph = 'text = element_text(size=10)',
+           # custom_theme_bars = 'text = element_text(size=6)',
+           knot_lines = F,
+           ylabel = "N2 Ct",
+           CI = FALSE,
+           individual_trendlines = T, individual_points = T, individual_paths = T,
+           p_value_text_size = 6,
+           return_multi_obj = F,
+           colors = col_sel,
+           y_axis_reverse = TRUE,
+           trajectory_labels = c("MIN", "PHY", "COG", "MLT"))
+ 
+
+
+print(temp_plot)
+ggsave(filename = format(Sys.Date(), "/scratch/nasal-transcriptomics/impacc/Analysis/nasal-viralload/clinical_conv/Figures/%y%m%d-N2_CT_longitudinal_PRO_clusters.pdf"),
+         plot = temp_plot,
+         width = 3.5,
+         height = 2.5)
+
+```
+
+
+
+
+
+
+
+
+

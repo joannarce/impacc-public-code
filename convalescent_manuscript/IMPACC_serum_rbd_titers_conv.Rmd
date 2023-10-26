@@ -1,0 +1,484 @@
+---
+title: "Integrating serum rbd abtiters data with clinical data: convalescent trajectory groups"
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+
+### Load libraries
+```{r load-packages}
+suppressPackageStartupMessages(library(package = "knitr"))
+suppressPackageStartupMessages(library(package = "impute"))
+suppressPackageStartupMessages(library(package = "igraph"))
+suppressPackageStartupMessages(library(package = "ggnetwork"))
+suppressPackageStartupMessages(library(package = "ordinal"))
+suppressPackageStartupMessages(library(package = "qvalue"))
+suppressPackageStartupMessages(library(package = "ggbeeswarm"))
+suppressPackageStartupMessages(library(package = "ggeffects"))
+suppressPackageStartupMessages(library(package = "pvca"))
+suppressPackageStartupMessages(library(package = "GSA"))
+suppressPackageStartupMessages(library(package = "lme4"))
+suppressPackageStartupMessages(library(package = "nlme"))
+suppressPackageStartupMessages(library(package = "tidyverse"))
+
+# set session options
+options(show_col_types = FALSE)
+VarCorr <- lme4::VarCorr
+```
+
+### Load codebase.R, load data matrices and set path to your local output directory
+```{r load-codebase, results="hide", fig.show="hide", message=FALSE}
+# load codebase.R, serum-rbd-abtiters data and clinical information
+# source("~/bitbucket/impacc/Analysis/data_analysis_template_codebase.R")
+source("/users/ndjayavelu/njayavelu/Scripts/impacc/Analysis/data_analysis_template_codebase.R")
+source("/users/ndjayavelu/njayavelu/Scripts/impacc/Analysis/clinical/codebase_conv_immune.R")
+source("/users/ndjayavelu/njayavelu/Scripts/plot_model_smooth_conv.R")
+
+
+data_env <- load_IMPACC_datasets(DATA_VERSION               = "current",
+                                KEEP_COVID19_POS            = FALSE,
+                                FILTER_BY_CORE_ASSAY_COHORT = FALSE,
+                                USE_LOCKED_CLINICAL = TRUE)
+
+for (n in grep(pattern = "serum_rbd_abtiters_counts|serum_rbd_abtiters_rowfeature|clinical_data", 
+               names(data_env), 
+               value   = TRUE)) {
+  assign(n, value = data_env[[n]])
+}
+
+```
+
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+
+#### Prepare clinical virology phenotype data
+
+```{r PrepareViralogyData, echo=FALSE}
+# read in the convalescent TGs
+clinical_virology_conv_file = file.path("/scratch/clinical/current", "impacc-convalescent.csv")
+clinical_virology_conv_data <- read.csv(clinical_virology_conv_file)
+  
+# add convalescent trajectory groups
+clinical_virology_data <- clinical_data %>%
+  inner_join(clinical_virology_conv_data)
+
+```
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+
+
+#### Prepare serum rbd titers data
+Notes: observations associated only with COVID-19 Positive individuals are retained.
+```{r PrepareSerumRBDTitersData, echo=FALSE}
+
+# counts data
+serum_rbd_raw_data <- serum_rbd_abtiters_counts %>% 
+  tibble::rownames_to_column(var = "sample_id") %>% 
+  # select only relevant columns 
+  dplyr::select(sample_id, 
+                AUC.RBD.IgG = `AUC RBD IgG`,
+                AUC.Spike.IgG = `AUC Spike IgG`) %>%
+  as.data.frame()
+  
+```
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+#### Combine clinical data and serum rbd titers data
+
+```{r CombineClinicalSerumRBDTitersData, echo=FALSE}
+
+clinical_titers_counts_data <- clinical_virology_data %>%
+  inner_join(serum_rbd_raw_data, by = "sample_id") %>%
+  mutate(symptom_onset_days = event_date - symptom_date)
+
+
+```
+
+
+
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+#### Pooled analysis code: 4 cluster convalescent TGs classification
+
+```{r Pooled-analysis, warning=FALSE}
+
+data_use_pooled_4TG <- clinical_titers_counts_data %>%
+  mutate(conv_cluster4 = recode(conv_cluster6, `1` = 1, `3` = 1, `4` = 1, `2` = 2, `5` = 5, `6` = 6)) %>%
+  mutate(RBD.IgG = log2(AUC.RBD.IgG),
+         Spike.IgG = log2(AUC.Spike.IgG)) %>%
+  select(sample_id,
+         RBD.IgG,
+         Spike.IgG,
+         enrollment_site,
+         discretized_admit_age_quantile,
+         sex,
+         conv_cluster4,
+         participant_id,
+         event_type,
+         event_date
+         ) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(conv_cluster4 = factor(conv_cluster4, levels = c("1", "2", "5", "6"))) %>%
+  column_to_rownames(var = "sample_id")
+
+# save source data
+source_data <- data_use_pooled_4TG %>%
+  mutate(endpoints = recode(conv_cluster4, `1` = "MIN", `2` = "PHY", `5` = "COG", `6` = "MLT")) %>%
+  tibble::rownames_to_column(var = "sample_id") %>%
+  select(sample_id, participant_id, enrollment_site, event_type, discretized_admit_age_quantile, sex, endpoints, RBD.IgG, Spike.IgG)
+
+file_name_1 <- "/scratch/nasal-transcriptomics/impacc/Analysis/serum-rbd-abtiters/clinical_conv/source_data/Source_data_serum_RBD_titers_pooled_analysis.txt"
+write.table(source_data, file = file_name_1, quote = FALSE, sep = "\t", row.names = FALSE)
+
+
+immune_assay <- data_use_pooled_4TG %>%
+  select("RBD.IgG", "Spike.IgG")
+immune_meta <- data_use_pooled_4TG %>% 
+  tibble::rownames_to_column(var = "sample_id") %>%
+  select(sample_id, 
+         participant_id,
+         event_type,
+         event_date,
+         discretized_admit_age_quantile,
+         sex,
+         enrollment_site,
+         conv_cluster4)
+
+
+if(!(all(rownames(immune_assay) == immune_meta$sample_id))){
+  stop("make sure samples are ordered consistent between counts data and metadata")
+} else {message("samples are ordered consistent between counts data and metadata")}
+
+
+response_name = "conv_cluster4"
+random_effect_list = c("participant_id", "enrollment_site")
+fixed_effect_list = c("sex", "discretized_admit_age_quantile")
+# fixed_effect_list = c("event_type","sex", "discretized_admit_age_quantile")
+
+# over all association
+
+module_names <- c("RBD.IgG", "Spike.IgG")
+pval_overall <- NULL
+
+for (moduleName in module_names) {
+  my.formula0 <- paste0(moduleName, '~(1|enrollment_site)+(1|participant_id)+discretized_admit_age_quantile+sex')
+  my.formula1 <- paste0(moduleName,
+                        '~(1|enrollment_site)+(1|participant_id)+discretized_admit_age_quantile+sex+conv_cluster4')
+  av = anova(lme4::lmer(my.formula0, data = data_use_pooled_4TG),
+                 lme4::lmer(my.formula1, data = data_use_pooled_4TG))
+  res <- av$`Pr(>Chisq)`[2]
+  pval_overall <- rbind(pval_overall, res)
+}
+
+res_table_overall <- data.frame(feature = module_names, 
+                                pval = as.vector(pval_overall)) %>% 
+  mutate(qval =  qvalue::qvalue(pval, fdr.level = 0.05, pi0 = 1)$qvalues) %>%
+  tibble::column_to_rownames(var = "feature")
+
+
+# pairwise comparisons
+pooled_resDF_pairwise <- NULL
+for(feature_name in colnames(immune_assay)){
+  res0 = pooled_test(immune_assay=immune_assay, immune_meta=immune_meta, 
+                     feature_name = feature_name, response_name=response_name, 
+                     random_effect_list=random_effect_list , fix_effect_list=fixed_effect_list)
+  pooled_resDF_pairwise <- rbind(pooled_resDF_pairwise,res0)
+}
+rownames(pooled_resDF_pairwise) = colnames(immune_assay)
+
+res_table_pooled_all <- cbind(res_table_overall, pooled_resDF_pairwise)
+
+
+
+res_table_pairwise_long_df <- pooled_resDF_pairwise %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column(var = "feature") %>%
+  pivot_longer(cols = -c("feature")) %>%
+  rename(Pvalue = value) %>%
+  tidyr::separate(col = "name", into = c("group1", "group2"), remove = FALSE)
+  
+
+
+```
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+#### Pooled analysis figures: 4 cluster convalescent TGs classification
+```{r PlotViralDataByClinicalTrajectoryGroupV2, fig.width = 8, fig.height = 8, warning=FALSE, echo=FALSE, eval=TRUE}
+
+# TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "5" = "#9C3418", "6" = "pink")
+TrajGrpCol <- c("1" = "#999999", "2" = "#56B4E9", "5" = "#E69F00", "6" = "#FF0000")
+
+library(ggbeeswarm)
+
+## RBD.IgG figures
+
+df_pooled_mean <- data_use_pooled_4TG %>%
+  group_by(conv_cluster4) %>%
+  summarise(n = n(),
+            RBD.IgG_mean = mean(RBD.IgG),
+            Spike.IgG_mean = mean(Spike.IgG))
+
+res_table_pairwise_long_df_temp <- res_table_pairwise_long_df %>%
+  filter(feature == "RBD.IgG") %>%
+  filter(Pvalue < 0.05) %>%
+  mutate(Pvalue = round(Pvalue,4)) %>%
+  select(group1, group2, Pvalue) %>%
+  mutate(`y.position` = c(18,20,22)) %>%
+  mutate(label = case_when(
+  Pvalue < 0.001 ~ "***",
+  (Pvalue > 0.001 & Pvalue < 0.01) ~ "**",
+  (Pvalue > 0.01 & Pvalue < 0.05) ~ "*",
+  .default = "NS"))
+
+library(ggprism)
+
+boxplot_RBD <- ggplot(data_use_pooled_4TG, aes(x = conv_cluster4, y = RBD.IgG)) + 
+  geom_boxplot(aes(x = conv_cluster4, y = RBD.IgG, color = conv_cluster4), size = 0.8, outlier.shape = NA) +
+  geom_quasirandom(aes(x = conv_cluster4, y = RBD.IgG, color = conv_cluster4), width = 0.2, alpha = 0.7, size = 1) +
+  # geom_point(data = df_pooled_mean, aes(x = conv_cluster4, y = RBD.IgG_mean), color = "black", size = 5, alpha = 0.7) +
+  theme_bw() +
+  ylab("anti-RBD IgG") + xlab("") +
+  theme_bw() +
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10),
+        axis.text.y = element_text(size = 10),
+        text = element_text(size=10)) +
+  # scale_fill_manual(values = TrajGrpCol) +
+  scale_color_manual(values = TrajGrpCol) +
+  add_pvalue(res_table_pairwise_long_df_temp, 
+             label = "label",
+             tip.length = 0,
+             bracket.nudge.y = 0,
+             label.size = 6) +
+  scale_x_discrete(labels=c('MIN', 'PHY', 'COG', 'MLT'))
+  
+boxplot_RBD
+
+
+ggsave(
+  filename = format(Sys.Date(), "/scratch/nasal-transcriptomics/impacc/Analysis/serum-rbd-abtiters/clinical_conv/Figures/%y%m%d-RBD_IgG_pooled_boxplot_PRO_clusters.pdf"),
+  width = 2.5,
+  height = 3
+)
+
+
+
+## Spike.IgG figures
+
+res_table_pairwise_long_df_temp <- res_table_pairwise_long_df %>%
+  filter(feature == "Spike.IgG") %>%
+  filter(Pvalue < 0.05) %>%
+  mutate(Pvalue = round(Pvalue,4)) %>%
+  select(group1, group2, Pvalue) %>%
+  mutate(`y.position` = c(18,20,22)) %>%
+  mutate(label = case_when(
+  Pvalue < 0.001 ~ "***",
+  (Pvalue > 0.001 & Pvalue < 0.01) ~ "**",
+  (Pvalue > 0.01 & Pvalue < 0.05) ~ "*",
+  .default = "NS"))
+
+boxplot_Spike <- ggplot(data_use_pooled_4TG, aes(x = conv_cluster4, y = Spike.IgG)) + 
+  geom_boxplot(aes(x = conv_cluster4, y = Spike.IgG, color = conv_cluster4), size = 0.8, outlier.shape = NA) +
+  geom_quasirandom(aes(x = conv_cluster4, y = Spike.IgG, color = conv_cluster4), width = 0.2, alpha = 0.7, size = 1) +
+  # geom_point(data = df_pooled_mean, aes(x = conv_cluster4, y = Spike.IgG_mean), color = "black", size = 5, alpha = 0.7) +
+  theme_bw() +
+  ylab("anti-Spike IgG") + xlab("") +
+  theme_bw() +
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10),
+        axis.text.y = element_text(size = 10),
+        text = element_text(size=10)) +
+  # scale_fill_manual(values = TrajGrpCol) +
+  scale_color_manual(values = TrajGrpCol) +
+  add_pvalue(res_table_pairwise_long_df_temp, 
+             label = "label",
+             tip.length = 0,
+             bracket.nudge.y = 0,
+             label.size = 6) +
+  scale_x_discrete(labels=c('MIN', 'PHY', 'COG', 'MLT'))
+  
+boxplot_Spike
+
+
+ggsave(
+  filename = format(Sys.Date(), "/scratch/nasal-transcriptomics/impacc/Analysis/serum-rbd-abtiters/clinical_conv/Figures/%y%m%d-Spike_IgG_pooled_boxplot_PRO_clusters.pdf"),
+  width = 2.5,
+  height = 3
+)
+
+
+
+```
+
+
+
+### Longitudinal analysis code: 4 cluster convalescent TGs classification
+```{r Longitudinal-analysis, message=FALSE, results="hide"}
+
+data_use_longitudinal_4TG <- clinical_titers_counts_data %>%
+  rename(trajectory_group_original = trajectory_group) %>%
+  mutate(conv_cluster4 = recode(conv_cluster6, `1` = "MIN", `3` = "MIN", `4` = "MIN", `2` = "PHY", `5` = "COG", `6` = "MLT")) %>%
+  rename(trajectory_group = conv_cluster4) %>%
+  tidyr::drop_na(trajectory_group) %>%
+  filter(event_date <= 28) %>%
+  mutate(RBD.IgG = log2(AUC.RBD.IgG), 
+         Spike.IgG = log2(AUC.Spike.IgG)) %>%
+  select(sample_id, RBD.IgG, Spike.IgG, participant_id,  
+         enrollment_site,
+         trajectory_group, event_date, event_type, sex, discretized_admit_age_quantile) %>% 
+  mutate(participant_id = factor(participant_id)) %>% 
+  mutate_if(is.character, as.factor) %>%
+  mutate(trajectory_group = factor(trajectory_group, levels = c("MIN", "PHY", "COG", "MLT"))) 
+
+# save source data
+source_data <- data_use_longitudinal_4TG %>%
+  mutate(endpoints = trajectory_group) %>%
+  # tibble::rownames_to_column(var = "sample_id") %>%
+  select(sample_id, participant_id, enrollment_site, event_type, event_date, discretized_admit_age_quantile, sex, endpoints, RBD.IgG, Spike.IgG)
+
+file_name_1 <- "/scratch/nasal-transcriptomics/impacc/Analysis/serum-rbd-abtiters/clinical_conv/source_data/Source_data_serum_RBD_titers_longitudinal_analysis.txt"
+write.table(source_data, file = file_name_1, quote = FALSE, sep = "\t", row.names = FALSE)
+
+
+
+  
+inputDF <- data_use_longitudinal_4TG %>%
+  pivot_longer(cols = -c("sample_id", "event_date", "event_type", "participant_id",
+                         "enrollment_site", "trajectory_group", "sex", "discretized_admit_age_quantile"
+                         ))
+
+
+# smooth spline
+smooth_spline_model_loop <- model_loop(inputDF, 
+                                       modelType = "smoothSpline", 
+                                       endpoint = "trajectory_group")
+
+smooth_spline_model_loop_df <- smooth_spline_model_loop %>%
+  rownames_to_column(var = "feature")
+
+# filename_long = format(Sys.Date(), "/users/ndjayavelu/njayavelu/Scripts/impacc/Analysis/serum-rbd-abtiters/clinGroup/Figures/conv_symps/%y%m%d-P_values_longitudinal_smoothSpline_with_age_sex_for_conv_symps.csv")
+# write.csv(smooth_spline_model_loop_df, 
+#            file = filename_long, row.names = FALSE)
+
+
+```
+
+
+
+### Longitudinal analysis figures: template code
+```{r Longitudinal-analysis figures, message=FALSE, results="hide"}
+
+plotExample <- inputDF %>%
+  filter(name %in% "RBD.IgG") %>%
+  mutate(trajectory_group = ordered(as.factor(as.character(trajectory_group)),
+                                    levels = c("MIN", "PHY", "COG", "MLT")))
+
+col_sel <- c("MIN" = "#999999", "PHY" = "#56B4E9", "COG" = "#E69F00", "MLT" = "#FF0000")
+
+
+temp_plot <- plot_model_smooth_conv(plotExample, model_loop = smooth_spline_model_loop, modelType = "smoothSpline",
+           p_adjust = F, endpoint = "trajectory_group", signif_markers = T, remove_NS = T,
+           title = "",
+           individual_points_size = 1,
+           individual_paths_size = 0.5,
+           group_trendline_line_width = 1.5,
+           title_size = 12,
+           bar_height = 5,
+           custom_theme_graph = 'text = element_text(size=10)',
+           # custom_theme_bars = 'text = element_text(size=6)',
+           knot_lines = F,
+           ylabel = "anti-RBD IgG",
+           CI = FALSE,
+           individual_trendlines = T, individual_points = T, individual_paths = T,
+           p_value_text_size = 5,
+           return_multi_obj = F,
+           colors = col_sel,
+           y_axis_reverse = FALSE)
+ 
+
+print(temp_plot)
+ggsave(
+  filename = format(Sys.Date(), "/scratch/nasal-transcriptomics/impacc/Analysis/serum-rbd-abtiters/clinical_conv/Figures/%y%m%d-RBD_IgG_longitudinal_PRO_clusters.pdf"),
+  plot = temp_plot,
+  width = 3.5,
+  height = 2.5
+)
+
+
+
+plotExample <- inputDF %>%
+  filter(name %in% "Spike.IgG") %>%
+  mutate(trajectory_group = ordered(as.factor(as.character(trajectory_group)),
+                                    levels = c("MIN", "PHY", "COG", "MLT"))) 
+
+temp_plot <- plot_model_smooth_conv(plotExample, model_loop = smooth_spline_model_loop, modelType = "smoothSpline",
+           p_adjust = F, endpoint = "trajectory_group", signif_markers = T, remove_NS = T,
+           title = "",
+           individual_points_size = 1,
+           individual_paths_size = 0.5,
+           group_trendline_line_width = 1.5,
+           title_size = 12,
+           bar_height = 5,
+           custom_theme_graph = 'text = element_text(size=10)',
+           # custom_theme_bars = 'text = element_text(size=6)',
+           knot_lines = F,
+           ylabel = "anti-Spike IgG",
+           CI = FALSE,
+           individual_trendlines = T, individual_points = T, individual_paths = T,
+           p_value_text_size = 5,
+           return_multi_obj = F,
+           colors = col_sel,
+           y_axis_reverse = FALSE)
+ 
+
+print(temp_plot)
+ggsave(
+  filename = format(Sys.Date(), "/scratch/nasal-transcriptomics/impacc/Analysis/serum-rbd-abtiters/clinical_conv/Figures/%y%m%d-Spike_IgG_longitudinal_PRO_clusters.pdf"),
+  plot = temp_plot,
+  width = 3.5,
+  height = 2.5
+)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
