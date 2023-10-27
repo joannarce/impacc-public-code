@@ -94,7 +94,7 @@ lay <- layout_nicely(network)
 plot(network, layout=lay, vertex.label.cex=0.5, vertex.size=9, vertex.label.color= "black",
      edge.color=ifelse(E(network)$is_inhibition == 1, "blue", "red"),
      edge.arrow.size=0.5)
-saveRDS(network, paste0(out_dir, "/full_integrated_network.RDS"))
+saveRDS(network, paste0(out_dir, "/full_integrated_network_v2.RDS"))
 ## Load this RDS object then run the chunk below on local machine with access to Cytoscape
 ## using the RCy3 package to load the igraph object into cytoscape
 
@@ -126,7 +126,7 @@ base_df <- so_ligands_rec %>%
 
 
 col_fun = colorRamp2(c(-0.03, 0, 0.03), c("blue", "white", "red"))
-pdf(paste0(out_dir, "panelB.pdf"), width = 8, height = 8)
+pdf(paste0(out_dir, "panelB.pdf"), width = 6, height = 6)
 circos.clear()
 heatdf1tmp <- base_df %>% distinct() %>%
   filter(!(is.na(logFC.nt) & is.na(logFC.pbmc))) %>%
@@ -154,15 +154,15 @@ circos.heatmap(heat_circle_df, cluster = F, col = col_fun, split = split,
 circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
     if(CELL_META$sector.numeric.index == length(levels(split))) { # the last sector
         circos.rect(CELL_META$cell.xlim[2] + convert_x(1, "mm"), 0,
-                    CELL_META$cell.xlim[2] + convert_x(6, "mm"), 1,
+                    CELL_META$cell.xlim[2] + convert_x(8.5, "mm"), 1,
                     col = "#50A3A4", border = "black", cex = 0.35)
-        circos.text(CELL_META$cell.xlim[2] + convert_x(3.5, "mm"), 0.5,
+        circos.text(CELL_META$cell.xlim[2] + convert_x(4.5, "mm"), 0.5,
                     "PBMCs", cex = 0.3, facing = "clockwise")
 
         circos.rect(CELL_META$cell.xlim[2] + convert_x(1, "mm"), 1,
-                    CELL_META$cell.xlim[2] + convert_x(6, "mm"), 2,
+                    CELL_META$cell.xlim[2] + convert_x(8.5, "mm"), 2,
                     col = "#b4c540", border = "black", cex = 0.35)
-        circos.text(CELL_META$cell.xlim[2] + convert_x(3.5, "mm"), 1.5,
+        circos.text(CELL_META$cell.xlim[2] + convert_x(4.5, "mm"), 1.5,
                     "Nasal", cex = 0.3, facing = "clockwise")
     }
 }, bg.border = NA)
@@ -173,17 +173,17 @@ circos.heatmap(heatdf1tmp %>% left_join(olink_data %>%
               cluster = F, col = col_fun, split = F, bg.border = "black")
 circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
     if(CELL_META$sector.numeric.index == length(levels(split))) { # the last sector
-        circos.rect(CELL_META$cell.xlim[2] + convert_x(1, "mm"), 0,
-                    CELL_META$cell.xlim[2] + convert_x(4.5, "mm"), 1,
+        circos.rect(CELL_META$cell.xlim[2] + convert_x(0.75, "mm"), 0,
+                    CELL_META$cell.xlim[2] + convert_x(6, "mm"), 1,
                     col = "#fcaf38", border = "black", cex = 0.35)
-        circos.text(CELL_META$cell.xlim[2] + convert_x(2.75, "mm"), 0.5,
+        circos.text(CELL_META$cell.xlim[2] + convert_x(3.25, "mm"), 0.5,
                     "Serum Olink", cex = 0.3, facing = "clockwise")
     }
 }, bg.border = NA)
 
 
 circos.track(ylim = c(0, 1), track.index = 3, panel.fun = function(x, y) {
-    circos.text(CELL_META$xcenter, CELL_META$cell.ylim[2] + convert_y(-3.25, "mm"), 
+    circos.text(CELL_META$xcenter + convert_x(0.4, "mm"), CELL_META$cell.ylim[2] + convert_y(-3.25, "mm"), 
         paste0(stars[CELL_META$sector.numeric.index]),
         facing = "clockwise", cex = 0.5,
         adj = c(1.5,0.5), niceFacing = TRUE)
