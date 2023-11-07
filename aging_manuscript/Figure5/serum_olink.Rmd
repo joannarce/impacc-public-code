@@ -3,7 +3,7 @@ title: "serum_olink"
 output: html_document
 ---
 
-Source: 20230124_olink.Rmd
+Source: 20231004_olink.Rmd
 
 ```{r}
 library(dplyr)
@@ -13,11 +13,6 @@ library(RColorBrewer)
 library(patchwork)
 
 library(lme4)
-library(gamm4)
-
-# library(fgsea)
-
-setwd("~/20220902_IMPACC_aging")
 
 my.theme <- theme_classic() + 
   theme(
@@ -36,7 +31,7 @@ my.theme <- theme_classic() +
 ```{r}
 # Clinical characteristics
 clin.individ <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-individ-frozen.csv",
   header = TRUE, row.names = NULL
 )
 # Filter COVID positive samples
@@ -45,7 +40,7 @@ print(head(clin.individ))
 
 # Clinical characteristics supp
 clin.individ.supp <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-supp-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-individ-supp-frozen.csv",
   header = TRUE, row.names = NULL
 )
 print(clin.individ.supp[1:6,1:6])
@@ -56,14 +51,14 @@ Import event data.
 ```{r}
 # For mapping sample_id to event_id
 clin.sample <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-sample-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-sample-frozen.csv",
   header = TRUE, row.names = NULL
 )
 print(head(clin.sample))
 
 # Explanation of event_id
 clin.event <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-event-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-event-frozen.csv",
   header = TRUE, row.names = NULL
 )
 print(head(clin.event))
@@ -102,23 +97,26 @@ clin.individ$participant_id <- as.factor(clin.individ$participant_id)
 ```{r}
 # Concentration
 olink <- read.csv(
-  "/data/serum-olink/current/Olink-Counts.csv",
+  "/data/serum-olink/legacy/2023-01-06/Olink-Counts.csv",
   header = TRUE, row.names = 1
 )
-olink <- t(olink)
+olink <- t(olink) # transpose
 
 # Row data
 rData <- read.csv(
-  "/data/serum-olink/current/Olink-RowFeature.csv",
+  "/data/serum-olink/legacy/2023-01-06/Olink-RowFeature.csv",
   header = TRUE, row.names = 3
 )
-print(all(rownames(olink) == rownames(rData)))
 
 # Olink metadata
 olink.metadata <- read.csv(
-  "/data/serum-olink/current/Olink-Metadata.csv",
+  "/data/serum-olink/legacy/2023-01-06/Olink-Metadata.csv",
   header = TRUE, row.names = NULL
 )
+
+# Verify the sample_id and protein names match
+stopifnot(rownames(olink) == rownames(rData))
+stopifnot(colnames(olink) == olink.metadata$sample_id)
 ```
 
 ## Viral load data
@@ -128,41 +126,10 @@ Get SARS-CoV-2 viral load from nasal-metagenomics-AllGenera-Counts_RPM.csv, sc2_
 ```{r}
 # mNGS metadata
 mngs.metadata <- read.csv(
-  "/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv",
+  "/data/nasal-metagenomics/legacy/2022-09-03/nasal-metagenomics-Metadata.csv",
   header = TRUE, row.names = NULL,
   check.names = FALSE
 )
-```
-
-Check viral load in metadata vs that in counts.csv
-
-```{r}
-# mngs <- read.csv(
-#   "/data/nasal-metagenomics/current/nasal-metagenomics-AllGenera-Counts_RPM.csv",
-#   header = TRUE, row.names = NULL,
-#   check.names = FALSE
-# )
-# 
-# mngs.rData <- read.csv(
-#   "/data/nasal-metagenomics/current/nasal-metagenomics-AllGenera-RowFeatures.csv",
-#   skip = 1, header = TRUE, row.names = 1,
-#   check.names = FALSE
-# )
-# 
-# sc2.id <- mngs.rData %>%
-#   subset(name == "Betacoronavirus") %>%
-#   rownames()
-# 
-# # Replace sc2_rpm column in mngs.rData with the viral load from mngs
-# temp <- merge(
-#   mngs.metadata, mngs[,c("sample_id",sc2.id)],
-#   by = "sample_id", all = FALSE,
-#   sort = FALSE
-# )
-# 
-# plot(log10(temp$sc2_rpm+1), log10(temp[,sc2.id]+1),
-#      xlab="metadata viral load", ylab="counts viral load", main="log10(viral_load + 1)")
-# remove(temp)
 ```
 
 # Merge metadata
@@ -293,12 +260,6 @@ for (i in rownames(res.noviralload)) {
 
 # Correct P-values
 res.noviralload$adj.PVal <- p.adjust(res.noviralload$PVal, method = "BH")
-
-# Save results
-write.csv(
-  res.noviralload,
-  "20230124_olink_visit1_DE_no-viralload.csv"
-)
 ```
 
 ### Control for viral load
@@ -358,7 +319,7 @@ p <- ggplot(data = subset(res.noviralload, adj.PVal < 0.05)) +
 Plot slope of all significant cytokines, controlling for viral load.
 
 ```{r}
-# Supplementary Figure 7A
+# Figure S7A
 p <- ggplot(data = subset(res, adj.PVal < 0.05)) +
   geom_col(aes(y = reorder(cytokine,slope), x = slope,
                fill = as.factor(slope>0)),
@@ -367,7 +328,7 @@ p <- ggplot(data = subset(res, adj.PVal < 0.05)) +
   scale_fill_manual(values=c("TRUE"="darkred", "FALSE"="dodgerblue4"), guide="none") +
   # coord_flip() +
   labs(x = "Slope\n(change per 1 year of age)", y = "",
-       title = "Proteins associated\nwith age at Visit 1\n(controlled for viral load)") +
+       title = "Proteins associated\nwith age at Visit 1\n(controlled for viral abundance)") +
   scale_x_continuous(limits=c(-0.02, 0.02), expand=c(0,0)) +
   theme_bw() + theme(
     plot.title = element_text(hjust = 0.5, size=12, face="plain"),
@@ -479,10 +440,8 @@ Plot slope of old vs young.
 ```{r}
 x <- res.y$slope
 names(x) <- rownames(res.y)
-# x[res.y$adj.PVal>0.05] <- 0
 y <- res.o$slope
 names(y) <- rownames(res.o)
-# y[res.o$adj.PVal>0.05] <- 0
 
 print(all(names(x) == names(y)))
 
@@ -502,7 +461,7 @@ ggplot(data=temp, aes(x=y.slope, y=o.slope)) +
     aes(label=cytokine), hjust=0.5, vjust=0.1, size=3) +
   labs(x="Slope in age group [18,46]",
        y="Slope in age group [71,96]",
-       title="Association with viral load\nat visit 1") + 
+       title="Association with viral abundance\nat visit 1") + 
   my.theme + theme(aspect.ratio = 1)
 # olink_visit1_viralload_age1vs5, 3.5 x 3.8 in
 
@@ -526,7 +485,7 @@ p <- ggplot(data=temp2,
                         name="") +
   labs(
     x = "Age group", y = "Protein",
-    title = "Proteins associated with\nviral load at Visit 1"
+    title = "Proteins associated with\nviral abundance at Visit 1"
   ) +
   theme_bw() + theme(
     plot.title = element_text(hjust = 0.5, size=12, face="plain"),
@@ -540,63 +499,6 @@ p <- ggplot(data=temp2,
   ) # olink_visit1_viralload_age1vs5_dotplot, 3 x 4.5 in
 ```
 
-Plot example cytokines
-
-```{r}
-p <- list()
-for (i in c("IL10","CX3CL1")) {
-  # Prepare data
-  temp <- data.frame(value=scale(olink.1[i,]),
-                     age=clin.sample.event.individ.1$admit_age,
-                     sex=clin.sample.event.individ.1$sex,
-                     steroids=clin.sample.event.individ.1$steroids,
-                     sc2=clin.sample.event.individ.1$sc2_rpm,
-                     resp=clin.sample.event.individ.1$respiratory_status) %>%
-    subset(!is.na(value))
-  
-  # Young
-  temp.y <- temp %>%
-    subset(age<=46) %>%
-    droplevels()
-  # temp.y$value <- scale(temp.y$value)
-  my.lm <- lm(value ~ sc2 + sex + resp, data=temp.y)
-  my.pred.y <- ggeffects::ggpredict(my.lm, terms=c("sc2"))
-  remove(my.lm)
-  
-  # Old
-  temp.o <- temp %>%
-    subset(age >= 71) %>%
-    droplevels()
-  # temp.o$value <- scale(temp.o$value)
-  my.lm <- lm(value ~ sc2 + sex + resp, data=temp.o)
-  my.pred.o <- ggeffects::ggpredict(my.lm, terms=c("sc2"))
-  
-  # Brewer paired palette
-  p[[i]] <- ggplot() +
-    geom_point(data=temp.y, aes(x=sc2,y=value),
-               shape = 21, fill = "#440154", color = "black", 
-               size = 1, stroke = 0.3) +
-    geom_point(data=temp.o, aes(x=sc2,y=value),
-               shape = 21, fill = "#fde725", color = "black", 
-               size = 1, stroke = 0.3) +
-    geom_line(data = my.pred.y, aes(x,predicted),
-              color = "#440154", size = 1) +
-    # geom_ribbon(data = my.pred.y, 
-    #             aes(x = x, y = predicted, ymin = conf.low, ymax = conf.high),
-    #             fill = "#440154", alpha = .4) +
-    geom_line(data = my.pred.o, aes(x,predicted),
-              color = "#fde725", size = 1) +
-    # geom_ribbon(data = my.pred.o, 
-    #             aes(x = x, y = predicted, ymin = conf.low, ymax = conf.high),
-    #             fill = "#fde725", alpha = .4) +
-    labs(x = "Viral load, log10(rpM+1)", y = "NPX (z-score)",
-         title = i) +
-    my.theme + theme(aspect.ratio=1)
-}
-
-p[[1]]+p[[2]]+ plot_layout(ncol=1) # olink_visit1_viralload_age1vs5_2examples, 3.5 x 7.5 in
-```
-
 ## Age and severity: stratified by age
 
 ```{r}
@@ -606,9 +508,6 @@ clin.sample.event.individ.1.y <- clin.sample.event.individ.1 %>%
 clin.sample.event.individ.1.o <- clin.sample.event.individ.1 %>% 
   subset((admit_age > 70)) %>%
   droplevels()
-
-# olink.1.y <- olink.1[,clin.sample.event.individ.1.y$sample_id]
-# olink.1.o <- olink.1[,clin.sample.event.individ.1.o$sample_id]
 ```
 
 Mild is 3 & 4, severe is 5 & 6.
@@ -812,7 +711,7 @@ res.toplot <- rbind(
   res.o[my.cytokines,] %>% mutate(age_group="[71,96]")
 )
 
-# Supplementary Figure 9B
+# Figure S10B
 # Dotplot
 p2 <- ggplot(data=res.toplot,
              aes(x=age_group, 
@@ -889,7 +788,6 @@ res <- data.frame(matrix(NA, nrow=nrow(olink.long), ncol=11))
 colnames(res) <- c("slope.2vs1","slope.3vs1","slope.4vs1","slope.5vs1",
                    "slope.1","slope.2","slope.3","slope.4","slope.5",
                    "PVal","adj.PVal")
-# res$cytokine <- rownames(olink.long)
 rownames(res) <- rownames(olink.long)
 
 for (i in rownames(res)) {
@@ -980,7 +878,7 @@ out <- pheatmap(
 Plot example significant cytokines.
 
 ```{r}
-# Supplementary Figure 7B
+# Figure S8B
 p <- list()
 for (i in c("TNFSF11","CXCL8","CXCL9","IL6")) {
   temp <- data.frame(
@@ -1012,8 +910,6 @@ for (i in c("TNFSF11","CXCL8","CXCL9","IL6")) {
   iqr <- IQR(temp$value)
   p[[i]] <- ggplot(data = temp, aes(x=event_date, y=value, color=age_group)) +
     geom_line(aes(group=pid), color="gray", alpha=0.4) +
-    # geom_line(inherit.aes=FALSE, aes(x=event_date, y=yhat, group=pid),
-    #           color="#5F5F5F", alpha=0.9) +
     geom_point(aes(color=age_group), shape=20, size=0.5) +
     geom_line(inherit.aes=FALSE, data=my.pred, aes(x,predicted),
               color = "black", size=1) +
@@ -1025,7 +921,6 @@ for (i in c("TNFSF11","CXCL8","CXCL9","IL6")) {
     labs(x="Days from admission", y="NPX (z-score)",
          title=sprintf("%s (P = %.1e)",i,res[i,"adj.PVal"])) +
     scale_color_viridis_d(begin=0.4, guide="none") +
-    # scale_fill_viridis_d(begin=0.4, guide="none") +
     facet_wrap(~ age_group, nrow=1) + theme_bw() +
     theme(
       plot.title = element_text(hjust = 0.5, size=12, face="plain"),
@@ -1036,6 +931,7 @@ for (i in c("TNFSF11","CXCL8","CXCL9","IL6")) {
       panel.spacing = unit(0.35, "cm"),
       panel.grid.minor=element_blank()
     )
+}
 
 p[[1]] +
   p[[2]] +
@@ -1074,17 +970,10 @@ for (i in c("TNFSF11","CXCL8","CXCL9","IL6")) {
 
   
   p[[i]] <- ggplot() +
-    # geom_line(aes(group=pid), color="gray", alpha=0.4) +
-    # geom_line(inherit.aes=FALSE, aes(x=event_date, y=yhat, group=pid),
-              # color="#5F5F5F", alpha=0.9) +
-    # geom_point(aes(color=age_group), size=1, alpha=0.8) +
     geom_line(data=my.pred, aes(x,predicted,color=age_group),
               size=1.5) +
     labs(x="Days from admission", y="NPX (z-score)",
          title=sprintf("%s (P = %.1e)",i,res[i,"adj.PVal"])) +
-    # scale_colour_brewer(palette="Paired") +
-    # scale_color_manual(values=c("#6699CC","mediumpurple1","#44AA99","#DDCC77","#CC6677"),
-    #                    name="Age group") +
     scale_color_viridis_d(name = "Age group", guide = "none") +
     theme_classic() + 
   theme(

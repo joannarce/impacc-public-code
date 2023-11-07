@@ -5,7 +5,7 @@ output: html_document
 
 Here I will analyze viral load from nasal mNGS data, and compare viral load by mNGS vs qPCR.
 
-Source: 20230426_viralload.Rmd
+Source: 20231006_viralload.Rmd
 
 ```{r}
 library(dplyr)
@@ -16,10 +16,6 @@ library(patchwork)
 
 library(lme4)
 library(gamm4)
-
-# library(fgsea)
-
-setwd("~/20220902_IMPACC_aging")
 
 my.theme <- theme_classic() + 
   theme(
@@ -37,7 +33,7 @@ my.theme <- theme_classic() +
 ```{r}
 # Clinical characteristics
 clin.individ <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-individ-frozen.csv",
   header = TRUE, row.names = NULL
 )
 # Filter COVID positive samples
@@ -46,7 +42,7 @@ print(head(clin.individ))
 
 # Clinical characteristics supp
 clin.individ.supp <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-supp-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-individ-supp-frozen.csv",
   header = TRUE, row.names = NULL
 )
 print(clin.individ.supp[1:6,1:6])
@@ -57,14 +53,14 @@ Import event data.
 ```{r}
 # For mapping sample_id to event_id
 clin.sample <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-sample-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-sample-frozen.csv",
   header = TRUE, row.names = NULL
 )
 print(head(clin.sample))
 
 # Explanation of event_id
 clin.event <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-event-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-event-frozen.csv",
   header = TRUE, row.names = NULL
 )
 print(head(clin.event))
@@ -105,19 +101,19 @@ Get SARS-CoV-2 viral load from nasal-metagenomics-AllGenera-Counts_RPM.csv, sc2_
 ```{r}
 # mNGS metadata, containing viral load by mNGS
 mngs.metadata <- read.csv(
-  "/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv",
+  "/data/nasal-metagenomics/legacy/2022-09-03/nasal-metagenomics-Metadata.csv",
   header = TRUE, row.names = NULL,
   check.names = FALSE
 )
 
 # qPCR data
 pcr <- read.csv(
-  "/data/nasal-viralload/current/nasal-viralload-Counts.csv",
+  "/data/nasal-viralload/legacy/2022-01-01/nasal-viralload-Counts.csv",
   header=TRUE, row.names=NULL,
   check.names=FALSE
 )
 pcr.metadata <- read.csv(
- "/data/nasal-viralload/current/nasal-viralload-Metadata.csv",
+ "/data/nasal-viralload/legacy/2022-01-01/nasal-viralload-Metadata.csv",
  header=TRUE, row.names=NULL,
  check.names=FALSE
 )
@@ -198,7 +194,35 @@ clin.sample.event.individ.visit1$age_group <- cut(
 levels(clin.sample.event.individ.visit1$age_group) <- c("[18,46]","[47,54]","[55,62]","[63,70]","[71,96]")
 ```
 
-Plot
+Plot symptom date vs age
+
+```{r}
+# Figure S2
+p <- ggplot(data=clin.sample.event.individ.visit1 %>%
+              subset(!is.na(symptom_date)) %>%
+              subset(symptom_date>=-40),
+            aes(x=age_group, y=-symptom_date, color=age_group)) +
+  stat_boxplot(geom ='errorbar', width=0.3) +
+  geom_boxplot(fill="white", outlier.shape = NA) +
+  # geom_jitter(size=0.7, width = 0.2) + 
+  ggbeeswarm::geom_quasirandom(size=0.5, width=0.4) +
+  scale_y_continuous(limits=c(-0.8,40), expand=c(0,0)) +
+  labs(x="Age group", y="Days since symptom onset") +
+  scale_color_viridis_d(guide="none") +
+  my.theme # symptom_date_vs_age_visit1.pdf, 4.5w x 3h in
+```
+
+P value of symptom date vs age
+
+```{r}
+print(kruskal.test(
+  symptom_date ~ age_group,
+  data=clin.sample.event.individ.visit1,
+  na.action="na.omit"
+))
+```
+
+Plot viral load vs age
 
 ```{r}
 # Figure 2D
@@ -257,7 +281,7 @@ p2 <- ggplot(data=clin.sample.event.individ.visit1,
   labs(x="qPCR (N2 CT)", y="Metatranscriptomics\n(log-transformed rpM)") +
   my.theme
 
-# Supplementary figure 1
+# Figure S1
 p1 + p2 + plot_layout(nrow=1) # viralload_mngs-vs-qpcr.pdf, 6 x 3 in
 ```
 

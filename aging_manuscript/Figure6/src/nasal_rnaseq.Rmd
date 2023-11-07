@@ -3,7 +3,7 @@ title: "nasal_rnaseq"
 output: html_document
 ---
 
-Source: 20230125_bulk_RNAseq_nasal
+Source: 20231003_bulk_RNAseq_nasal
 
 ```{r}
 library(dplyr)
@@ -16,8 +16,6 @@ library(edgeR)
 library(fgsea)
 
 library(gamm4)
-
-setwd("~/20220902_IMPACC_aging")
 
 my.theme <- theme_classic() + 
   theme(
@@ -36,7 +34,7 @@ my.theme <- theme_classic() +
 ```{r}
 # Clinical characteristics
 clin.individ <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-individ-frozen.csv",
   header = TRUE, row.names = NULL
 )
 # Filter COVID positive samples
@@ -45,7 +43,7 @@ print(head(clin.individ))
 
 # Clinical characteristics supp
 clin.individ.supp <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-supp-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-individ-supp-frozen.csv",
   header = TRUE, row.names = NULL
 )
 print(clin.individ.supp[1:6,1:6])
@@ -56,14 +54,14 @@ Import event data.
 ```{r}
 # For mapping sample_id to event_id
 clin.sample <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-sample-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-sample-frozen.csv",
   header = TRUE, row.names = NULL
 )
 print(head(clin.sample))
 
 # Explanation of event_id
 clin.event <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-event-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-event-frozen.csv",
   header = TRUE, row.names = NULL
 )
 print(head(clin.event))
@@ -128,7 +126,7 @@ clin.sample.event.individ <- merge(
 
 ```{r}
 counts <- read.csv(
-  "/data/nasal-transcriptomics/current/nasal-transcriptomics-Counts.csv",
+  "/data/nasal-transcriptomics/legacy/2022-06-30/nasal-transcriptomics-Counts.csv",
   header = TRUE, row.names = 1,
   check.names = FALSE
 )
@@ -136,7 +134,7 @@ counts <- t(counts)
 print(counts[1:6,1:6])
 
 counts.metadata <- read.csv(
-  "/data/nasal-transcriptomics/current/nasal-transcriptomics-Metadata.csv",
+  "/data/nasal-transcriptomics/legacy/2022-06-30/nasal-transcriptomics-Metadata.csv",
   header = TRUE, row.names = NULL,
   check.names = FALSE
 )
@@ -147,6 +145,7 @@ rData <- read.csv(
   header = FALSE, row.names = NULL,
   check.names = FALSE
 )
+stopifnot(rownames(counts)==rData$gene_id)
 colnames(rData) <- rData[2,]
 rData <- rData[-(1:2),]
 print(head(rData))
@@ -159,25 +158,10 @@ SARS-CoV-2 viral load is readily available in nasal-metagenomics-Metadata.csv, s
 ```{r}
 # mNGS metadata
 mngs.metadata <- read.csv(
-  "/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv",
+  "/data/nasal-metagenomics/legacy/2022-09-03/nasal-metagenomics-Metadata.csv",
   header = TRUE, row.names = NULL,
   check.names = FALSE
 )
-
-# mngs <- read.csv(
-#   "/data/nasal-metagenomics/current/nasal-metagenomics-AllGenera-Counts_RPM.csv",
-#   header = TRUE, row.names = 1,
-#   check.names = FALSE
-# )
-
-# mngs.rData <- read.csv(
-#   "/data/nasal-metagenomics/current/nasal-metagenomics-AllGenera-RowFeatures.csv",
-#   skip = 1, header = TRUE, row.names = 1,
-#   check.names = FALSE
-# )
-# sc2.id <- mngs.rData %>%
-#   subset(name == "Betacoronavirus") %>%
-#   rownames()
 ```
 
 ## Only keep samples that pass QC
@@ -342,10 +326,6 @@ res <- topTable(vfit, coef = "admit_age",
                 sort.by = "none", number = Inf,
                 adjust.method = "BH", p.value = 1)
 head(res)
-
-# Save results
-# write.csv(res,
-#           "20230125_bulk_RNAseq_nasal_visit1_DE_no-viralload.csv")
 ```
 
 Volcano plot
@@ -366,25 +346,13 @@ res.toplot$direction <- factor(
 
 p <- ggplot(data=res.toplot) +
   geom_point(aes(x=logFC, y=-log10(adj.P.Val), color=direction), size=0.8) +
-  # geom_hline(yintercept=-log10(0.05), color="red", linetype="dashed") +
   scale_color_manual(values=c("darkred","dodgerblue4","gray75"), # c("#d6604d","#4393c3","gray75")
                      name="") +
   scale_x_continuous(limits=c(-0.06,0.06)) +
   scale_y_continuous(limits=c(-0.3,10), expand=c(0,0)) +
-  # xlim(-0.06, 0.06) + 
   labs(x="Slope \n(change per 1 year of age)", y="-log10(adjusted P)",
        title="Nasal swab genes associated\nwith age at Visit 1") +
   my.theme # RNAseq_nasal_visit1_age_no-viralload, 4.8 x 3.6 in or clipboard 550 x 440
-```
-
-MDS plot: check if data clusters by sex.
-
-```{r}
-lcpm <- cpm(vwts, log = TRUE)
-
-group <- clin.sample.event.individ.1$sex
-col.group <- factor(group, labels=c("red","blue")) %>% as.character()
-# p <- plotMDS(lcpm, labels=group, col=col.group)
 ```
 
 Reactome GSEA
@@ -403,11 +371,6 @@ reactome.gsea <- fgseaMultilevel(
   maxSize = 500,
   nproc = 1
 )
-
-# # How many pathways are significant?
-# print(sum(reactome.gsea$padj < 0.05))
-# # What are they?
-# reactome.gsea.sig <- subset(reactome.gsea, padj < 0.05)
 
 # Save the result for comparison later
 reactome.gsea.noviral <- reactome.gsea
@@ -442,7 +405,6 @@ Volcano plot
 ```{r}
 ggplot(data=res) +
   geom_point(aes(x=logFC, y=-log10(adj.P.Val), color=(adj.P.Val<0.05)), size=1) +
-  # geom_hline(yintercept=-log10(0.05), color="red", linetype="dashed") +
   scale_color_manual(values=c("FALSE"="black", "TRUE"="red")) +
   xlim(-0.04, 0.04) + 
   labs(x="logFC (change per 1 year of age)", y="-log10 (adjusted P)") +
@@ -478,7 +440,7 @@ Plot selected reactome pathways, with and without controlling for viral load
 my.pathways <- union(
   reactome.gsea.noviral[reactome.gsea.noviral$padj<0.05,"pathway"],
   reactome.gsea[reactome.gsea$padj<0.05,"pathway"]
-) # save as 20230125_bulk_RNAseq_nasal_visit1_age_gsea-reactome_yes-vs-no-viralload_padj0.05.csv if needed
+)
 ```
 
 ```{r}
@@ -494,7 +456,6 @@ my.pathways <- c("REACTOME_INTERFERON_ALPHA_BETA_SIGNALING",
                  "REACTOME_COMPLEMENT_CASCADE",
                  "REACTOME_CASPASE_ACTIVATION_VIA_DEATH_RECEPTORS_IN_THE_PRESENCE_OF_LIGAND",
                  "REACTOME_TCR_SIGNALING","REACTOME_COSTIMULATION_BY_THE_CD28_FAMILY",
-                 # "REACTOME_SIGNALING_BY_THE_B_CELL_RECEPTOR_BCR",
                  "REACTOME_PD_1_SIGNALING")
 
 reactome.gsea.toplot <- rbind(
@@ -541,29 +502,7 @@ p <- ggplot(data = reactome.gsea.toplot,
     plot.margin = unit(c(0,1,1,0), "cm"),
     panel.spacing = unit(0.5, "cm"),
     panel.grid.minor=element_blank()
-    # legend.key = element_rect(fill = "gray90")
   ) # RNAseq_nasal_visit1_age_gsea-reactome_yes-vs-no-viralload, 5.8 x 4.6 in
-```
-
-Save DE and GSEA results
-
-```{r}
-# write.csv(
-#   res,
-#   "20220914_bulk_RNAseq_nasal_admit-age_limma-voom.csv"
-# )
-# 
-# data.table::fwrite(
-#   reactome.gsea,
-#   file="20220914_bulk_RNAseq_nasal_admit-age_reactome-gsea.tsv",
-#   sep="\t", sep2=c("", " ", "")
-# )
-# 
-# data.table::fwrite(
-#   hallmark.gsea,
-#   file="20220914_bulk_RNAseq_nasal_admit-age_hallmark-gsea.tsv",
-#   sep="\t", sep2=c("", " ", "")
-# )
 ```
 
 ## Age and severity: stratified by age (combined design)
@@ -682,12 +621,202 @@ my.pathways <- union(
 #   subset(pathway %in% my.pathways$pathway)
 ```
 
-Save merged GSEA result
+Save merged GSEA result. In the Figure 4's code, this result is merged with the PBMC GSEA result to produce Figure 7A.
 
 ```{r}
 data.table::fwrite(
   merged.reactome.gsea,
-  file="20230125_bulk_RNAseq_nasal_visit1_age-group_gsea-reactome_severe-vs-mild_combined-design.tsv",
+  file="bulk_RNAseq_nasal_visit1_age-group_gsea-reactome_severe-vs-mild_combined-design.tsv",
   sep = "\t", sep2 = c("", " ", "")
 )
+```
+
+# Visit 1: Age and comorbidities
+
+Do comorbidities change the results?
+
+## Add comorbidities info
+
+```{r}
+# Prepare Visit 1 data frame for merging
+clin.sample.event.individ.1.comorb <- clin.sample.event.individ.1 %>%
+  select(!(participant_id.y)) # drop column "participant_id.y
+
+# Add comorbidities columns: number of comorbidities, hypertension, diabetes, chronic cardiac
+my.comorb <- c("comorb_htn","comorb_isaric_dm","comorb_isaric_cardiac")
+clin.sample.event.individ.1.comorb <- merge(
+  clin.sample.event.individ.1.comorb,
+  clin.individ.supp[,c("participant_id","comorb_count",my.comorb)],
+  by="participant_id", all.x = TRUE, all.y = FALSE,
+  sort = FALSE
+)
+
+# Any rows without comorbidities info?
+print(any(is.na(
+  clin.sample.event.individ.1.comorb[,c("comorb_count",my.comorb)]
+)))
+```
+
+What are the distributions of comorbidities?
+
+```{r}
+hist(clin.sample.event.individ.1.comorb$comorb_count,
+     xlab="Number of comorbidities",
+     main="Histogram of number of comorbidities")
+```
+
+```{r}
+# Among the chosen comorbidities, how many comorbidities are present per patient?
+table(rowSums(
+  clin.sample.event.individ.1.comorb[,my.comorb]
+)) # the comorbidities are encoded as 0 or 1, not factor, so rowSums works
+```
+
+## Control for comorbidities
+
+```{r}
+# Convert comorbidities to factor
+for (i in my.comorb) {
+  clin.sample.event.individ.1.comorb[,i] <- as.factor(
+    clin.sample.event.individ.1.comorb[,i]
+  )
+}
+```
+
+```{r}
+design <- model.matrix(
+  ~ admit_age + sex + respiratory_status + 
+    comorb_htn + comorb_isaric_dm + comorb_isaric_cardiac,
+  data=clin.sample.event.individ.1.comorb)
+
+vwts <- voom(counts.1, 
+             design = design,
+             normalize.method = "quantile",
+             plot = T)
+
+vfit <- lmFit(vwts, design=design)
+vfit <- eBayes(vfit)
+
+summary(decideTests(vfit, adjust.method = "BH", p.value = 0.05))
+```
+
+```{r}
+res <- topTable(vfit, coef = "admit_age",
+                sort.by = "none", number = Inf,
+                adjust.method = "BH", p.value = 1)
+head(res)
+```
+
+Volcano plot
+
+```{r}
+# Identify direction
+res.toplot <- merge(res, rData[,c("gene_id","gene_name")],
+                    all.x = TRUE, all.y = FALSE,
+                    by.x = "row.names", by.y = "gene_id",
+                    sort = FALSE)
+res.toplot$direction <- "Not significant"
+res.toplot[res.toplot$adj.P.Val<0.05 & res.toplot$logFC>0,"direction"] <- "Increase with age"
+res.toplot[res.toplot$adj.P.Val<0.05 & res.toplot$logFC<0,"direction"] <- "Decrease with age"
+res.toplot$direction <- factor(
+  res.toplot$direction,
+  levels=c("Increase with age","Decrease with age","Not significant"))
+
+# Figure S5B
+p <- ggplot(data=res.toplot) +
+  geom_point(aes(x=logFC, y=-log10(adj.P.Val), color=direction), size=0.8) +
+  # geom_hline(yintercept=-log10(0.05), color="red", linetype="dashed") +
+  scale_color_manual(values=c("darkred","dodgerblue4","gray75"), # c("#d6604d","#4393c3","gray75")
+                     name="", guide="none") +
+  xlim(-0.06, 0.06) + 
+  scale_y_continuous(limits=c(-0.4,10), expand=c(0,0),
+                     breaks=c(0,5,10)) +
+  labs(x="Slope\n(change per 1 year of age)", y="-log10(adjusted P)",
+       title="Nasal genes associated\nwith age at Visit 1\n(adjusted for 3 comorbidities)") +
+  my.theme # RNAseq_nasal_visit1_age_no-viralload_comorb, 3.9 x 4.4 in
+```
+
+Reactome GSEA
+
+```{r}
+# Sort gene list in descending order
+gene.ranks <- res$t
+names(gene.ranks) <- rownames(res)
+gene.ranks <- sort(gene.ranks, decreasing = TRUE)
+
+set.seed(1)
+reactome.gsea <- fgseaMultilevel(
+  pathways = reactome.list,
+  stats = gene.ranks,
+  minSize = 15,
+  maxSize = 500,
+  nproc = 1
+)
+```
+
+Plot GSEA 
+
+```{r}
+# Manually choose pathways
+my.pathways <- c("REACTOME_INTERFERON_ALPHA_BETA_SIGNALING",
+                 "REACTOME_INTERFERON_GAMMA_SIGNALING",
+                 "REACTOME_INTERLEUKIN_10_SIGNALING","REACTOME_INTERLEUKIN_17_SIGNALING",
+                 "REACTOME_INTERLEUKIN_1_FAMILY_SIGNALING",
+                 "REACTOME_INTERLEUKIN_4_AND_INTERLEUKIN_13_SIGNALING",
+                 "REACTOME_TOLL_LIKE_RECEPTOR_TLR1_TLR2_CASCADE",
+                 "REACTOME_MYD88_INDEPENDENT_TLR4_CASCADE",
+                 "REACTOME_TOLL_LIKE_RECEPTOR_9_TLR9_CASCADE",
+                 "REACTOME_COMPLEMENT_CASCADE",
+                 "REACTOME_CASPASE_ACTIVATION_VIA_DEATH_RECEPTORS_IN_THE_PRESENCE_OF_LIGAND",
+                 "REACTOME_TCR_SIGNALING","REACTOME_COSTIMULATION_BY_THE_CD28_FAMILY",
+                 "REACTOME_PD_1_SIGNALING")
+
+reactome.gsea.toplot <- reactome.gsea %>%
+  subset(pathway %in% my.pathways)
+
+# Reformat pathway names
+reactome.gsea.toplot$pathway <- gsub("^REACTOME_","",reactome.gsea.toplot$pathway)
+reactome.gsea.toplot$pathway <- gsub("_"," ",reactome.gsea.toplot$pathway)
+reactome.gsea.toplot$pathway <- stringr::str_to_sentence(reactome.gsea.toplot$pathway)
+
+# Fix capitalization
+my.dict <- list("tlr"="TLR", "Myd88"="MYD88",
+                "Pd 1"="PD1", "Tcr"="TCR", "cd28"="CD28",
+                "Caspase activation via death receptors in the presence of ligand" = "Caspase activation via death receptors")
+for (i in names(my.dict)) {
+  reactome.gsea.toplot$pathway <- gsub(i, my.dict[[i]], reactome.gsea.toplot$pathway)
+}
+
+# Figure S5D
+p <- ggplot(data = reactome.gsea.toplot, 
+            aes(x=NES,
+                y=reorder(pathway,NES,FUN=function(x) x[1]))) +
+  geom_point(aes(color=as.factor(NES>0)), fill="white",
+             shape=21, size=2.5, stroke=1) +
+  geom_point(data=. %>% subset(padj<0.05),
+             aes(color=as.factor(NES>0), fill=as.factor(NES>0)),
+             shape=21, size=2.5, stroke=1) +
+  geom_text(
+    data=. %>% subset(NES>0),
+    aes(x=0,label=sprintf("P = %.1e", padj)), 
+    hjust=1.08, size=3.5) +
+  geom_text(
+    data=. %>% subset(NES<0),
+    aes(x=0, label=sprintf("P = %.1e", padj)),
+    hjust=-0.08, size=3.5) +
+  geom_vline(xintercept = 0, linewidth = 0.7, color = "black") +
+  scale_color_manual(values=c("TRUE"="darkred", "FALSE"="dodgerblue4"), guide="none") +
+  scale_fill_manual(values=c("TRUE"="darkred", "FALSE"="dodgerblue4"), guide="none") +
+  scale_x_continuous(limits = c(-4,4), expand = c(0,0)) +
+  labs(x="GSEA normalized\nenrichment score", y="",
+       title="Nasal pathways associated\nwith age at Visit 1\n(adjusted for 3 comorbidities)") +
+  theme_bw() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text = element_text(size=11, color="black", family="Arial"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm"),
+    panel.spacing = unit(0.5, "cm"),
+    panel.grid.minor=element_blank()
+  ) # RNAseq_nasal_visit1_age_gsea-reactome_comorb, 5.3 x 6 in
 ```

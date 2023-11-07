@@ -5,14 +5,14 @@ editor_options:
   chunk_output_type: inline
 ---
 
-Source: 20230124_cytof.Rmd
+Source: 20231012_cytof.Rmd
 
 ```{r}
 library(dplyr)
 library(ggplot2)
 library(patchwork)
 
-library(gamm4)
+library(limma)
 
 # ggplot theme
 my.theme <- theme_classic() + 
@@ -32,7 +32,7 @@ my.theme <- theme_classic() +
 ```{r}
 # Clinical characteristics
 clin.individ <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-individ-frozen.csv",
   header = TRUE, row.names = NULL
 )
 # Filter COVID positive samples
@@ -41,7 +41,7 @@ print(head(clin.individ))
 
 # Clinical characteristics supp
 clin.individ.supp <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-supp-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-individ-supp-frozen.csv",
   header = TRUE, row.names = NULL
 )
 print(clin.individ.supp[1:6,1:6])
@@ -52,14 +52,14 @@ Import event data.
 ```{r}
 # For mapping sample_id to event_id
 clin.sample <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-sample-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-sample-frozen.csv",
   header = TRUE, row.names = NULL
 )
 print(head(clin.sample))
 
 # Explanation of event_id
 clin.event <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-event-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-event-frozen.csv",
   header = TRUE, row.names = NULL
 )
 print(head(clin.event))
@@ -118,7 +118,7 @@ clin.sample.event.individ <- merge(
 ```{r}
 # Count data
 bld <- read.csv(
-  "/data/bld-cytof/current/bld-cytof-Counts.csv",
+  "/data/bld-cytof/legacy/2023-02-06/bld-cytof-Counts.csv",
   skip = 1, header = FALSE, row.names = 1
 )
 colnames(bld) <- 1:ncol(bld)
@@ -126,40 +126,18 @@ bld <- t(bld)
 
 # Cell type data
 bld.rData <- read.csv(
-  "/data/bld-cytof/current/bld-cytof-RowFeature.csv",
+  "/data/bld-cytof/legacy/2023-02-06/bld-cytof-RowFeature.csv",
   skip = 1, header = TRUE, row.names = NULL
 )
 
 # QC data
 bld.metadata <- read.csv(
-  "/data/bld-cytof/current/bld-cytof-Metadata.csv",
+  "/data/bld-cytof/legacy/2023-02-06/bld-cytof-Metadata.csv",
   header = TRUE, row.names = NULL
 )
-```
 
-```{r}
-# Sum up the cell count
-bld.2 <- rowsum(bld, bld.rData$Broad.Parent.Population)
-
-# Only keep samples that pass QC
-bld.metadata <- subset(bld.metadata, sample_status=="IMPACC sample assayed and passed QC")
-bld.pass.qc <- Reduce(
-  intersect, 
-  list(colnames(bld), bld.metadata$sample_id, clin.sample.event.individ$sample_id)
-)
-bld.2 <- bld.2[, bld.pass.qc]
-
-# Replace NA with 0
-bld.2[is.na(bld.2)] <- 0
-
-# Remove neutrophils
-bld.2 <- bld.2[rownames(bld.2) != "Neutrophil",]
-# Remove multiplets
-bld.2 <- bld.2[!grepl("^multiplet", rownames(bld.2), ignore.case = TRUE),]
-# Remove debris
-bld.2 <- bld.2[!grepl("^debris", rownames(bld.2), ignore.case = TRUE),]
-# Remove Undefined cells
-bld.2 <- bld.2[rownames(bld.2) != "Undefined",]
+# Check if sample_id in counts and metadata match
+stopifnot(colnames(bld) %in% bld.metadata$sample_id)
 ```
 
 Fine cell type annotation.
@@ -196,8 +174,22 @@ bld.clin.sample.event.individ <- clin.sample.event.individ %>%
 SARS-CoV-2 viral load is readily available in nasal-metagenomics-Metadata.csv, sc2_rpm column.
 
 ```{r}
+# mNGS metadata
+mngs.metadata <- read.csv(
+  "/data/nasal-metagenomics/legacy/2022-09-03/nasal-metagenomics-Metadata.csv",
+  header = TRUE, row.names = NULL,
+  check.names = FALSE
+)
+```
 
-# mNGS QC
+## QC
+
+```{r}
+# Keep CyTOF data passing QC
+bld.metadata <- subset(bld.metadata,
+                       sample_status=="IMPACC sample assayed and passed QC")
+
+# Keep viral load data passing QC
 mngs.metadata <- subset(mngs.metadata,
                         sample_status == "IMPACC sample assayed and passed QC")
 # Remove rows without sc2_rpm
@@ -218,9 +210,20 @@ clin.sample.event.individ.sc2 <- subset(
 clin.sample.event.individ.sc2 <- subset(
   clin.sample.event.individ.sc2,
   !(participant_id == "010-0024" & event_type == "Visit 6"))
+
+# Get a list of samples fpassing QC
+pass.qc <- Reduce(
+  intersect, 
+  list(colnames(bld), bld.metadata$sample_id, clin.sample.event.individ$sample_id)
+)
+
+bld <- bld[,pass.qc]
+clin.sample.event.individ <- subset(clin.sample.event.individ, sample_id %in% pass.qc)
 ```
 
 # Visit 1 analysis
+
+## Data preparation
 
 ```{r}
 # Keep visit 1 samples for viral load
@@ -230,47 +233,33 @@ clin.sample.event.individ.sc2.1 <- clin.sample.event.individ.sc2 %>%
 clin.sample.event.individ.sc2.1$sc2_rpm <- log10(clin.sample.event.individ.sc2.1$sc2_rpm + 1)
 
 # Blood
-bld.clin.sample.event.individ.1 <- bld.clin.sample.event.individ %>%
+clin.sample.event.individ.1 <- clin.sample.event.individ %>%
   subset(event_type=="Visit 1" & event_location=="Hospital")
 # Add viral load
-bld.clin.sample.event.individ.1 <- merge(
-  bld.clin.sample.event.individ.1, clin.sample.event.individ.sc2.1[,c("participant_id","sc2_rpm")],
-  by = "participant_id", all = FALSE, sort = FALSE
+clin.sample.event.individ.1 <- merge(
+  clin.sample.event.individ.1, clin.sample.event.individ.sc2.1[,c("event_id","sc2_rpm")],
+  by = "event_id", all = FALSE, sort = FALSE
 )
-bld.clin.sample.event.individ.1 <- droplevels(bld.clin.sample.event.individ.1)
-
-# EA
-# ea.clin.sample.event.individ.1 <- ea.clin.sample.event.individ %>%
-#   subset(event_type=="Visit 1" & event_location=="Hospital")
-# # Add viral load
-# ea.clin.sample.event.individ.1 <- merge(
-#   ea.clin.sample.event.individ.1, clin.sample.event.individ.sc2.1[,c("participant_id","sc2_rpm")],
-#   by = "participant_id", all = FALSE, sort = FALSE
-# )
-# ea.clin.sample.event.individ.1 <- droplevels(ea.clin.sample.event.individ.1)
-
-# Subset samples
-bld.3 <- bld.2[,bld.clin.sample.event.individ.1$sample_id]
-# ea.3 <- ea.2[,ea.clin.sample.event.individ.1$sample_id]
+clin.sample.event.individ.1 <- droplevels(clin.sample.event.individ.1)
 ```
 
-## Linear regression on age effect: blood
-
-### Fine cell type annotation
+Fine cell type annotation
 
 ```{r}
-# Convert cell count to cell type proportion
+# Convert cell count to cell proportion
 bld.3f <- apply(bld.2f, MARGIN = 2,
                 FUN = function(x) x/sum(x)) # t(t(bld.2f)/colSums(bld.2f)) 
 
 # Subset visit 1 samples
-bld.3f <- bld.3f[, bld.clin.sample.event.individ.1$sample_id]
+bld.3f <- bld.3f[, clin.sample.event.individ.1$sample_id]
 
 # CLR transform
 bld.4f <- log(bld.3f*100 + 1) # Add 1 to avoid log of zero
 bld.4f <- apply(bld.4f, MARGIN = 2,
                 FUN = function(x) x - mean(x)) # t(t(bld.4f) - colMeans(bld.4f))
 ```
+
+## Linear regression on age effect: blood
 
 ### Without controlling for viral load
 
@@ -283,10 +272,10 @@ res.clr$cell.type <- bld.rData[rownames(res.clr),"Final.Annotated.Population"]
 
 for (i in rownames(res.clr)) {
   temp <- data.frame(clr=bld.4f[i,], 
-                     age=bld.clin.sample.event.individ.1$admit_age,
-                     sex=bld.clin.sample.event.individ.1$sex,
-                     sc2=bld.clin.sample.event.individ.1$sc2_rpm,
-                     resp=bld.clin.sample.event.individ.1$respiratory_status)%>%
+                     age=clin.sample.event.individ.1$admit_age,
+                     sex=clin.sample.event.individ.1$sex,
+                     sc2=clin.sample.event.individ.1$sc2_rpm,
+                     resp=clin.sample.event.individ.1$respiratory_status)%>%
     subset(!is.na(clr))
   my.lm <- lm(clr ~ age + sex + resp, data=temp)
   res.clr[i,"slope"] <- summary(my.lm)$coefficients["age",1]
@@ -311,16 +300,15 @@ p <- ggplot() +
            aes(x = slope, y = reorder(cell.type,slope),
                fill = as.factor(slope>0)),
            width = 0.7) +
-  geom_vline(xintercept=0, size=0.5, color="black") +
+  geom_vline(xintercept=0, linewidth=0.5, color="black") +
   scale_fill_manual(values=c("TRUE"="darkred", "FALSE"="dodgerblue4"), guide="none") +
-  # coord_flip() +
   labs(x = "Slope\n(change per 1 year of age)",
        y = "", title = "Cell types associated\nwith age at Visit 1") +
   xlim(-0.022, 0.022) + theme_bw() +
   theme(
     plot.title = element_text(hjust = 0.5, size=12, face="plain"),
     axis.text.x = element_text(size=11, color="black"),
-    axis.text.y = element_text(size=11, color="black"),
+    axis.text.y = element_text(size=12, color="black"),
     text = element_text(size=12, family="Arial"),
     plot.margin = unit(c(0,1,1,0), "cm"),
     panel.grid.minor=element_blank()
@@ -338,11 +326,10 @@ for (i in c("Monocytes (CD14+CD16+)","NK Cell (CD56low CD16hi CD57hi)","CD8+ T C
   # Row number that corresponds to cell type i
   row.i <- rownames(bld.rData)[bld.rData$Final.Annotated.Population==i]
   temp <- data.frame(clr=bld.4f[row.i,], 
-                     age=bld.clin.sample.event.individ.1$admit_age,
-                     sex=bld.clin.sample.event.individ.1$sex,
-                     # steroids=bld.clin.sample.event.individ.1$steroids,
-                     sc2=bld.clin.sample.event.individ.1$sc2_rpm,
-                     resp=bld.clin.sample.event.individ.1$respiratory_status) %>%
+                     age=clin.sample.event.individ.1$admit_age,
+                     sex=clin.sample.event.individ.1$sex,
+                     sc2=clin.sample.event.individ.1$sc2_rpm,
+                     resp=clin.sample.event.individ.1$respiratory_status) %>%
     subset(!is.na(clr))
   my.lm <- lm(clr ~ age + sex + resp, data=temp)
   my.pred <- ggeffects::ggpredict(my.lm, "age")
@@ -353,8 +340,6 @@ for (i in c("Monocytes (CD14+CD16+)","NK Cell (CD56low CD16hi CD57hi)","CD8+ T C
     geom_ribbon(data = my.pred, 
                 aes(x = x, y = predicted, ymin = conf.low, ymax = conf.high),
                 fill = my.colors[counter], alpha = .4) +
-    # annotate(geom = "text", label = sprintf("P = %.1e", summary(my.lm)$coefficients["age",4]),
-    #          x = 0.7*min(temp$age), y = 1.2*min(temp$clr), hjust=0) +
     scale_x_continuous(limits=c(0,100), expand=c(0,0)) +
     scale_y_continuous(limits=c(-1,max(temp$clr))) +
     labs(x = "Age",
@@ -384,11 +369,10 @@ res.clr.sc2$cell.type <- bld.rData[rownames(res.clr.sc2),"Final.Annotated.Popula
 
 for (i in rownames(res.clr.sc2)) {
   temp <- data.frame(clr=bld.4f[i,], 
-                     age=bld.clin.sample.event.individ.1$admit_age,
-                     sex=bld.clin.sample.event.individ.1$sex,
-                     # steroids=bld.clin.sample.event.individ.1$steroids,
-                     sc2=bld.clin.sample.event.individ.1$sc2_rpm,
-                     resp=bld.clin.sample.event.individ.1$respiratory_status)
+                     age=clin.sample.event.individ.1$admit_age,
+                     sex=clin.sample.event.individ.1$sex,
+                     sc2=clin.sample.event.individ.1$sc2_rpm,
+                     resp=clin.sample.event.individ.1$respiratory_status)
   my.lm <- lm(clr ~ age + sc2 + sex + resp, data=temp)
   res.clr.sc2[i,"slope"] <- summary(my.lm)$coefficients["age",1]
   res.clr.sc2[i,"PVal"] <- summary(my.lm)$coefficients["age",4]
@@ -403,7 +387,7 @@ res.clr.sc2$adj.PVal <- p.adjust(res.clr.sc2$PVal, method = "BH")
 Plot slopes of significant cell types.
 
 ```{r}
-# Supplementary figure 4
+# Figure S4
 p <- ggplot() +
   geom_col(data = subset(res.clr.sc2, adj.PVal<0.05),
            aes(x = slope, y = reorder(cell.type,slope),
@@ -423,4 +407,565 @@ p <- ggplot() +
     plot.margin = unit(c(0,1,1,0), "cm"),
     panel.grid.minor=element_blank()
   ) # cytof_visit1_age_viralload, 6 x 7 in (w x h)
+```
+
+# Visit 1 analysis: gene expression vs monocytes
+
+Here I will look at what genes are associated with each monocyte subsets.
+
+## Load PBMC RNA-seq data
+
+```{r}
+pbmc.counts <- read.csv(
+  "/data/pbmc-transcriptomics/legacy/2022-06-15/pbmc-transcriptomics-Counts.csv",
+  header = TRUE, row.names = 1,
+  check.names = FALSE
+)
+pbmc.counts <- t(pbmc.counts)
+print(pbmc.counts[1:6,1:6])
+
+pbmc.metadata <- read.csv(
+  "/data/pbmc-transcriptomics/legacy/2022-06-15/pbmc-transcriptomics-Metadata.csv",
+  check.names = FALSE
+)
+print(head(pbmc.metadata))
+stopifnot(colnames(pbmc.counts) %in% pbmc.metadata$sample_id) # do sample_id match
+
+pbmc.rData <- read.csv(
+  "/data/pbmc-transcriptomics/current/pbmc-transcriptomics-RowFeature.csv",
+  header = FALSE, row.names = NULL,
+  check.names = FALSE
+)
+stopifnot(rownames(pbmc.counts)==pbmc.rData$gene_id) # do gene ID match
+
+colnames(pbmc.rData) <- pbmc.rData[2,]
+pbmc.rData <- pbmc.rData[-(1:2),]
+print(head(pbmc.rData))
+```
+
+QC
+
+```{r}
+pbmc.metadata <- pbmc.metadata %>%
+  subset(sample_status == "IMPACC sample assayed and passed QC")
+```
+
+## Load Reactome pathways
+
+```{r}
+# Reactome
+reactome <- msigdbr::msigdbr(species = "Homo sapiens",
+                             category = "C2", subcategory = "CP:REACTOME")
+reactome.list <- split(x = reactome$ensembl_gene, f = reactome$gs_name) # for fgsea
+```
+
+## Prepare overlapping PBMC and CyTOF data
+
+```{r}
+# Prepare temporary clin.sample.event.individ for Visit 1
+temp <- merge(
+  clin.sample.event, clin.individ, by = "participant_id",
+  all = FALSE, sort = FALSE) %>%
+  subset((event_type=="Visit 1") & (event_location=="Hospital"))
+
+# Add viral load, also ensuring that I only use samples with valid SARS-CoV-2 viral rpM
+temp <- merge(
+  temp, clin.sample.event.individ.sc2[,c("event_id","sc2_rpm")],
+  by = "event_id", all = FALSE, sort = FALSE)
+
+# Filter for samples passing RNA-seq IMPACC QC
+cytof.clin.sample.event.individ.1 <- temp %>%
+  subset(sample_id %in% bld.metadata$sample_id)
+pbmc.clin.sample.event.individ.1 <- temp %>%
+  subset(sample_id %in% pbmc.metadata$sample_id)
+
+# Overlapping patients between cytof and pbmc RNA-seq data
+overlap <- intersect(
+  cytof.clin.sample.event.individ.1$event_id,
+  pbmc.clin.sample.event.individ.1$event_id)
+cytof.clin.sample.event.individ.1 <- cytof.clin.sample.event.individ.1 %>%
+  subset(event_id %in% overlap)
+pbmc.clin.sample.event.individ.1 <- pbmc.clin.sample.event.individ.1 %>%
+  subset(event_id %in% overlap)
+
+# Reorder
+cytof.clin.sample.event.individ.1 <- cytof.clin.sample.event.individ.1[order(cytof.clin.sample.event.individ.1$event_id),]
+pbmc.clin.sample.event.individ.1 <- pbmc.clin.sample.event.individ.1[order(pbmc.clin.sample.event.individ.1$event_id),]
+
+# Verify that the participant_id match
+stopifnot(cytof.clin.sample.event.individ.1$participant_id==cytof.clin.sample.event.individ.1$participant_id)
+stopifnot(cytof.clin.sample.event.individ.1$event_id==pbmc.clin.sample.event.individ.1$event_id)
+stopifnot(!any(duplicated(cytof.clin.sample.event.individ.1$participant_id)))
+
+remove(temp)
+```
+
+## Merge monocyte abundance data
+
+Here I will add monocyte abundance data to the pbmc metadata for DE analysis.
+
+```{r}
+# Verify that my pre-calculated CLR data contains all the samples I will be using
+stopifnot(cytof.clin.sample.event.individ.1$sample_id %in% colnames(bld.4f))
+
+# Extract cytof samples to be merged
+temp <- bld.4f[,cytof.clin.sample.event.individ.1$sample_id]
+colnames(temp) <- cytof.clin.sample.event.individ.1$event_id
+rownames(temp) <- bld.rData[rownames(temp),"Final.Annotated.Population"]
+
+# Reformat cytof data, so that rows are event_id, columns are monocytes
+temp <- temp[grep("^Monocyte", rownames(temp), ignore.case=TRUE),] %>%
+  t() %>% # transpose
+  as.data.frame() %>%
+  tibble::rownames_to_column(var="event_id")
+
+# Rename monocytes
+colnames(temp)[colnames(temp)=="Monocytes (CD14+CD16+)"] <- "Monocyte_int" # intermediate monocyte
+colnames(temp)[colnames(temp)=="Monocytes (CD14+CD16-)"] <- "Monocyte_c" # classical monocyte
+colnames(temp)[colnames(temp)=="Monocytes (CD14-CD16+)"] <- "Monocyte_nc" # non-classical monocyte
+
+# Calculate the log ratio of c to nc monocytes
+temp <- temp %>%
+  mutate(Monocyte_c_to_nc = Monocyte_c - Monocyte_nc)
+
+# Merge cytof data
+pbmc.clin.sample.event.individ.1 <- merge(
+  pbmc.clin.sample.event.individ.1, temp,
+  by="event_id", all=FALSE)
+```
+
+## DE vs monocyte abundance in youngest and oldest patients (combined design)
+
+```{r}
+pbmc.clin.sample.event.individ.1.yo <- pbmc.clin.sample.event.individ.1 %>%
+  subset((admit_age<=46) | (admit_age>=71))
+
+# Age group
+pbmc.clin.sample.event.individ.1.yo$age_old <- as.factor(
+  pbmc.clin.sample.event.individ.1.yo$admit_age >= 71)
+
+# Drop unused levels
+pbmc.clin.sample.event.individ.1.yo$respiratory_status <- droplevels(
+  pbmc.clin.sample.event.individ.1.yo$respiratory_status)
+
+```
+
+```{r}
+# Filter Visit 1 PBMC gene counts
+pbmc.counts.1 <- pbmc.counts[,pbmc.clin.sample.event.individ.1.yo$sample_id]
+colnames(pbmc.counts.1) <- pbmc.clin.sample.event.individ.1.yo$event_id
+
+# Filter genes
+pbmc.counts.1 <- pbmc.counts.1[pbmc.rData[pbmc.rData$gene_biotype=="protein_coding", "gene_id"],]
+keep <- rowSums(pbmc.counts.1>=10) >= 0.2*ncol(pbmc.counts.1)
+pbmc.counts.1 <- pbmc.counts.1[keep,]
+```
+
+### Classical monocytes
+
+```{r}
+design <- model.matrix(~ age_old + age_old:Monocyte_c + sex + respiratory_status,
+                       data=pbmc.clin.sample.event.individ.1.yo)
+
+vwts <- voom(pbmc.counts.1, 
+             design = design,
+             normalize.method = "quantile",
+             plot = T)
+
+vfit <- lmFit(vwts, design=design)
+vfit <- eBayes(vfit)
+
+# DE results in old group
+pbmc.res.o <- topTable(
+  vfit, coef = "age_oldTRUE:Monocyte_c",
+  sort.by = "none", number = Inf,
+  adjust.method = "BH", p.value = 1)
+
+# DE results in young group
+pbmc.res.y <- topTable(
+  vfit, coef = "age_oldFALSE:Monocyte_c",
+  sort.by = "none", number = Inf,
+  adjust.method = "BH", p.value = 1)
+
+summary(decideTests(vfit, adjust.method = "BH", p.value = 0.05))
+```
+
+Volcano plot
+
+```{r}
+temp <- rbind(
+  pbmc.res.o %>%
+    tibble::rownames_to_column(var="gene_id") %>%
+    mutate(age="[71,96]"),
+  pbmc.res.y %>%
+    tibble::rownames_to_column(var="gene_id") %>%
+    mutate(age="[18,46]")
+)
+
+# Reorder age group order
+temp$age <- factor(
+  temp$age,
+  levels=c("[71,96]","[18,46]")
+)
+
+# Limit minimum P value to 1e-10
+temp[temp$adj.P.Val<1e-10,"adj.P.Val"] <- 1e-10
+
+# Figure S12A
+p <- ggplot(data=temp, aes(x=logFC, y=-log10(adj.P.Val))) +
+  geom_point(
+    data=. %>% subset(adj.P.Val>=0.05),
+    color="gray75", size=0.4) +
+  geom_point(
+    data=. %>% subset((adj.P.Val<0.05) & (logFC>0)),
+    color="#7b3294", size=0.4) +
+  geom_point(
+    data=. %>% subset((adj.P.Val<0.05) & (logFC<0)),
+    color="#008837", size=0.4) +
+  facet_wrap(~age, ncol=1, scales="free_x") +
+  scale_x_continuous(limits=c(-4,4), expand=c(0,0)) +
+  scale_y_continuous(limits=c(-0.2,10.2), expand=c(0,0),
+                     breaks=c(0,5,10), labels=c(0,5,"\u2265 10")) +
+  labs(x="logFC", y="-log10(adjusted P)",
+       title="Classical") +
+  my.theme # cytof_rnaseq_c-monocytes_volcano, 3.2w x 5.7h in
+```
+
+GSEA
+
+```{r}
+# Old patients -----
+# Sort gene list in descending order
+gene.ranks <- pbmc.res.o$t
+names(gene.ranks) <- rownames(pbmc.res.o)
+gene.ranks <- sort(gene.ranks, decreasing = TRUE)
+
+set.seed(1)
+reactome.gsea.o.monocyte_c <- fgsea::fgseaMultilevel(
+  pathways = reactome.list,
+  stats = gene.ranks,
+  minSize = 15,
+  maxSize = 500,
+  nproc = 1
+)
+
+# Young patients -----
+# Sort gene list in descending order
+gene.ranks <- pbmc.res.y$t
+names(gene.ranks) <- rownames(pbmc.res.y)
+gene.ranks <- sort(gene.ranks, decreasing = TRUE)
+
+set.seed(1)
+reactome.gsea.y.monocyte_c <- fgsea::fgseaMultilevel(
+  pathways = reactome.list,
+  stats = gene.ranks,
+  minSize = 15,
+  maxSize = 500,
+  nproc = 1
+)
+```
+
+### Non-classical monocytes
+
+```{r}
+design <- model.matrix(~ age_old + age_old:Monocyte_nc + sex + respiratory_status,
+                       data=pbmc.clin.sample.event.individ.1.yo)
+
+vwts <- voom(pbmc.counts.1, 
+             design = design,
+             normalize.method = "quantile",
+             plot = T)
+
+vfit <- lmFit(vwts, design=design)
+vfit <- eBayes(vfit)
+
+# DE results in old group
+pbmc.res.o <- topTable(
+  vfit, coef = "age_oldTRUE:Monocyte_nc",
+  sort.by = "none", number = Inf,
+  adjust.method = "BH", p.value = 1)
+
+# DE results in young group
+pbmc.res.y <- topTable(
+  vfit, coef = "age_oldFALSE:Monocyte_nc",
+  sort.by = "none", number = Inf,
+  adjust.method = "BH", p.value = 1)
+
+summary(decideTests(vfit, adjust.method = "BH", p.value = 0.05))
+```
+
+Volcano plot
+
+```{r}
+temp <- rbind(
+  pbmc.res.o %>%
+    tibble::rownames_to_column(var="gene_id") %>%
+    mutate(age="[71,96]"),
+  pbmc.res.y %>%
+    tibble::rownames_to_column(var="gene_id") %>%
+    mutate(age="[18,46]")
+)
+
+# Reorder age group order
+temp$age <- factor(
+  temp$age,
+  levels=c("[71,96]","[18,46]")
+)
+# Limit minimum P value to 1e-10
+temp[temp$adj.P.Val<1e-10,"adj.P.Val"] <- 1e-10
+
+# Figure S12B
+p <- ggplot(data=temp, aes(x=logFC, y=-log10(adj.P.Val))) +
+  geom_point(
+    data=. %>% subset(adj.P.Val>=0.05),
+    color="gray75", size=0.4) +
+  geom_point(
+    data=. %>% subset((adj.P.Val<0.05) & (logFC>0)),
+    color="#7b3294", size=0.4) +
+  geom_point(
+    data=. %>% subset((adj.P.Val<0.05) & (logFC<0)),
+    color="#008837", size=0.4) +
+  facet_wrap(~age, ncol=1, scales="free_x") +
+  scale_x_continuous(limits=c(-4,4), expand=c(0,0)) +
+  scale_y_continuous(limits=c(-0.2,10.2), expand=c(0,0),
+                     breaks=c(0,5,10), labels=c(0,5,"\u2265 10")) +
+  labs(x="logFC", y="-log10(adjusted P)",
+       title="Non-classical") +
+  my.theme # cytof_rnaseq_nc-monocytes_volcano, 3.2w x 5.7h in
+```
+
+GSEA
+
+```{r}
+# Old patients -----
+# Sort gene list in descending order
+gene.ranks <- pbmc.res.o$t
+names(gene.ranks) <- rownames(pbmc.res.o)
+gene.ranks <- sort(gene.ranks, decreasing = TRUE)
+
+set.seed(1)
+reactome.gsea.o.monocyte_nc <- fgsea::fgseaMultilevel(
+  pathways = reactome.list,
+  stats = gene.ranks,
+  minSize = 15,
+  maxSize = 500,
+  nproc = 1
+)
+
+# Young patients -----
+# Sort gene list in descending order
+gene.ranks <- pbmc.res.y$t
+names(gene.ranks) <- rownames(pbmc.res.y)
+gene.ranks <- sort(gene.ranks, decreasing = TRUE)
+
+set.seed(1)
+reactome.gsea.y.monocyte_nc <- fgsea::fgseaMultilevel(
+  pathways = reactome.list,
+  stats = gene.ranks,
+  minSize = 15,
+  maxSize = 500,
+  nproc = 1
+)
+```
+
+### Intermediate monocytes
+
+```{r}
+design <- model.matrix(~ age_old + age_old:Monocyte_int + sex + respiratory_status,
+                       data=pbmc.clin.sample.event.individ.1.yo)
+
+vwts <- voom(pbmc.counts.1, 
+             design = design,
+             normalize.method = "quantile",
+             plot = T)
+
+vfit <- lmFit(vwts, design=design)
+vfit <- eBayes(vfit)
+
+# DE results in old group
+pbmc.res.o <- topTable(
+  vfit, coef = "age_oldTRUE:Monocyte_int",
+  sort.by = "none", number = Inf,
+  adjust.method = "BH", p.value = 1)
+
+# DE results in young group
+pbmc.res.y <- topTable(
+  vfit, coef = "age_oldFALSE:Monocyte_int",
+  sort.by = "none", number = Inf,
+  adjust.method = "BH", p.value = 1)
+
+summary(decideTests(vfit, adjust.method = "BH", p.value = 0.05))
+```
+
+Volcano plot
+
+```{r}
+temp <- rbind(
+  pbmc.res.o %>%
+    tibble::rownames_to_column(var="gene_id") %>%
+    mutate(age="[71,96]"),
+  pbmc.res.y %>%
+    tibble::rownames_to_column(var="gene_id") %>%
+    mutate(age="[18,46]")
+)
+
+# Reorder age group order
+temp$age <- factor(
+  temp$age,
+  levels=c("[71,96]","[18,46]")
+)
+
+# Limit minimum P value to 1e-10
+temp[temp$adj.P.Val<1e-10,"adj.P.Val"] <- 1e-10
+
+# Figure S12C
+p <- ggplot(data=temp, aes(x=logFC, y=-log10(adj.P.Val))) +
+  geom_point(
+    data=. %>% subset(adj.P.Val>=0.05),
+    color="gray75", size=0.4) +
+  geom_point(
+    data=. %>% subset((adj.P.Val<0.05) & (logFC>0)),
+    color="#7b3294", size=0.4) +
+  geom_point(
+    data=. %>% subset((adj.P.Val<0.05) & (logFC<0)),
+    color="#008837", size=0.4) +
+  facet_wrap(~age, ncol=1, scales="free_x") +
+  scale_x_continuous(limits=c(-4,4), expand=c(0,0)) +
+  scale_y_continuous(limits=c(-0.2,10.2), expand=c(0,0),
+                     breaks=c(0,5,10), labels=c(0,5,"\u2265 10")) +
+  labs(x="logFC", y="-log10(adjusted P)",
+       title="Intermediate") +
+  my.theme # cytof_rnaseq_int-monocytes_volcano, 3.2w x 5.7h in
+```
+
+GSEA
+
+```{r}
+# Old patients -----
+# Sort gene list in descending order
+gene.ranks <- pbmc.res.o$t
+names(gene.ranks) <- rownames(pbmc.res.o)
+gene.ranks <- sort(gene.ranks, decreasing = TRUE)
+
+set.seed(1)
+reactome.gsea.o.monocyte_int <- fgsea::fgseaMultilevel(
+  pathways = reactome.list,
+  stats = gene.ranks,
+  minSize = 15,
+  maxSize = 500,
+  nproc = 1
+)
+
+# Young patients -----
+# Sort gene list in descending order
+gene.ranks <- pbmc.res.y$t
+names(gene.ranks) <- rownames(pbmc.res.y)
+gene.ranks <- sort(gene.ranks, decreasing = TRUE)
+
+set.seed(1)
+reactome.gsea.y.monocyte_int <- fgsea::fgseaMultilevel(
+  pathways = reactome.list,
+  stats = gene.ranks,
+  minSize = 15,
+  maxSize = 500,
+  nproc = 1
+)
+```
+
+### Compare GSEA results of these 3 monocyte subtypes
+
+```{r}
+# Manually choose pathways
+my.pathways <- c("REACTOME_INTERFERON_ALPHA_BETA_SIGNALING",
+                 "REACTOME_INTERFERON_GAMMA_SIGNALING",
+                 "REACTOME_INTERLEUKIN_1_FAMILY_SIGNALING",
+                 "REACTOME_INTERLEUKIN_10_SIGNALING", "REACTOME_INTERLEUKIN_12_SIGNALING",
+                 "REACTOME_TCR_SIGNALING", "REACTOME_PD_1_SIGNALING",
+                 "REACTOME_COSTIMULATION_BY_THE_CD28_FAMILY",
+                 "REACTOME_ANTIGEN_ACTIVATES_B_CELL_RECEPTOR_BCR_LEADING_TO_GENERATION_OF_SECOND_MESSENGERS",
+                 "REACTOME_SIGNALING_BY_THE_B_CELL_RECEPTOR_BCR",
+                 "REACTOME_DOWNSTREAM_SIGNALING_EVENTS_OF_B_CELL_RECEPTOR_BCR",
+                 "REACTOME_NEUTROPHIL_DEGRANULATION",
+                 "REACTOME_CLASS_I_MHC_MEDIATED_ANTIGEN_PROCESSING_PRESENTATION"
+                 )
+```
+
+```{r}
+# Combine results
+combined.gsea <- rbind(
+  reactome.gsea.o.monocyte_c %>%
+    subset(pathway %in% my.pathways) %>%
+    mutate(subtype="Classical", age="[71,96]"),
+  reactome.gsea.o.monocyte_nc %>%
+    subset(pathway %in% my.pathways) %>%
+    mutate(subtype="Non-classical", age="[71,96]"),
+  reactome.gsea.o.monocyte_int %>%
+    subset(pathway %in% my.pathways) %>%
+    mutate(subtype="Intermediate", age="[71,96]"),
+  reactome.gsea.y.monocyte_c %>%
+    subset(pathway %in% my.pathways) %>%
+    mutate(subtype="Classical", age="[18,46]"),
+  reactome.gsea.y.monocyte_nc %>%
+    subset(pathway %in% my.pathways) %>%
+    mutate(subtype="Non-classical", age="[18,46]"),
+  reactome.gsea.y.monocyte_int %>%
+    subset(pathway %in% my.pathways) %>%
+    mutate(subtype="Intermediate", age="[18,46]")
+)
+
+# Reorder subset order
+combined.gsea$subtype <- factor(
+  combined.gsea$subtype,
+  levels=c("Classical","Non-classical","Intermediate")
+)
+# Reorder age group order
+combined.gsea$age <- factor(
+  combined.gsea$age,
+  levels=c("[71,96]","[18,46]")
+)
+
+# Reformat pathway names
+combined.gsea$pathway <- gsub("^REACTOME_","",combined.gsea$pathway)
+combined.gsea$pathway <- gsub("_"," ",combined.gsea$pathway)
+combined.gsea$pathway <- stringr::str_to_sentence(combined.gsea$pathway)
+
+# Fix capitalization
+my.dict <- list("Interleukin "="IL", "interleukin "="IL",
+                "Pd 1"="PD1", "Tcr"="TCR",
+                "cd28"="CD28",
+                "b cell receptor "="", "bcr"="BCR",
+                "Class i mhc"="MHC class I")
+for (i in names(my.dict)) {
+  combined.gsea$pathway <- gsub(i, my.dict[[i]], combined.gsea$pathway)
+}
+```
+
+Plot
+
+```{r}
+# Figure S12D
+p1 <- ggplot(data=combined.gsea, 
+            aes(y=reorder(pathway,NES,FUN=function(x) x[1]),
+                x=NES)) +
+  geom_point(aes(color=as.factor(NES>0)), fill="white",
+             shape=21, size=2.5, stroke=1) +
+  geom_point(data=. %>% subset(padj<0.05),
+             aes(color=as.factor(NES>0), fill=as.factor(NES>0)),
+             shape=21, size=2.5, stroke=1) +
+  geom_vline(xintercept = 0, linewidth = 0.7, color = "black") +
+  scale_color_manual(values=c("TRUE"="#7b3294", "FALSE"="#008837"), guide="none") +
+  scale_fill_manual(values=c("TRUE"="#7b3294", "FALSE"="#008837"), guide="none") +
+  scale_x_continuous(limits = c(-3,3), expand = c(0,0)) +
+  labs(y="", x="GSEA normalized\nenrichment score",
+       title="PBMC pathways associated with\nmonocyte subset abundance at Visit 1") +
+  facet_wrap(~age + subtype, nrow=2, scales="free_x") +
+  theme_bw() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text = element_text(size=11, color="black", family="Arial"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm"),
+    panel.spacing = unit(0.5, "cm"),
+    panel.grid.minor=element_blank()
+  ) # cytof_rnaseq_3monocytes_gsea-reactome, 10w x 8.7h in
 ```

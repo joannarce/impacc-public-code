@@ -3,7 +3,7 @@ title: "pbmc_rnaseq"
 output: html_document
 ---
 
-Source: 20230123_bulk_RNAseq_pbmc.Rmd
+Source: 20231003_bulk_RNAseq_pbmc.Rmd
 
 ```{r}
 library(dplyr)
@@ -17,8 +17,6 @@ library(edgeR)
 library(fgsea)
 
 library(gamm4)
-
-setwd("~/20220902_IMPACC_aging")
 
 my.theme <- theme_classic() + 
   theme(
@@ -38,7 +36,7 @@ my.theme <- theme_classic() +
 ```{r}
 # Clinical characteristics
 clin.individ <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-individ-frozen.csv",
   header = TRUE, row.names = NULL
 )
 # Filter COVID positive samples
@@ -47,7 +45,7 @@ print(head(clin.individ))
 
 # Clinical characteristics supp
 clin.individ.supp <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-supp-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-individ-supp-frozen.csv",
   header = TRUE, row.names = NULL
 )
 print(clin.individ.supp[1:6,1:6])
@@ -58,14 +56,14 @@ Import event data.
 ```{r}
 # For mapping sample_id to event_id
 clin.sample <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-sample-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-sample-frozen.csv",
   header = TRUE, row.names = NULL
 )
 print(head(clin.sample))
 
 # Explanation of event_id
 clin.event <- read.csv(
-  "/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-event-frozen.csv",
+  "/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-event-frozen.csv",
   header = TRUE, row.names = NULL
 )
 print(head(clin.event))
@@ -130,7 +128,7 @@ clin.sample.event.individ <- merge(
 
 ```{r}
 counts <- read.csv(
-  "/data/pbmc-transcriptomics/current/pbmc-transcriptomics-Counts.csv",
+  "/data/pbmc-transcriptomics/legacy/2022-06-15/pbmc-transcriptomics-Counts.csv",
   header = TRUE, row.names = 1,
   check.names = FALSE
 )
@@ -138,8 +136,7 @@ counts <- t(counts)
 print(counts[1:6,1:6])
 
 counts.metadata <- read.csv(
-  "/data/pbmc-transcriptomics/current/pbmc-transcriptomics-Metadata.csv",
-  header = TRUE, row.names = NULL,
+  "/data/pbmc-transcriptomics/legacy/2022-06-15/pbmc-transcriptomics-Metadata.csv",
   check.names = FALSE
 )
 print(head(counts.metadata))
@@ -149,6 +146,7 @@ rData <- read.csv(
   header = FALSE, row.names = NULL,
   check.names = FALSE
 )
+stopifnot(rownames(counts)==rData$gene_id)
 colnames(rData) <- rData[2,]
 rData <- rData[-(1:2),]
 print(head(rData))
@@ -161,25 +159,10 @@ SARS-CoV-2 viral load is readily available in nasal-metagenomics-Metadata.csv, s
 ```{r}
 # mNGS metadata
 mngs.metadata <- read.csv(
-  "/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv",
+  "/data/nasal-metagenomics/legacy/2022-09-03/nasal-metagenomics-Metadata.csv",
   header = TRUE, row.names = NULL,
   check.names = FALSE
 )
-
-# mngs <- read.csv(
-#   "/data/nasal-metagenomics/current/nasal-metagenomics-AllGenera-Counts_RPM.csv",
-#   header = TRUE, row.names = 1,
-#   check.names = FALSE
-# )
-
-# mngs.rData <- read.csv(
-#   "/data/nasal-metagenomics/current/nasal-metagenomics-AllGenera-RowFeatures.csv",
-#   skip = 1, header = TRUE, row.names = 1,
-#   check.names = FALSE
-# )
-# sc2.id <- mngs.rData %>%
-#   subset(name == "Betacoronavirus") %>%
-#   rownames()
 ```
 
 ## Only keep samples that pass QC
@@ -326,27 +309,6 @@ boxplot(admit_age~sex, data=clin.sample.event.individ.1, main = "PBMC")
 
 # Visit 1: effects of age
 
-## Is BMI associated with gene expression?
-
-```{r}
-clin.sample.event.individ.1.bmi <- clin.sample.event.individ.1 %>%
-  subset(!is.na(bmi))
-counts.1.bmi <- counts.1[,clin.sample.event.individ.1.bmi$sample_id]
-
-design <- model.matrix(~admit_age + bmi + sex + respiratory_status,
-                       data=clin.sample.event.individ.1.bmi)
-vwts <- voom(counts.1.bmi, 
-             design = design,
-             normalize.method = "quantile",
-             plot = T)
-vfit <- lmFit(vwts)
-vfit <- eBayes(vfit)
-
-summary(decideTests(vfit, adjust.method = "BH", p.value = 0.05))
-```
-
-Answer: no, BMI does not have a strong effect on PBMC gene expression.
-
 ## Without controlling for viral load
 
 ```{r}
@@ -376,7 +338,7 @@ Save DE results
 ```{r}
 write.csv(
   res,
-  "20230123_bulk_RNAseq_pbmc_visit1_DE_no-viralload.csv"
+  "bulk_RNAseq_pbmc_visit1_DE_no-viralload.csv"
 )
 ```
 
@@ -438,234 +400,14 @@ reactome.gsea <- fgseaMultilevel(
 reactome.gsea.noviral <- reactome.gsea
 ```
 
-```{r}
-# Plot significant reactome pathways
-ggplot(data = arrange(reactome.gsea, desc(-padj)) %>% slice(1:50) ,
-       aes(x=reorder(pathway,NES), y=NES)) +
-  geom_segment(aes(xend=reorder(pathway,NES)), yend=0) +
-  geom_point(aes(fill=as.factor(NES>0), color=as.factor(padj<0.05)),
-             pch=21, size=2, stroke=1) +
-  # ylim(-4, 4) +
-  scale_color_manual(values=c("white","black")) +
-  labs(x="Reactome pathways", y="NES", title="Top 50 pathways upregulated with age") +
-  coord_flip() + theme_bw() +
-  theme(
-    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
-    axis.text = element_text(size=12, color="black"),
-    text = element_text(size=12, family="Arial"),
-    plot.margin = unit(c(0,0,0,0), "cm"),
-    legend.key = element_rect(fill = "gray90")
-  )
-```
-
 Save GSEA results
 
 ```{r}
-# data.table::fwrite(
-#   reactome.gsea.noviral,
-#   file="20230123_bulk_RNAseq_pbmc_visit1_admit-age_sex-ordinalscore_reactome-gsea_fdr0.05.tsv",
-#   sep="\t", sep2=c("", " ", "")
-# )
-```
-
-### Gene-concept network plot
-
-```{r}
-# Sort gene list in descending order
-gene.ranks <- res$t
-names(gene.ranks) <- rownames(res)
-gene.ranks <- sort(gene.ranks, decreasing = TRUE)
-
-# GSEA with clusterProfiler
-reactome.cp.res <- clusterProfiler::GSEA(
-  geneList = gene.ranks,
-  TERM2GENE = reactome.list2,
-  minGSSize = 15,
-  maxGSSize = 500,
-  pvalueCutoff = 1, pAdjustMethod = "BH"
-  )
-
-# Try replacing ensemblid with gene symbol
-reactome.cp.res@gene2Symbol <- rData$gene_name
-names(reactome.cp.res@gene2Symbol) <- rData$gene_id
-
-# gsePathway requires entrez id
-# reactome.cp.res2 <- ReactomePA::gsePathway(
-#   gene.ranks, 
-#   pvalueCutoff = 1,
-#   pAdjustMethod = "BH",
-#   verbose = FALSE,
-#   readable = TRUE)
-```
-
-```{r}
-# Plot certain pathways only
-my.pathways <- c(
-  "REACTOME_INTERFERON_ALPHA_BETA_SIGNALING","REACTOME_INTERFERON_GAMMA_SIGNALING",
-  "REACTOME_TOLL_LIKE_RECEPTOR_TLR1_TLR2_CASCADE","REACTOME_TCR_SIGNALING",
-  "REACTOME_PD_1_SIGNALING")
-
-# Fold change
-gene.FC <- res$logFC
-names(gene.FC) <- rownames(res)
-
-# Gene-concept network
-p1 <- enrichplot::cnetplot(
-  reactome.cp.res,
-  showCategory = my.pathways,
-  node_label="all",
-  foldChange = gene.FC,
-  cex_label_gene = 0.6, cex_label_category = 0.9) +
-  # ggraph::geom_node_text(aes_(label=~name), repel=TRUE, size = 1)
-  scale_colour_gradient2(low="#67a9cf", high="#ef8a62", midpoint = 0)
-
-p2 <- enrichplot::cnetplot(
-  reactome.cp.res,
-  showCategory = my.pathways,
-  node_label="none",
-  foldChange = gene.FC,
-  cex_label_gene = 0.6, cex_label_category = 0.6) +
-  scale_colour_gradient2(low="#67a9cf", high="#ef8a62", midpoint = 0)
-
-# Manually convert the gene IDs to gene names
-p3 <- p2
-p3$data$name[-c(1:5)] <- unname(reactome.cp.res@gene2Symbol[p3$data$name[-c(1:5)]])
-p3 <- p3 + 
-  ggraph::geom_node_text(
-    aes_(label=~name), data = p3$data[-c(1:5),],
-    repel=TRUE, size = 3) # RNAseq_pbmc_visit1_no-viralload_gene-concept_gene-annotation.pdf, 10 x 7 in
-```
-
-### Try controlling for race
-
-First, check for effects of race on gene expression.
-
-```{r}
-design <- model.matrix(~ admit_age + respiratory_status + race,
-                       data=clin.sample.event.individ.1)
-
-vwts <- voom(counts.1, 
-             design = design,
-             normalize.method = "quantile",
-             plot = T)
-
-vfit <- lmFit(vwts)
-vfit <- eBayes(vfit)
-
-print(summary(decideTests(vfit, adjust.method = "BH", p.value = 0.05)))
-
-res.race <- topTable(vfit, coef = 6:12,
-                     sort.by = "none", number = Inf,
-                     adjust.method = "BH", p.value = 1)
-print(sum(res.race$adj.P.Val < 0.05))
-```
-
-Second, try controlling for race in the analysis of age's effect.
-
-```{r}
-design <- model.matrix(~ admit_age + sex + respiratory_status + race,
-                       data=clin.sample.event.individ.1)
-
-vwts <- voom(counts.1, 
-             design = design,
-             normalize.method = "quantile",
-             plot = T)
-
-vfit <- lmFit(vwts)
-vfit <- eBayes(vfit)
-
-print(summary(decideTests(vfit, adjust.method = "BH", p.value = 0.05)))
-
-res.race <- topTable(vfit, coef = "admit_age",
-                     sort.by = "none", number = Inf,
-                     adjust.method = "BH", p.value = 1)
-print(sum(res.race$adj.P.Val < 0.05))
-```
-
-GSEA
-
-```{r}
-# Sort gene list in descending order
-gene.ranks <- res.race$t
-names(gene.ranks) <- rownames(res.race)
-gene.ranks <- sort(gene.ranks, decreasing = TRUE)
-
-set.seed(1)
-reactome.gsea.race <- fgseaMultilevel(
-  pathways = reactome.list,
-  stats = gene.ranks,
-  minSize = 15,
-  maxSize = 500,
-  nproc = 1
+data.table::fwrite(
+  reactome.gsea.noviral,
+  file="bulk_RNAseq_pbmc_visit1_admit-age_sex-ordinalscore_reactome-gsea_fdr1.0.tsv",
+  sep="\t", sep2=c("", " ", "")
 )
-```
-
-Compare with and without controlling for race.
-
-```{r}
-# Manually choose pathways
-my.pathways <- c("REACTOME_INTERFERON_ALPHA_BETA_SIGNALING","REACTOME_INTERFERON_GAMMA_SIGNALING",
-                 "REACTOME_INTERLEUKIN_12_SIGNALING",
-                 "REACTOME_INTERLEUKIN_2_FAMILY_SIGNALING","REACTOME_TRAF6_MEDIATED_IRF7_ACTIVATION",
-                 "REACTOME_TNFR2_NON_CANONICAL_NF_KB_PATHWAY","REACTOME_TOLL_LIKE_RECEPTOR_CASCADES",
-                 "REACTOME_TOLL_LIKE_RECEPTOR_TLR1_TLR2_CASCADE",
-                 "REACTOME_CASPASE_ACTIVATION_VIA_DEATH_RECEPTORS_IN_THE_PRESENCE_OF_LIGAND",
-                 "REACTOME_CASPASE_ACTIVATION_VIA_EXTRINSIC_APOPTOTIC_SIGNALLING_PATHWAY",
-                 "REACTOME_DECTIN_1_MEDIATED_NONCANONICAL_NF_KB_SIGNALING",
-                 "REACTOME_REGULATION_OF_RUNX3_EXPRESSION_AND_ACTIVITY",
-                 "REACTOME_NEUTROPHIL_DEGRANULATION","REACTOME_TCR_SIGNALING",
-                 "REACTOME_SIGNALING_BY_THE_B_CELL_RECEPTOR_BCR","REACTOME_PD_1_SIGNALING",
-                 "REACTOME_TRANSLATION")
-
-reactome.gsea.toplot.race <- rbind(
-  subset(reactome.gsea.race, pathway %in% my.pathways) %>% mutate(race="Yes"),
-  subset(reactome.gsea.noviral, pathway %in% my.pathways) %>% mutate(race="No")
-)
-reactome.gsea.toplot.race$sig <- as.factor(reactome.gsea.toplot.race$padj)
-
-# Reformat pathway names
-reactome.gsea.toplot.race$pathway <- gsub("^REACTOME_","",reactome.gsea.toplot.race$pathway)
-reactome.gsea.toplot.race$pathway <- gsub("_"," ",reactome.gsea.toplot.race$pathway)
-reactome.gsea.toplot.race$pathway <- stringr::str_to_sentence(reactome.gsea.toplot.race$pathway)
-
-# Fix capitalization of pathway names
-my.dict <- list("Tnfr2"="TNFR2", "Traf6"="TRAF6", "irf7"="IRF7",
-                "runx3"="RUNX3", "nf kb"="NF-kB", "Dectin 1 mediated"="Dectin 1",
-                "Pd 1"="PD1", "Tcr"="TCR",
-                "bcr"="BCR", "b cell"="B cell",
-                "Toll like receptor cascades"="TLR cascades",
-                "Toll like receptor tlr1 tlr2 cascade"="TLR1 TLR2 cascade",
-                "Caspase activation via death receptors in the presence of ligand" = "Caspase activation via depth receptors",
-                "Caspase activation via extrinsic apoptotic signalling pathway" = "Caspase activation via apoptotic signalling")
-for (i in names(my.dict)) {
-  reactome.gsea.toplot.race$pathway <- gsub(i, my.dict[[i]], reactome.gsea.toplot.race$pathway)
-}
-
-p <- ggplot(data = reactome.gsea.toplot.race, aes(x=reorder(pathway,NES), y=NES)) +
-  # geom_segment(aes(xend=reorder(pathway,NES)), yend=0) +
-  geom_point(aes(color=as.factor(NES>0), 
-                 shape=as.factor(padj<0.05)),
-             size=2.5, stroke=1) +
-  geom_hline(yintercept = 0, size = 0.7, color = "black") +
-  scale_color_manual(values=c("TRUE"="darkred", "FALSE"="dodgerblue4"), guide="none") +
-  scale_shape_manual(values=c("FALSE"=1,"TRUE"=19), guide="none") +
-  # scale_color_manual(values=c("FALSE"=alpha("black",0),"TRUE"=alpha("black",1)), guide="none") +
-  # ylim(-3.9, 3.9) +
-  scale_y_continuous(limits = c(-4,4), expand = c(0,0)) +
-  labs(x="", y="GSEA normalized\nenrichment score",
-       title="Pathways upregulated\nwith age at Visit 1") +
-  facet_wrap(~race) +
-  coord_flip(ylim = c(-4,4)) + theme_bw() +
-  theme(
-    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
-    axis.text = element_text(size=12, color="black"),
-    axis.text.x = element_text(size=11, color="black"),
-    axis.text.y = element_text(size=11, color="black"),
-    plot.margin = unit(c(0,1,1,0), "cm"),
-    panel.spacing = unit(0.5, "cm"),
-    panel.grid.minor=element_blank()
-    # legend.key = element_rect(fill = "gray90")
-  )
 ```
 
 ## Controlling for viral load
@@ -723,16 +465,6 @@ reactome.gsea <- fgseaMultilevel(
 # print(sum(reactome.gsea$padj < 0.05))
 # # What are they?
 # reactome.gsea.sig <- subset(reactome.gsea, padj < 0.05)
-```
-
-Save GSEA results
-
-```{r}
-data.table::fwrite(
-  reactome.gsea.noviral,
-  file="20230123_bulk_RNAseq_pbmc_visit1_admit-age_sex-ordinalscore-viralload_reactome-gsea_fdr0.05.tsv",
-  sep="\t", sep2=c("", " ", "")
-)
 ```
 
 ```{r}
@@ -828,27 +560,6 @@ p <- ggplot(data = reactome.gsea.toplot, aes(x=reorder(pathway,NES), y=NES)) +
     panel.grid.minor=element_blank()
     # legend.key = element_rect(fill = "gray90")
   ) # RNAseq_pbmc_visit1_age_gsea-reactome_yes-vs-no-viralload, 6.1 x 6 in
-```
-
-Save DE and GSEA results
-
-```{r}
-# write.csv(
-#   res,
-#   "20220914_bulk_RNAseq_pbmc_admit-age_limma-voom.csv"
-# )
-# 
-# data.table::fwrite(
-#   reactome.gsea.sig,
-#   file="20220914_bulk_RNAseq_pbmc_visit1_admit-age_viralload-ordinalscore_reactome-gsea.tsv",
-#   sep="\t", sep2=c("", " ", "")
-# )
-# 
-# data.table::fwrite(
-#   hallmark.gsea,
-#   file="20220914_bulk_RNAseq_pbmc_admit-age_hallmark-gsea.tsv",
-#   sep="\t", sep2=c("", " ", "")
-# )
 ```
 
 ## Age and severity: stratified by age (combined design)
@@ -972,11 +683,11 @@ merged.reactome.gsea <- rbind(
 #   subset(pathway %in% my.pathways$pathway)
 ```
 
-Import merged GSEA results from nasal analysis
+Import merged GSEA results from nasal RNA-seq analysis (Figure6/src/nasal_rnaseq.Rmd)
 
 ```{r}
 merged.reactome.gsea.nasal <- data.table::fread(
-  "20230125_bulk_RNAseq_nasal_visit1_age-group_gsea-reactome_severe-vs-mild_combined-design.tsv",
+  "bulk_RNAseq_nasal_visit1_age-group_gsea-reactome_severe-vs-mild_combined-design.tsv",
   sep="\t", sep2=c("", " ", "")
 )
 ```
@@ -1224,11 +935,11 @@ merged.reactome.gsea <- rbind(
 #   subset(pathway %in% my.pathways$pathway)
 ```
 
-Import merged GSEA results from nasal analysis
+Import merged GSEA results from nasal RNA-seq analysis (Figure6/src/nasal_rnaseq.Rmd)
 
 ```{r}
 merged.reactome.gsea.nasal <- data.table::fread(
-  "20230125_bulk_RNAseq_nasal_visit1_age-group_gsea-reactome_severe-vs-mild_viralload_combined-design.tsv",
+  "bulk_RNAseq_nasal_visit1_age-group_gsea-reactome_severe-vs-mild_viralload_combined-design.tsv",
   sep="\t", sep2=c("", " ", "")
 )
 ```
@@ -1285,6 +996,7 @@ for (i in names(my.dict)) {
                                        merged.merged.toplot$pathway)
 }
 
+# Figure S10A
 # Dotplot
 p <- ggplot(data = merged.merged.toplot,
             aes(x = age_group, 
@@ -1298,13 +1010,9 @@ p <- ggplot(data = merged.merged.toplot,
     limits = c(-4,4),
     breaks = c(-4,0,4),
     name = "") +
-  # scale_color_distiller(
-  #   palette = "RdYlGn",
-  #   limits = c(-max(abs(res.toplot$slope)),max(abs(res.toplot$slope))),
-  #   breaks = c(-1,0,1), name = "") +
   labs(
     x = "Age group", y = "",
-    title = "Pathways associateded\nwith severity at Visit 1\n(controlled for viral load)"
+    title = "Pathways associateded\nwith severity at Visit 1\n(controlled for viral abundance)"
   ) +
   facet_wrap(~ type, nrow=1) +
   theme_bw() +
@@ -1320,603 +1028,263 @@ p <- ggplot(data = merged.merged.toplot,
   ) # RNAseq_pbmc-nasal_visit1_severity_viralload_gsea-reactome_young-vs-old_dotplot, 6.1 x 5.9 in
 ```
 
-## Age and severity: stratified by severity (combined design)
+# Visit 1: Age and comorbidities
 
-Mild is 3 & 4, severe is 5 & 6.
+Do comorbidities change the results?
+
+## Add comorbidities info
 
 ```{r}
-clin.sample.event.individ.1.sm <- clin.sample.event.individ.1
-clin.sample.event.individ.1.sm$severity <- "Mild"
-clin.sample.event.individ.1.sm[clin.sample.event.individ.1.sm$respiratory_status %in% c("5","6"), "severity"] <- "Severe"
+# Prepare Visit 1 data frame for merging
+clin.sample.event.individ.1.comorb <- clin.sample.event.individ.1 %>%
+  select(!(participant_id.y)) # drop column "participant_id.y
 
-counts.1.sm <- counts.1[,clin.sample.event.individ.1.sm$sample_id]
+# Add comorbidities columns: number of comorbidities, hypertension, diabetes, chronic cardiac
+my.comorb <- c("comorb_htn","comorb_isaric_dm","comorb_isaric_cardiac")
+clin.sample.event.individ.1.comorb <- merge(
+  clin.sample.event.individ.1.comorb,
+  clin.individ.supp[,c("participant_id","comorb_count",my.comorb)],
+  by="participant_id", all.x = TRUE, all.y = FALSE,
+  sort = FALSE
+)
+
+# Any rows without comorbidities info?
+print(any(is.na(
+  clin.sample.event.individ.1.comorb[,c("comorb_count",my.comorb)]
+)))
 ```
 
-DE analysis on continuous age.
+What are the distributions of comorbidities?
 
 ```{r}
-# Design matrix
-design <- model.matrix(~ severity + severity:admit_age + sex,
-                       data=clin.sample.event.individ.1.sm)
-# Rename
-colnames(design) <- gsub("severity", "", colnames(design))
-print(head(design))
+hist(clin.sample.event.individ.1.comorb$comorb_count,
+     xlab="Number of comorbidities",
+     main="Histogram of number of comorbidities")
+```
 
-vwts <- voom(counts.1.sm, 
+```{r}
+# Among the chosen comorbidities, how many comorbidities are present per patient?
+table(rowSums(
+  clin.sample.event.individ.1.comorb[,my.comorb]
+)) # the comorbidities are encoded as 0 or 1, not factor, so rowSums works
+```
+
+```{r}
+# How are age associated with the number of comorbidities?
+pp <- ggplot(data=clin.sample.event.individ.1.comorb,
+             aes(x=admit_age, y=comorb_count)) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  labs(x="Age", y="Number of comorbidities") + 
+  my.theme
+
+summary(lm(comorb_count ~ admit_age, data=clin.sample.event.individ.1.comorb))
+```
+
+```{r}
+# Are viral load associated with the number of comorbidities? (Visit 1 PBMC patients)
+pp <- ggplot(data=clin.sample.event.individ.1.comorb,
+             aes(x=comorb_count, y=sc2_rpm)) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  labs(x="Number of comorbidities", y="log10(viral rpM)")
+```
+
+```{r}
+# All patients: Add comorbidities columns: number of comorbidities, hypertension, diabetes, chronic cardiac
+my.comorb <- c("comorb_htn","comorb_isaric_dm","comorb_isaric_cardiac")
+clin.individ.comorb <- merge(
+  clin.individ,
+  clin.individ.supp[,c("participant_id","comorb_count",my.comorb)],
+  by="participant_id", all.x = TRUE, all.y = FALSE,
+  sort = FALSE
+)
+
+# Any rows without comorbidities info?
+print(any(is.na(
+  clin.individ.comorb[,c("comorb_count",my.comorb)]
+)))
+
+```
+
+```{r}
+# How are age related to number of comorbidities
+p1 <- ggplot(data=clin.individ.comorb,
+             aes(x=admit_age, y=comorb_count)) +
+  geom_point(size=0.5) +
+  geom_smooth(method="lm", linewidth=1) +
+  scale_y_continuous(limits=c(-0.7,15), expand=c(0,0)) +
+  labs(x="Age", y="Number of comorbidities") + 
+  my.theme
+p2 <- ggplot(data=clin.individ.comorb,
+             aes(x=comorb_count)) +
+  geom_histogram(binwidth=1, color="black", fill="grey") +
+  # xlim(-10,20) + # setting axis limits doesn't work well with geom_histogram
+  labs(x="Number of comorbidities", y="Number of patients") +
+  my.theme
+p1 + p2 + plot_layout(nrow=1) # age_comorb_count, 7.8 x 3.7 in
+```
+
+```{r}
+# P value
+summary(lm(comorb_count ~ admit_age, data=clin.individ.comorb))
+```
+
+## Control for comorbidities
+
+```{r}
+# Convert comorbidities to factor
+for (i in my.comorb) {
+  clin.sample.event.individ.1.comorb[,i] <- as.factor(
+    clin.sample.event.individ.1.comorb[,i]
+  )
+}
+```
+
+```{r}
+design <- model.matrix(
+  ~ admit_age + sex + respiratory_status + 
+    comorb_htn + comorb_isaric_dm + comorb_isaric_cardiac,
+  data=clin.sample.event.individ.1.comorb)
+
+vwts <- voom(counts.1, 
              design = design,
              normalize.method = "quantile",
              plot = T)
 
-vfit <- lmFit(vwts, design = design)
+vfit <- lmFit(vwts, design=design)
 vfit <- eBayes(vfit)
 
-print(summary(decideTests(vfit)))
-
-res.m <- topTable(vfit, coef = "Mild:admit_age",
-                  sort.by = "none", number = Inf,
-                  adjust.method = "BH", p.value = 1)
-res.s <- topTable(vfit, coef = "Severe:admit_age",
-                  sort.by = "none", number = Inf,
-                  adjust.method = "BH", p.value = 1)
+summary(decideTests(vfit, adjust.method = "BH", p.value = 0.05))
 ```
 
-### Reactome GSEA
+```{r}
+res <- topTable(vfit, coef = "admit_age",
+                sort.by = "none", number = Inf,
+                adjust.method = "BH", p.value = 1)
+head(res)
+```
+
+Volcano plot
 
 ```{r}
-# Severe
-gene.ranks <- res.s$t
-names(gene.ranks) <- rownames(res.s)
+# Identify direction
+res.toplot <- merge(res, rData[,c("gene_id","gene_name")],
+                    all.x = TRUE, all.y = FALSE,
+                    by.x = "row.names", by.y = "gene_id",
+                    sort = FALSE)
+res.toplot$direction <- "Not significant"
+res.toplot[res.toplot$adj.P.Val<0.05 & res.toplot$logFC>0,"direction"] <- "Increase with age"
+res.toplot[res.toplot$adj.P.Val<0.05 & res.toplot$logFC<0,"direction"] <- "Decrease with age"
+res.toplot$direction <- factor(
+  res.toplot$direction,
+  levels=c("Increase with age","Decrease with age","Not significant"))
+
+# Limit minimum P value to 1e-10
+res.toplot[res.toplot$adj.P.Val<1e-10,"adj.P.Val"] <- 1e-10
+
+# Figure S5A
+p <- ggplot(data=res.toplot) +
+  geom_point(aes(x=logFC, y=-log10(adj.P.Val), color=direction), size=0.8) +
+  # geom_hline(yintercept=-log10(0.05), color="red", linetype="dashed") +
+  scale_color_manual(values=c("darkred","dodgerblue4","gray75"), # c("#d6604d","#4393c3","gray75")
+                     name="", guide="none") +
+  xlim(-0.06, 0.06) + 
+  scale_y_continuous(limits=c(-0.4,10.1), expand=c(0,0),
+                     breaks=c(0,5,10), labels=c(0,5,"\u2265 10")) +
+  labs(x="Slope\n(change per 1 year of age)", y="-log10(adjusted P)",
+       title="PBMC genes associated\nwith age at Visit 1\n(adjusted for 3 comorbidities)") +
+  my.theme # RNAseq_pbmc_visit1_age_no-viralload_comorb, 4 x 4.4 in
+```
+
+Reactome GSEA
+
+```{r}
+# Sort gene list in descending order
+gene.ranks <- res$t
+names(gene.ranks) <- rownames(res)
 gene.ranks <- sort(gene.ranks, decreasing = TRUE)
 
 set.seed(1)
-reactome.gsea.s <- fgseaMultilevel(
+reactome.gsea <- fgseaMultilevel(
   pathways = reactome.list,
   stats = gene.ranks,
   minSize = 15,
   maxSize = 500,
   nproc = 1
 )
-remove(gene.ranks)
-
-# Mild
-gene.ranks <- res.m$t
-names(gene.ranks) <- rownames(res.m)
-gene.ranks <- sort(gene.ranks, decreasing = TRUE)
-
-set.seed(1)
-reactome.gsea.m <- fgseaMultilevel(
-  pathways = reactome.list,
-  stats = gene.ranks,
-  minSize = 15,
-  maxSize = 500,
-  nproc = 1
-)
-remove(gene.ranks)
 ```
 
-Find Reactome pathways that are significant in either severe or mild, or both.
+Plot GSEA 
 
 ```{r}
-merged.reactome.gsea <- rbind(
-  reactome.gsea.s %>% mutate(severity="Severe"),
-  reactome.gsea.m %>% mutate(severity="Mild")
-)
+# Manually choose pathways
+my.pathways <- c("REACTOME_INTERFERON_ALPHA_BETA_SIGNALING","REACTOME_INTERFERON_GAMMA_SIGNALING",
+                 "REACTOME_INTERLEUKIN_12_SIGNALING",
+                 "REACTOME_INTERLEUKIN_2_FAMILY_SIGNALING","REACTOME_TRAF6_MEDIATED_IRF7_ACTIVATION",
+                 "REACTOME_TNFR2_NON_CANONICAL_NF_KB_PATHWAY","REACTOME_TOLL_LIKE_RECEPTOR_CASCADES",
+                 "REACTOME_TOLL_LIKE_RECEPTOR_TLR1_TLR2_CASCADE",
+                 "REACTOME_CASPASE_ACTIVATION_VIA_DEATH_RECEPTORS_IN_THE_PRESENCE_OF_LIGAND",
+                 "REACTOME_CASPASE_ACTIVATION_VIA_EXTRINSIC_APOPTOTIC_SIGNALLING_PATHWAY",
+                 "REACTOME_DECTIN_1_MEDIATED_NONCANONICAL_NF_KB_SIGNALING",
+                 "REACTOME_REGULATION_OF_RUNX3_EXPRESSION_AND_ACTIVITY",
+                 "REACTOME_NEUTROPHIL_DEGRANULATION","REACTOME_TCR_SIGNALING",
+                 "REACTOME_SIGNALING_BY_THE_B_CELL_RECEPTOR_BCR","REACTOME_PD_1_SIGNALING",
+                 "REACTOME_TRANSLATION")
 
-# # Get list of pathways that are significant in at least one analysis
-# my.pathways <- union(
-#   reactome.gsea.s[reactome.gsea.s$padj<0.05,"pathway"],
-#   reactome.gsea.m[reactome.gsea.m$padj<0.05,"pathway"]
-# )
-
-# merged.reactome.gsea <- merged.reactome.gsea %>%
-#   subset(pathway %in% my.pathways$pathway)
-```
-
-Import merged GSEA results from nasal analysis
-
-```{r}
-merged.reactome.gsea.nasal <- data.table::fread(
-  "20230123_bulk_RNAseq_nasal_visit1_severity_gsea-reactome_admit-age_combined-design.tsv",
-  sep="\t", sep2=c("", " ", "")
-)
-```
-
-Annotate PBMC/NS.
-
-```{r}
-merged.merged <- rbind(
-  merged.reactome.gsea %>% mutate(type="PBMC"),
-  merged.reactome.gsea.nasal %>% mutate(type="NS")
-)
-
-merged.merged$type <- factor(merged.merged$type, levels=c("PBMC","NS"))
-```
-
-Pathways that are significant in at least one comparison
-
-```{r}
-sig.pathways <- unique(merged.merged[merged.merged$padj < 0.05,"pathway"])
-```
-
-Select some pathways to plot.
-
-```{r}
-my.pathways <- c(
-  "REACTOME_INTERFERON_ALPHA_BETA_SIGNALING","REACTOME_INTERFERON_GAMMA_SIGNALING",
-  "REACTOME_INTERLEUKIN_1_SIGNALING","REACTOME_INTERLEUKIN_12_SIGNALING",
-  "REACTOME_INTERLEUKIN_4_AND_INTERLEUKIN_13_SIGNALING",
-  "REACTOME_INTERLEUKIN_2_FAMILY_SIGNALING","REACTOME_INTERLEUKIN_7_SIGNALING",
-  "REACTOME_INTERLEUKIN_10_SIGNALING","REACTOME_INTERLEUKIN_17_SIGNALING",
-  "REACTOME_NEUTROPHIL_DEGRANULATION","REACTOME_TOLL_LIKE_RECEPTOR_9_TLR9_CASCADE",
-  "REACTOME_TOLL_LIKE_RECEPTOR_TLR1_TLR2_CASCADE","REACTOME_PD_1_SIGNALING",
-  "REACTOME_TCR_SIGNALING","REACTOME_DECTIN_1_MEDIATED_NONCANONICAL_NF_KB_SIGNALING"
-  )
-
-merged.merged.toplot <- merged.merged %>%
+reactome.gsea.toplot <- reactome.gsea %>%
   subset(pathway %in% my.pathways)
 
 # Reformat pathway names
-merged.merged.toplot$pathway <- gsub("^REACTOME_","", merged.merged.toplot$pathway)
-merged.merged.toplot$pathway <- gsub("_"," ", merged.merged.toplot$pathway)
-merged.merged.toplot$pathway <- stringr::str_to_sentence(merged.merged.toplot$pathway)
+reactome.gsea.toplot$pathway <- gsub("^REACTOME_","",reactome.gsea.toplot$pathway)
+reactome.gsea.toplot$pathway <- gsub("_"," ",reactome.gsea.toplot$pathway)
+reactome.gsea.toplot$pathway <- stringr::str_to_sentence(reactome.gsea.toplot$pathway)
 
 # Fix capitalization of pathway names
-my.dict <- list("tlr"="TLR",
-                "Toll like receptor 9 "="", "Toll like receptor "="",
-                "nf kb"="NF-kB", "Dectin 1 mediated"="Dectin 1",
-                "Tcr"="TCR", "Pd 1"="PD1",
-                "[I|i]nterleukin "="IL")
+my.dict <- list("Tnfr2"="TNFR2", "Traf6"="TRAF6", "irf7"="IRF7",
+                "runx3"="RUNX3", "nf kb"="NF-kB", "Dectin 1 mediated"="Dectin 1",
+                "Pd 1"="PD1", "Tcr"="TCR",
+                "bcr"="BCR", "b cell"="B cell",
+                "Toll like receptor cascades"="TLR cascades",
+                "Toll like receptor tlr1 tlr2 cascade"="TLR1 TLR2 cascade",
+                "Caspase activation via death receptors in the presence of ligand" = "Caspase activation via death receptors",
+                "Caspase activation via extrinsic apoptotic signalling pathway" = "Caspase activation via apoptotic signalling")
 for (i in names(my.dict)) {
-  merged.merged.toplot$pathway <- gsub(i, my.dict[[i]],
-                                       merged.merged.toplot$pathway)
+  reactome.gsea.toplot$pathway <- gsub(i, my.dict[[i]], reactome.gsea.toplot$pathway)
 }
 
-# Dotplot
-p <- ggplot(data = merged.merged.toplot,
-            aes(x = severity, 
-                y = reorder(pathway, NES),
-                color = NES)) +
-  geom_point(color = "white", size = 3) +
-  geom_point(shape = 1, size = 3, stroke = 1.5) +
-  geom_point(data = . %>% subset(padj < 0.05), size = 4) +
-  scale_color_gradientn(
-    colors = c("dodgerblue4","#f7f7f7","darkred"),
-    limits = c(-4,4),
-    breaks = c(-4,0,4),
-    name = "") +
-  labs(
-    x = "Disease severity", y = "",
-    title = "Pathways upregulated\nwith age"
-  ) +
-  facet_wrap(~ type, nrow=1) +
+# Figure S5C
+p <- ggplot(data = reactome.gsea.toplot, 
+            aes(x=NES,
+                y=reorder(pathway,NES,FUN=function(x) x[1]))) +
+  geom_point(aes(color=as.factor(NES>0)), fill="white",
+             shape=21, size=2.5, stroke=1) +
+  geom_point(data=. %>% subset(padj<0.05),
+             aes(color=as.factor(NES>0), fill=as.factor(NES>0)),
+             shape=21, size=2.5, stroke=1) +
+  geom_text(
+    data=. %>% subset(NES>0),
+    aes(x=0,label=sprintf("P = %.1e", padj)), 
+    hjust=1.08, size=3.5) +
+  geom_text(
+    data=. %>% subset(NES<0),
+    aes(x=0, label=sprintf("P = %.1e", padj)),
+    hjust=-0.08, size=3.5) +
+  geom_vline(xintercept = 0, linewidth = 0.7, color = "black") +
+  scale_color_manual(values=c("TRUE"="darkred", "FALSE"="dodgerblue4"), guide="none") +
+  scale_fill_manual(values=c("TRUE"="darkred", "FALSE"="dodgerblue4"), guide="none") +
+  scale_x_continuous(limits = c(-4,4), expand = c(0,0)) +
+  labs(x="GSEA normalized\nenrichment score", y="",
+       title="PBMC pathways associated\nwith age at Visit 1\n(adjusted for 3 comorbidities)") +
   theme_bw() +
   theme(
     plot.title = element_text(hjust = 0.5, size=12, face="plain"),
-    axis.text.x = element_text(size=11, color="black", angle=45, hjust=1),
-    axis.text.y = element_text(size=11, color="black"),
+    axis.text = element_text(size=11, color="black", family="Arial"),
     text = element_text(size=12, family="Arial"),
     plot.margin = unit(c(0,1,1,0), "cm"),
     panel.spacing = unit(0.5, "cm"),
-    legend.key = element_rect(fill = "gray90"),
     panel.grid.minor=element_blank()
-  ) # RNAseq_pbmc-nasal_visit1_admit-age_gsea-reactome_severe-vs-mild_dotplot, 6.1 x 5.5 in
-```
-
-## Age and ordinal score: stratified by age
-
-```{r}
-clin.sample.event.individ.1.y <- clin.sample.event.individ.1 %>% 
-  subset((admit_age <= 46) & (respiratory_status=="3" | respiratory_status=="6")) %>%
-  droplevels()
-clin.sample.event.individ.1.o <- clin.sample.event.individ.1 %>% 
-  subset((admit_age > 70) & (respiratory_status=="3" | respiratory_status=="6")) %>%
-  droplevels()
-
-counts.1.y <- counts.1[,clin.sample.event.individ.1.y$sample_id]
-counts.1.o <- counts.1[,clin.sample.event.individ.1.o$sample_id]
-```
-
-Mild is 3, severe is 6.
-
-```{r}
-print(table(clin.sample.event.individ.1.y$respiratory_status))
-print(table(clin.sample.event.individ.1.o$respiratory_status))
-```
-
-DE analysis on respiratory_status.
-
-```{r}
-# Young
-design <- model.matrix(~ sc2_rpm + sex + respiratory_status,
-                       data=clin.sample.event.individ.1.y)
-vwts <- voom(counts.1.y, 
-             design = design,
-             normalize.method = "quantile",
-             plot = T)
-
-vfit <- lmFit(vwts)
-vfit <- eBayes(vfit)
-
-res.y <- topTable(vfit, coef = "respiratory_status6",
-                  sort.by = "none", number = Inf,
-                  adjust.method = "BH", p.value = 1)
-
-# Old
-design <- model.matrix(~ sc2_rpm + sex + respiratory_status,
-                       data=clin.sample.event.individ.1.o)
-vwts <- voom(counts.1.o, 
-             design = design,
-             normalize.method = "quantile",
-             plot = T)
-
-vfit <- lmFit(vwts)
-vfit <- eBayes(vfit)
-
-res.o <- topTable(vfit, coef = "respiratory_status6",
-                  sort.by = "none", number = Inf,
-                  adjust.method = "BH", p.value = 1)
-```
-
-### Hallmark GSEA
-
-```{r}
-# Young
-gene.ranks <- res.y$t
-names(gene.ranks) <- rownames(res.y)
-gene.ranks <- sort(gene.ranks, decreasing = TRUE)
-
-hallmark.gsea.y <- fgseaMultilevel(
-  pathways = hallmark.list,
-  stats = gene.ranks,
-  minSize = 15,
-  maxSize = 500,
-  nproc = 1
-)
-remove(gene.ranks)
-
-# Old
-gene.ranks <- res.o$t
-names(gene.ranks) <- rownames(res.o)
-gene.ranks <- sort(gene.ranks, decreasing = TRUE)
-
-hallmark.gsea.o <- fgseaMultilevel(
-  pathways = hallmark.list,
-  stats = gene.ranks,
-  minSize = 15,
-  maxSize = 500,
-  nproc = 1
-)
-remove(gene.ranks)
-```
-
-Plot both y and o GSEA results.
-
-```{r}
-merged.hallmark.gsea <- rbind(
-  hallmark.gsea.y %>% mutate(status="<= 46 yo"), 
-  hallmark.gsea.o %>% mutate(status="> 70 yo")
-)
-
-# Get list of pathways that are significant in at least one analysis
-my.pathways <- union(
-  hallmark.gsea.y[hallmark.gsea.y$padj<0.05,"pathway"],
-  hallmark.gsea.o[hallmark.gsea.o$padj<0.05,"pathway"]
-)
-
-merged.hallmark.gsea <- merged.hallmark.gsea %>%
-  subset(pathway %in% my.pathways$pathway)
-
-ggplot(data=merged.hallmark.gsea) +
-  geom_point(mapping=aes(x=reorder(pathway,NES), y=NES, fill=as.factor(NES>0),
-                         colour=as.factor(padj < 0.05)),
-             pch=21, size=2, stroke=1) +
-  geom_hline(yintercept=0, color="black") +
-  scale_color_manual(values=c("white","black")) +
-  scale_y_continuous(breaks=seq(-4,4,2), limits=c(-4,4)) +
-  labs(x="Hallmark pathways", y="NES", title="Pathways upregulated in severe covid") +
-  coord_flip() + facet_wrap(~ status) +
-  theme_bw() +
-  theme(
-    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
-    axis.text = element_text(size=12, color="black"),
-    text = element_text(size=12, family="Arial"),
-    plot.margin = unit(c(0,1,1,0), "cm"),
-    panel.spacing = unit(1, "lines"),
-    legend.key = element_rect(fill = "gray90")
-  )
-```
-
-### Reactome GSEA
-
-```{r}
-# Young
-gene.ranks <- res.y$t
-names(gene.ranks) <- rownames(res.y)
-gene.ranks <- sort(gene.ranks, decreasing = TRUE)
-
-reactome.gsea.y <- fgseaMultilevel(
-  pathways = reactome.list,
-  stats = gene.ranks,
-  minSize = 15,
-  maxSize = 500,
-  nproc = 1
-)
-remove(gene.ranks)
-
-# Old
-gene.ranks <- res.o$t
-names(gene.ranks) <- rownames(res.o)
-gene.ranks <- sort(gene.ranks, decreasing = TRUE)
-
-reactome.gsea.o <- fgseaMultilevel(
-  pathways = reactome.list,
-  stats = gene.ranks,
-  minSize = 15,
-  maxSize = 500,
-  nproc = 1
-)
-remove(gene.ranks)
-```
-
-Plot Reactome pathways of both mild and severe.
-
-```{r}
-merged.reactome.gsea <- rbind(
-  reactome.gsea.y %>% mutate(status="<= 46 yo"), 
-  reactome.gsea.o %>% mutate(status="> 70 yo")
-)
-
-# Get list of pathways that are significant in at least one analysis
-my.pathways <- union(
-  reactome.gsea.y[reactome.gsea.y$padj<0.05,"pathway"],
-  reactome.gsea.o[reactome.gsea.o$padj<0.05,"pathway"]
-)
-
-merged.reactome.gsea <- merged.reactome.gsea %>%
-  subset(pathway %in% my.pathways$pathway)
-
-my.pathways <- c("REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES", "REACTOME_INTERFERON_ALPHA_BETA_SIGNALING",
-                 "REACTOME_INTERFERON_GAMMA_SIGNALING", "REACTOME_INTERLEUKIN_2_SIGNALING",
-                 "REACTOME_NEUTROPHIL_DEGRANULATION", "REACTOME_TCR_SIGNALING",
-                 "REACTOME_TNFR2_NON_CANONICAL_NF_KB_PATHWAY")
-
-merged.reactome.gsea.toplot <- merged.reactome.gsea %>%
-  subset(pathway %in% my.pathways)
-
-ggplot(data=merged.reactome.gsea.toplot) +
-  geom_point(mapping=aes(x=reorder(pathway,NES), y=NES, fill=as.factor(NES>0),
-                         colour=as.factor(padj < 0.05)),
-             pch=21, size=2, stroke=1) +
-  geom_hline(yintercept=0, color="black") +
-  scale_color_manual(values=c("white","black")) +
-  scale_y_continuous(breaks=seq(-4,4,2), limits=c(-4,4)) +
-  labs(x="",
-       y="GSEA normalized\nenrichment score",
-       title="Pathways upregulated in severe COVID") +
-  coord_flip() + facet_wrap(~ status) +
-  theme_bw() +
-  theme(
-    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
-    axis.text = element_text(size=12, color="black"),
-    text = element_text(size=12, family="Arial"),
-    plot.margin = unit(c(0,1,1,0), "cm"),
-    panel.spacing = unit(1, "lines"),
-    legend.key = element_rect(fill = "gray90")
-  )
-```
-
-## Age and ordinal score: stratified by severity
-
-```{r}
-print(table(clin.sample.event.individ.1$respiratory_status))
-```
-
-Mild is 3, severe is 6.
-
-```{r}
-clin.sample.event.individ.1.mild <- clin.sample.event.individ.1 %>% 
-  subset(respiratory_status=="3")
-clin.sample.event.individ.1.severe <- clin.sample.event.individ.1 %>% 
-  subset(respiratory_status=="6")
-
-counts.1.mild <- counts.1[,clin.sample.event.individ.1.mild$sample_id]
-counts.1.severe <- counts.1[,clin.sample.event.individ.1.severe$sample_id]
-```
-
-DE analysis on age effects.
-
-```{r}
-# Mild
-design <- model.matrix(~ admit_age + sc2_rpm + sex,
-                       data=clin.sample.event.individ.1.mild)
-vwts <- voom(counts.1.mild, 
-             design = design,
-             normalize.method = "quantile",
-             plot = T)
-
-vfit <- lmFit(vwts)
-vfit <- eBayes(vfit)
-
-res.mild <- topTable(vfit, coef = "admit_age",
-                     sort.by = "none", number = Inf,
-                     adjust.method = "BH", p.value = 1)
-
-# Severe
-design <- model.matrix(~ admit_age + sc2_rpm + sex,
-                       data=clin.sample.event.individ.1.severe)
-vwts <- voom(counts.1.severe, 
-             design = design,
-             normalize.method = "quantile",
-             plot = T)
-
-vfit <- lmFit(vwts)
-vfit <- eBayes(vfit)
-
-res.severe <- topTable(vfit, coef = "admit_age",
-                       sort.by = "none", number = Inf,
-                       adjust.method = "BH", p.value = 1)
-```
-
-### Hallmark GSEA
-
-```{r}
-# Mild
-gene.ranks <- res.mild$t
-names(gene.ranks) <- rownames(res.mild)
-gene.ranks <- sort(gene.ranks, decreasing = TRUE)
-
-set.seed(1)
-hallmark.gsea.mild <- fgseaMultilevel(
-  pathways = hallmark.list,
-  stats = gene.ranks,
-  minSize = 15,
-  maxSize = 500,
-  nproc = 1
-)
-remove(gene.ranks)
-
-# Severe
-gene.ranks <- res.severe$t
-names(gene.ranks) <- rownames(res.severe)
-gene.ranks <- sort(gene.ranks, decreasing = TRUE)
-
-set.seed(1)
-hallmark.gsea.severe <- fgseaMultilevel(
-  pathways = hallmark.list,
-  stats = gene.ranks,
-  minSize = 15,
-  maxSize = 500,
-  nproc = 1
-)
-remove(gene.ranks)
-```
-
-Plot both mild and severe GSEA results.
-
-```{r}
-merged.hallmark.gsea <- rbind(
-  hallmark.gsea.mild %>% mutate(status="Mild"), 
-  hallmark.gsea.severe %>% mutate(status="Severe")
-)
-
-# Get list of pathways that are significant in at least one analysis
-my.pathways <- union(
-  hallmark.gsea.mild[hallmark.gsea.mild$padj<0.05,"pathway"],
-  hallmark.gsea.severe[hallmark.gsea.severe$padj<0.05,"pathway"]
-)
-
-merged.hallmark.gsea <- merged.hallmark.gsea %>%
-  subset(pathway %in% my.pathways$pathway)
-
-ggplot(data=merged.hallmark.gsea) +
-  geom_point(mapping=aes(x=reorder(pathway,NES), y=NES, fill=as.factor(NES>0),
-                         colour=as.factor(padj < 0.05)),
-             pch=21, size=2, stroke=1) +
-  geom_hline(yintercept=0, color="black") +
-  scale_color_manual(values=c("white","black")) +
-  scale_y_continuous(breaks=seq(-4,4,2), limits=c(-4,4)) +
-  labs(x="Hallmark pathways", y="NES", title="Pathways upregulated with age") +
-  coord_flip() + facet_wrap(~ status) +
-  theme_bw() +
-  theme(
-    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
-    axis.text = element_text(size=12, color="black"),
-    text = element_text(size=12, family="Arial"),
-    plot.margin = unit(c(0,1,1,0), "cm"),
-    panel.spacing = unit(1, "lines"),
-    legend.key = element_rect(fill = "gray90")
-  )
-```
-
-### Reactome GSEA
-
-```{r}
-# Mild
-gene.ranks <- res.mild$t
-names(gene.ranks) <- rownames(res.mild)
-gene.ranks <- sort(gene.ranks, decreasing = TRUE)
-
-set.seed(1)
-reactome.gsea.mild <- fgseaMultilevel(
-  pathways = reactome.list,
-  stats = gene.ranks,
-  minSize = 15,
-  maxSize = 500,
-  nproc = 1
-)
-remove(gene.ranks)
-
-# Severe
-gene.ranks <- res.severe$t
-names(gene.ranks) <- rownames(res.severe)
-gene.ranks <- sort(gene.ranks, decreasing = TRUE)
-
-set.seed(1)
-reactome.gsea.severe <- fgseaMultilevel(
-  pathways = reactome.list,
-  stats = gene.ranks,
-  minSize = 15,
-  maxSize = 500,
-  nproc = 1
-)
-remove(gene.ranks)
-```
-
-Plot Reactome pathways of both mild and severe.
-
-```{r}
-merged.reactome.gsea <- rbind(
-  reactome.gsea.mild %>% mutate(status="Mild"), 
-  reactome.gsea.severe %>% mutate(status="Severe")
-)
-
-# Get list of pathways that are significant in at least one analysis
-my.pathways <- union(
-  reactome.gsea.mild[reactome.gsea.mild$padj<0.05,"pathway"],
-  reactome.gsea.severe[reactome.gsea.severe$padj<0.05,"pathway"]
-)
-
-merged.reactome.gsea <- merged.reactome.gsea %>%
-  subset(pathway %in% my.pathways$pathway)
-
-my.pathways <- c("REACTOME_ANTIVIRAL_MECHANISM_BY_IFN_STIMULATED_GENES", "REACTOME_DEATH_RECEPTOR_SIGNALLING",
-                 "REACTOME_GENE_AND_PROTEIN_EXPRESSION_BY_JAK_STAT_SIGNALING_AFTER_INTERLEUKIN_12_STIMULATION",
-                 "REACTOME_INTERFERON_GAMMA_SIGNALING", "REACTOME_INTERLEUKIN_12_SIGNALING",
-                 "REACTOME_INTERLEUKIN_2_FAMILY_SIGNALING", "REACTOME_INTERLEUKIN_3_INTERLEUKIN_5_AND_GM_CSF_SIGNALING",
-                 "REACTOME_NEUTROPHIL_DEGRANULATION", "REACTOME_TNF_SIGNALING", "REACTOME_TOLL_LIKE_RECEPTOR_CASCADES",
-                 "REACTOME_ANTIMICROBIAL_PEPTIDES", "REACTOME_CASPASE_ACTIVATION_VIA_DEATH_RECEPTORS_IN_THE_PRESENCE_OF_LIGAND")
-
-merged.reactome.gsea.toplot <- merged.reactome.gsea %>%
-  subset(pathway %in% my.pathways)
-
-ggplot(data=merged.reactome.gsea.toplot) +
-  geom_point(mapping=aes(x=reorder(pathway,NES), y=NES, fill=as.factor(NES>0),
-                         colour=as.factor(padj < 0.05)),
-             pch=21, size=2, stroke=1) +
-  geom_hline(yintercept=0, color="black") +
-  scale_color_manual(values=c("white","black")) +
-  scale_y_continuous(breaks=seq(-4,4,2), limits=c(-4,4)) +
-  labs(x="Reactome pathways", y="NES", title="Pathways upregulated with age") +
-  coord_flip() + facet_wrap(~ status) +
-  theme_bw() +
-  theme(
-    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
-    axis.text = element_text(size=12, color="black"),
-    text = element_text(size=12, family="Arial"),
-    plot.margin = unit(c(0,1,1,0), "cm"),
-    panel.spacing = unit(1, "lines"),
-    legend.key = element_rect(fill = "gray90")
-  )
-```
-
-Save GSEA results.
-
-```{r}
-# data.table::fwrite(
-#   merged.reactome.gsea,
-#   file="20230123_bulk_RNAseq_pbmc_visit1_admit-age_sex-viralload_mildvssevere_reactome-gsea_fdr0.05.tsv",
-#   sep="\t", sep2=c("", " ", "")
-# )
+  ) # RNAseq_pbmc_visit1_age_gsea-reactome_comorb, 5.6 x 6 in
 ```
 
 # Longitudinal analysis
@@ -2290,7 +1658,7 @@ p[[1]]+
 Plot example genes (separate plot per age group)
 
 ```{r}
-# Supplementary Figure 6
+# Figure S7
 p <- list()
 for (i in c("HLA-A","HLA-DRA","CXCL6","IL10RA","CD3E","LAT")) {
   # gene_id of this gene
