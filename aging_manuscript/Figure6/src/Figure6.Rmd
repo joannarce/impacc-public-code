@@ -39,11 +39,6 @@ set.seed(123)
 
 ```{r load code and data, warning=FALSE, message=FALSE}
 
-##### Load code
-
-
-##### Load data 
-
 ##### Load other data files, if any
 ISG_genes <- read_excel("/scratch/metagenomics/age_analysis/TLR_ISG_Genes.xlsx")
 Reactome_DATA <- ReactomePA:::get_Reactome_DATA("human")
@@ -66,14 +61,13 @@ nasal_metagenomics_rowfeature <- read.csv("/data/nasal-metagenomics/current/nasa
 nasal_metagenomics_metadata <- read_csv("/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv")
 nasal_metagenomics_statistics <- read_csv("/data/nasal-metagenomics/current/nasal-metagenomics-Statistics.csv")
 nasal_viral_load_counts <- read.csv("/data/nasal-viralload/current/nasal-viralload-Counts.csv")
-clinical_data1 <- read_csv("/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-sample-frozen.csv")
-clinical_data2 <- read_csv("/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-individ-frozen.csv")
-clinical_data3 <- read_csv("/data/clinical/current/2021-11-11-frozen/2021-11-11-impacc-clin-event-frozen.csv")
+clinical_data1 <- read_csv("/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-sample-frozen.csv")
+clinical_data2 <- read_csv("/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-individ-frozen.csv")
+clinical_data3 <- read_csv("/data/clinical/legacy/2021-11-11-frozen/2021-11-11-impacc-clin-event-frozen.csv")
 clinical_data <- merge(clinical_data1, clinical_data2, by = "participant_id")
 clinical_data <- merge(clinical_data, clinical_data3, by= c("event_id", "participant_id"))
 clinical_data$discretized_admit_age_quantile <- cut(clinical_data$admit_age, breaks = c(17,46,54,62,70, 96), include.lowest = FALSE)
-
-
+rm(clinical_data1, clinical_data2, clinical_data3)
 
 load("/scratch/metagenomics/age_analysis/20221117_bulk_RNAseq_nasal_visit1_voom.RData")
 ```
@@ -121,7 +115,10 @@ taxa_selection <- nasal_metagenomics_counts %>%
   mutate(age_group_avg_freq = mean(c(`(17,46]`, `(46,54]`, `(54,62]`, `(62,70]`, `(70,96]`)),
          age_group_max_freq = max(c(`(17,46]`, `(46,54]`, `(54,62]`, `(62,70]`, `(70,96]`)))
 
-selected_nasal_taxa <- log10(nasal_metagenomics_counts[,colnames(nasal_metagenomics_counts) %in% taxa_selection$name[taxa_selection$age_group_max_freq >= 0.3]] + 1)
+selected_nasal_taxa_names <- log10(nasal_metagenomics_counts[,colnames(nasal_metagenomics_counts) %in% taxa_selection$name[taxa_selection$age_group_max_freq >= 0.3]] + 1)
+write.csv(colnames(selected_nasal_taxa_names), paste0(graphing_dir, "selected_nasal_taxa.csv"))
+
+selected_nasal_taxa <- nasal_metagenomics_counts[,colnames(nasal_metagenomics_counts) %in% colnames(selected_nasal_taxa_names)] / rowSums(nasal_metagenomics_counts[,colnames(nasal_metagenomics_counts) %in% colnames(selected_nasal_taxa_names)])
 selected_nasal_taxa <- selected_nasal_taxa[!rownames(selected_nasal_taxa) %in% samples_remove,]
 
 taxa_inputDF <- selected_nasal_taxa %>%
@@ -178,7 +175,7 @@ colnames(res) <- c("Log10 Total Bacterial RPM", "Log10 SARS-CoV-2 RPM", "IFN Sco
 rownames(res) <- colnames(res)
 panelE <- corrplot(res, col = rev(COL2('RdBu', 200)))
 panelE
-ggsave(paste0(graphing_dir, "panelE.pdf"), device = "pdf", width = 3.7, height = 2)
+#ggsave(paste0(graphing_dir, "panelE.pdf"), device = "pdf", width = 3.7, height = 2)
 ```
 
 ## Panel F
@@ -197,7 +194,7 @@ panelF <- taxa_inputDF %>%
   theme(legend.position = "none") +
   theme(axis.text = element_text(size=12, color="black"))
 panelF
-ggsave(paste0(graphing_dir, "panelF.pdf"), device = "pdf", width = 4.8, height = 2.5)
+#ggsave(paste0(graphing_dir, "panelF.pdf"), device = "pdf", width = 4.8, height = 2.5)
 
 ```
 
@@ -246,7 +243,7 @@ panelG <- Lawsonella_TLR %>%
   guides(fill=guide_legend(title=" "),
          color = guide_legend(title=" "))
 panelG
-ggsave(paste0(graphing_dir, "panelG.pdf"), device = "pdf", height = 2.5, width = 6)
+#ggsave(paste0(graphing_dir, "panelG.pdf"), device = "pdf", height = 2.5, width = 6)
 ```
 
 
@@ -361,9 +358,11 @@ hit_no_hit_count_screen %>%
   theme(legend.position = "none",
         plot.title = element_text(hjust = 0.5)) +
   scale_y_continuous(limits = c(0,15), expand = c(0, 0))
-ggsave(paste0(graphing_dir, "panelH_4.pdf"), device = "pdf", height = 2.5, width = 4)
+#ggsave(paste0(graphing_dir, "panelH_4.pdf"), device = "pdf", height = 2.5, width = 4)
 
 ```
+
+
 ```{r}
 sessionInfo()
 

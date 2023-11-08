@@ -1152,3 +1152,263 @@ p <- ggplot(data = combined.gsea,
   ) # pbmc_nasal_olink_visit1_PC1_gsea-reactome, 6.5 x 8 in
 ```
 
+#### Nasal Metagenomics
+
+```{r}
+library(ggbeeswarm)
+library(ggpubr)
+pc1_patients <- read.csv("associated_files/20231004_data_integration_pbmc-ns_metadata_PC1group.csv",row.names = 1)%>%
+  dplyr::select(participant_id, PC1.group)
+# Figure S14E
+annotated.mngs.metadata <- mngs.metadata %>%
+  inner_join(clin.sample.event.individ %>%
+              filter(participant_id %in% pc1_patients$participant_id) %>%
+              filter(event_type == "Visit 1") %>%
+              dplyr::select(sample_id, participant_id, event_type, event_date)) %>%
+  # inner_join(nasal.res %>%
+  #   mutate(PC1.group=ifelse(
+  #     adj.P.Val>=0.05, "NS",
+  #     ifelse(logFC>0, "PC1+", "PC1-")) %>% distinct(participant_id, PC1.group)) )
+  inner_join(pc1_patients)
+
+gg14E <- annotated.mngs.metadata %>%
+  mutate(total_bacterial_rpm = log10(total_bacterial_rpm+1)) %>%
+  ggplot(aes(x=PC1.group,y=total_bacterial_rpm,color=PC1.group)) +
+  geom_boxplot() +
+  geom_quasirandom(size = 0.8) +
+  theme_classic() +
+  scale_color_manual(values = c("#199D76", "#D95F02")) +
+  theme(legend.position = "none") +
+  ylab("Bacterial Abundance\nlog10(rpM)") +
+  stat_compare_means(comparisons = list(c("PC1-", "PC1+"))) +
+  xlab(" ") +
+  coord_cartesian(ylim = c(0,6.3))
+gg14E
+
+```
+
+```{r}
+# Figure S14F
+
+gg14F <- annotated.mngs.metadata %>%
+  ggplot(aes(x=PC1.group,y=alpha_diversity,color=PC1.group)) +
+  geom_boxplot() +
+  geom_quasirandom(size = 0.8) +
+  theme_classic() +
+  scale_color_manual(values = c("#199D76", "#D95F02")) +
+  theme(legend.position = "none") +
+  ylab("Alpha Diversity") +
+  stat_compare_means(comparisons = list(c("PC1-", "PC1+"))) +
+  xlab(" ")
+gg14F
+
+```
+
+```{r}
+# Figure S14G
+
+gg14G <- annotated.mngs.metadata %>%
+  mutate(sc2_rpm = log10(sc2_rpm+1)) %>%
+  ggplot(aes(x=PC1.group,y=sc2_rpm,color=PC1.group)) +
+  geom_boxplot() +
+  geom_quasirandom(size = 0.8) +
+  theme_classic() +
+  scale_color_manual(values = c("#199D76", "#D95F02")) +
+  theme(legend.position = "none") +
+  ylab("Log 10 SARS-CoV-2 RPM") +
+  stat_compare_means(comparisons = list(c("PC1-", "PC1+"))) +
+  xlab(" ")
+gg14G
+
+```
+
+```{r}
+# Figure S14H Analysis
+library(nlme)
+library(lme4)
+library(lmerTest)
+
+selected_nasal_taxa <- read.csv("../../Figure6/output/selected_nasal_taxa.csv", row.names = 1)
+nasal_metagenomics_counts_everything <- read_csv("/data/nasal-metagenomics/current/nasal-metagenomics-AllGenera-Counts_RPM.csv" ) %>%
+  filter(sample_id %in% annotated.mngs.metadata$sample_id) %>%
+  column_to_rownames("sample_id")
+## Filter Taxa that were found in at least 30% of samples of at least one age quintile
+selected_nasal_metagenomics_counts_everything <- nasal_metagenomics_counts_everything[,paste0("X",colnames(nasal_metagenomics_counts_everything)) %in% selected_nasal_taxa$x]
+
+nasal_long <- selected_nasal_metagenomics_counts_everything %>%
+  rownames_to_column("sample_id") %>%
+  left_join(clin.sample.event.individ %>% dplyr::select(sample_id, participant_id, event_type)) %>%
+  filter(event_type == "Visit 1") %>%
+  filter(participant_id %in% pc1_patients$participant_id) %>%
+  dplyr::select(-event_type) %>%
+  pivot_longer(cols = c(-participant_id, -sample_id), values_to = "nt_rpm", names_to = "name") %>%
+  left_join(clin.individ) %>%
+  left_join(pc1_patients) 
+
+phylo_info <- read.csv("associated_files/assembled_phylo.csv") %>%
+  distinct() %>%
+  mutate(tax_id = as.numeric(tax_id)) %>%
+  relocate(tax_id, .before = genus) %>%
+  mutate(kingdom = ifelse(is.na(kingdom), superkingdom, kingdom))
+
+out.p <- data.frame()
+for(i in 2:ncol(phylo_info)){
+  active_level = colnames(phylo_info)[i]
+  
+  ## Non-Background corrected
+  nasal_metagenomics_counts_long <- nasal_long %>%
+    left_join(nasal_metagenomics_metadata) %>%
+    left_join(phylo_info %>% dplyr::rename("name" = "tax_id") %>%
+                mutate(name = as.character(name))) %>%
+    group_by(.data[[active_level]], sample_id) %>%
+    dplyr::summarize(nt_rpm = sum(nt_rpm, na.rm = TRUE)) %>%
+    mutate(log10_nt_rpm = log10(nt_rpm + 1)) %>%
+    #mutate(log10_nt_rpm = nt_rpm) %>%
+    pivot_wider(names_from = .data[[active_level]], values_from = log10_nt_rpm, id_cols = sample_id) %>%
+    pivot_longer(cols=-sample_id) %>%
+    left_join(clin.sample.event.individ %>% dplyr::select(sample_id, participant_id, event_type)) %>%
+    filter(event_type == "Visit 1") %>%
+    filter(participant_id %in% pc1_patients$participant_id) %>%
+    left_join(clin.individ) %>%
+    left_join(pc1_patients) %>%
+    mutate(value = ifelse(is.na(value), 0, value))
+  
+  tmp.out.p <- data.frame()
+  for(j in unique(nasal_metagenomics_counts_long$name)){
+    model.data <- nasal_metagenomics_counts_long %>%
+      filter(name == j) %>%
+      mutate(PC1.group = factor(PC1.group),
+             value = as.numeric(value), 
+             sex = as.factor(sex),
+             admit_age = as.numeric(admit_age),
+             trajectory_group = as.factor(trajectory_group),
+             enrollment_site = as.factor(enrollment_site))
+    
+    model_formula <- formula(paste0("value ~ PC1.group"))
+    fit <- try(lme(fixed = model_formula,
+                   random = ~1|enrollment_site, data = model.data), silent = T)
+    if(class(fit) == "try-error"){
+      next
+    }
+    
+    tmp.out.p <- rbind.data.frame(tmp.out.p, data.frame("Taxa" = j, 
+                                                        "adj.P" = anova(fit, type = "marginal")$`p-value`[2],
+                                                        "coefficient" = fit$coefficients$fixed[2],
+                                                        "Phylo_level" = active_level))
+  }
+  tmp.out.p$adj.P <- p.adjust(tmp.out.p$adj.P, "fdr")
+  out.p <- rbind.data.frame(out.p, tmp.out.p)
+  
+}
+out.p <- out.p[out.p$Taxa != "NA", ]
+out.p <- out.p %>%
+  arrange(adj.P)
+
+```
+
+```{r}
+library(treeio)
+library(ggtree)
+library(ade4)
+library(scales)
+library(RColorBrewer)
+library(ggnewscale)
+
+# Figure S14H Graph
+heatdf5 <- as.data.frame(out.p$coefficient)
+heatdf5$signed_log_10_p <- (heatdf5$`out.p$coefficient` / abs(heatdf5$`out.p$coefficient`)) * -log10(out.p$adj.P)
+heatdf5$`out.p$coefficient` <- ifelse(abs(heatdf5$signed_log_10_p) >= -log10(0.05), heatdf5$`out.p$coefficient`, 0)
+heatdf5$`out.p$coefficient` <- ifelse(abs(heatdf5$signed_log_10_p) >= -log10(0.05), heatdf5$signed_log_10_p, 0)
+rownames(heatdf5) <- paste0(out.p$Taxa, out.p$Phylo_level)
+
+qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
+col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+
+combine_low_taxa_into_other <- TRUE
+
+phylo_info <- read.csv("associated_files/assembled_phylo.csv") %>%
+  distinct() %>%
+  #select(-species) %>%
+  mutate(kingdom = ifelse(is.na(kingdom), superkingdom, kingdom)) %>%
+  mutate(tax_id = paste0("X", tax_id)) %>%
+  filter(!kingdom %in% c("Viridiplantae")) %>% ## Remove the few plant reads usually indicative of dietary contaminants (e.g. corn, etc.)
+  filter(superkingdom != "Eukaryota" | kingdom == "Fungi") %>%
+  filter(superkingdom %in% c("Eukaryota", "Viruses", "Bacteria", "Archaea")) %>%
+  dplyr::select(genus, family, order, class, phylum, superkingdom) %>%
+  na.omit %>%
+  mutate(genus = paste0(genus, "genus"),
+         family = paste0(family, "family"),
+         order = paste0(order, "order"),
+         class = paste0(class, "class"),
+         phylum = paste0(phylum, "phylum")) %>%
+  filter(genus %in% rownames(heatdf5)[!is.na(heatdf5$`out.p$coefficient`)]) %>%
+  column_to_rownames("genus") %>%
+  dplyr::select(family, order, class, phylum, superkingdom)
+
+phylogeny <- as.data.frame(lapply(phylo_info, as.factor), stringsAsFactors =TRUE)
+rownames(phylogeny) <- paste0(rownames(phylo_info))
+
+tmp <- taxo2phylog(as.taxo(phylogeny), root="Root", abbrev=FALSE)
+tax.phy <- as.phylo(tmp)
+
+ggtree1_cir <- ggtree(tax.phy,
+                      layout='fan',
+                      branch.length='none',
+                      size=0.1, open.angle = 20)
+ggtree1_cir
+
+circle_data <-  phylogeny %>%
+  rownames_to_column("genus_code") %>%
+  #mutate(genus_code = gsub(" ", "", genus_code)) %>%
+  left_join(heatdf5 %>% rownames_to_column("genus_code") ) %>%
+  left_join(heatdf5 %>% rownames_to_column("family") %>%
+              dplyr::rename("family_coefficient" = "out.p$coefficient") %>%
+              dplyr::select(-signed_log_10_p)) %>%
+  left_join(heatdf5 %>% rownames_to_column("order") %>%
+              dplyr::rename("order_coefficient" = "out.p$coefficient") %>%
+              dplyr::select(-signed_log_10_p)) %>%
+  left_join(heatdf5 %>% rownames_to_column("class") %>%
+              dplyr::rename("class_coefficient" = "out.p$coefficient") %>%
+              dplyr::select(-signed_log_10_p)) %>%
+  left_join(heatdf5 %>% rownames_to_column("phylum") %>%
+              dplyr::rename("phylum_coefficient" = "out.p$coefficient") %>%
+              dplyr::select(-signed_log_10_p)) %>%
+  mutate(genus_code = gsub(" ", "", genus_code)) %>%
+  column_to_rownames("genus_code") %>%
+  dplyr::select(`out.p$coefficient`, family_coefficient,
+         order_coefficient, class_coefficient, phylum_coefficient)
+
+p1 <- gheatmap(ggtree1_cir, circle_data, offset=0, width = 1.5,
+               colnames = F, color = NA, 
+               colnames_angle=90, colnames_offset_y = 0) +
+  scale_fill_gradient2(low = "#199D76", 
+                       mid = "#D3D3D3B2", 
+                       high = "#D95F02", 
+                       limits = c(-12, 12), oob = squish, name = "-log10 Adjusted\nP-value") +
+  guides(color=guide_legend(title="PC Group"))
+p1
+
+phylogenytmp <- phylogeny
+rownames(phylogenytmp) <- gsub(" ", "", rownames(phylogenytmp))
+
+if(combine_low_taxa_into_other){
+  low_freq_phylum <- as.data.frame(table(phylogenytmp$phylum)) %>%
+    filter(Freq <= 10)
+  phylogenytmp$phylum <- ifelse(phylogenytmp$phylum %in% low_freq_phylum$Var1,
+                                paste0("Other ",phylogenytmp$superkingdom ),
+                                as.character(phylogenytmp$phylum))
+}
+
+p2 <- p1 + new_scale_fill()
+p2 <- gheatmap(p2, phylogenytmp[,4,drop=FALSE], colnames = F, width = 0.15,
+               offset = 10, legend_title = "Phylum", color=NA) +
+  scale_fill_manual(values = col_vector)
+p3 <- p2 + new_scale_fill()
+p4 <- gheatmap(p3, phylogenytmp[,5,drop=FALSE], colnames = F, width = 0.15,
+               offset = 11, legend_title = "superkingdom", color=NA) +
+  scale_fill_manual(values = rev(col_vector))
+p4 + theme(legend.position = "none")
+p4 
+
+```
+

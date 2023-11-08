@@ -154,13 +154,13 @@ circos.heatmap(heat_circle_df, cluster = F, col = col_fun, split = split,
 circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
     if(CELL_META$sector.numeric.index == length(levels(split))) { # the last sector
         circos.rect(CELL_META$cell.xlim[2] + convert_x(1, "mm"), 0,
-                    CELL_META$cell.xlim[2] + convert_x(8.5, "mm"), 1,
+                    CELL_META$cell.xlim[2] + convert_x(8, "mm"), 1,
                     col = "#50A3A4", border = "black", cex = 0.35)
         circos.text(CELL_META$cell.xlim[2] + convert_x(4.5, "mm"), 0.5,
                     "PBMCs", cex = 0.3, facing = "clockwise")
 
         circos.rect(CELL_META$cell.xlim[2] + convert_x(1, "mm"), 1,
-                    CELL_META$cell.xlim[2] + convert_x(8.5, "mm"), 2,
+                    CELL_META$cell.xlim[2] + convert_x(8, "mm"), 2,
                     col = "#b4c540", border = "black", cex = 0.35)
         circos.text(CELL_META$cell.xlim[2] + convert_x(4.5, "mm"), 1.5,
                     "Nasal", cex = 0.3, facing = "clockwise")
@@ -174,7 +174,7 @@ circos.heatmap(heatdf1tmp %>% left_join(olink_data %>%
 circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
     if(CELL_META$sector.numeric.index == length(levels(split))) { # the last sector
         circos.rect(CELL_META$cell.xlim[2] + convert_x(0.75, "mm"), 0,
-                    CELL_META$cell.xlim[2] + convert_x(6, "mm"), 1,
+                    CELL_META$cell.xlim[2] + convert_x(5.5, "mm"), 1,
                     col = "#fcaf38", border = "black", cex = 0.35)
         circos.text(CELL_META$cell.xlim[2] + convert_x(3.25, "mm"), 0.5,
                     "Serum Olink", cex = 0.3, facing = "clockwise")
@@ -203,3 +203,35 @@ dev.off()
 
 ```
 
+## Figure S11
+```{r}
+
+## From the gene_set_functions.R sourced document
+signif <- pbmc_data[pbmc_data$adj.P.Val <= 0.05,]
+signif_olink <- olink_data[olink_data$adj.PVal <= 0.05,]
+top_mag <- signif_olink[order(abs(signif_olink$slope),decreasing = T)[1:10],]
+
+omnipath_connections <- omnipath_connection_pull(top_mag$cytokine, gr_network = FALSE, double_step = FALSE)
+
+
+igraph_node <- as.data.frame(cbind(nodes = unique(c(omnipath_connections$from, omnipath_connections$to))))
+igraph_node <- merge(igraph_node, signif, by.x = "nodes", by.y = "gene_name", all.x = T) #### Toggle all.x for keeping empty genes
+igraph_node <- merge(igraph_node, signif_olink, by.x = "nodes", by.y = "cytokine", all.x = T)
+igraph_node <- igraph_node[!is.na(igraph_node$logFC) | !is.na(igraph_node$slope), ]
+igraph_node$selection_slope <- ifelse(!is.na(igraph_node$slope), igraph_node$slope, igraph_node$logFC)
+igraph_node$selection_assay <- ifelse(!is.na(igraph_node$slope), "Olink", "PBMC_Trans")
+igraph_node$color <- ifelse(is.na(igraph_node$logFC), "white", ifelse(igraph_node$logFC > 0, "red", ifelse(igraph_node$logFC < 0, "blue", "white")))
+
+
+omnipath_connections <- omnipath_connections[omnipath_connections$from %in% igraph_node$nodes & omnipath_connections$to %in% igraph_node$nodes,]
+igraph_node <- igraph_node[igraph_node$nodes %in% c(omnipath_connections$from, omnipath_connections$to),]
+network <- graph_from_data_frame(d=as.data.frame(omnipath_connections),
+                                 vertices=igraph_node, directed=T)
+
+lay <- layout_nicely(network)
+plot(network, layout=lay, vertex.label.cex=0.5, vertex.size=9, vertex.label.color= "black",
+     edge.color=ifelse(E(network)$is_inhibition == 1, "blue", "red"),
+     edge.arrow.size=0.5)
+saveRDS(network, paste0(out_dir, "/S11_network.RDS"))
+
+```
