@@ -1,0 +1,751 @@
+---
+title: "Transplant Olink"
+output: html_document
+---
+
+Source: 20230413_olink.Rmd
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(gamm4)
+
+
+my.theme <- theme_classic() + 
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text = element_text(size=12, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm")
+  )
+
+```
+
+# Data import
+
+## Clinical metadata
+
+```{r}
+# Patient metadata
+clin.individ <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-locked.csv",
+  header = TRUE)
+
+# Sample
+clin.sample <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-sample-locked.csv",
+  header = TRUE)
+
+# Event
+clin.event <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-event-locked.csv",
+  header = TRUE)
+```
+
+Merge metadata
+
+```{r}
+# Combine sample and event metadata
+clin.sample.event <- merge(
+  clin.sample, clin.event,
+  by = "event_id",
+  all.x = TRUE, all.y = FALSE,
+  suffixes = c("",".y"),
+  sort = FALSE
+)
+
+# Add patient metadata
+clin.sample.event.individ <- merge(
+  clin.sample.event, clin.individ,
+  by = "participant_id", all = FALSE, sort = FALSE
+)
+```
+
+Manually correct some typos.
+
+```{r}
+# Correct the symptom_date of patient 008-0103: change from -376 to -13 (confirmed with data management team)
+clin.sample.event.individ[clin.sample.event.individ$participant_id=="008-0103","symptom_date"] <- -13
+
+# Correct event_date of 004-0012-8: change from 2 to 32 (it's 32 in 2021-11-11-frozen data)
+clin.sample.event.individ[clin.sample.event.individ$event_id=="004-0012-8","event_date"] <- 32
+```
+
+## Transplant metadata 
+
+264 patients included in transplant study (use new metadata table that Harry will share)
+
+```{r}
+transplant <- read.delim(
+  "/scratch/immunosuppression/2023.03.09_txcasecontrol.txt",
+  header = TRUE)
+newTG <- read.delim(
+  "/scratch/immunosuppression/2023.10.03_new_tgroups.txt",
+  header = TRUE)
+
+# Verify that the studyid in the two files are the same
+# They are not exactly the same. newTG probably excludes BMT patients
+stopifnot(newTG$studyid %in% transplant$studyid)
+
+# Merge new TG assignment
+transplant <- merge(
+  transplant, newTG,
+  by="studyid", all=FALSE
+)
+
+# What are the changes in TG?
+print(table(transplant$trajectory_group, transplant$newtg))
+
+# Format factor
+transplant$transplant_final <- as.factor(transplant$transplant_final)
+
+# How many patients are there?
+print(length(unique(transplant$studyid)))
+```
+
+Remove BMT patients and their controls.
+
+```{r}
+print(unique(transplant$organ_final))
+
+transplant <- transplant %>%
+  subset(!(studyid %in% c("002-0022","007-0008","001-0013","010-0009","004-0041","005-0047")))
+
+# How many patients remain?
+print(length(unique(transplant$studyid)))
+
+print(unique(transplant$organ_final))
+```
+
+Only keep transplant patients in the clinical metadata
+
+```{r}
+clin.sample.event.individ <- merge(
+  clin.sample.event.individ[,c("participant_id","event_id","sample_id","event_date","event_type","event_location","respiratory_status")], 
+  transplant,
+  by.x="participant_id", by.y="studyid",
+  all=FALSE
+)
+
+# How many patients are left?
+print(length(unique(clin.sample.event.individ$participant_id)))
+```
+
+## Import Olink data
+
+```{r}
+# Concentration
+# 3655 total samples
+olink <- read.csv(
+  # "/data/serum-olink/current/Olink-Counts.csv",
+  "/data/serum-olink/legacy/2023-01-06/Olink-Counts.csv",
+  header = TRUE, row.names = 1
+)
+olink <- t(olink)
+
+# Row data
+rData <- read.csv(
+  # "/data/serum-olink/current/Olink-RowFeature.csv",
+  "/data/serum-olink/legacy/2023-01-06/Olink-RowFeature.csv",
+  header = TRUE, row.names = 3
+)
+stopifnot(rownames(olink) == rownames(rData))
+
+# Olink metadata
+olink.metadata <- read.csv(
+  # "/data/serum-olink/current/Olink-Metadata.csv",
+  "/data/serum-olink/legacy/2023-01-06/Olink-Metadata.csv",
+  header = TRUE, row.names = NULL
+)
+```
+
+The code below checks for mismatch in the sample_id, which was fixed on 10/17/2023
+
+```{r}
+# Check if there are mismatches between olink and olink.metadata
+# If there are no mismatch, throw an error (to check if mismatches have been fixed)
+# stopifnot(!all(colnames(olink) == olink.metadata$sample_id))
+
+# Export mismatch between olink and olink.metadata
+# write.csv(as.data.frame(
+#   colnames(olink)[!(colnames(olink) %in% olink.metadata$sample_id)]),
+#   "serum-olink_2023-01-06_sample_id_in-counts_not-in-metadata.csv"
+# )
+# write.csv(as.data.frame(
+#   olink.metadata[!(olink.metadata$sample_id %in% colnames(olink)),"sample_id"]),
+#   "serum-olink_2023-01-06_sample_id_in-metadata_not-in-counts.csv"
+# )
+```
+
+
+```{r}
+# Only keep samples that pass QC (3474 samples)
+olink.metadata <- subset(olink.metadata, sample_status=="IMPACC sample assayed and passed QC")
+clin.sample.event.individ <- clin.sample.event.individ %>%
+  subset(sample_id %in% olink.metadata$sample_id)
+```
+
+```{r}
+# Filter Olink data to samples of interest
+olink <- olink[,clin.sample.event.individ$sample_id] # 787 samples
+```
+
+```{r}
+# Set concentrations below LOD to 0
+lod <- replicate(ncol(olink), rData$LOD)
+olink[olink < lod] <- 0
+
+# Only keep cytokines detected in at least 20% of the samples (84/92 cytokines)
+olink <- olink[rowSums(olink>0, na.rm = TRUE) >= 0.2*ncol(olink),]
+
+# # Assume NA samples as 0
+# olink[is.na(olink)] <- 0
+```
+
+## Import viral load data
+
+```{r}
+# mNGS metadata
+mngs.metadata <- read.csv(
+  # "/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv",
+  "/data/nasal-metagenomics/legacy/2022-09-03/nasal-metagenomics-Metadata.csv",
+  header = TRUE, row.names = NULL,
+  check.names = FALSE
+)
+
+mngs.metadata <- mngs.metadata %>%
+  filter(!is.na(sc2_rpm))
+
+# mNGS QC
+mngs.metadata <- mngs.metadata %>%
+  filter(sample_status == "IMPACC sample assayed and passed QC")
+```
+
+```{r}
+# Reformat visit_num: decapitalize "VISIT"
+mngs.metadata$visit_num <- gsub(
+  "^VISIT", "Visit", mngs.metadata$visit_num
+)
+
+# Merge with sample metadata
+clin.sample.event.individ <- merge(
+  clin.sample.event.individ, mngs.metadata[,c("participant_id","visit_num","sc2_rpm")],
+  by.x=c("participant_id","event_type"), by.y=c("participant_id","visit_num"),
+  all.x=TRUE, all.y=FALSE # keep samples that don't pass SARS-CoV-2 metatranscriptomics QC
+  # all=FALSE # discard samples that don't pass SARS-CoV-2 metatranscriptomics QC <<< do NOT do this
+)
+
+# log-transform viral load
+clin.sample.event.individ$sc2_rpm_log10 <- log10(clin.sample.event.individ$sc2_rpm+1)
+```
+
+# Analysis: Visit 1 only
+
+```{r}
+# Sample metadata (241 samples out of 258 patients)
+clin.sample.event.individ.visit1 <- clin.sample.event.individ %>%
+  subset(event_type == "Visit 1")
+
+# Remove sample "0865-002K3G00-002", because the vast majority of its cytokines are 0
+clin.sample.event.individ.visit1 <- clin.sample.event.individ.visit1 %>%
+  subset(sample_id != "0865-002K3G00-002")
+
+# Subset olink data
+olink.visit1 <- olink[,clin.sample.event.individ.visit1$sample_id]
+
+# Scale protein concentration
+# olink.visit1 <- t(scale(t(olink.visit1)))
+olink.visit1 <- t(apply(
+  olink.visit1, MARGIN=1, FUN = function(x)
+    (x-mean(x, na.rm=TRUE))/sd(x, na.rm=TRUE)
+))
+```
+
+```{r}
+# #For plotting use this instead
+# olink_visit1_plot <- t(olink_visit1)
+# 
+# #Merge with sample metadata for plotting
+# library(tibble)
+# 
+# olink_visit1_plot <- rownames_to_column(as.data.frame(olink_visit1_plot), "sample_id")
+# olink_visit1_merged <- merge(olink_visit1_plot, visit1, by = "sample_id")
+```
+
+## Linear regression: no covariates
+
+```{r}
+# Set up table for storing results
+res <- data.frame(matrix(NA, nrow=nrow(olink.visit1), ncol=4))
+colnames(res) <- c("cytokine","slope","PVal","adj.PVal")
+rownames(res) <- rownames(olink.visit1)
+res$cytokine <- rownames(res)
+
+# Linear regression 
+for (i in rownames(res)) {
+  temp <- data.frame(conc=olink.visit1[i,], 
+                     transplant=clin.sample.event.individ.visit1$transplant_final,
+                     steroids=clin.sample.event.individ.visit1$steroids,
+                     sc2=clin.sample.event.individ.visit1$sc2_rpm_log10) %>%
+    subset(!is.na(conc)) # don't need to subset for viral rpM here
+  
+  my.lm <- lm(conc ~ transplant, data=temp)
+  res[i,"slope"] <- summary(my.lm)$coefficients["transplant1",1]
+  res[i,"PVal"] <- summary(my.lm)$coefficients["transplant1",4]
+  remove(temp, my.lm)
+}
+
+# Correct P-values
+res$adj.PVal <- p.adjust(res$PVal, method = "BH")
+```
+
+### Plot significant cytokines
+
+```{r}
+p1 <- ggplot(data=subset(res, adj.PVal<0.05),
+             aes(x=slope, y=reorder(cytokine,slope))) +
+  geom_col(aes(fill=as.factor(slope>0)), width=0.6) +
+  geom_vline(xintercept=0, linewidth=0.5, color="black") +
+  labs(x="Change in\nprotein expression", y="",
+       title="Differentially expressed\nproteins at Visit 1") +
+  scale_x_continuous(limits=c(-1,1), expand=c(0,0)) +
+  scale_fill_manual(values=c("TRUE"="orange","FALSE"="cornflowerblue"),
+                    guide="none") +
+  theme_bw() + theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    # axis.text.x = element_text(size=11, color="black"),
+    # axis.text.y = element_text(size=10, color="black"),
+    axis.text = element_text(size=11, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm"),
+    panel.grid.minor=element_blank()
+  ) # olink_visit1_significant_no-viralload.pdf, 3.6 x 5.5 in
+```
+
+## Linear regression: control for viral load
+
+```{r}
+# Set up table for storing results
+res.sc2 <- data.frame(matrix(NA, nrow=nrow(olink.visit1), ncol=4))
+colnames(res.sc2) <- c("cytokine","slope","PVal","adj.PVal")
+rownames(res.sc2) <- rownames(olink.visit1)
+res.sc2$cytokine <- rownames(res.sc2)
+
+# Linear regression 
+for (i in rownames(res.sc2)) {
+  temp <- data.frame(conc=olink.visit1[i,], 
+                     transplant=clin.sample.event.individ.visit1$transplant_final,
+                     steroids=clin.sample.event.individ.visit1$steroids,
+                     sc2=clin.sample.event.individ.visit1$sc2_rpm_log10) %>%
+    subset(!is.na(conc) & !is.na(sc2))
+  
+  my.lm <- lm(conc ~ transplant + sc2, data=temp)
+  res.sc2[i,"slope"] <- summary(my.lm)$coefficients["transplant1",1]
+  res.sc2[i,"PVal"] <- summary(my.lm)$coefficients["transplant1",4]
+  remove(temp, my.lm)
+}
+
+# Correct P-values
+res.sc2$adj.PVal <- p.adjust(res.sc2$PVal, method = "BH")
+```
+
+## Plot significant cytokines from both analyses
+
+```{r}
+my.cytokines <- union(
+  subset(res, adj.PVal<0.05)$cytokine,
+  subset(res.sc2, adj.PVal<0.05)$cytokine
+)
+
+res.both <- rbind(
+  res[my.cytokines,] %>% mutate(control="No"),
+  res.sc2[my.cytokines,] %>% mutate(control="Yes")
+)
+```
+
+Plot both
+
+```{r}
+p2 <- ggplot(data=res.both,
+       aes(x=slope, y=reorder(cytokine, slope, FUN = function(x) x[1]))) +
+  geom_col(aes(color=as.factor(slope>0)), fill="white", width=0.6) +
+  geom_col(
+    data=. %>% subset(adj.PVal<0.05),
+    aes(fill=as.factor(slope>0)), width=0.6) +
+  geom_vline(xintercept=0, linewidth=0.4, color="black") +
+  geom_text(
+    data=. %>% subset(slope>0),
+    aes(x=0,label=sprintf("P = %.1e", adj.PVal)), 
+    hjust=1.06, size=3) +
+  geom_text(
+    data=. %>% subset(slope<0),
+    aes(x=0, label=sprintf("P = %.1e", adj.PVal)),
+    hjust=-0.06, size=3) +
+  labs(x="Increase in protein expression", y="",
+       title="Differential protein expression at Visit 1") +
+  scale_x_continuous(
+    limits=c(-1,1), expand=c(0,0)) +
+  scale_color_manual(values=c("TRUE"="orange","FALSE"="cornflowerblue"),
+                    guide="none") +
+  scale_fill_manual(values=c("TRUE"="orange","FALSE"="cornflowerblue"),
+                    guide="none") +
+  facet_wrap(~ control) +
+  theme_bw() + theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text.x = element_text(size=11, color="black"),
+    axis.text.y = element_text(size=11, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm"),
+    panel.grid.minor=element_blank(),
+    # panel.grid.major.y = element_blank(),
+    panel.spacing = unit(0.9, "cm"),
+  ) # olink_visit1_significant_yes-vs-no-viralload.pdf, 6.1 x 5.8 in
+```
+
+### Plot example cytokines
+
+```{r}
+p <- list()
+for (i in c("CX3CL1","IFNG")) {
+  set.seed(0) # for geom_jitter
+  
+  temp <- data.frame(conc=olink.visit1[i,], 
+                     transplant=clin.sample.event.individ.visit1$transplant_final,
+                     steroids=clin.sample.event.individ.visit1$steroids,
+                     sc2=clin.sample.event.individ.visit1$sc2_rpm_log10) %>%
+    subset(!is.na(conc))
+  
+  p[[i]] <- ggplot(data=temp, aes(x=transplant, y=conc)) +
+    stat_boxplot(aes(color=transplant),
+                 geom="errorbar", width=0.3) +
+    geom_boxplot(aes(color=transplant), fill="white",
+                 outlier.shape=NA, width=0.55) +
+    # geom_jitter(width=0.15, size=0.6) +
+    ggbeeswarm::geom_quasirandom(
+      aes(color=transplant),
+      size=0.6, width=0.3) +
+    scale_color_manual(values=c("1"="orange","0"="cornflowerblue"),
+                       guide="none") +
+    scale_x_discrete(labels=c("Control","Transplant")) +
+    labs(x="", y="Protein expression", title=i) + 
+    my.theme
+}
+
+p[[1]]+p[[2]] + plot_layout(nrow=1) # olink_visit1_significant_examples.pdf, 5.6w x 3.2h in
+```
+
+## Compare trajectory groups
+
+```{r}
+# Trajectory groups 1-3 (FALSE) vs 4-5 (TRUE)
+# clin.sample.event.individ.visit1$tg45 <- as.factor(clin.sample.event.individ.visit1$trajectory_group>=4)
+clin.sample.event.individ.visit1$tg45 <- as.factor(clin.sample.event.individ.visit1$newtg>=4) # updated TG
+```
+
+### Stratified by control/transplant
+
+```{r}
+# Compare TG45 vs TG13 in each of control and transplant groups
+res.tg <- list(
+  ctrl=data.frame(matrix(NA, nrow=nrow(olink.visit1), ncol=4)),
+  tx=data.frame(matrix(NA, nrow=nrow(olink.visit1), ncol=4))
+)
+for (i in names(res.tg)) {
+  colnames(res.tg[[i]]) <- c("cytokine","slope","PVal","adj.PVal")
+  rownames(res.tg[[i]]) <- rownames(olink.visit1)
+  res.tg[[i]]$cytokine <- rownames(res.tg[[i]])
+}
+
+# Linear regression 
+for (i in rownames(olink.visit1)) { # rownames(res.tg)
+  temp <- data.frame(conc=olink.visit1[i,], 
+                     transplant=clin.sample.event.individ.visit1$transplant_final,
+                     tg=clin.sample.event.individ.visit1$tg45) %>%
+    subset(!is.na(conc))
+  
+  my.lm <- lm(conc ~ transplant + transplant:tg, data=temp)
+  res.tg[["ctrl"]][i,"slope"] <- summary(my.lm)$coefficients["transplant0:tgTRUE",1]
+  res.tg[["ctrl"]][i,"PVal"] <- summary(my.lm)$coefficients["transplant0:tgTRUE",4]
+  res.tg[["tx"]][i,"slope"] <- summary(my.lm)$coefficients["transplant1:tgTRUE",1]
+  res.tg[["tx"]][i,"PVal"] <- summary(my.lm)$coefficients["transplant1:tgTRUE",4]
+  # remove(temp, my.lm)
+}
+
+# Correct P-values
+res.tg[["ctrl"]]$adj.PVal <- p.adjust(res.tg[["ctrl"]]$PVal, method="BH")
+res.tg[["tx"]]$adj.PVal <- p.adjust(res.tg[["tx"]]$PVal, method="BH")
+```
+
+Plot cytokines significant in at least one group
+
+```{r}
+# Prepare data frame to plot
+my.cytokines <- union(
+  res.tg[["ctrl"]][res.tg[["ctrl"]]$adj.PVal<0.05,"cytokine"],
+  res.tg[["tx"]][res.tg[["tx"]]$adj.PVal<0.05,"cytokine"]
+)
+res.toplot <- rbind(
+  res.tg[["ctrl"]][my.cytokines,] %>% mutate(group="Control"),
+  res.tg[["tx"]][my.cytokines,] %>% mutate(group="Transplant")
+)
+
+# Plot
+p1 <- ggplot(data=res.toplot, 
+             aes(x=group, y=reorder(cytokine,slope,FUN=function(x) x[1]))) +
+  geom_point(aes(color=slope), shape=1, size=2.4, stroke=1.2) +
+  geom_point(data=. %>% subset(adj.PVal < 0.05), 
+             aes(color=slope),
+             shape=19, size=2.4) +
+  geom_hline(yintercept=seq.int(2,length(my.cytokines))-0.5,
+             linewidth=0.4, linetype="dotted", color="grey") +
+  scale_color_gradientn(
+    colors=c("limegreen","#f7f7f7","coral2"),
+    limits=c(-1.1,1.1),
+    breaks=c(-1,0,1), 
+    name="") +
+  labs(x="", y="", title="Proteins associated with\nseverity at Visit 1") +
+  theme_bw() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text.x = element_text(size=12, color="black", angle=35, hjust=1),
+    axis.text.y = element_text(size=11, color="black"),
+    text = element_text(size=12, family="Arial"),
+    axis.ticks.y=element_blank(),
+    plot.margin = unit(c(0,1,1,0), "cm"),
+    panel.grid=element_blank()
+  ) # olink_visit1_TG.pdf, 3.6w x 7.8h in
+```
+
+# Longitudinal analysis 
+
+```{r}
+#Sample metadata (659 samples)
+clin.sample.event.individ.long <- clin.sample.event.individ %>%
+  subset(event_type %in% c("Visit 1", "Visit 2", "Visit 3", "Visit 4", "Visit 5", "Visit 6"))
+
+# Remove sample "0865-002K3G00-002", because the vast majority of its cytokines are 0
+clin.sample.event.individ.long <- clin.sample.event.individ.long %>%
+  subset(sample_id != "0865-002K3G00-002")
+
+# Try restricting to 30 days post admission
+clin.sample.event.individ.long <- clin.sample.event.individ.long %>%
+  subset(event_date <= 30)
+
+olink.long <- olink[,clin.sample.event.individ.long$sample_id]
+
+# Scale protein concentration
+olink.long <- t(apply(
+  olink.long, MARGIN=1, FUN = function(x)
+    (x-mean(x, na.rm=TRUE))/sd(x, na.rm=TRUE)
+))
+
+```
+
+## Linear mixed effects model
+
+```{r}
+res.long <- data.frame(matrix(NA, nrow=nrow(olink.long), ncol=4))
+colnames(res.long) <- c("cytokine","interaction.slope","PVal","adj.PVal")
+res.long$cytokine <- rownames(olink.long)
+rownames(res.long) <- rownames(olink.long)
+
+for (i in rownames(res.long)) {
+  temp <- data.frame(
+    value = olink.long[i,],
+    event_date = clin.sample.event.individ.long$event_date,
+    transplant = clin.sample.event.individ.long$transplant_final,
+    pid = clin.sample.event.individ.long$participant_id
+  ) %>%
+    subset(!is.na(value))
+  
+  temp <- droplevels(temp)
+
+  fit1 <- lmer(
+      value ~ event_date + transplant + (1|pid), 
+      data = temp, REML = FALSE)
+   
+  fit2 <- lmer(
+    value ~ event_date + transplant + event_date:transplant + (1|pid),
+    data = temp, REML = FALSE)
+
+  aa <- anova(fit1, fit2, test = "LRT")
+  res.long[i,"PVal"] <- aa[2,"Pr(>Chisq)"]
+  res.long[i,"interaction.slope"] <- coef(summary(fit2))["event_date:transplant1","Estimate"]
+}
+
+# Correct P-values
+res.long$adj.PVal <- p.adjust(res.long$PVal, method = "BH")
+```
+
+```{r}
+subset(res.long, adj.PVal<0.05)
+```
+
+## Plotting longitudinal data
+
+```{r}
+i <- "CXCL11"
+temp <- data.frame(
+    value = olink.long[i,],
+    event_date = clin.sample.event.individ.long$event_date,
+    transplant = clin.sample.event.individ.long$transplant_final,
+    pid = clin.sample.event.individ.long$participant_id
+  ) %>%
+    subset(!is.na(value))
+
+# Rename transplant levels
+levels(temp$transplant) <- c("Control","Transplant")
+
+# Predict
+fit <- lmer(
+      value ~ event_date + transplant + event_date:transplant + (1|pid), 
+      data = temp, REML = FALSE)
+  
+my.pred <- ggeffects::ggpredict(fit, terms=c("event_date","transplant"),
+                                type="fixed")
+
+colnames(my.pred)[colnames(my.pred)=="group"] <- "transplant"
+
+temp$yhat <- predict(fit)
+
+p1 <- ggplot(data = temp, aes(x=event_date, y=value)) +
+  geom_line(aes(group=pid), color="gray", alpha=0.4) +
+  geom_point(color="black", shape=19, size=0.4, alpha=0.8) +
+  geom_line(inherit.aes=FALSE, data=my.pred, 
+            aes(x,predicted, color=transplant),
+            linewidth=1.5) +
+  geom_ribbon(inherit.aes=FALSE, data=my.pred,
+              aes(x=x, y=predicted,
+                  ymin=conf.low, ymax=conf.high,
+                  fill=transplant),
+              alpha=0.4) +
+  labs(x="Days from admission", 
+       y="Protein expression",
+       title=i) +
+  scale_color_manual(values=c("cornflowerblue", "orange"),
+                     guide="none") +
+  scale_fill_manual(values=c("cornflowerblue", "orange"),
+                     guide="none") +
+  facet_wrap(~ transplant, nrow=1) + theme_bw() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text.x = element_text(size=12, color="black"),
+    axis.text.y = element_text(size=12, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,0.7,0), "cm"),
+    panel.spacing = unit(0.5, "cm"),
+    panel.grid.minor=element_blank()
+  ) # olink_longitudinal_CXCL11.pdf, 5.4w x 3.2h in
+```
+
+# Longitudinal analysis: control for viral load
+
+## Linear mixed effects model
+
+```{r}
+res.long.2 <- data.frame(matrix(NA, nrow=nrow(olink.long), ncol=4))
+colnames(res.long.2) <- c("cytokine","interaction.slope","PVal","adj.PVal")
+res.long.2$cytokine <- rownames(olink.long)
+rownames(res.long.2) <- rownames(olink.long)
+
+for (i in rownames(res.long.2)) {
+  temp <- data.frame(
+    value = olink.long[i,],
+    event_date = clin.sample.event.individ.long$event_date,
+    transplant = clin.sample.event.individ.long$transplant_final,
+    sc2 = clin.sample.event.individ.long$sc2_rpm_log10,
+    pid = clin.sample.event.individ.long$participant_id
+  ) %>%
+    subset(!is.na(value) & !is.na(sc2))
+  
+  temp <- droplevels(temp)
+
+  fit1 <- lmer(
+      value ~ event_date + transplant + sc2 + (1|pid), 
+      data = temp, REML = FALSE)
+   
+  fit2 <- lmer(
+    value ~ event_date + transplant + event_date:transplant + sc2 + (1|pid),
+    data = temp, REML = FALSE)
+
+  aa <- anova(fit1, fit2, test = "LRT")
+  res.long.2[i,"PVal"] <- aa[2,"Pr(>Chisq)"]
+  res.long.2[i,"interaction.slope"] <- coef(summary(fit2))["event_date:transplant1","Estimate"]
+}
+
+# Correct P-values
+res.long.2$adj.PVal <- p.adjust(res.long.2$PVal, method = "BH")
+```
+
+Which proteins are significant?
+
+```{r}
+subset(res.long.2, adj.PVal<0.05)
+```
+
+## Plotting longitudinal data
+
+```{r}
+p <- list()
+for (i in c("CXCL11","CCL3","CCL4","IL22RA1")) {
+  temp <- data.frame(
+    value = olink.long[i,],
+    event_date = clin.sample.event.individ.long$event_date,
+    transplant = clin.sample.event.individ.long$transplant_final,
+    sc2 = clin.sample.event.individ.long$sc2_rpm_log10,
+    pid = clin.sample.event.individ.long$participant_id
+  ) %>%
+    subset(!is.na(value) & !is.na(sc2))
+
+  # Rename transplant levels
+  levels(temp$transplant) <- c("Control","Transplant")
+  
+  # Predict
+  fit <- lmer(
+        value ~ event_date + transplant + event_date:transplant + sc2 + (1|pid), 
+        data = temp, REML = FALSE)
+    
+  my.pred <- ggeffects::ggpredict(fit, terms=c("event_date","transplant"),
+                                  type="fixed")
+  
+  colnames(my.pred)[colnames(my.pred)=="group"] <- "transplant"
+  
+  temp$yhat <- predict(fit)
+  
+  p[[i]] <- ggplot(data = temp, aes(x=event_date, y=value)) +
+    geom_line(aes(group=pid), color="gray", alpha=0.4) +
+    geom_point(color="black", shape=19, size=0.4, alpha=0.8) +
+    geom_line(inherit.aes=FALSE, data=my.pred, 
+              aes(x,predicted, color=transplant),
+              linewidth=1.5) +
+    geom_ribbon(inherit.aes=FALSE, data=my.pred,
+                aes(x=x, y=predicted,
+                    ymin=conf.low, ymax=conf.high,
+                    fill=transplant),
+                alpha=0.4) +
+    labs(x="Days from admission", 
+         y="Protein expression",
+         title=i) +
+    scale_color_manual(values=c("cornflowerblue", "orange"),
+                       guide="none") +
+    scale_fill_manual(values=c("cornflowerblue", "orange"),
+                       guide="none") +
+    facet_wrap(~ transplant, nrow=1) + theme_bw() +
+    theme(
+      plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+      axis.text.x = element_text(size=12, color="black"),
+      axis.text.y = element_text(size=12, color="black"),
+      text = element_text(size=12, family="Arial"),
+      plot.margin = unit(c(0,1,0.7,0), "cm"),
+      panel.spacing = unit(0.5, "cm"),
+      panel.grid.minor=element_blank()
+    )
+}
+p[[1]] + p[[2]] + 
+  p[[3]] + p[[4]] + plot_layout(ncol=2) # olink_longitudinal_examples_viralload.pdf, 10w x 6.4h in
+```

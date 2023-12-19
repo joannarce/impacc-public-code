@@ -1,0 +1,395 @@
+---
+title: "nasal_viral_load"
+output: html_document
+---
+
+Source: 20230411_viral_load.Rmd
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(gamm4)
+
+my.theme <- theme_classic() + 
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text = element_text(size=12, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm")
+  )
+```
+
+# Data import
+
+## Clinical metadata
+
+```{r}
+# Patient metadata
+clin.individ <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-locked.csv",
+  header = TRUE)
+
+# Sample
+clin.sample <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-sample-locked.csv",
+  header = TRUE)
+
+# Event
+clin.event <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-event-locked.csv",
+  header = TRUE)
+```
+
+Merge metadata
+
+```{r}
+# Combine sample and event metadata
+clin.sample.event <- merge(
+  clin.sample, clin.event,
+  by = "event_id",
+  all.x = TRUE, all.y = FALSE,
+  suffixes = c("",".y"),
+  sort = FALSE
+)
+
+# Add patient metadata
+clin.sample.event.individ <- merge(
+  clin.sample.event, clin.individ,
+  by = "participant_id", all = FALSE, sort = FALSE
+)
+```
+
+Manually correct some typos.
+
+```{r}
+# Correct the symptom_date of patient 008-0103: change from -376 to -13 (confirmed with data management team)
+clin.sample.event.individ[clin.sample.event.individ$participant_id=="008-0103","symptom_date"] <- -13
+
+# Correct event_type of 004-0012-8: change from 2 to 32 (it's 32 in 2021-11-11-frozen data)
+clin.sample.event.individ[clin.sample.event.individ$event_id=="004-0012-8","event_date"] <- 32
+```
+
+## Transplant metadata 
+
+264 patients included in transplant study.
+
+```{r}
+transplant <- read.delim(
+  "/scratch/immunosuppression/2023.03.09_txcasecontrol.txt",
+  header = TRUE)
+
+# Format factor
+transplant$transplant_final <- as.factor(transplant$transplant_final)
+
+# How many patients are there?
+print(length(unique(transplant$studyid)))
+```
+
+Remove BMT patients and their controls.
+
+```{r}
+print(unique(transplant$organ_final))
+
+transplant <- transplant %>%
+  subset(!(studyid %in% c("002-0022","007-0008","001-0013","010-0009","004-0041","005-0047")))
+
+# How many patients remain?
+print(length(unique(transplant$studyid)))
+
+print(unique(transplant$organ_final))
+```
+
+Only keep transplant patients in the clinical metadata
+
+```{r}
+clin.sample.event.individ <- merge(
+  clin.sample.event.individ[,c("participant_id","event_id","sample_id","event_date","event_type","event_location","respiratory_status")], 
+  transplant,
+  by.x="participant_id", by.y="studyid",
+  all=FALSE
+)
+
+# How many patients are left?
+print(length(unique(clin.sample.event.individ$participant_id)))
+```
+
+## Viral load data
+
+```{r}
+# mNGS metadata
+mngs.metadata <- read.csv(
+  "/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv",
+  header = TRUE, row.names = NULL,
+  check.names = FALSE
+)
+
+mngs.metadata <- mngs.metadata %>%
+  subset(!is.na(sc2_rpm))
+```
+
+Only keep samples that pass QC, and merge with metadata 
+
+```{r}
+# mNGS QC
+mngs.metadata <- mngs.metadata %>%
+  filter(sample_status == "IMPACC sample assayed and passed QC")
+
+# Add viral load to sample metadata
+clin.sample.event.individ <- merge(
+  clin.sample.event.individ, mngs.metadata[,c("sample_id","sc2_rpm")],
+  by="sample_id", all.x=FALSE, all.y=FALSE, sort=FALSE
+)
+
+# How many samples are left
+print(nrow(clin.sample.event.individ))
+```
+
+Log-transform viral load
+
+```{r}
+# Convert viral load to log10(rpm + 1)
+clin.sample.event.individ$sc2_rpm_log10 <- log10(clin.sample.event.individ$sc2_rpm + 1)
+
+# Any row with no sc2_rpm?
+print(any(is.na(clin.sample.event.individ$sc2_rpm)))
+
+# Any duplicated samples?
+print(any(duplicated(clin.sample.event.individ$event_id)))
+```
+
+Filter for only samples at Visits 1-6
+
+```{r}
+clin.sample.event.individ <- clin.sample.event.individ %>%
+        filter(!event_type %in% c("Escalation 1", "Escalation 2", NA))
+
+print(table(clin.sample.event.individ$event_type))
+```
+
+## qPCR data
+
+```{r}
+# qPCR data
+pcr <- read.csv(
+  "/data/nasal-viralload/current/nasal-viralload-Counts.csv",
+  header=TRUE, row.names=NULL,
+  check.names=FALSE
+)
+
+pcr.metadata <- read.csv(
+ "/data/nasal-viralload/current/nasal-viralload-Metadata.csv",
+ header=TRUE, row.names=NULL,
+ check.names=FALSE
+)
+```
+
+```{r}
+# qPCR QC
+pcr.metadata <- subset(pcr.metadata,
+                       sample_status=="IMPACC sample assayed and passed QC")
+pcr <- subset(pcr, (sample_id %in% pcr.metadata$sample_id) &
+                !is.na(N1_CT) & !is.na(N2_CT))
+
+# Merge with clinical metadata
+clin.sample.event.individ.pcr <- merge(
+  clin.sample.event.individ, pcr[,c("sample_id","N1_CT","N2_CT")],
+  by="sample_id", all=FALSE, sort=FALSE
+)
+```
+
+# Visit 1 analysis
+
+Filter for Visit 1 samples only
+
+```{r}
+# Keep visit 1 samples
+clin.sample.event.individ.visit1 <- clin.sample.event.individ %>%
+  subset(event_type=="Visit 1")
+
+# Check numbers
+sum(clin.sample.event.individ.visit1$transplant_final == 0)
+sum(clin.sample.event.individ.visit1$transplant_final == 1)
+```
+
+## Plot transplant vs viral load at visit 1 
+
+```{r}
+set.seed(0)
+p <- ggplot(data=clin.sample.event.individ.visit1,
+       aes(x=transplant_final, y=sc2_rpm_log10, color=transplant_final)) + 
+  stat_boxplot(geom="errorbar", width=0.3) +
+  geom_boxplot(fill="white", outlier.shape=NA, width=0.55) + 
+  ggbeeswarm::geom_quasirandom(size=0.6, width=0.3) +
+  scale_color_manual(values=c("0"="cornflowerblue", "1"="orange"), guide="none") +
+  scale_x_discrete(labels=c("Control","Transplant")) +
+  scale_y_continuous(limits=c(-0.2,6), expand=c(0,0)) +
+  labs(x="", y="Viral load - log10(rpM)",
+       title="SARS-CoV-2 viral load\nat Visit 1") +
+  my.theme # viralload_visit1.pdf, 3 x 3.5 in
+```
+
+Calculate P-value with linear regression
+
+```{r}
+my.lm <- lm(sc2_rpm_log10 ~ transplant_final, data=clin.sample.event.individ.visit1)
+summary(my.lm)
+```
+
+## Plot viral load vs tranplant types
+
+```{r}
+# Extract transplant patients
+my.transplant <- clin.sample.event.individ.visit1 %>%
+  subset(transplant_final == 1)
+
+# Get transplant types
+my.transplant <- my.transplant %>%
+  mutate(organ = case_when(
+    (organ_final == "kidney/heart") ~ "Heart",
+    (organ_final == "liver/kidney") ~ "Liver", 
+    (organ_final == "kidney") ~ "Kidney",
+    (organ_final == "heart") ~ "Heart",
+    (organ_final == "liver") ~ "Liver",
+    (organ_final == "lung") ~ "Lung"
+  )
+  )
+
+```
+
+Plot.
+
+```{r}
+p1 <- ggplot(data=my.transplant,
+             aes(x=organ, y=sc2_rpm_log10)) +
+  stat_boxplot(geom="errorbar", width=0.3, color="orange") +
+  geom_boxplot(fill="white", outlier.shape=NA, width=0.55, color="orange") + 
+  ggbeeswarm::geom_quasirandom(
+    size=0.6, width=0.3,
+    color="orange") +
+  # scale_color_manual(values=c("0"="cornflowerblue", "1"="orange"), guide="none") +
+  # scale_x_discrete(labels=c("Control","Transplant")) +
+  scale_y_continuous(limits=c(-0.2,6), expand=c(0,0)) +
+  labs(x="Transplant organ", y="Viral load - log10(rpM)",
+       title="SARS-CoV-2 viral load\nat Visit 1") +
+  my.theme # viralload_organ_visit1.pdf, 3.5 x 3.51 in
+```
+
+Calculate P-value
+
+```{r}
+my.lm1 <- lm(sc2_rpm_log10 ~ organ, data=my.transplant)
+my.lm2 <- lm(sc2_rpm_log10 ~ 1, data=my.transplant)
+print(anova(my.lm2, my.lm1, test="LRT"))
+```
+
+## Compare rpM vs qPCR Ct
+
+```{r}
+# Add qPCR data
+clin.sample.event.individ.visit1 <- merge(
+  clin.sample.event.individ.visit1, clin.sample.event.individ.pcr[,c("event_id","N1_CT","N2_CT")],
+  by="event_id", all=FALSE, sort=FALSE
+)
+```
+
+```{r}
+p1 <- ggplot(data=clin.sample.event.individ.visit1,
+             aes(x=N1_CT, y=sc2_rpm_log10,
+                 color=transplant_final)) +
+  geom_point(size=1) +
+  scale_color_manual(values=c("1"="orange","0"="cornflowerblue"),
+                    guide="none") +
+  labs(x="qPCR (N1 CT)", y="Metatranscriptomics\n(log-transformed rpM)") +
+  my.theme
+
+p2 <- ggplot(data=clin.sample.event.individ.visit1,
+             aes(x=N2_CT, y=sc2_rpm_log10,
+                 color=transplant_final)) +
+  geom_point(size=1) +
+  scale_color_manual(values=c("1"="orange","0"="cornflowerblue"),
+                    guide="none") +
+  labs(x="qPCR (N2 CT)", y="Metatranscriptomics\n(log-transformed rpM)") +
+  my.theme
+
+p1 + p2 + plot_layout(nrow=1) # viralload_mngs-vs-qpcr.pdf, 6 x 3 in
+```
+
+```{r}
+print(cor.test(
+  clin.sample.event.individ.visit1$N1_CT, clin.sample.event.individ.visit1$sc2_rpm_log10
+))
+
+print(cor.test(
+  clin.sample.event.individ.visit1$N2_CT, clin.sample.event.individ.visit1$sc2_rpm_log10
+))
+```
+
+# Longitudinal analysis
+
+```{r}
+# Cut off data at 30 days
+clin.sample.event.individ.long <- clin.sample.event.individ %>%
+  subset(event_date<=30)
+```
+
+## GAMM: Using days from admission
+
+```{r}
+temp <- clin.sample.event.individ.long[,c("sc2_rpm_log10","event_date","transplant_final","participant_id")]
+temp$transplant_final <- ordered(temp$transplant_final) # convert to ordered factor
+
+fit <- gamm4(
+  sc2_rpm_log10 ~ s(event_date, bs="cr") + s(event_date, bs="cr", by=transplant_final) + transplant_final, 
+  data = temp, random = ~(1|participant_id))
+
+aa <- anova(fit$gam)
+  
+# Get P-values for the interaction term
+aa1 <- sum(aa$s.table[-c(1), "F"]*aa$s.table[-c(1), "Ref.df"])
+aa2 <- sum(aa$s.table[-c(1), "Ref.df"])
+print(pchisq(aa1, aa2, lower.tail = FALSE))
+```
+
+Plot
+
+```{r}
+my.pred <- ggeffects::ggpredict(fit, terms=c("event_date","transplant_final"),
+                                type="fixed")
+colnames(my.pred)[colnames(my.pred)=="group"] <- "transplant_final"
+
+temp$yhat <- predict(fit$mer)
+
+p3 <- ggplot(data=temp, aes(x=event_date, y=sc2_rpm_log10, color=transplant_final)) +
+  geom_line(aes(group=participant_id), color="gray", alpha=0.4) +
+  geom_point(color="black", shape=16, size=0.7, alpha=0.8) +
+  geom_line(inherit.aes=FALSE, data=my.pred, 
+            aes(x,predicted, color=transplant_final),
+            linewidth=1.5) +
+  geom_ribbon(inherit.aes=FALSE, data=my.pred,
+              aes(x=x, y=predicted,
+                  ymin=conf.low, ymax=conf.high,
+                  fill=transplant_final),
+              alpha=0.4) +
+  labs(x="Days from admission", y="Viral load") +
+  scale_color_manual(values=c("0"="cornflowerblue", "1"="orange"),
+                     guide="none") +
+  scale_fill_manual(values=c("0"="cornflowerblue", "1"="orange"),
+                    guide="none") +
+  scale_y_continuous(limits=c(-0.5,6), expand=c(0,0)) +
+  facet_wrap(~ transplant_final, nrow=1) +
+  theme_bw() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text = element_text(size=12, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,0.7,0), "cm"),
+    panel.grid.minor=element_blank(),
+    panel.spacing = unit(0.5, "cm"),
+  ) # viralload_longitudinal_gamm4.pdf, 5.4 x 3 in
+```
