@@ -29,3 +29,40 @@ Figure 7b: ./nasal_viral_load/nasal_viral_load.Rmd/olink_visit1_TG.pdf
 Supplementary Figure 4a: ./serum_protein_olink/serum_protein_olink.Rmd/olink_visit1_significant_yes-vs-no-viralload.pdf
 <br>
 Supplementary Figure 4b,c: ./serum_protein_olink/serum_protein_olink.Rmd/olink_longitudinal_examples_viralload.pdf
+
+## Required software
+
+The codes were run in R v4.0.3. Below is the sessionInfo():
+
+```
+R version 4.0.3 (2020-10-10)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 22.04.2 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
+LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.20.so
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8        LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8   
+ [6] LC_MESSAGES=C.UTF-8    LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C           LC_TELEPHONE=C        
+[11] LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] gamm4_0.2-6     mgcv_1.8-33     nlme_3.1-149    lme4_1.1-34     Matrix_1.2-18   patchwork_1.1.2 ggplot2_3.4.0  
+[8] dplyr_1.0.10   
+
+loaded via a namespace (and not attached):
+ [1] Rcpp_1.0.9       nloptr_2.0.3     pillar_1.8.1     compiler_4.0.3   vipor_0.4.5      tools_4.0.3     
+ [7] boot_1.3-25      lifecycle_1.0.3  tibble_3.1.8     gtable_0.3.1     lattice_0.20-41  pkgconfig_2.0.3 
+[13] rlang_1.0.6      DBI_1.1.3        cli_3.6.0        rstudioapi_0.14  beeswarm_0.4.0   xfun_0.39       
+[19] withr_2.5.0      knitr_1.43       generics_0.1.3   vctrs_0.5.1      ggeffects_1.1.4  grid_4.0.3      
+[25] tidyselect_1.2.0 glue_1.6.2       R6_2.5.1         fansi_1.0.4      ggbeeswarm_0.7.2 minqa_1.2.5     
+[31] magrittr_2.0.3   scales_1.2.1     splines_4.0.3    MASS_7.3-53      assertthat_0.2.1 colorspace_2.0-3
+[37] utf8_1.2.3       munsell_0.5.0   
+```
+
+Installing the required packages takes approximately 30 minutes.
