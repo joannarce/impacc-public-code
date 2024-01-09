@@ -1,0 +1,794 @@
+---
+title: "Transplant PBMC transcriptomics"
+output: html_document
+date: "2024-01-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(gamm4)
+library(limma)
+library(clusterProfiler)
+library(edgeR)
+library(biomaRt)
+library(ReactomePA)
+library(RColorBrewer)
+library(pheatmap)
+
+my.theme <- theme_classic() + 
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text = element_text(size=12, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm")
+  )
+
+```
+
+# Data import
+
+## Clinical metadata
+
+```{r}
+# Patient metadata
+clin.individ <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-locked.csv",
+  header = TRUE)
+
+# Sample
+clin.sample <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-sample-locked.csv",
+  header = TRUE)
+
+# Event
+clin.event <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-event-locked.csv",
+  header = TRUE)
+```
+
+Merge metadata
+
+```{r}
+# Combine sample and event metadata
+clin.sample.event <- merge(
+  clin.sample, clin.event,
+  by = "event_id",
+  all.x = TRUE, all.y = FALSE,
+  suffixes = c("",".y"),
+  sort = FALSE
+)
+
+# Add patient metadata
+clin.sample.event.individ <- merge(
+  clin.sample.event, clin.individ,
+  by = "participant_id", all = FALSE, sort = FALSE
+)
+```
+
+Manually correct some typos.
+
+```{r}
+# Correct the symptom_date of patient 008-0103: change from -376 to -13 (confirmed with data management team)
+clin.sample.event.individ[clin.sample.event.individ$participant_id=="008-0103","symptom_date"] <- -13
+
+# Correct event_date of 004-0012-8: change from 2 to 32 (it's 32 in 2021-11-11-frozen data)
+clin.sample.event.individ[clin.sample.event.individ$event_id=="004-0012-8","event_date"] <- 32
+```
+
+## Transplant metadata 
+
+264 patients included in transplant study (use new metadata table that Harry will share)
+
+```{r}
+transplant <- read.delim(
+  "/scratch/immunosuppression/2023.03.09_txcasecontrol.txt",
+  header = TRUE)
+newTG <- read.delim(
+  "/scratch/immunosuppression/2023.10.03_new_tgroups.txt",
+  header = TRUE)
+
+# Merge new TG assignment
+transplant <- merge(
+  transplant, newTG,
+  by="studyid", all=FALSE
+)
+
+# Format factor
+transplant$transplant_final <- as.factor(transplant$transplant_final)
+
+```
+
+Remove BMT patients and their controls.
+
+```{r}
+transplant <- transplant %>%
+  subset(!(studyid %in% c("002-0022","007-0008","001-0013","010-0009","004-0041","005-0047")))
+
+```
+
+Only keep transplant patients in the clinical metadata
+
+```{r}
+clin.sample.event.individ <- merge(
+  clin.sample.event.individ[,c("participant_id","event_id","sample_id","event_date","event_type","event_location","respiratory_status")], 
+  transplant,
+  by.x="participant_id", by.y="studyid",
+  all=FALSE
+)
+
+```
+
+## Import
+```{r}
+#PBMC transcriptomics data
+pbmc <- read.csv("/data/pbmc-transcriptomics/current/pbmc-transcriptomics-Counts.csv",
+  header = TRUE, row.names = 1
+)
+#metadata
+pbmc.metadata <- read.csv("/data/pbmc-transcriptomics/current/pbmc-transcriptomics-Metadata.csv",
+  header = TRUE, row.names = 1
+)
+
+#gene info
+genes=read.delim("/data/pbmc-transcriptomics/current/pbmc-transcriptomics-RowFeature.csv",header=T,sep=",",skip = 1)
+
+#add entrez-id
+ensembl=useMart("ensembl")
+ensembl=useDataset("hsapiens_gene_ensembl", mart = ensembl)
+new=getBM(attributes = c("ensembl_gene_id", "entrezgene_id","external_gene_name"),filters = "ensembl_gene_id",values=genes$gene_id,mart = ensembl)
+genes$entrez=new$entrezgene_id[match(genes$gene_id,new$ensembl_gene_id)]
+
+
+# Only keep samples that pass QC
+pbmc.metadata <- subset(pbmc.metadata, sample_status=="IMPACC sample assayed and passed QC")
+clin.sample.event.individ <- clin.sample.event.individ %>%
+  subset(sample_id %in% rownames(pbmc.metadata))
+```
+
+```{r}
+# Filter pbmc data to samples of interest
+pbmc <- pbmc[clin.sample.event.individ$sample_id,]
+```
+
+## Import viral load data
+
+```{r}
+# mNGS metadata
+mngs.metadata <- read.csv(
+  # "/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv",
+  "/data/nasal-metagenomics/legacy/2022-09-03/nasal-metagenomics-Metadata.csv",
+  header = TRUE, row.names = NULL,
+  check.names = FALSE
+)
+
+mngs.metadata <- mngs.metadata %>%
+  filter(!is.na(sc2_rpm))
+
+# mNGS QC
+mngs.metadata <- mngs.metadata %>%
+  filter(sample_status == "IMPACC sample assayed and passed QC")
+```
+
+```{r}
+# Reformat visit_num: decapitalize "VISIT"
+mngs.metadata$visit_num <- gsub(
+  "^VISIT", "Visit", mngs.metadata$visit_num
+)
+
+# Merge with sample metadata
+clin.sample.event.individ <- merge(
+  clin.sample.event.individ, mngs.metadata[,c("participant_id","visit_num","sc2_rpm")],
+  by.x=c("participant_id","event_type"), by.y=c("participant_id","visit_num"),
+  all.x=TRUE, all.y=FALSE # keep samples that don't pass SARS-CoV-2 metatranscriptomics QC
+  # all=FALSE # discard samples that don't pass SARS-CoV-2 metatranscriptomics QC <<< do NOT do this
+)
+
+# log-transform viral load
+clin.sample.event.individ$sc2_rpm_log10 <- log10(clin.sample.event.individ$sc2_rpm+1)
+```
+
+# Analysis: Visit 1 only
+```{r}
+# Sample metadata
+clin.sample.event.individ.visit1 <- clin.sample.event.individ %>%
+  subset(event_type == "Visit 1")
+
+# Subset pbmc data
+pbmc.visit1 <- pbmc[clin.sample.event.individ.visit1$sample_id,]
+
+```
+
+```{r}
+#run regression
+dge=DGEList(t(pbmc.visit1),group=clin.sample.event.individ.visit1$transplant_final,samples=clin.sample.event.individ.visit1)
+dge=calcNormFactors(dge)
+design=model.matrix(~group,data=dge$samples)
+dge2=dge[filterByExpr(dge),]
+v=voom(dge2,design)
+vfit=lmFit(v,design)
+efit=eBayes(vfit)
+tfit=treat(vfit,lfc=0)
+res.pbmc=topTreat(tfit,coef=2,n=Inf)
+res.pbmc$nam=rownames(res.pbmc)
+
+#get normalised and log-transformed counts for downstream analysis
+ge.pbmc.visit1=cpm(dge,log=TRUE)
+
+#repeat with vrld adjustment
+dge=DGEList(t(pbmc.visit1[!is.na(clin.sample.event.individ.visit1$sc2_rpm_log10),]),group=clin.sample.event.individ.visit1$transplant_final[!is.na(clin.sample.event.individ.visit1$sc2_rpm_log10)],samples=clin.sample.event.individ.visit1[!is.na(clin.sample.event.individ.visit1$sc2_rpm_log10),])
+dge=calcNormFactors(dge)
+design=model.matrix(~group+sc2_rpm_log10,data=dge$samples)
+dge2=dge[filterByExpr(dge),]
+v=voom(dge2,design)
+vfit=lmFit(v,design)
+efit=eBayes(vfit)
+tfit=treat(vfit,lfc=0)
+res.pbmc.vrld=topTreat(tfit,coef=2,n=Inf)
+res.pbmc.vrld$nam=rownames(res.pbmc.vrld)
+
+```
+
+```{r}
+##pathway enrichment
+res.pbmc$entrez=genes$entrez[match(rownames(res.pbmc),genes$gene_id)]
+res.pbmc$name=genes$gene_name[match(rownames(res.pbmc),genes$gene_id)]
+res.pbmc.vrld$entrez=genes$entrez[match(rownames(res.pbmc.vrld),genes$gene_id)]
+res.pbmc.vrld$name=genes$gene_name[match(rownames(res.pbmc.vrld),genes$gene_id)]
+
+#setup and run
+res.pbmc.genes2=res.pbmc$logFC
+names(res.pbmc.genes2)=res.pbmc$entrez
+res.pbmc.genes2=sort(res.pbmc.genes2,decreasing = T)
+res.pbmc.gsea=gsePathway(res.pbmc.genes2,maxGSSize=1000,minGSSize=3,organism="human",pvalueCutoff=0.1,pAdjustMethod="fdr")
+
+res.pbmc.vrld.genes2=res.pbmc.vrld$logFC
+names(res.pbmc.vrld.genes2)=res.pbmc.vrld$entrez
+res.pbmc.vrld.genes2=sort(res.pbmc.vrld.genes2,decreasing = T)
+res.pbmc.vrld.gsea=gsePathway(res.pbmc.vrld.genes2,maxGSSize=1000,minGSSize=3,organism="human",pvalueCutoff=0.1,pAdjustMethod="fdr")
+
+#subset to top pathways, removing redundancy
+#merge with results from vrld adjustment
+tmp=res.pbmc.gsea@result[c(1,2,4,15,17,26,31,37,45,49,50,54,56,68),] #requires manual curation
+tmpv=res.pbmc.vrld.gsea[match(tmp$Description,res.pbmc.vrld.gsea@result$Description),]
+tmpv$p.adjust[is.na(tmpv$Description)]=1 #if not enriched after vrld adjustment, make p-value 1
+tmpv$NES[is.na(tmpv$Description)]=0 #as above, but make the NES zero
+tmpv$Description[is.na(tmpv$Description)]=tmp$Description[is.na(tmpv$Description)]
+tmp$control="No"
+tmpv$control="Yes"
+tmpp=rbind(tmp,tmpv)
+tmpp$control=as.factor(tmpp$control)
+tmpp$nam=tmpp$Description #these next lines might need editing depending on the pathways being plotted
+#the purpose is to shorten the pathway names to make visualisation easier
+tmpp$nam[12]="Antigen activates B Cell Receptor"
+tmpp$nam[26]="Antigen activates B Cell Receptor"
+tmpp$nam[6]="Interactions between Lymphoid:non-Lymphoid cell"
+tmpp$nam[20]="Interactions between Lymphoid:non-Lymphoid cell"
+
+#plot as barplot/Figure 5B and Supp. Figure 5A
+ggplot(data=tmpp[tmpp$control=="No",], #switch to 'Yes' for vrld adjustment 
+             aes(x=NES, y=reorder(nam, NES, FUN = function(x) x[1]))) +
+  geom_col(aes(color=as.factor(NES>0)), fill=NA, width=0.7) +
+  geom_col(
+    data=. %>% subset(p.adjust<0.05),
+    aes(fill=as.factor(NES>0)), width=0.7) +
+  geom_vline(xintercept = 0, size = 0.4, color = "black") +
+  #geom_text(
+   # data=. %>% subset(NES>0),
+    #aes(x=0,label=sprintf("P = %.1e", p.adjust)), 
+    #hjust=1.06, size=2.8) +
+  #geom_text(
+   # data=. %>% subset(NES<0),
+    #aes(x=0, label=sprintf("P = %.1e", p.adjust)),
+    #hjust=-0.06, size=2.8) +
+  labs(x="GSEA Normalized Enrichment Score", y="",
+       title="Differential PBMC pathways at Visit 1") +
+  scale_x_continuous(
+    limits=c(-3,3), expand=c(0,0)) +
+  scale_color_manual(values=c("TRUE"="orange","FALSE"="cornflowerblue"),
+                     guide="none") +
+  scale_fill_manual(values=c("TRUE"="orange","FALSE"="cornflowerblue"),
+                    guide="none") +
+  #facet_wrap(~ control) + # separate into 2 panels: Yes/No w.r.t. controlling for viral load
+  theme_bw() + theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text.x = element_text(size=11, color="black"),
+    axis.text.y = element_text(size=11, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm"),
+    panel.grid.minor=element_blank(),
+    panel.spacing = unit(0.9, "cm"),
+  )
+
+```
+
+```{r}
+#volcano plot/Figure 5A
+res.pbmc$bg=adjustcolor("azure3",alpha.f = 0.1)
+res.pbmc$bg[res.pbmc$adj.P.Val<0.05 & res.pbmc$logFC<0]=adjustcolor("cornflowerblue",alpha.f = 0.6)
+res.pbmc$bg[res.pbmc$adj.P.Val<0.05 & res.pbmc$logFC>0]=adjustcolor("orange",alpha.f = 0.6)
+res.pbmc$col="black"
+res.pbmc$col[res.pbmc$adj.P.Val>=0.05]=adjustcolor("black",alpha.f = 0.5)
+
+par(mar=c(5.1,5.1,4.1,2.1))
+plot(res.pbmc$logFC,-log10(res.pbmc$adj.P.Val),xlab="log2(Fold-change)",ylab="-log10 (P-value)",pch=21,xaxt='n',las=2,cex.axis=1.2,cex.lab=1.5,bg=res.pbmc$bg,col=res.pbmc$col,xlim=c(-3.5,3.5),cex=1.5)
+axis(1,at=seq(-4,4,1),labels=c("",seq(-3,3,1),""),cex.axis=1.2)
+abline(v=0,lty=3,col="azure3")
+
+##example genes in heatmap/Figure 5C
+#the lines below select genes and their associated pathways from the enrichment analysis
+ids=c("BLK","BLNK","CD19","CD22","CD79A","CD79B","AURKB","BIRC5","BUB1","CCNA2","CDC45","DSCC1","E2F5","FEN1","FOXM1","KIF2C","KNTC1","LIG1","MAD2L1","MCM10","MYBL2","NCAPD3","NUF2","ODF2","OIP5","ORC1","PKMYT1","PLK1","POLA1","POLE","PSMA8","RAD51","SKA1","TERT","TOP2A","TPX2","TUBGCP4","WEE1","ZWINT","COL19A1","COL4A4","COL6A1","DDR1","ITGA3","LAMA5","MMP11","SCUBE1","SDC1","CD300C","FCGR3A","LAIR1","SIGLEC11","TYROBP","C1QA","C1QB","CFD","CFP","BST2","EIF2AK2","HLA-F","IFI27","IFI35","IFI6","IFIT1","IFITM1","IFITM3","ISG15","MT2A","MX1","OAS1","OASL","USP18")
+pathways=c(rep("Antigen activates B Cell Receptor",6),rep("Cell Cycle",33),rep("Extracellular matrix organization",9),rep("Immune interactions between Lymphoid:non-Lymphoid cell",5),rep("Initial triggering of complement",4),rep("Interferon Signaling",15))
+
+#get scaled expression of genes
+zzzt=data.frame(t(ge.pbmc.visit1[genes$gene_id[match(ids,genes$gene_name)],]))
+for(i in 1:ncol(zzzt)){
+  zzzt[,i]=scale(zzzt[,i])
+}
+#get average per group
+zzza=aggregate(zzzt,mean,by=list(clin.sample.event.individ.visit1$transplant_final))
+rownames(zzza)=c("Control","Transplant")
+zzza$Group.1=NULL
+colnames(zzza)=ids
+
+#make dataframe to annotate the heatmap
+zzza.dfb=data.frame("Pathway"=pathways)
+rownames(zzza.dfb)=ids
+#make colours for the annotation
+cols=brewer.pal(12,"Set3")
+annot_colors=list(cols[c(1:4,7,8)])
+names(annot_colors)="Pathway"
+names(annot_colors$Pathway)=unique(pathways)
+
+#plot/Figure 5C
+pheatmap(t(zzza),angle=0,fontsize=10,annotation_row = zzza.dfb,cluster_rows =F,gaps_row=c(6,39,48,53,57),annotation_names_row = F,annotation_legend = F)
+
+```
+
+```{r}
+##compare pbmc populations by trajectory group
+
+#make split TG variable
+clin.sample.event.individ.visit1$TG45=clin.sample.event.individ.visit1$trajectory_group>3
+
+#run regression for control and tx separately
+dge=DGEList(t(pbmc.visit1[clin.sample.event.individ.visit1$transplant_final==0,]),group=clin.sample.event.individ.visit1$TG45[clin.sample.event.individ.visit1$transplant_final==0],samples=clin.sample.event.individ.visit1[clin.sample.event.individ.visit1$transplant_final==0,])
+dge=calcNormFactors(dge)
+design=model.matrix(~group,data=dge$samples)
+dge2=dge[filterByExpr(dge),]
+v=voom(dge2,design)
+vfit=lmFit(v,design)
+efit=eBayes(vfit)
+tfit=treat(vfit,lfc=0)
+res.pbmc.ctrl=topTreat(tfit,coef=2,n=Inf)
+res.pbmc.ctrl$nam=rownames(res.pbmc.ctrl)
+
+dge=DGEList(t(pbmc.visit1[clin.sample.event.individ.visit1$transplant_final==1,]),group=clin.sample.event.individ.visit1$TG45[clin.sample.event.individ.visit1$transplant_final==1],samples=clin.sample.event.individ.visit1[clin.sample.event.individ.visit1$transplant_final==1,])
+dge=calcNormFactors(dge)
+design=model.matrix(~group,data=dge$samples)
+dge2=dge[filterByExpr(dge),]
+v=voom(dge2,design)
+vfit=lmFit(v,design)
+efit=eBayes(vfit)
+tfit=treat(vfit,lfc=0)
+res.pbmc.tx=topTreat(tfit,coef=2,n=Inf)
+res.pbmc.tx$nam=rownames(res.pbmc.tx)
+
+##pathway enrichment
+res.pbmc.ctrl$entrez=genes$entrez[match(rownames(res.pbmc.ctrl),genes$gene_id)]
+res.pbmc.ctrl$name=genes$gene_name[match(rownames(res.pbmc.ctrl),genes$gene_id)]
+res.pbmc.tx$entrez=genes$entrez[match(rownames(res.pbmc.tx),genes$gene_id)]
+res.pbmc.tx$name=genes$gene_name[match(rownames(res.pbmc.tx),genes$gene_id)]
+
+#setup and run
+res.pbmc.genes2c=res.pbmc.ctrl$logFC
+names(res.pbmc.genes2c)=res.pbmc.ctrl$entrez
+res.pbmc.genes2c=sort(res.pbmc.genes2c,decreasing = T)
+res.pbmc.gsea.ctrl=gsePathway(res.pbmc.genes2c,maxGSSize=1000,minGSSize=3,organism="human",pvalueCutoff=0.1,pAdjustMethod="fdr")
+
+res.pbmc.genes2t=res.pbmc.tx$logFC
+names(res.pbmc.genes2t)=res.pbmc.tx$entrez
+res.pbmc.genes2t=sort(res.pbmc.genes2t,decreasing = T)
+res.pbmc.gsea.tx=gsePathway(res.pbmc.genes2t,maxGSSize=1000,minGSSize=3,organism="human",pvalueCutoff=0.1,pAdjustMethod="fdr")
+
+#pick a subset of pathways and combine
+#next two lines pick top pathways from each enrichment analysis, removing redundancy
+tmp=res.pbmc.gsea.ctrl@result[c(1,19,22,26,30,37,40,43,52,55,68,73,79,107,109,116,150),]
+tmpv=res.pbmc.gsea.tx@result[c(1,2,8,12,17,26,34,41,49,52,59,74,88,108,121,152,159),]
+tmpp=unique(c(tmp$Description,tmpv$Description))
+
+tmp=res.pbmc.gsea.ctrl@result[match(tmpp,res.pbmc.gsea.ctrl@result$Description),]
+tmpv=res.pbmc.gsea.tx@result[match(tmpp,res.pbmc.gsea.tx@result$Description),]
+tmpv$p.adjust[is.na(tmpv$Description)]=1 #if not enriched in transplant, make p-value 1
+tmpv$NES[is.na(tmpv$Description)]=0 #as above, but make the NES zero
+tmpv$Description[is.na(tmpv$Description)]=tmp$Description[is.na(tmpv$Description)]
+tmp$p.adjust[is.na(tmp$Description)]=1 #as above, but for controls
+tmp$NES[is.na(tmp$Description)]=0
+tmp$Description[is.na(tmp$Description)]=tmpv$Description[is.na(tmp$Description)]
+tmp$control="Control"
+tmpv$control="Transplant"
+tmpp=rbind(tmp,tmpv)
+tmpp$control=as.factor(tmpp$control)
+tmpp$nam=tmpp$Description #shorten names where necessary
+tmpp$nam[12]="RUNX1 regulates differentiation of HSCs"
+tmpp$nam[40]="RUNX1 regulates differentiation of HSCs"
+tmpp$nam[20]="Interactions between Lymphoid:non-Lymphoid cell"
+tmpp$nam[48]="Interactions between Lymphoid:non-Lymphoid cell"
+
+#plot as barplot/Figure 7C
+ggplot(data=tmpp,
+aes(x=NES, y=reorder(nam, NES, FUN = function(x) x[1]))) +
+geom_col(aes(color=as.factor(NES>0)), fill=NA, width=0.7) +
+geom_col(
+data=. %>% subset(p.adjust<0.05),
+aes(fill=as.factor(NES>0)), width=0.7) +
+geom_vline(xintercept = 0, size = 0.4, color = "black") +
+geom_text(
+data=. %>% subset(NES>0),
+aes(x=0,label=sprintf("P = %.1e", p.adjust)),
+hjust=1.06, size=2.8) +
+geom_text(
+data=. %>% subset(NES<0),
+aes(x=0, label=sprintf("P = %.1e", p.adjust)),
+hjust=-0.06, size=2.8) +
+labs(x="GSEA Normalized Enrichment Score", y="",
+title="PBMC pathways associated\nwith severity at Visit 1") +
+scale_x_continuous(
+limits=c(-3,3.3), expand=c(0,0)) +
+scale_color_manual(values=c("TRUE"="coral2","FALSE"="chartreuse3"),
+guide="none") +
+scale_fill_manual(values=c("TRUE"="coral2","FALSE"="chartreuse3"),
+guide="none") +
+facet_wrap(~ control) + # separate into 2 panels: Yes/No w.r.t. controlling for viral load
+theme_bw() + theme(
+plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+axis.text.x = element_text(size=11, color="black"),
+axis.text.y = element_text(size=11, color="black"),
+text = element_text(size=12, family="Arial"),
+plot.margin = unit(c(0,1,1,0), "cm"),
+panel.grid.minor=element_blank(),
+panel.spacing = unit(0.9, "cm"),
+)
+```
+
+# Analysis: vrld vs IFN signaling by transplant status
+```{r}
+#read in genes in IFN signaling pathway
+ifns=read.delim("/scratch/immunosuppression/2023.08.17_ifn_signaling.txt",header=T,sep="\t")
+pbmc.visit1.ifns=pbmc.visit1[,colnames(pbmc.visit1)%in%ifns$ensembl]
+
+#for controls and Tx, run regression to determine the association between IFN genes and vrld
+gectrl=pbmc.visit1.ifns[!is.na(clin.sample.event.individ.visit1$sc2_rpm_log10) & clin.sample.event.individ.visit1$transplant_final==0,]
+infoctrl=clin.sample.event.individ.visit1[!is.na(clin.sample.event.individ.visit1$sc2_rpm_log10) & clin.sample.event.individ.visit1$transplant_final==0,]
+
+dge=DGEList(t(gectrl),samples=infoctrl)
+dge=calcNormFactors(dge)
+design=model.matrix(~sc2_rpm_log10,data=dge$samples)
+dge2=dge[filterByExpr(dge),]
+v=voom(dge2,design)
+vfit=lmFit(v,design)
+efit=eBayes(vfit)
+tfit=treat(vfit,lfc=0)
+pbmcres.ctrl.limma=topTreat(tfit,coef=2,n=Inf)
+pbmcres.ctrl.limma$nam=rownames(pbmcres.ctrl.limma)
+gectrl.cpm=cpm(dge,log=TRUE)
+
+getx=pbmc.visit1.ifns[!is.na(clin.sample.event.individ.visit1$sc2_rpm_log10) & clin.sample.event.individ.visit1$transplant_final==1,]
+infotx=clin.sample.event.individ.visit1[!is.na(clin.sample.event.individ.visit1$sc2_rpm_log10) & clin.sample.event.individ.visit1$transplant_final==1,]
+
+dge=DGEList(t(getx),samples=infotx)
+dge=calcNormFactors(dge)
+design=model.matrix(~sc2_rpm_log10,data=dge$samples)
+dge2=dge[filterByExpr(dge),]
+v=voom(dge2,design)
+vfit=lmFit(v,design)
+efit=eBayes(vfit)
+tfit=treat(vfit,lfc=0)
+pbmcres.tx.limma=topTreat(tfit,coef=2,n=Inf)
+pbmcres.tx.limma$nam=rownames(pbmcres.tx.limma)
+getx.cpm=cpm(dge,log=TRUE)
+
+```
+
+```{r}
+#setup plot
+pbmcres.tx.limma.matched=pbmcres.tx.limma[match(rownames(pbmcres.ctrl.limma),rownames(pbmcres.tx.limma)),]
+pbmcres.ctrl.limma$col="black"
+pbmcres.ctrl.limma$bg="azure3"
+pbmcres.ctrl.limma$bg[pbmcres.ctrl.limma$adj.P.Val<0.05]="cornflowerblue"
+pbmcres.ctrl.limma$name=genes$gene_name[match(pbmcres.ctrl.limma$nam,genes$gene_id)]
+
+#plot/Supp. Figure 7A
+plot(pbmcres.ctrl.limma$logFC,pbmcres.tx.limma.matched$logFC,pch=21,xlab="Control - Log2(Fold-change)",ylab="Transplant - Log2(Fold-change)",xlim=c(-0.6,0.6),ylim=c(-0.6,0.6),type='n')
+abline(h=0,v=0,lty=3,col=adjustcolor("azure3",0.8))
+par(new=T)
+plot(pbmcres.ctrl.limma$logFC[pbmcres.ctrl.limma$bg!="cornflowerblue"],pbmcres.tx.limma.matched$logFC[pbmcres.ctrl.limma$bg!="cornflowerblue"],pch=21,bg=pbmcres.ctrl.limma$bg[pbmcres.ctrl.limma$bg!="cornflowerblue"],col=pbmcres.ctrl.limma$col[pbmcres.ctrl.limma$bg!="cornflowerblue"],xlab="",ylab="",xlim=c(-0.6,0.6),ylim=c(-0.6,0.6))
+par(new=T)
+plot(pbmcres.ctrl.limma$logFC[pbmcres.ctrl.limma$bg=="cornflowerblue"],pbmcres.tx.limma.matched$logFC[pbmcres.ctrl.limma$bg=="cornflowerblue"],pch=21,bg=pbmcres.ctrl.limma$bg[pbmcres.ctrl.limma$bg=="cornflowerblue"],col=pbmcres.ctrl.limma$col[pbmcres.ctrl.limma$bg=="cornflowerblue"],xlab="",ylab="",xlim=c(-0.6,0.6),ylim=c(-0.6,0.6))
+abline(a=0,b=1)
+
+#plot examples/Supp. Figure 7C
+gege=rbind(gectrl,getx)
+gege2=data.frame(t(cbind(gectrl.cpm,getx.cpm)))
+infoinfo=rbind(infoctrl,infotx)
+
+infoinfo$txtx="Control"
+infoinfo$txtx[infoinfo$transplant_final==1]="Transplant"
+
+z=pbmcres.ctrl.limma$nam[pbmcres.ctrl.limma$adj.P.Val<0.05]
+zzzz=gege2[,z]
+
+zz=pbmcres.ctrl.limma$name[match(z,pbmcres.ctrl.limma$nam)]
+zsub=z[c(2,8,11)] #manually select few genes to plot
+
+p <- list()
+for (i in zsub) {
+
+ii=zz[match(i,z)]
+
+temp <- data.frame(
+value = zzzz[,i],
+event_date = infoinfo$event_date,
+txstatus = infoinfo$txtx,
+sc2 = infoinfo$sc2_rpm_log10,
+#sex = clin.sample.event.individ.long$sex,
+#tg = clin.sample.event.individ.long$trajectory_group,
+#site = clin.sample.event.individ.long$enrollment_site,
+pid = infoinfo$participant_id
+) %>%
+subset(!is.na(value) & !is.na(sc2) & !is.infinite(value)) %>%
+droplevels()
+# Predict
+fit <- lm(
+value ~ sc2 + sc2:txstatus + txstatus,
+data = temp)
+my.pred <- ggeffects::ggpredict(fit, terms=c("sc2","txstatus"),
+type="fixed")
+colnames(my.pred)[colnames(my.pred)=="group"] <- "txstatus"
+temp$yhat <- predict(fit)
+# Calculate IQR and quartile values for limiting y-axes
+q1 <- quantile(temp$value, 0.25)
+q3 <- quantile(temp$value, 0.75)
+iqr <- IQR(temp$value)
+p[[i]]=ggplot(data = temp, aes(x=sc2, y=value, color=txstatus)) +
+geom_line(aes(group=pid), color="gray", alpha=0.4) +
+#geom_line(inherit.aes=FALSE, aes(x=event_date, y=yhat, group=pid),
+#         color="#5F5F5F", alpha=0.9) +
+geom_point(aes(color="black"), shape=20, size=1) +
+stat_smooth(method = "lm", formula = y ~ x,aes(color=txstatus,fill=txstatus),linewidth=1.5) +
+#geom_line(inherit.aes=FALSE, data=my.pred, aes(x,predicted),
+#         color="black", size=1.5) +
+coord_cartesian(ylim = c(q1-1.5*iqr, q3+1.5*iqr)) +
+labs(x="SARS-CoV-2 log10(rpM)", y="log2(normalized counts)",
+title=paste0(ii,": ",sprintf("%s-P=%.1e","Ctrl",pbmcres.ctrl.limma$adj.P.Val[pbmcres.ctrl.limma$nam==i])," / ",sprintf("%s-P=%.1e","Tx",pbmcres.tx.limma.matched$adj.P.Val[pbmcres.ctrl.limma$nam==i]))) +
+scale_color_viridis_d(begin=0.4, guide="none") +
+# scale_color_brewer(palette="Paired", guide="none") +
+scale_color_manual(values=c("black","cornflowerblue","orange")) +
+scale_fill_manual(values=c("cornflowerblue","orange")) +
+# scale_color_discrete(guide="none") +
+facet_wrap(~ txstatus, nrow=1) + theme_bw() +
+theme(
+plot.title = element_text(hjust = 0.5, size=11, face="plain"),
+axis.text.x = element_text(size=10, color="black"),
+axis.text.y = element_text(size=10, color="black"),
+text = element_text(size=12, family="Arial"),
+plot.margin = unit(c(0.2,1,0.7,0.2), "cm"),
+panel.spacing = unit(0.35, "cm"),
+legend.position = "none",
+panel.grid.minor=element_blank()
+)
+}
+
+```
+
+# Analysis: longitudinal
+
+```{r}
+#Sample metadata
+clin.sample.event.individ.long <- clin.sample.event.individ %>%
+  subset(event_type %in% c("Visit 1", "Visit 2", "Visit 3", "Visit 4", "Visit 5", "Visit 6"))
+
+# Try restricting to 30 days post admission
+clin.sample.event.individ.long <- clin.sample.event.individ.long %>%
+  subset(event_date <= 30)
+
+pbmc.long <- pbmc[clin.sample.event.individ.long$sample_id,]
+
+```
+
+```{r}
+#run regression
+dge=DGEList(t(pbmc.long),group=clin.sample.event.individ.long$transplant_final,samples=clin.sample.event.individ.long)
+dge=calcNormFactors(dge)
+design=model.matrix(~group,data=dge$samples)
+dge2=dge[filterByExpr(dge),]
+v=voom(dge2,design)
+dupcor=duplicateCorrelation(v,design,block=dge2$samples$participant_id)
+v2=voom(dge2,design,block=dge2$samples$studyid,correlation=dupcor$consensus)
+dupcor=duplicateCorrelation(v2,design,block=dge2$samples$participant_id)
+vfit=lmFit(v2,design,block=dge2$samples$participant_id, correlation=dupcor$consensus)
+efit=eBayes(vfit)
+tfit=treat(vfit,lfc=0)
+res.pbmc.long=topTreat(tfit,coef=2,n=Inf)
+res.pbmc.long$nam=rownames(res.pbmc.long)
+
+#get normalised and log-transformed counts for downstream analysis
+ge.pbmc.long=cpm(dge,log=TRUE)
+
+#repeat with vrld adjustment
+dge=DGEList(t(pbmc.long[!is.na(clin.sample.event.individ.long$sc2_rpm_log10),]),group=clin.sample.event.individ.long$transplant_final[!is.na(clin.sample.event.individ.long$sc2_rpm_log10)],samples=clin.sample.event.individ.long[!is.na(clin.sample.event.individ.long$sc2_rpm_log10),])
+dge=calcNormFactors(dge)
+design=model.matrix(~group+sc2_rpm_log10,data=dge$samples)
+dge2=dge[filterByExpr(dge),]
+v=voom(dge2,design)
+dupcor=duplicateCorrelation(v,design,block=dge2$samples$participant_id)
+v2=voom(dge2,design,block=dge2$samples$studyid,correlation=dupcor$consensus)
+dupcor=duplicateCorrelation(v2,design,block=dge2$samples$participant_id)
+vfit=lmFit(v2,design,block=dge2$samples$participant_id, correlation=dupcor$consensus)
+efit=eBayes(vfit)
+tfit=treat(vfit,lfc=0)
+res.pbmc.long.vrld=topTreat(tfit,coef=2,n=Inf)
+res.pbmc.long.vrld$nam=rownames(res.pbmc.long.vrld)
+
+```
+
+```{r}
+##pathway enrichment
+res.pbmc.long$entrez=genes$entrez[match(rownames(res.pbmc.long),genes$gene_id)]
+res.pbmc.long$name=genes$gene_name[match(rownames(res.pbmc.long),genes$gene_id)]
+res.pbmc.long.vrld$entrez=genes$entrez[match(rownames(res.pbmc.long.vrld),genes$gene_id)]
+res.pbmc.long.vrld$name=genes$gene_name[match(rownames(res.pbmc.long.vrld),genes$gene_id)]
+
+#setup and run
+res.pbmc.long.genes2=res.pbmc.long$logFC
+names(res.pbmc.long.genes2)=res.pbmc.long$entrez
+res.pbmc.long.genes2=sort(res.pbmc.long.genes2,decreasing = T)
+res.pbmc.long.gsea=gsePathway(res.pbmc.long.genes2,maxGSSize=1000,minGSSize=3,organism="human",pvalueCutoff=0.1,pAdjustMethod="fdr")
+
+res.pbmc.long.vrld.genes2=res.pbmc.long.vrld$logFC
+names(res.pbmc.long.vrld.genes2)=res.pbmc.long.vrld$entrez
+res.pbmc.long.vrld.genes2=sort(res.pbmc.long.vrld.genes2,decreasing = T)
+res.pbmc.long.vrld.gsea=gsePathway(res.pbmc.long.vrld.genes2,maxGSSize=1000,minGSSize=3,organism="human",pvalueCutoff=0.1,pAdjustMethod="fdr")
+
+#subset to top pathways, removing redundancy
+#merge with results from vrld adjustment
+tmp=res.pbmc.long.gsea@result[c(1,2,3,5,7,10,25,33,67,74,36,51),]
+tmpv=res.pbmc.long.vrld.gsea[match(tmp$Description,res.pbmc.long.vrld.gsea@result$Description),]
+tmpv$p.adjust[is.na(tmpv$Description)]=1
+tmpv$NES[is.na(tmpv$Description)]=0
+tmpv$Description[is.na(tmpv$Description)]=tmp$Description[is.na(tmpv$Description)]
+tmp$gene=NULL
+tmpv$keep=tmp$keep
+tmp$control="No"
+tmpv$control="Yes"
+tmpp=rbind(tmp,tmpv)
+tmpp$control=as.factor(tmpp$control)
+tmpp$nam=tmpp$Description
+tmpp$nam[12]="Antigen activates BCR"
+tmpp$nam[24]="Antigen activates BCR"
+tmpp$nam[11]="Interactions between Lymphoid:non-Lymphoid cell"
+tmpp$nam[23]="Interactions between Lymphoid:non-Lymphoid cell"
+
+#plot/Figure 5D  and Supp. Figure 5B
+kpord=tmpp$nam[1:12][order(tmpp$NES[1:12])]
+kpord2=match(tmpp$nam[1:12],kpord)
+
+ggplot(data=tmpp[tmpp$control=="No",], #switch to 'Yes' for vrld adjustment
+aes(x=NES, y=reorder(nam, NES, FUN = function(x) x[1]))) +
+geom_point(shape=21, size=1,alpha=0)+
+geom_segment(aes(xend=NES, x=0,yend=kpord2),size=0.25) +
+geom_point(shape=21,
+aes(color=as.factor(NES>0)), size=4) +
+geom_point(data=. %>% subset(p.adjust<0.05),
+aes(color=as.factor(NES>0)), fill=NA, size=4) +
+geom_vline(xintercept = 0, size = 0.4, color = "black") +
+geom_text(
+data=. %>% subset(NES>0),
+aes(x=0,label=sprintf("P = %.1e", p.adjust)),
+hjust=1.06, size=2.8) +
+geom_text(
+data=. %>% subset(NES<0),
+aes(x=0, label=sprintf("P = %.1e", p.adjust)),
+hjust=-0.06, size=2.8) +
+labs(x="GSEA Normalized Enrichment Score", y="",
+title="Longitudinal dynamics of PBMC pathways") +
+scale_x_continuous(
+limits=c(-3.1,3.1), expand=c(0,0)) +
+scale_color_manual(values=c("TRUE"="orange","FALSE"="cornflowerblue"),
+guide="none") +
+scale_fill_manual(values=c("TRUE"="orange","FALSE"="cornflowerblue"),
+guide="none") +
+#facet_wrap(~ control) + # separate into 2 panels: Yes/No w.r.t. controlling for viral load
+theme_bw() + theme(
+plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+axis.text.x = element_text(size=11, color="black"),
+axis.text.y = element_text(size=11, color="black"),
+text = element_text(size=12, family="Arial"),
+plot.margin = unit(c(0,1,1,0), "cm"),
+panel.grid.minor=element_blank(),
+panel.spacing = unit(0.9, "cm"),
+)
+
+```
+
+```{r}
+#example longitudinal plots
+z=unique(tmpp$Description)#get the pathways from the earlier plot
+zzzz=data.frame(matrix(nrow=ncol(ge.pbmc.long),ncol=length(z)))
+colnames(zzzz)=z
+for(i in 1:length(z)){zz=ge.pbmc.long[genes$gene_id[match(unlist(strsplit(res.pbmc.long.gsea@result$core_enrichment[res.pbmc.long.gsea@result$Description==z[i]],"/")),genes$entrez)],]
+zzz=prcomp(t(zz),scale=T)
+if(mean(cor(t(zz),zzz$x[,1]))<0)
+{
+  zzzz[,i]=zzz$x[,1]*-1
+}else{
+  zzzz[,i]=zzz$x[,1]}
+}
+
+clin.sample.event.individ.long$tx="Control"
+clin.sample.event.individ.long$tx[clin.sample.event.individ.long$transplant_final==1]="Transplant"
+
+zz=z[c(1,3,4)]
+
+#plot pathways/Figure 5E
+p <- list()
+for (i in zz) {
+  temp <- data.frame(
+    value = scale(zzzz[,i]),
+    event_date = clin.sample.event.individ.long$event_date,
+    txstatus = clin.sample.event.individ.long$tx,
+    #sc2 = tx.all$sc2_rpm_log10,
+    #sex = clin.sample.event.individ.long$sex,
+    #tg = clin.sample.event.individ.long$trajectory_group,
+    #site = clin.sample.event.individ.long$enrollment_site,
+    pid = clin.sample.event.individ.long$participant_id
+  ) %>%
+    subset(!is.na(value) & !is.na(event_date)) %>%
+    droplevels()
+  # Predict
+  fit <- lmer(
+    value ~ event_date + event_date:txstatus + txstatus +(1|pid),
+    data = temp, REML = FALSE)
+  my.pred <- ggeffects::ggpredict(fit, terms=c("event_date","txstatus"),
+                                  type="fixed")
+  colnames(my.pred)[colnames(my.pred)=="group"] <- "txstatus"
+  temp$yhat <- predict(fit)
+  # Calculate IQR and quartile values for limiting y-axes
+  q1 <- quantile(temp$value, 0.25)
+  q3 <- quantile(temp$value, 0.75)
+  iqr <- IQR(temp$value)
+  p[[i]] <- ggplot(data = temp, aes(x=event_date, y=value, color=txstatus)) +
+    geom_line(aes(group=pid), color="gray", alpha=0.4) +
+    #geom_line(inherit.aes=FALSE, aes(x=event_date, y=yhat, group=pid),
+     #         color="#5F5F5F", alpha=0.9) +
+    geom_point(aes(color="black"), shape=20, size=1) +
+    geom_line(inherit.aes=FALSE, data=my.pred, aes(x,predicted,color=txstatus),
+              size=1.5) +
+    geom_ribbon(inherit.aes=FALSE,data=my.pred,aes(x, predicted, ymax=conf.high, ymin=conf.low,fill=txstatus),alpha=0.2) +
+    coord_cartesian(ylim = c(q1-1.5*iqr, q3+1.5*iqr)) +
+    labs(x="Days from admission", y="Normalized expression",
+         title=sprintf("%s (P=%.1e)",i,res.pbmc.long.gsea@result$p.adjust[res.pbmc.long.gsea@result$Description==i])) +
+    scale_color_viridis_d(begin=0.4, guide="none") +
+    # scale_color_brewer(palette="Paired", guide="none") +
+scale_color_manual(values=c("black","cornflowerblue","orange")) +
+scale_fill_manual(values=c("cornflowerblue","orange")) +
+    # scale_color_discrete(guide="none") +
+    facet_wrap(~ txstatus, nrow=1) + theme_bw() +
+    theme(
+      plot.title = element_text(hjust = 0.5, size=11, face="plain"),
+      axis.text.x = element_text(size=10, color="black"),
+      axis.text.y = element_text(size=10, color="black"),
+      text = element_text(size=12, family="Arial"),
+      plot.margin = unit(c(0.2,1,0.7,0.2), "cm"),
+      panel.spacing = unit(0.35, "cm"),
+      legend.position = "none",
+      panel.grid.minor=element_blank()
+    )
+}
+
+```

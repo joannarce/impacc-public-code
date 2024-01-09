@@ -1,0 +1,312 @@
+---
+title: "Transplant antibodies"
+output: html_document
+date: "2024-01-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(gamm4)
+
+
+my.theme <- theme_classic() + 
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text = element_text(size=12, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm")
+  )
+
+```
+
+# Data import
+
+## Clinical metadata
+
+```{r}
+# Patient metadata
+clin.individ <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-locked.csv",
+  header = TRUE)
+
+# Sample
+clin.sample <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-sample-locked.csv",
+  header = TRUE)
+
+# Event
+clin.event <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-event-locked.csv",
+  header = TRUE)
+```
+
+Merge metadata
+
+```{r}
+# Combine sample and event metadata
+clin.sample.event <- merge(
+  clin.sample, clin.event,
+  by = "event_id",
+  all.x = TRUE, all.y = FALSE,
+  suffixes = c("",".y"),
+  sort = FALSE
+)
+
+# Add patient metadata
+clin.sample.event.individ <- merge(
+  clin.sample.event, clin.individ,
+  by = "participant_id", all = FALSE, sort = FALSE
+)
+```
+
+Manually correct some typos.
+
+```{r}
+# Correct the symptom_date of patient 008-0103: change from -376 to -13 (confirmed with data management team)
+clin.sample.event.individ[clin.sample.event.individ$participant_id=="008-0103","symptom_date"] <- -13
+
+# Correct event_date of 004-0012-8: change from 2 to 32 (it's 32 in 2021-11-11-frozen data)
+clin.sample.event.individ[clin.sample.event.individ$event_id=="004-0012-8","event_date"] <- 32
+```
+
+## Transplant metadata 
+
+264 patients included in transplant study (use new metadata table that Harry will share)
+
+```{r}
+transplant <- read.delim(
+  "/scratch/immunosuppression/2023.03.09_txcasecontrol.txt",
+  header = TRUE)
+newTG <- read.delim(
+  "/scratch/immunosuppression/2023.10.03_new_tgroups.txt",
+  header = TRUE)
+
+# Merge new TG assignment
+transplant <- merge(
+  transplant, newTG,
+  by="studyid", all=FALSE
+)
+
+# Format factor
+transplant$transplant_final <- as.factor(transplant$transplant_final)
+
+```
+
+Remove BMT patients and their controls.
+
+```{r}
+transplant <- transplant %>%
+  subset(!(studyid %in% c("002-0022","007-0008","001-0013","010-0009","004-0041","005-0047")))
+
+```
+
+Only keep transplant patients in the clinical metadata
+
+```{r}
+clin.sample.event.individ <- merge(
+  clin.sample.event.individ[,c("participant_id","event_id","sample_id","event_date","event_type","event_location","respiratory_status")], 
+  transplant,
+  by.x="participant_id", by.y="studyid",
+  all=FALSE
+)
+
+```
+
+## Import
+```{r}
+#antibody data
+abd <- read.csv("/data/serum-rbd-abtiters/current/serum-rbd-abtiters-Counts.csv",
+  header = TRUE, row.names = 1
+)
+#metadata
+abd.metadata <- read.csv("/data/serum-rbd-abtiters/current/serum-rbd-abtiters-Metadata.csv",
+  header = TRUE, row.names = 1
+)
+
+# Only keep samples that pass QC
+abd.metadata <- subset(abd.metadata, sample_status=="IMPACC sample assayed and passed QC")
+clin.sample.event.individ <- clin.sample.event.individ %>%
+  subset(sample_id %in% rownames(abd.metadata))
+```
+
+```{r}
+# Filter abd data to samples of interest
+abd <- abd[clin.sample.event.individ$sample_id,]
+```
+
+## Import viral load data
+
+```{r}
+# mNGS metadata
+mngs.metadata <- read.csv(
+  # "/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv",
+  "/data/nasal-metagenomics/legacy/2022-09-03/nasal-metagenomics-Metadata.csv",
+  header = TRUE, row.names = NULL,
+  check.names = FALSE
+)
+
+mngs.metadata <- mngs.metadata %>%
+  filter(!is.na(sc2_rpm))
+
+# mNGS QC
+mngs.metadata <- mngs.metadata %>%
+  filter(sample_status == "IMPACC sample assayed and passed QC")
+```
+
+```{r}
+# Reformat visit_num: decapitalize "VISIT"
+mngs.metadata$visit_num <- gsub(
+  "^VISIT", "Visit", mngs.metadata$visit_num
+)
+
+# Merge with sample metadata
+clin.sample.event.individ <- merge(
+  clin.sample.event.individ, mngs.metadata[,c("participant_id","visit_num","sc2_rpm")],
+  by.x=c("participant_id","event_type"), by.y=c("participant_id","visit_num"),
+  all.x=TRUE, all.y=FALSE # keep samples that don't pass SARS-CoV-2 metatranscriptomics QC
+  # all=FALSE # discard samples that don't pass SARS-CoV-2 metatranscriptomics QC <<< do NOT do this
+)
+
+# log-transform viral load
+clin.sample.event.individ$sc2_rpm_log10 <- log10(clin.sample.event.individ$sc2_rpm+1)
+```
+
+# Analysis: Visit 1 only
+```{r}
+# Sample metadata
+clin.sample.event.individ.visit1 <- clin.sample.event.individ %>%
+  subset(event_type == "Visit 1")
+
+# Subset abd data
+abd.visit1 <- abd[clin.sample.event.individ.visit1$sample_id,]
+
+#Spike antibodies/Figure 3C
+i=4
+p=summary(lm(log2(abd.visit1[,i])~clin.sample.event.individ.visit1$transplant_final))$coefficients[2,4]
+boxplot(abd.visit1[,i]~clin.sample.event.individ.visit1$transplant_final,xaxt='n',yaxt='n',col="white",border=c("cornflowerblue","orange"),xlab="",ylab="",las=2,cex.lab=1.5,cex.main=1.5,cex.axis=1.2,font.main=1,log='y',pch="")
+axis(1,at=1:2,labels=c("Control","Transplant"),cex.axis=1.2)
+axis(2,at=c(1,10,100,1000,10000,100000),labels=c(1,10,100,1000,10000,100000),cex.axis=1.2,las=2)
+mtext(side=2,text="Spike IgG (AUC)",cex=1.5,line=5)
+stripchart(abd.visit1[clin.sample.event.individ.visit1$transplant_final==0,i]~factor(clin.sample.event.individ.visit1$transplant_final[clin.sample.event.individ.visit1$transplant_final==0]),add=T,vertical=T,method="jitter",pch=20,at=1,col="cornflowerblue")
+stripchart(abd.visit1[clin.sample.event.individ.visit1$transplant_final==1,i]~factor(clin.sample.event.individ.visit1$transplant_final[clin.sample.event.individ.visit1$transplant_final==1]),add=T,vertical=T,method="jitter",pch=20,at=2,col="orange")
+text(x=1.5,y=0.9*max(abd.visit1[,i],na.rm=T),label=paste0("P=",round(p,4)),cex=1.5)
+```
+
+# Analysis: longitudinal
+
+```{r}
+#Sample metadata
+clin.sample.event.individ.long <- clin.sample.event.individ %>%
+  subset(event_type %in% c("Visit 1", "Visit 2", "Visit 3", "Visit 4", "Visit 5", "Visit 6"))
+
+# Try restricting to 30 days post admission
+clin.sample.event.individ.long <- clin.sample.event.individ.long %>%
+  subset(event_date <= 30)
+
+abd.long <- abd[clin.sample.event.individ.long$sample_id,]
+
+#run regression
+res.abs <- data.frame(matrix(NA, nrow=4, ncol=5))
+colnames(res.abs) <- c("slope.2vs1","slope.1","slope.2",
+                       "PVal","adj.PVal")
+res.abs$variable <- colnames(abd.long)[1:4]
+rownames(res.abs) <- colnames(abd.long)[1:4]
+for(i in 1:4)
+{
+  clin.sample.event.individ.long$tmp=abd.long[,i]
+  fit1=lmer(tmp~event_date+event_date:transplant_final+transplant_final+(1|participant_id),data=clin.sample.event.individ.long,REML=F)
+  fit2=lmer(tmp~event_date+transplant_final+(1|participant_id),data=clin.sample.event.individ.long,REML=F)
+  aa <- anova(fit2, fit1, test = "LRT")
+  res.abs[i,"PVal"] <- aa[2,"Pr(>Chisq)"]
+  aa <- summary(fit1)
+  res.abs[i,"slope.2vs1"] <- coefficients(aa)["event_date:transplant_final1","Estimate"]
+  res.abs[i,"slope.1"] <- coefficients(aa)["event_date","Estimate"]
+  res.abs[i,"slope.2"] <- res.abs[i,"slope.1"] + res.abs[i,"slope.2vs1"]
+  print(i)
+}
+res.abs$adj.PVal=p.adjust(res.abs$PVal,"BH")
+res.abs$nam=c("RBD IgG","RBd IgG","Spike IgG","Spike IgG")
+
+#plot
+i=4 #for Spike antibodies/Figure 3D
+clin.sample.event.individ.long$transplant_final_full="Control"
+clin.sample.event.individ.long$transplant_final_full[clin.sample.event.individ.long$transplant_final==1]="Transplant"
+
+temp <- data.frame(
+value = log2(abd.long[,i]),
+event_date = clin.sample.event.individ.long$event_date,
+txstatus = clin.sample.event.individ.long$transplant_final_full,
+pid = clin.sample.event.individ.long$participant_id
+) %>%
+subset(!is.na(value) & !is.na(event_date)) %>%
+droplevels()
+# Predict
+fit <- lmer(
+value ~ event_date + event_date:txstatus + txstatus +(1|pid),
+data = temp, REML = FALSE)
+my.pred <- ggeffects::ggpredict(fit, terms=c("event_date","txstatus"),
+type="fixed")
+colnames(my.pred)[colnames(my.pred)=="group"] <- "txstatus"
+temp$yhat <- predict(fit)
+# Calculate IQR and quartile values for limiting y-axes
+q1 <- quantile(temp$value, 0.25)
+q3 <- quantile(temp$value, 0.75)
+iqr <- IQR(temp$value)
+
+ggplot(data = temp, aes(x=event_date, y=value, color=txstatus)) +
+geom_line(aes(group=pid), color="gray", alpha=0.4) +
+#geom_line(inherit.aes=FALSE, aes(x=event_date, y=yhat, group=pid),
+#         color="#5F5F5F", alpha=0.9) +
+geom_point(aes(color="black"), shape=20, size=1) +
+stat_smooth(method = "lm", formula = y ~ poly(x,3),linewidth=1.5,aes(color=txstatus,fill=txstatus)) +
+#geom_ribbon(inherit.aes=FALSE,data=my.pred,aes(x, predicted, ymax=conf.high, ymin=conf.low,fill=txstatus),alpha=0.2) +
+#geom_line(inherit.aes=FALSE, data=my.pred, aes(x,predicted),
+#         color="black", size=1.5) +
+coord_cartesian(ylim = c(q1-1.5*iqr, q3+1.5*iqr)) +
+labs(x="Days from admission", y="AUC (log transformed)",
+title=sprintf("%s (P=%.1e)",res.abs[i,"nam"],res.abs[i,"adj.PVal"])) +
+scale_color_viridis_d(begin=0.4, guide="none") +
+# scale_color_brewer(palette="Paired", guide="none") +
+scale_color_manual(values=c("black","cornflowerblue","orange")) +
+scale_fill_manual(values=c("cornflowerblue","orange")) +
+# scale_color_discrete(guide="none") +
+facet_wrap(~ txstatus, nrow=1) + theme_bw() +
+theme(
+plot.title = element_text(hjust = 0.5, size=11, face="plain"),
+axis.text.x = element_text(size=10, color="black"),
+axis.text.y = element_text(size=10, color="black"),
+text = element_text(size=12, family="Arial"),
+plot.margin = unit(c(0.2,1,0.7,0.2), "cm"),
+panel.spacing = unit(0.35, "cm"),
+legend.position = "none",
+panel.grid.minor=element_blank()
+)
+
+```
+
+#Compare days from symptom onset
+```{r}
+#one correction
+transplant[transplant$studyid=="008-0103","symptom_date"] <- -13
+#remove BMT + controls
+final_transplant <- transplant %>%
+  subset(!(studyid %in% c("002-0022","007-0008","001-0013","010-0009","004-0041","005-0047")))
+
+#plot/Supp Figure 2
+par(mar=c(5.1,5.1,4.1,2.1))
+boxplot(-final_transplant$symptom_date~final_transplant$transplant_final,xaxt='n',yaxt='n',col="white",border=c("cornflowerblue","orange"),xlab="",ylab="",las=2,cex.lab=1.5,cex.main=1.5,cex.axis=1.2,font.main=1,pch="")
+p=summary(lm(final_transplant$symptom_date~final_transplant$transplant_final))$coefficients[2,4]
+axis(1,at=1:2,labels=c("Control","Transplant"),cex.axis=1.2)
+axis(2,at=c(0,10,20,30,40),labels=c(0,10,20,30,""),cex.axis=1.2,las=2)
+mtext(side=2,text="Days since symptom onset",cex=1.5,line=3.5)
+stripchart(-final_transplant[which(final_transplant$transplant_final==0),"symptom_date"]~factor(final_transplant$transplant_final[which(final_transplant$transplant_final==0)]),add=T,vertical=T,method="jitter",pch=20,at=1,col="cornflowerblue")
+stripchart(-final_transplant[which(final_transplant$transplant_final==1),"symptom_date"]~factor(final_transplant$transplant_final[which(final_transplant$transplant_final==1)]),add=T,vertical=T,method="jitter",pch=20,at=2,col="orange")
+text(x=1.5,y=0.9*max(-final_transplant$symptom_date[which(final_transplant$symptom_date>(-300))],na.rm=T),label=paste0("P=",round(p,3)),cex=1.5)
+
+```
