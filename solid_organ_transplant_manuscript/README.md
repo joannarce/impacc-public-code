@@ -30,6 +30,68 @@ Supplementary Figure 4a: ./serum_protein_olink/serum_protein_olink.Rmd/olink_vis
 <br>
 Supplementary Figure 4b,c: ./serum_protein_olink/serum_protein_olink.Rmd/olink_longitudinal_examples_viralload.pdf
 
+## Serum antibodies
+
+Figure 3C: ./serum_antibodies/serum_antibodies.Rmd #line-189
+
+Figure 3D: ./serum_antibodies/serum_antibodies.Rmd #line-237
+
+Supplementary Figure 2: ./serum_antibodies/serum_antibodies.Rmd #line-301
+
+## Blood CyTOF
+
+Figure 3A: ./blood_cytof/blood_cytof.Rmd #line-230
+
+Figure 3B: ./blood_cytof/blood_cytof.Rmd #line-268
+
+Figure 7A: ./blood_cytof/blood_cytof.Rmd #line-391
+
+Supplementary Figure 3: ./blood_cytof/blood_cytof.Rmd #line-306
+
+## PBMC transcriptomics
+
+Figure 5A: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-311
+
+Figure 5B: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-273
+
+Figure 5C: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-323
+
+Figure 5D: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-677
+
+Figure 5E: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-738
+
+Figure 7C: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-423
+
+Supplementary Figure 5A: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-273
+
+Supplementary Figure 5B: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-677
+
+Supplementary Figure 7A: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-506
+
+Supplementary Figure 7C: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-515
+
+## Nasal transcriptomics
+
+Figure 6A: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-273
+
+Figure 6B: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-634
+
+Figure 6C: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-695
+
+Figure 5D: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line
+
+Figure 5E: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-
+
+Figure 7D: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-379
+
+Supplementary Figure 5C: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-273
+
+Supplementary Figure 5D: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-634
+
+Supplementary Figure 7B: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-463
+
+Supplementary Figure 7D: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-472
+
 ## Required software
 
 The codes were run in R v4.0.3. Below is the sessionInfo():
@@ -52,8 +114,7 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
-[1] gamm4_0.2-6     mgcv_1.8-33     nlme_3.1-149    lme4_1.1-34     Matrix_1.2-18   patchwork_1.1.2 ggplot2_3.4.0  
-[8] dplyr_1.0.10   
+[1] gamm4_0.2-6     mgcv_1.8-33     nlme_3.1-149    lme4_1.1-34     Matrix_1.2-18   patchwork_1.1.2 ggplot2_3.4.0     dplyr_1.0.10      pheatmap_1.0-12     clusterProfiler_4.6-2     ReactomePA_1.42-0     RColorBrewer_1.1-3      biomaRt_2.54-1      edgeR_3.40-2      limma_3.54-2
 
 loaded via a namespace (and not attached):
  [1] Rcpp_1.0.9       nloptr_2.0.3     pillar_1.8.1     compiler_4.0.3   vipor_0.4.5      tools_4.0.3     
