@@ -204,7 +204,7 @@ print(
 Plot age histogram.
 
 ```{r}
-# Figure 2A
+# Figure 1B
 p1 <- ggplot(data=clin.sample.event.individ.sc2.unique,
             aes(x=admit_age, fill=age_group)) +
   geom_histogram(breaks=seq(18,96,by=2), color="black") +
@@ -218,7 +218,7 @@ p1 <- ggplot(data=clin.sample.event.individ.sc2.unique,
 Plot age vs TG.
 
 ```{r}
-# Figure 2B
+# Figure 1C
 red.palette <- colorRampPalette(c("#fcbba1", "#a50f15"), space="Lab")
 
 p2 <- ggplot(clin.sample.event.individ.sc2.unique,
@@ -257,7 +257,7 @@ p3 <- ggplot(clin.sample.event.individ.sc2.unique,
   my.theme + theme(legend.position = "none")
 print(kruskal.test(admit_age~as.factor(diedever), data=clin.sample.event.individ.sc2.unique))
 
-# Figure 2C
+# Figure 1D
 # 28-day mortality
 clin.sample.event.individ.sc2.unique$died28d <- ifelse(
   is.na(clin.sample.event.individ.sc2.unique$timetodeath) | clin.sample.event.individ.sc2.unique$timetodeath>28,

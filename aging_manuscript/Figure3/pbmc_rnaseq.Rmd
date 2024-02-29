@@ -360,7 +360,7 @@ res.toplot$direction <- factor(
 # Limit minimum P value to 10e-20
 res.toplot[res.toplot$adj.P.Val<1e-10,"adj.P.Val"] <- 1e-10
 
-# Figure 4A
+# Figure 3A
 p <- ggplot(data=res.toplot) +
   geom_point(aes(x=logFC, y=-log10(adj.P.Val), color=direction), size=0.8) +
   # geom_hline(yintercept=-log10(0.05), color="red", linetype="dashed") +
@@ -534,17 +534,14 @@ for (i in names(my.dict)) {
   reactome.gsea.toplot$pathway <- gsub(i, my.dict[[i]], reactome.gsea.toplot$pathway)
 }
 
-# Figure 4B
+# Figure 3B
 p <- ggplot(data = reactome.gsea.toplot, aes(x=reorder(pathway,NES), y=NES)) +
-  # geom_segment(aes(xend=reorder(pathway,NES)), yend=0) +
   geom_point(aes(color=as.factor(NES>0), 
                  shape=as.factor(padj<0.05)),
              size=2.5, stroke=1) +
   geom_hline(yintercept = 0, size = 0.7, color = "black") +
   scale_color_manual(values=c("TRUE"="darkred", "FALSE"="dodgerblue4"), guide="none") +
   scale_shape_manual(values=c("FALSE"=1,"TRUE"=19), guide="none") +
-  # scale_color_manual(values=c("FALSE"=alpha("black",0),"TRUE"=alpha("black",1)), guide="none") +
-  # ylim(-3.9, 3.9) +
   scale_y_continuous(limits = c(-4,4), expand = c(0,0)) +
   labs(x="", y="GSEA normalized\nenrichment score",
        title="Pathways upregulated\nwith age at Visit 1") +
@@ -672,15 +669,6 @@ merged.reactome.gsea <- rbind(
   reactome.gsea.SvsMinY %>% mutate(age_group="[18,46]"),
   reactome.gsea.SvsMinO %>% mutate(age_group="[71,96]")
 )
-
-# # Get list of pathways that are significant in at least one analysis
-# my.pathways <- union(
-#   reactome.gsea.SvsMinY[reactome.gsea.SvsMinY$padj<0.05,"pathway"],
-#   reactome.gsea.SvsMinO[reactome.gsea.SvsMinO$padj<0.05,"pathway"]
-# )
-
-# merged.reactome.gsea <- merged.reactome.gsea %>%
-#   subset(pathway %in% my.pathways$pathway)
 ```
 
 Import merged GSEA results from nasal RNA-seq analysis (Figure6/src/nasal_rnaseq.Rmd)
@@ -744,7 +732,7 @@ for (i in names(my.dict)) {
                                        merged.merged.toplot$pathway)
 }
 
-# Dotplot
+# Dotplot: Figure 6A
 p <- ggplot(data = merged.merged.toplot,
             aes(x = age_group, 
                 y = reorder(pathway, NES),
@@ -757,10 +745,6 @@ p <- ggplot(data = merged.merged.toplot,
     limits = c(-4,4),
     breaks = c(-4,0,4),
     name = "") +
-  # scale_color_distiller(
-  #   palette = "RdYlGn",
-  #   limits = c(-max(abs(res.toplot$slope)),max(abs(res.toplot$slope))),
-  #   breaks = c(-1,0,1), name = "") +
   labs(
     x = "Age group", y = "",
     title = "Pathways associated\nwith severity at Visit 1"
@@ -1430,7 +1414,7 @@ colnames(res.toplot) <- levels(clin.sample.event.individ.long$age_group)
 rownames(res.toplot) <- res$gene_id
 res.toplot <- res.toplot[res$adj.PVal<0.05,]
 
-# Figure 4C
+# Figure 3C
 # Heatmap
 out <- pheatmap(
   res.toplot, # res.toplot[,c("[18,46]","[71,96]")],
@@ -1458,7 +1442,7 @@ rownames(res.mhc) <- res.mhc$gene_name
 res.mhc <- res.mhc[,c("slope.1","slope.2","slope.3","slope.4","slope.5")]
 colnames(res.mhc) <- levels(clin.sample.event.individ.long$age_group)
 
-# Figure 4D
+# Figure 3D
 # Heatmap
 out <- pheatmap(
   res.mhc[c("HLA-A","HLA-B","HLA-C","HLA-DRA","HLA-DRB1","HLA-DPA1"),],
@@ -1546,7 +1530,7 @@ rownames(res.infl) <- res.infl$gene_name
 res.infl <- res.infl[,c("slope.1","slope.2","slope.3","slope.4","slope.5")]
 colnames(res.infl) <- levels(clin.sample.event.individ.long$age_group)
 
-# Figure 4D
+# Figure 3D
 # Heatmap
 out <- pheatmap(
   res.infl[c("IL6","IL1R1","CXCL6","SLAMF1","IL10RA","CCR7","IL2RB","IL7R"),],
@@ -1577,7 +1561,7 @@ rownames(res.tcr) <- res.tcr$gene_name
 res.tcr <- res.tcr[,c("slope.1","slope.2","slope.3","slope.4","slope.5")]
 colnames(res.tcr) <- levels(clin.sample.event.individ.long$age_group)
 
-# Figure 4D
+# Figure 3D
 # Heatmap
 out <- pheatmap(
   res.tcr[c("PTPRC","MALT1","ITK","CD4","CD3E","ZAP70","LCK","LAT"),], # LCP2 slopes change abruptly for [63,70], so replace it with MALT1
@@ -1598,7 +1582,7 @@ out <- pheatmap(
 Plot example genes (combine all 5 trend lines into 1 plot)
 
 ```{r}
-# Figure 4E
+# Figure 3E
 p <- list()
 for (i in c("HLA-A","HLA-DRA","CXCL6","IL10RA","CD3E","LAT")) {
   # gene_id of this gene

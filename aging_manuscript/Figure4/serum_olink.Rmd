@@ -295,7 +295,7 @@ res$adj.PVal <- p.adjust(res$PVal, method = "BH")
 Plot slope of all significant cytokines, without controlling for viral load.
 
 ```{r}
-# Figure 5A
+# Figure 4A
 p <- ggplot(data = subset(res.noviralload, adj.PVal < 0.05)) +
   geom_col(aes(y = reorder(cytokine,slope), x = slope,
                fill = as.factor(slope>0)),
@@ -343,7 +343,7 @@ p <- ggplot(data = subset(res, adj.PVal < 0.05)) +
 Plot some example cytokines (not controlling for viral load).
 
 ```{r}
-# Figure 5B
+# Figure 4B
 p <- list()
 counter <- 1
 my.colors <- c("darkred","dodgerblue4")
@@ -471,7 +471,7 @@ temp2 <- rbind(
   res.o[(res.y$adj.PVal<0.05) | (res.o$adj.PVal<0.05),c("cytokine","slope","adj.PVal")] %>% mutate(age_group="[71,96]")
 )
 
-# Figure 5C
+# Figure 4C
 p <- ggplot(data=temp2,
        aes(x=age_group,
            y=reorder(cytokine, slope, FUN=function(x) x[1]),
@@ -589,34 +589,8 @@ res.toplot <- rbind(
   res.o[my.cytokines,] %>% mutate(age_group="[71,96]")
 )
 
-p1 <- ggplot(data=res.toplot, aes(x=reorder(cytokine,slope), y=slope)) +
-  geom_point(aes(color=as.factor(slope>0), 
-                 # fill=as.factor(slope>0),
-                 # fill=as.factor(adj.PVal<0.05),
-                 shape=interaction(age_group,as.factor(adj.PVal<0.05))),
-             size=2, stroke=1) +
-  geom_hline(yintercept=0, color="black") +
-  scale_color_manual(values=c("TRUE"="darkgoldenrod1", "FALSE"="limegreen"), guide="none") +
-  scale_shape_manual(values=c(1,2,19,17)) +
-  # scale_shape_manual(values=c("\u25BD","\u25B3","\u25BE","\u25B4")) + # can't mix & match unicode and numeric shapes
-  scale_y_continuous(breaks=c(-1,-0.5,0,0.5,1), limits=c(-1,1), expand=c(0,0)) +
-  labs(x="",
-       y="Increase in NPX (z-score)",
-       title="Proteins associated\nwith severity at Visit 1") +
-  coord_flip() + #facet_wrap(~ age_group) +
-  theme_bw() +
-  theme(
-    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
-    axis.text.x = element_text(size=11, color="black"),
-    axis.text.y = element_text(size=10, color="black"),
-    text = element_text(size=12, family="Arial"),
-    plot.margin = unit(c(0,1,1,0), "cm"),
-    panel.spacing = unit(0.5, "cm"),
-    legend.key = element_rect(fill = "gray90"),
-    panel.grid.minor=element_blank()
-  ) # olink_visit1_severity_young-vs-old, 7.5 x 7 in
 
-# Dotplot
+# Dotplot: Figure 6B
 p2 <- ggplot(data=res.toplot,
              aes(y=age_group, 
                  x=reorder(cytokine, slope, FUN=function(x) x[1]),
@@ -859,7 +833,7 @@ ggplot() +
 Plot heatmap of significant cytokines' slopes.
 
 ```{r}
-# Figure 5D
+# Figure 4D
 res.toplot <- res[res$adj.PVal<0.05, c("slope.1","slope.2","slope.3","slope.4","slope.5")]
 colnames(res.toplot) <- levels(clin.sample.event.individ.long$age_group)
 out <- pheatmap(
@@ -942,7 +916,7 @@ p[[1]] +
 Try plotting all 5 trend lines on one plot
 
 ```{r}
-# Figure 5E
+# Figure 4E
 p <- list()
 for (i in c("TNFSF11","CXCL8","CXCL9","IL6")) {
   temp <- data.frame(

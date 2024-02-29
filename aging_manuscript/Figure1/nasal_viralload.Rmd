@@ -225,7 +225,7 @@ print(kruskal.test(
 Plot viral load vs age
 
 ```{r}
-# Figure 2D
+# Figure 1E
 
 p1 <- ggplot(clin.sample.event.individ.visit1,
             aes(x=age_group,

@@ -331,7 +331,7 @@ head(res)
 Volcano plot
 
 ```{r}
-# Figure 6A
+# Figure 5A
 # Identify direction
 res.toplot <- merge(res, rData[,c("gene_id","gene_name")],
                     all.x = TRUE, all.y = FALSE,
@@ -477,7 +477,7 @@ for (i in names(my.dict)) {
   reactome.gsea.toplot$pathway <- gsub(i, my.dict[[i]], reactome.gsea.toplot$pathway)
 }
 
-# Figure 6B
+# Figure 5B
 p <- ggplot(data = reactome.gsea.toplot, 
             aes(x=reorder(pathway,NES,FUN=function(x) x[1]), 
                 y=NES)) +

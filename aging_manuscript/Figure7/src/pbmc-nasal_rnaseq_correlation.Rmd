@@ -425,7 +425,7 @@ plot(old.corr~young.corr, data=res,
 Plot pretty
 
 ```{r}
-# Figure 6D
+# Figure 5D
 p <- ggplot() +
   geom_point(data = res,
              aes(x=young.corr, y=old.corr,
@@ -444,7 +444,7 @@ p <- ggplot() +
   labs(
     x="Correlation coefficient in [18,46]",
     y="Correlation coefficient in [71,96]",
-    title="PBMC-Nasal gene expression\ncorrelation at Visit 1"
+    title="PBMC-nasal gene expression\ncorrelation at Visit 1"
   ) + my.theme + theme(aspect.ratio = 1) # pbmc_nasal_visit1_corr_age-group, 360 x 360
 ```
 

@@ -294,7 +294,7 @@ res.clr$cell.type <- bld.rData[rownames(res.clr),"Final.Annotated.Population"]
 Plot slopes of significant cell types.
 
 ```{r}
-# Figure 3b
+# Figure 2B
 p <- ggplot() +
   geom_col(data = subset(res.clr, adj.PVal<0.05),
            aes(x = slope, y = reorder(cell.type,slope),
@@ -318,7 +318,7 @@ p <- ggplot() +
 Plot examples.
 
 ```{r}
-# Figure 3c
+# Figure 2C
 p <- list()
 counter <- 1
 my.colors <- c("darkred","darkred","dodgerblue4","dodgerblue4")
