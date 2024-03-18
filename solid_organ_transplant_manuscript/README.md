@@ -76,25 +76,23 @@ Supplementary Figure 7C: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-5
 
 ## Nasal transcriptomics
 
-Figure 6A: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-273
+Figure 6A: ./nasal_transcriptomics/nasal_transcriptomics.Rmd #line-273
 
-Figure 6B: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-634
+Figure 6B: ./nasal_transcriptomics/nasal_transcriptomics.Rmd #line-734
 
-Figure 6C: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-695
+Figure 6C: ./nasal_transcriptomics/nasal_transcriptomics.Rmd #line-795
 
-Figure 5D: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line
+Figure 7D: ./nasal_transcriptomics/nasal_transcriptomics.Rmd #line-379
 
-Figure 5E: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-
+Supplementary Figure 5C: ./nasal_transcriptomics/nasal_transcriptomics.Rmd #line-273
 
-Figure 7D: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-379
+Supplementary Figure 5D: ./nasal_transcriptomics/nasal.Rmd #line-634
 
-Supplementary Figure 5C: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-273
+Supplementary Figure 7B: ./nasal_transcriptomics/nasal_transcriptomics.Rmd #line-463
 
-Supplementary Figure 5D: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-634
+Supplementary Figure 7D: ./nasal_transcriptomics/nasal_transcriptomics.Rmd #line-472
 
-Supplementary Figure 7B: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-463
-
-Supplementary Figure 7D: ./pbmc_transcriptomics/pbmc_transcriptomics.Rmd #line-472
+Supplementary Figure 9: ./nasal_transcriptomics/nasal_transcriptomics.Rmd #line-609
 
 ## Required software
 
