@@ -606,6 +606,7 @@ ntpall$Description=pways
 
 ncombo=rbind(ncpall,ntpall)
 
+#supp figure 9
 ggplot(data=ncombo,
        aes(x=NES, y=reorder(Description, NES, FUN = function(x) x[1]))) +
   geom_col(aes(color=as.factor(NES>0)), fill=NA, width=0.7) +
