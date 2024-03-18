@@ -16,20 +16,6 @@ Figure 2c: ./nasal_viral_load/nasal_viral_load.Rmd/viralload_longitudinal_gamm4.
 
 Supplementary Figure 1: ./nasal_viral_load/nasal_viral_load.Rmd/viralload_mngs-vs-qpcr.pdf
 
-## Serum soluble inflammation proteins (Olink)
-
-Figure 4a: ./serum_protein_olink/serum_protein_olink.Rmd/olink_visit1_significant_no-viralload.pdf
-<br>
-Figure 4b: ./serum_protein_olink/serum_protein_olink.Rmd/olink_visit1_significant_examples.pdf
-<br>
-Figure 4c: ./serum_protein_olink/serum_protein_olink.Rmd/olink_longitudinal_CXCL11.pdf
-
-Figure 7b: ./nasal_viral_load/nasal_viral_load.Rmd/olink_visit1_TG.pdf
-
-Supplementary Figure 4a: ./serum_protein_olink/serum_protein_olink.Rmd/olink_visit1_significant_yes-vs-no-viralload.pdf
-<br>
-Supplementary Figure 4b,c: ./serum_protein_olink/serum_protein_olink.Rmd/olink_longitudinal_examples_viralload.pdf
-
 ## Serum antibodies
 
 Figure 3C: ./serum_antibodies/serum_antibodies.Rmd #line-189
@@ -47,6 +33,24 @@ Figure 3B: ./blood_cytof/blood_cytof.Rmd #line-268
 Figure 7A: ./blood_cytof/blood_cytof.Rmd #line-391
 
 Supplementary Figure 3: ./blood_cytof/blood_cytof.Rmd #line-306
+
+## Serum soluble inflammation proteins (Olink)
+
+Figure 4a: ./serum_protein_olink/serum_protein_olink.Rmd/olink_visit1_significant_no-viralload.pdf
+<br>
+Figure 4b: ./serum_protein_olink/serum_protein_olink.Rmd/olink_visit1_significant_examples.pdf
+<br>
+Figure 4c: ./serum_protein_olink/serum_protein_olink.Rmd/olink_longitudinal_CXCL11.pdf
+
+Figure 7b: ./nasal_viral_load/nasal_viral_load.Rmd/olink_visit1_TG.pdf
+
+Supplementary Figure 5a: ./serum_protein_olink/serum_protein_olink.Rmd/olink_visit1_significant_yes-vs-no-viralload.pdf
+<br>
+Supplementary Figure 5b: ./serum_protein_olink/serum_protein_olink.Rmd/olink_visit1_all_vs_viralload.pdf
+<br>
+Supplementary Figure 5c: ./serum_protein_olink/serum_protein_olink.Rmd/olink_visit1_CXCL8_vs_viralload.pdf
+<br>
+Supplementary Figure 5d: ./serum_protein_olink/serum_protein_olink.Rmd/olink_longitudinal_examples_viralload.pdf
 
 ## PBMC transcriptomics
 

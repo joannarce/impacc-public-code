@@ -439,6 +439,126 @@ for (i in c("CX3CL1","IFNG")) {
 p[[1]]+p[[2]] + plot_layout(nrow=1) # olink_visit1_significant_examples.pdf, 5.6w x 3.2h in
 ```
 
+## Test for association of cytokines with viral load
+
+```{r}
+# Set up table for storing results
+res.vs.sc2 <- data.frame(matrix(NA, nrow=nrow(olink.visit1), ncol=7))
+colnames(res.vs.sc2) <- c("cytokine",
+                       "slope.c","PVal.c","adj.PVal.c",
+                       "slope.t","PVal.t","adj.PVal.t")
+rownames(res.vs.sc2) <- rownames(olink.visit1)
+res.vs.sc2$cytokine <- rownames(res.vs.sc2)
+
+for (i in rownames(res.vs.sc2)) {
+  temp <- data.frame(
+    conc=olink.visit1[i,], 
+    transplant=clin.sample.event.individ.visit1$transplant_final,
+    sc2=clin.sample.event.individ.visit1$sc2_rpm_log10) %>%
+  subset(!is.na(conc) & !is.na(sc2))
+
+  # Control
+  temp.c <- subset(temp, transplant=="0")
+  lm.c <- lm(conc~sc2, data=temp.c)
+  # Transplant
+  temp.t <- subset(temp, transplant=="1")
+  lm.t <- lm(conc~sc2, data=temp.t)
+  
+  # Store results
+  res.vs.sc2[i,"slope.c"] <- coef(summary(lm.c))["sc2","Estimate"]
+  res.vs.sc2[i,"PVal.c"] <- coef(summary(lm.c))["sc2","Pr(>|t|)"]
+  res.vs.sc2[i,"slope.t"] <- coef(summary(lm.t))["sc2","Estimate"]
+  res.vs.sc2[i,"PVal.t"] <- coef(summary(lm.t))["sc2","Pr(>|t|)"]
+}
+
+# Adjust P-values
+res.vs.sc2$adj.PVal.c <- p.adjust(res.vs.sc2$PVal.c, method="BH")
+res.vs.sc2$adj.PVal.t <- p.adjust(res.vs.sc2$PVal.t, method="BH")
+```
+
+Compare slopes of each group
+
+```{r}
+p1 <- ggplot(data=res.vs.sc2,
+             aes(x=slope.c, y=slope.t),
+             color="black") +
+  geom_hline(yintercept=0, linetype=3, color="azure3") +
+  geom_vline(xintercept=0, linetype=3, color="azure3") +
+  geom_point(shape=21, fill="azure3") +
+  geom_point(data=. %>% subset(adj.PVal.t<0.05),
+             shape=21, fill="orange") +
+  geom_abline(slope=1, intercept=0, linewidth=0.3) +
+  scale_x_continuous(limits=c(-0.25,0.25), expand=c(0,0)) +
+  scale_y_continuous(limits=c(-0.25,0.25), expand=c(0,0)) +
+  labs(x="Control:\nprotein vs viral rpM slope",
+       y="Transplant:\nprotein vs viral rpM slope") +
+  theme_bw() + 
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text = element_text(size=12, color="black"),
+    text = element_text(size=12, family="Arial"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    plot.margin = unit(c(0,1,1,0), "cm")
+  ) # olink_visit1_all_vs_viralload.pdf, 3.4w x 3.3h in
+```
+
+Plot CXCL8 vs viral rpM
+
+```{r}
+temp <- data.frame(conc=olink.visit1["CXCL8",], 
+                   transplant=clin.sample.event.individ.visit1$transplant_final,
+                   sc2=clin.sample.event.individ.visit1$sc2_rpm_log10) %>%
+  subset(!is.na(conc) & !is.na(sc2))
+
+# Control
+temp.c <- subset(temp, transplant=="0")
+lm.c <- lm(conc~sc2, data=temp.c)
+pred.c <- ggeffects::ggpredict(lm.c, terms=c("sc2"))
+print(summary(lm.c))
+
+# Transplant
+temp.t <- subset(temp, transplant=="1")
+lm.t <- lm(conc~sc2, data=temp.t)
+pred.t <- ggeffects::ggpredict(lm.t, terms=c("sc2"))
+print(summary(lm.t))
+
+my.pred <- rbind(
+  pred.c %>% mutate(transplant="0"),
+  pred.t %>% mutate(transplant="1")
+)
+
+# Plot
+p2 <- ggplot(data=temp) +
+  geom_point(aes(x=sc2, y=conc), size=0.5) +
+  geom_line(data=my.pred, 
+            aes(x,predicted,color=transplant),
+            linewidth=1.5) +
+  geom_ribbon(inherit.aes=FALSE, data=my.pred,
+              aes(x=x, y=predicted,
+                  ymin=conf.low, ymax=conf.high,
+                  fill=transplant),
+              alpha=0.4) +
+  scale_color_manual(values=c("cornflowerblue", "orange"),
+                     guide="none") +
+  scale_fill_manual(values=c("cornflowerblue", "orange"),
+                     guide="none") +
+  labs(x="SARS-CoV-2 log10(rpM)", 
+       y="Protein expression",
+       title="CXCL8") +
+  facet_wrap(~transplant, nrow=1) +
+  theme_bw() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text.x = element_text(size=12, color="black"),
+    axis.text.y = element_text(size=12, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,0.7,0), "cm"),
+    panel.spacing = unit(0.5, "cm"),
+    panel.grid.minor=element_blank()
+  ) # olink_visit1_CXCL8_vs_viralload.pdf, 4.9w x 3.1h in
+```
+
 ## Compare trajectory groups
 
 ```{r}
