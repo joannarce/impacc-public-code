@@ -4,7 +4,7 @@
 
 This repository consists of code used for the analysis, figures and tables published in the article:
 
-<img src="176640-JCI-CMED-RV-2_ga_proof_765280.jpg" alt="Graphical abstract" width="500"/>
+<img src="176640-JCI-CMED-RV-2_ga_proof_765280.jpg" alt="Graphical abstract" width="200"/>
 
 Jeremy P. Gygi, Cole Maguire, Ravi K. Patel, Pramod Shinde, Anna Konstorum, Casey P. Shannon, Leqi Xu, Annmarie Hoch, Naresh Doni Jayavelu, Elias K. Haddad, IMPACC Network, Elaine F. Reed, Monica Kraft, Grace A. McComsey, Jordan P. Metcalf, Al Ozonoff, Denise Esserman, Charles B. Cairns, Nadine Rouphael, Steven E. Bosinger, Seunghee Kim-Schulze, Florian Krammer, Lindsey B. Rosen, Harm van Bakel, Michael Wilson, Walter L. Eckalbar, Holden T. Maecker, Charles R. Langelier, Hanno Steen, Matthew C. Altman, Ruth R. Montgomery, Ofer Levy, Esther Melamed, Bali Pulendran, Joann Diray-Arce, Kinga K. Smolen, Gabriela K. Fragiadakis, Patrice M. Becker, Rafick P. Sekaly, Lauren I.R. Ehrlich, Slim Fourati, Bjoern Peters, Steven H. Kleinstein, and Leying Guan. **"Integrated longitudinal multiomics study identifies immune programs associated with acute COVID-19 severity and mortality".** The Journal of
 Clinical Investigation (2024).
