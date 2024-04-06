@@ -1,0 +1,203 @@
+---
+title: "Fig4"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load packages}
+# Most packages are loaded by "class_structure.R" (see below). Load any additional packages here.
+
+```
+
+
+```{r load code and data, warning=FALSE, message=FALSE}
+
+##### Load code
+source("../../../0.Codebase/class_structures.R", local=FALSE, chdir=TRUE)
+
+##### Load data object
+base_obj1 = readRDS(file ="/scratch/data-integration/public_code_results/mod1_interpretation_base.rds") 
+
+##### Load other data files, if any
+
+
+##### Set global variables
+# Trajectory group colors
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+
+# Omic names: 
+# note: ppt, ppgd, so, pmg, nt and pbmc correspond to PPT, PPG, SPT, PMG, NGX and PGX, respectively, in the manuscript.
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+
+
+##### Output directory
+out_dir = "../output/"
+dir.create(out_dir, showWarnings = F)
+```
+
+```{r panel A&B}
+pgx_features <- pgx_fig4 <- base_obj1$projection_coef$pbmc %>%
+  as.data.frame() %>%
+  rownames_to_column("feature")
+SPT_features <- c("IL8"= "CXCL8", "CCL7", "CXCL10", "IL6", "IL10") ## CXCL8 = IL8
+PPGT_features <- c("CFI", "CFH", "CFD", "C1QA", "C1QB", "C1QC", "C1R", "C1S", "C3", "C5", "C4A", "C2",
+                  "H2A", "H2B", "H3", "H4", "CG"= "CTSG", "LL37"= "CAMP", "HMGB1", # CAMP = LL37, CG = CTSG
+                  "ACTB", "ACTA1", "ACTG1", "ACTC1",
+                  "H2AZ1", "H2AC20", "H2AC8", "H2AC1", ## H2A
+                  "H2BC10", "H2BC18", "H2BC14", "H2BC5", "H2BC13", "H2BC3", ## H2B
+                  "H3C12", ## H3
+                  "H4-16") ## H4 
+
+HDACs <- paste0("HDAC", 1:11)
+H2A_Hist <- pgx_features$feature[grepl("^H2A|HIST[1-9]H2A", pgx_features$feature)]
+H2B_Hist <- pgx_features$feature[grepl("^H2B|HIST[1-9]H2B", pgx_features$feature)]
+H3_Hist <- pgx_features$feature[grepl("^H3|HIST[1-9]H3", pgx_features$feature)]
+H4_Hist <- pgx_features$feature[grepl("^H4|HIST[1-9]H4", pgx_features$feature)]
+PGX_features <- c("CXCR1", "CXCR2", "TLR2", "TLR4", "C5AR1", "CR3"= "ITGAM", #CR3
+                  "CR1",
+                  "SYK", "PLC", "TAK1" = "MAP3K7", "RAF1", "MEK1" = "MAP2K1", "ERK1" = "MAPK3",
+                  "ERK2" = "MAPK1",
+                  "ASK1" = "MAP3K5","MKK6" = "MAP2K6","MKK3" = "MAP2K3",
+                  "p38" ="MAPK14",
+                  "gp91" = "CYBB","p22phox" = "CYBA", "p40phox" = "NCF4",
+                  "p47phox" = "NCF1", "p67phox" = "NCF2", "RAC1", "RAC2",
+                  #"p40phox", "RAC1/2", "p67phox", "p47phox", "GP91", "p22phox",
+                  "MPO", "NE", "F-Actin" = "ACTB", "CASP1", "CASP4",
+                  "GSDMD", "AKT1", "MTOR", "ATG7", "PAD4" = "PADI4", "PKC",
+                  "PIK3CA", "PIK3CB", "PIK3CD", "PIK3R1", "PIK3R2", "PIK3R3",
+                  "PRKCA", "PRKCB", "PRKCG",
+                  "PLCB1", "PLCB2", "PLCB3", "PLCB4", "PLCG1", "PLCG2",
+                  "ASK1", "MKK3", "MKK6", "p38", "MPO", "NE" = "ELANE",
+                  "HAT" = "HAT1", "HDAC", "H2A", "H2B", "H3", "H4", "CCR5",
+                  "CCR3", "CCR2", "CCR1", "CXCR3", "IL6ST", "IL6R",
+                  "IL10RB", "IL10RA", HDACs, H2A_Hist,H2B_Hist,H3_Hist,
+                  H4_Hist)
+
+## Write combined features for H2A, H2B, H3, and H4
+combined_features_PPGT <- data.frame(grouping = c(rep("Actin", 4),
+                                                  rep("H2A", 4),
+                                                  rep("C1Q", 3),
+                                                  rep("H2B", 6),
+                                                  "H3",
+                                                  "H4"),
+                                feature = c("ACTB", "ACTA1", "ACTG1", "ACTC1",
+                                            "H2AZ1", "H2AC20", "H2AC8", "H2AC1",
+                                            "C1QA", "C1QB", "C1QC",
+                                            "H2BC10", "H2BC18", "H2BC14", "H2BC5", "H2BC13", "H2BC3",
+                                            "H3C12", ## H3
+                                            "H4-16"))
+
+combined_features_PGX <- data.frame(grouping = c(rep("ERK1/2", 2),
+                                                 rep("CXCR1/2", 2),
+                                                 rep("Rac1/2", 2),
+                                                 rep("PI3K", 6),
+                                                 rep("PLC", 6),
+                                                 rep("PKC", 3),
+                                                 rep("HDAC", 11),
+                                                 rep("H2A", length(H2A_Hist)),
+                                                 rep("H2B", length(H2B_Hist)),
+                                                 rep("H3", length(H3_Hist)),
+                                                 rep("H4", length(H4_Hist))),
+                                feature = c("MAPK3", "MAPK1",
+                                            "CXCR1", "CXCR2",
+                                            "RAC1", "RAC2",
+                                            "PIK3CA", "PIK3CB", "PIK3CD", "PIK3R1", "PIK3R2", "PIK3R3",
+                                            "PLCB1", "PLCB2", "PLCB3", "PLCB4", "PLCG1", "PLCG2",
+                                            "PRKCA", "PRKCB", "PRKCG",
+                                            HDACs, 
+                                            H2A_Hist,
+                                            H2B_Hist,
+                                            H3_Hist,
+                                            H4_Hist))
+
+pal <- scales::gradient_n_pal(colours = c("#2166AC","white","#B2182B"),
+                              values= c(-0.4, 0, 0.4))
+
+ppt_fig4 <- base_obj1$projection_coef$ppt %>%
+  as.data.frame() %>%
+  rownames_to_column("feature") %>%
+  filter(feature %in% PPGT_features) %>%
+  filter(!grepl("^CF|C[1-5]", feature)) %>%
+  dplyr::rename("Factor1" = 2) %>%
+   left_join(combined_features_PPGT) %>%
+  mutate(grouping = ifelse(is.na(grouping), feature, grouping)) %>%
+  group_by(grouping) %>%
+  dplyr::summarize(Factor1 = mean(Factor1)) %>%
+  dplyr::rename("feature" = "grouping") %>%
+  mutate(hex_code = pal(Factor1)) %>%
+  mutate(hex_code = ifelse(Factor1>=0.4, "#B2182B", ifelse(Factor1<=-0.4, "#2166AC", hex_code))) %>%
+  mutate(omic = "PPT")
+
+ppg_fig4 <- base_obj1$projection_coef$ppgd %>%
+  as.data.frame() %>%
+  rownames_to_column("feature") %>%
+  filter(feature %in% PPGT_features) %>%
+  filter(!feature %in% ppt_fig4$feature) %>%
+  dplyr::rename("Factor1" = 2) %>%
+  left_join(combined_features_PPGT) %>%
+  mutate(grouping = ifelse(is.na(grouping), feature, grouping)) %>%
+  group_by(grouping) %>%
+  dplyr::summarize(Factor1 = mean(Factor1)) %>%
+  dplyr::rename("feature" = "grouping") %>%
+  mutate(hex_code = pal(Factor1)) %>%
+  mutate(hex_code = ifelse(Factor1>=0.4, "#B2182B", ifelse(Factor1<=-0.4, "#2166AC", hex_code))) %>%
+  mutate(omic = "PPG")
+
+spt_fig4 <- base_obj1$projection_coef$so %>%
+  as.data.frame() %>%
+  rownames_to_column("feature") %>%
+  filter(feature %in% SPT_features) %>%
+  dplyr::rename("Factor1" = 2) %>%
+  mutate(hex_code = pal(round(Factor1, 2))) %>%
+  mutate(hex_code = ifelse(Factor1>=0.4, "#B2182B", ifelse(Factor1<=-0.4, "#2166AC", hex_code))) %>%
+  mutate(omic = "SPT")
+
+pgx_fig4 <- base_obj1$projection_coef$pbmc %>%
+  as.data.frame() %>%
+  rownames_to_column("feature") %>%
+  filter(feature %in% PGX_features) %>%
+  dplyr::rename("Factor1" = 2) %>%
+  left_join(combined_features_PGX) %>%
+  mutate(grouping = ifelse(is.na(grouping), feature, grouping)) %>%
+  group_by(grouping) %>%
+  dplyr::summarize(Factor1 = mean(Factor1)) %>%
+  dplyr::rename("feature" = "grouping") %>%
+  mutate(hex_code = pal(round(Factor1, 2))) %>%
+  mutate(hex_code = ifelse(Factor1>=0.4, "#B2182B", ifelse(Factor1<=-0.4, "#2166AC", hex_code))) %>%
+  mutate(omic = "PGX")
+
+
+tmp_gg <- data.frame(x=c(1,2,3), y=c(-0.4, 0, 0.4)) %>%
+  ggplot(aes(x=x, y=y, fill = y)) +
+  geom_point() +
+  scale_fill_gradientn(colours = c("#2166AC","white","#B2182B"),
+                              limits= c(-0.4,  0.4),
+    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black"),
+    name = "Severity\nFactor") +
+  theme_void()
+
+legend <- get_legend(tmp_gg) 
+grid.newpage()                               
+grid.draw(legend)  
+
+Fig4_spreadsheet <- rbind.data.frame(ppt_fig4, ppg_fig4, spt_fig4, pgx_fig4)
+Fig4_spreadsheet <- Fig4_spreadsheet %>%
+  left_join(data.frame(names(PGX_features), PGX_features) %>%
+            dplyr::rename("alt_names"=1, "feature"=2)) %>%
+  left_join(data.frame(names(PPGT_features), PPGT_features) %>%
+            dplyr::rename("alt_names"=1, "feature"=2)) %>%
+  mutate(alt_names = ifelse(alt_names == "", NA, alt_names))
+write.csv(Fig4_spreadsheet, paste0(out_dir, "Fig4_data_AB.csv"))
+```

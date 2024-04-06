@@ -1,0 +1,1216 @@
+---
+title: "Fig2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load packages}
+# Most packages are loaded by "class_structures.R" (see below). Load any additional packages here.
+library(boot)
+library(ordinal)
+library(ggalluvial)
+```
+
+```{r load code and data, warning=FALSE, message=FALSE}}
+
+##### Load code
+source("../../../0.Codebase/class_structures.R", local=FALSE, chdir=TRUE)
+
+##### Load data object
+# MODIFY THIS
+base_obj1 = readRDS(file ="/scratch/data-integration/public_code_results/impacc_analysis_record_innerfold10.rds") # e.g., ../../3.data_object_preparation/output/mod1_interpretation_base.rds
+#base_obj1 = readRDS(file ="") # e.g., ../../3.data_object_preparation/output/mod1_interpretation_base.rds
+
+##### Load other data files, if any
+fig2b.model.eval.results <- readRDS("Fig2_files/Fig2B_model_eval_results.rds")
+fig2e.correlations <- read.csv("Fig2_files/clinical_modeling_factors1-7_woTG.csv")
+fig2e.baseline_labs <- read.csv("/scratch/data-integration/impacc-baseline-labs.csv")
+
+##### Set global variables
+# Trajectory group colors
+tg_colors <- c(
+  '#639A21',
+  '#6371AD',
+  '#BD7D31',
+  '#9C3418'
+)
+names(tg_colors) <- c("TG1", "TG2/TG3", "TG4", "TG5")
+# Model colors
+model_cols <- c(clin = "#4E8098",
+                mcia = "#BA3F1D",
+                ensemble = "#B88AC9")
+# Respiratory status
+respiratory_status_colors <- c(
+  '#639A21',
+  '#6371AD',
+  '#BD7D31',
+  '#9C3418'
+)
+
+# Omic names: 
+# note: ppt, ppgd, so, pmg, nt and pbmc correspond to PPT, PPG, SPT, PMG, NGX and PGX, respectively, in the manuscript.
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+
+
+##### Output directory
+out_dir = "../output/"
+dir.create(out_dir, showWarnings = F)
+```
+
+```{r panel 2B preparation, eval = FALSE}
+# overwrite predict function
+predict <- stats::predict
+
+# Figure specific functions:
+get_ROC = function(probs, Y, simplify = TRUE){
+  p.res <- pROC::roc(predictor = probs, response = Y, ci = TRUE, boot.n=100, ci.alpha=0.9, stratified=FALSE)
+  if(!simplify){
+    return(data.frame(
+      tpr = p.res$sensitivities,
+      fpr = p.res$specificities,
+      auc = rep(p.res$auc, length(p.res$sensitivities)),
+      sd = rep(p.res$ci[2] - p.res$ci[1], length(p.res$sensitivities))
+    ))
+  } else {
+    return(
+      list(
+        df = data.frame(
+          auc = p.res$auc,
+          sd = p.res$ci[2] - p.res$ci[1]
+        ),
+        roc = p.res
+      )
+    )
+  }
+}
+get_boostrap_res <- function(model, x, y, type = "corr"){
+  df <- data.frame(
+    x = x,
+    y = y
+  )
+  #define dataset
+  
+  if(type == "corr"){
+    boot.res <- boot(df, 
+                   statistic = function(data, i) {
+                       o <- cor(data[i, "x"], data[i, "y"], method = "spearman", use = "pairwise.complete")
+                     return(o)
+                   },
+                   R = 1000)
+    res <- data.frame(
+      model = model,
+      corr = boot.res$t0,
+      sd = sd(boot.res$t)
+    )
+    vals <- boot.res$t
+  } else {
+    
+    boot.res <- boot(df, 
+                   statistic = function(data, i) {
+                       o <- pROC::roc(predictor = data[i, "y"], response = data[i, "x"])$auc
+                     return(o)
+                   },
+                   R = 1000)
+    res <- data.frame(
+      model = model,
+      corr = boot.res$t0,
+      sd = sd(boot.res$t)
+    )
+    vals = boot.res$t
+  }
+  
+  return(list(res = res, vals = vals))
+}
+get_cv_res <- function(model, x, y, fold.ids, type = "corr"){
+
+  df <- data.frame(
+    x = x,
+    y = y
+  )
+  
+  
+  # initial:
+  if(type == "corr"){
+    initial.cor <- cor(df$x, df$y, method = "spearman", use = "pairwise.complete")
+  } else if(type == "auc"){
+    initial.auc <- get_ROC(probs = df$y, Y = df$x)$df$auc
+  }
+  
+  # bootstrap:
+  R = 1000
+  if(type == "corr"){
+    cors <- c()
+    for(i in 1:R){
+      folds <- sort(sample(1:max(fold.ids), size = 50, replace = TRUE))
+      df.tmp <- data.frame()
+      for(f in folds){
+        df.tmp <- rbind(df.tmp, df[which(fold.ids == f),])
+      }
+      cor.tmp <- cor(df.tmp$x, df.tmp$y, method = "spearman", use = "pairwise.complete")
+      cors <- c(cors, cor.tmp)
+    }  
+  } else if(type == "auc"){
+    aucs <- c()
+    for(i in 1:R){
+      folds <- sort(sample(1:max(fold.ids), size = 50, replace = TRUE))
+      df.tmp <- data.frame()
+      for(f in folds){
+        df.tmp <- rbind(df.tmp, df[which(fold.ids == f),])
+        rownames(df.tmp) <- NULL
+      }
+      auc.tmp <- get_ROC(probs = df.tmp$y, Y = df.tmp$x)$df$auc
+      aucs <- c(aucs, auc.tmp)
+    }
+  }
+  
+  
+  if(type == "corr"){
+    res <- data.frame(
+      model = model,
+      value = initial.cor,
+      sd = sd(cors, na.rm = TRUE)
+    )
+    vals = cors
+  } else if(type == "auc"){
+    res <- data.frame(
+      model = model,
+      value = initial.auc,
+      sd = sd(aucs, na.rm = TRUE)
+    )
+    vals = aucs
+  }
+  
+  return(list(res = res, vals = vals))
+}
+get_P4v5 <- function(probs){
+  return(probs[,3]/(probs[,3] + probs[,4]))
+}
+
+
+
+# make ordinal_probs:
+ordinal_probs <- data.frame(
+  mcia = 1 - base_obj1$test_prediction_list$mcia_prob[,1],
+  clin = 1 - base_obj1$test_prediction_list$clin_prob[,1],
+  ensemble_mcia_clin = 1 - base_obj1$test_prediction_list$ENSEMBL.mcia.clin[,1],
+  TGgrp = dplyr::filter(base_obj1$clin.test, event_type == "Visit 1")$trajectory_group,
+  TGgrp.merge = sapply(dplyr::filter(base_obj1$clin.test, event_type == "Visit 1")$trajectory_group, function(tg){if(tg%in%4:5){return(3)};if(tg%in%2:3){return(2)};return(1)}),
+  baseline_resp = dplyr::filter(base_obj1$clin.test, event_type == "Visit 1")$resp_status_v1
+)
+# make TG45_probs:
+TG45_probs <- data.frame(
+  mcia = get_P4v5(base_obj1$test_prediction_list$mcia_prob),
+  clin = get_P4v5(base_obj1$test_prediction_list$clin_prob),
+  ensemble_mcia_clin = get_P4v5(base_obj1$test_prediction_list$ENSEMBL.mcia.clin),
+  TGgrp = dplyr::filter(base_obj1$clin.test, event_type == "Visit 1")$trajectory_group,
+  TGgrp.merge = sapply(dplyr::filter(base_obj1$clin.test, event_type == "Visit 1")$trajectory_group, function(tg){if(tg%in%4:5){return(3)};if(tg%in%2:3){return(2)};return(1)}),
+  baseline_resp = dplyr::filter(base_obj1$clin.test, event_type == "Visit 1")$resp_status_v1
+)
+
+TG45_probs <- dplyr::filter(TG45_probs, TGgrp %in% 4:5)
+TG45_probs$TGgrp.merge <- TG45_probs$TGgrp - 3
+
+# make trad_probs:
+trad_probs <- ordinal_probs
+
+# update predicted:
+trad_probs$TGgrp.merge[trad_probs$TGgrp.merge == 1] <- 2
+trad_probs$TGgrp.merge <- trad_probs$TGgrp.merge - 1
+
+# 1 v 2/3 v 4/5
+#
+#
+
+x <- ordinal_probs$TGgrp.merge
+y <- ordinal_probs$mcia
+mcia.cors <- get_boostrap_res("mcia", x, y)
+
+y <- ordinal_probs$clin
+clin.cors <- get_boostrap_res("clin", x, y)
+
+y <- ordinal_probs$ensemble_mcia_clin
+emc.cors <- get_boostrap_res("ensemble_mcia_clin", x, y)
+
+ordinal.cors <- list(
+  mcia = mcia.cors$res,
+  clin = clin.cors$res,
+  ensemble_mcia_clin = emc.cors$res
+)
+ordinal.models <- list(
+  mcia = mcia.cors$vals,
+  clin = clin.cors$vals,
+  ensemble_mcia_clin = emc.cors$vals
+)
+
+# 4 v 5
+#
+#
+
+x <- TG45_probs$TGgrp
+y <- TG45_probs$mcia
+mcia.cors <- get_boostrap_res("mcia", x, y, type = "auc")
+
+y <- TG45_probs$clin
+clin.cors <- get_boostrap_res("clin", x, y, type = "auc")
+
+y <- TG45_probs$ensemble_mcia_clin
+emc.cors <- get_boostrap_res("ensemble_mcia_clin", x, y, type = "auc")
+
+
+four.vs.five.cors <- list(
+  mcia = mcia.cors$res,
+  clin = clin.cors$res,
+  ensemble_mcia_clin = emc.cors$res
+)
+four.vs.five.models <- list(
+  mcia = mcia.cors$vals,
+  clin = clin.cors$vals,
+  ensemble_mcia_clin = emc.cors$vals
+)
+
+
+# 123 v 45
+#
+#
+
+x <- trad_probs$TGgrp.merge
+y <- 1-trad_probs$mcia
+mcia.cors <- get_boostrap_res("mcia", x, y, type = "auc")
+
+y <- 1-trad_probs$clin
+clin.cors <- get_boostrap_res("clin", x, y, type = "auc")
+
+y <- 1-trad_probs$ensemble_mcia_clin
+emc.cors <- get_boostrap_res("ensemble_mcia_clin", x, y, type = "auc")
+
+trad.cors <- list(
+  mcia = mcia.cors$res,
+  clin = clin.cors$res,
+  ensemble_mcia_clin = emc.cors$res
+)
+trad.models <- list(
+  mcia = mcia.cors$vals,
+  clin = clin.cors$vals,
+  ensemble_mcia_clin = emc.cors$vals
+)
+
+# CV Results:
+
+###make prediction for ensemble model(s)
+z1 = data.frame(mcia = 1.0 - base_obj1$model_mcia$nested_cv_probs[,1],
+                clin = 1.0 - base_obj1$model_clin$nested_cv_probs[,1],
+                baseline = dplyr::filter(base_obj1$clin.train, event_type == "Visit 1")$resp_status_v1
+)
+z1[,1] = log(z1[,1]/(1.0 - z1[,1]))
+z1[,2] = log(z1[,2]/(1.0 - z1[,2]))
+
+z2 = data.frame(mcia = base_obj1$model_mcia$nested_cv_probs[,4]/(base_obj1$model_mcia$nested_cv_probs[,3]+base_obj1$model_mcia$nested_cv_probs[,4]),
+                clin = base_obj1$model_clin$nested_cv_probs[,4]/(base_obj1$model_clin$nested_cv_probs[,3]+base_obj1$model_clin$nested_cv_probs[,4]),
+                baseline = dplyr::filter(base_obj1$clin.train, event_type == "Visit 1")$resp_status_v1
+)
+z2[,1] = log(z2[,1]/(1.0 - z2[,1]))
+z2[,2] = log(z2[,2]/(1.0 - z2[,2]))
+
+emc.preds = base_obj1$make_ensemble_prediction(z1[,c(1:2)], z2[,c(1:2)], model=base_obj1$other_model_list[["ENSEMBL.mcia.clin"]])
+
+cv.ordinal_probs <- data.frame(
+  mcia = 1-base_obj1$model_mcia$nested_cv_probs[,1],
+  clin = 1-base_obj1$model_clin$nested_cv_probs[,1],
+  ensemble_mcia_clin = 1-emc.preds[,1],
+  TGgrp = dplyr::filter(base_obj1$clin.train, event_type == "Visit 1")$trajectory_group,
+  TGgrp.merge = sapply(dplyr::filter(base_obj1$clin.train, event_type == "Visit 1")$trajectory_group, function(tg){if(tg%in%4:5){return(3)};if(tg%in%2:3){return(2)};return(1)}),
+  baseline_resp = dplyr::filter(base_obj1$clin.train, event_type == "Visit 1")$resp_status_v1,
+  fold_id = base_obj1$nest_cv_foldid
+)
+
+# make TG45_probs:
+cv.TG45_probs <- data.frame(
+  mcia = get_P4v5(base_obj1$model_mcia$nested_cv_probs),
+  clin = get_P4v5(base_obj1$model_clin$nested_cv_probs),
+  ensemble_mcia_clin = get_P4v5(emc.preds),
+  TGgrp = dplyr::filter(base_obj1$clin.train, event_type == "Visit 1")$trajectory_group,
+  TGgrp.merge = sapply(dplyr::filter(base_obj1$clin.train, event_type == "Visit 1")$trajectory_group, function(tg){if(tg%in%4:5){return(3)};if(tg%in%2:3){return(2)};return(1)}),
+  baseline_resp = dplyr::filter(base_obj1$clin.train, event_type == "Visit 1")$resp_status_v1,
+  fold_id = base_obj1$nest_cv_foldid
+)
+
+cv.TG45_probs <- dplyr::filter(cv.TG45_probs, TGgrp %in% 4:5)
+cv.TG45_probs$TGgrp.merge <- cv.TG45_probs$TGgrp - 3
+
+# make trad_probs:
+cv.trad_probs <- cv.ordinal_probs
+
+# update predicted:
+cv.trad_probs$TGgrp.merge[cv.trad_probs$TGgrp.merge == 1] <- 2
+cv.trad_probs$TGgrp.merge <- cv.trad_probs$TGgrp.merge - 1
+
+
+
+
+# 1 v 23 v 45
+#
+#
+
+cv.folds <- cv.ordinal_probs$fold_id
+x <- cv.ordinal_probs$TGgrp.merge
+y <- cv.ordinal_probs$mcia
+mcia.cors <- get_cv_res("mcia", x, y, cv.folds)
+
+y <- cv.ordinal_probs$clin
+clin.cors <- get_cv_res("clin", x, y, cv.folds) 
+
+y <- cv.ordinal_probs$ensemble_mcia_clin
+emc.cors <- get_cv_res("ensemble_mcia_clin", x, y, cv.folds) 
+
+cv.ordinal.cors <- list(
+  mcia = mcia.cors$res,
+  clin = clin.cors$res,
+  ensemble_mcia_clin = emc.cors$res
+)
+cv.ordinal.models <- list(
+  mcia = mcia.cors$vals,
+  clin = clin.cors$vals,
+  ensemble_mcia_clin = emc.cors$vals
+)
+
+# 4 v 5
+#
+#
+
+cv.folds <- cv.TG45_probs$fold_id
+x <- cv.TG45_probs$TGgrp
+y <- cv.TG45_probs$mcia
+mcia.cors <- get_cv_res("mcia", x, y, cv.folds, type = "auc")
+
+y <- cv.TG45_probs$clin
+clin.cors <- get_cv_res("clin", x, y, cv.folds, type = "auc")
+
+y <- cv.TG45_probs$ensemble_mcia_clin
+emc.cors <- get_cv_res("ensemble_mcia_clin", x, y, cv.folds, type = "auc")
+
+cv.four.vs.five.cors <- list(
+  mcia = mcia.cors$res,
+  clin = clin.cors$res,
+  ensemble_mcia_clin = emc.cors$res
+)
+cv.four.vs.five.models <- list(
+  mcia = mcia.cors$vals,
+  clin = clin.cors$vals,
+  ensemble_mcia_clin = emc.cors$vals
+)
+
+# 123 v 45
+#
+#
+
+cv.folds <- cv.trad_probs$fold_id
+x <- cv.trad_probs$TGgrp.merge
+y <- 1-cv.trad_probs$mcia
+mcia.cors <- get_cv_res("mcia", x, y, cv.folds, type = "auc")
+
+y <- 1-cv.trad_probs$clin
+clin.cors <- get_cv_res("clin", x, y, cv.folds, type = "auc")
+
+y <- 1-cv.trad_probs$ensemble_mcia_clin
+emc.cors <- get_cv_res("ensemble_mcia_clin", x, y, cv.folds, type = "auc")
+
+cv.trad.cors <- list(
+  mcia = mcia.cors$res,
+  clin = clin.cors$res,
+  ensemble_mcia_clin = emc.cors$res
+)
+cv.trad.models <- list(
+  mcia = mcia.cors$vals,
+  clin = clin.cors$vals,
+  ensemble_mcia_clin = emc.cors$vals
+)
+
+# Generate/save table:
+total.df <- data.frame()
+tmp.oc <- do.call("rbind", ordinal.cors)
+tmp.oc$test <- "Test"
+tmp.oc$task <- "TG1/23/45 vs. P(TG45)\nSpearman Corr."
+tmp.45 <- do.call("rbind", four.vs.five.cors)
+tmp.45$test <- "Test"
+tmp.45$task <- "TG4/5 vs. P(TG5)\nAUROC"
+tmp.tc <- do.call("rbind", trad.cors)
+tmp.tc$test <- "Test"
+tmp.tc$task <- "TG123/45 vs. P(TG45)\nAUROC"
+
+tmp.oc.cv <- do.call("rbind", cv.ordinal.cors)
+tmp.oc.cv$test <- "CV"
+tmp.oc.cv$task <- "TG1/23/45 vs. P(TG45)\nSpearman Corr."
+tmp.45.cv <- do.call("rbind", cv.four.vs.five.cors)
+tmp.45.cv$test <- "CV"
+tmp.45.cv$task <- "TG4/5 vs. P(TG5)\nAUROC"
+tmp.tc.cv <- do.call("rbind", cv.trad.cors)
+tmp.tc.cv$test <- "CV"
+tmp.tc.cv$task <- "TG123/45 vs. P(TG45)\nAUROC"
+
+colnames(tmp.oc) <- colnames(tmp.45) <- colnames(tmp.tc) <- colnames(tmp.oc.cv) <- colnames(tmp.45.cv) <- colnames(tmp.tc.cv) <- c("model", "value", "sd", "test", "task")
+
+total.df <- rbind(
+  tmp.oc,
+  tmp.45,
+  tmp.tc,
+  tmp.oc.cv,
+  tmp.45.cv,
+  tmp.tc.cv
+)
+
+total.df.filt <- dplyr::filter(total.df, model %in% c("ensemble_mcia_clin", "mcia", "clin"))
+total.df.filt$model[total.df.filt$model == "ensemble_mcia_clin"] <- "ensemble"
+total.df.filt$model <- factor(total.df.filt$model, levels = c("mcia", "clin", "ensemble"))
+
+# Generate significance tests:
+all.pvals <- list()
+# Test
+#1/23/45:
+ii <- list(c(1, 3), c(1, 2), c(2, 3))
+current_task <- "TG1/23/45 vs. P(TG45)\nSpearman Corr."
+train_test <- "Test"
+orig.vals <- dplyr::filter(total.df.filt, task == current_task, test == train_test)$value
+bootstrap.vals <- ordinal.models
+ps <- c(NA, NA, NA)
+names(ps) <- c("mcia~ensemble", "mcia~clin", "ensemble~clin")
+for(i in 1:3){
+  # get initial difference (delta)
+  # get bootstrap differences (delta b)
+  # distribution of bootstraps = dist of delta b's
+  # how many boostrapped differences where value - boostrap.dif.mean + orig.diff < 0
+  # y1 <= y2, (p.value = 1 - P(delta < 0)) x 2
+  orig.delta <- orig.vals[ii[[i]][1]] - orig.vals[ii[[i]][2]]
+  delta <- bootstrap.vals[[ii[[i]][1]]] - bootstrap.vals[[ii[[i]][2]]]
+  num.dif <- sum(delta - mean(delta) + orig.delta >= 0)
+  if(orig.delta >= 0){
+    p.val <- 2*(1 - num.dif/length(delta))
+  } else {
+    p.val <- 2*(num.dif/length(delta))
+  }
+  # or just use sd(all differences) Estimated variance via bootstrap  - standard normal approximation to calculate p-value
+  # P(mean < 0) = orig.delta/sd(diff) * 2
+  ps[i] <- p.val
+}
+all.pvals[["ordinal"]] <- ps
+
+#123/45:
+ii <- list(c(1, 3), c(1, 2), c(2, 3))
+current_task <- "TG123/45 vs. P(TG45)\nAUROC"
+train_test <- "Test"
+orig.vals <- dplyr::filter(total.df.filt, task == current_task, test == train_test)$value
+bootstrap.vals <- trad.models
+ps <- c(NA, NA, NA)
+names(ps) <- c("mcia~ensemble", "mcia~clin", "ensemble~clin")
+for(i in 1:3){
+  # get initial difference (delta)
+  # get bootstrap differences (delta b)
+  # distribution of bootstraps = dist of delta b's
+  # how many boostrapped differences where value - boostrap.dif.mean + orig.diff < 0
+  # y1 <= y2, (p.value = 1 - P(delta < 0)) x 2
+  orig.delta <- orig.vals[ii[[i]][1]] - orig.vals[ii[[i]][2]]
+  delta <- bootstrap.vals[[ii[[i]][1]]] - bootstrap.vals[[ii[[i]][2]]]
+  num.dif <- sum(delta - mean(delta) + orig.delta >= 0)
+  if(orig.delta >= 0){
+    p.val <- 2*(1 - num.dif/length(delta))
+  } else {
+    p.val <- 2*(num.dif/length(delta))
+  }
+  # or just use sd(all differences) Estimated variance via bootstrap  - standard normal approximation to calculate p-value
+  # P(mean < 0) = orig.delta/sd(diff) * 2
+  ps[i] <- p.val
+}
+all.pvals[["trad"]] <- ps
+
+#4/5:
+ii <- list(c(1, 3), c(1, 2), c(2, 3))
+current_task <- "TG4/5 vs. P(TG5)\nAUROC"
+train_test <- "Test"
+orig.vals <- dplyr::filter(total.df.filt, task == current_task, test == train_test)$value
+bootstrap.vals <- four.vs.five.models
+ps <- c(NA, NA, NA)
+names(ps) <- c("mcia~ensemble", "mcia~clin", "ensemble~clin")
+for(i in 1:3){
+  # get initial difference (delta)
+  # get bootstrap differences (delta b)
+  # distribution of bootstraps = dist of delta b's
+  # how many boostrapped differences where value - boostrap.dif.mean + orig.diff < 0
+  # y1 <= y2, (p.value = 1 - P(delta < 0)) x 2
+  orig.delta <- orig.vals[ii[[i]][1]] - orig.vals[ii[[i]][2]]
+  delta <- bootstrap.vals[[ii[[i]][1]]] - bootstrap.vals[[ii[[i]][2]]]
+  num.dif <- sum(delta - mean(delta) + orig.delta >= 0)
+  if(orig.delta >= 0){
+    p.val <- 2*(1 - num.dif/length(delta))
+  } else {
+    p.val <- 2*(num.dif/length(delta))
+  }
+  # or just use sd(all differences) Estimated variance via bootstrap  - standard normal approximation to calculate p-value
+  # P(mean < 0) = orig.delta/sd(diff) * 2
+  ps[i] <- p.val
+}
+all.pvals[["four.vs.five"]] <- ps
+
+
+# CV
+#1/23/45:
+ii <- list(c(1, 3), c(1, 2), c(2, 3))
+current_task <- "TG1/23/45 vs. P(TG45)\nSpearman Corr."
+train_test <- "CV"
+orig.vals <- dplyr::filter(total.df.filt, task == current_task, test == train_test)$value
+bootstrap.vals <- cv.ordinal.models
+ps <- c(NA, NA, NA)
+names(ps) <- c("mcia~ensemble", "mcia~clin", "ensemble~clin")
+for(i in 1:3){
+  # get initial difference (delta)
+  # get bootstrap differences (delta b)
+  # distribution of bootstraps = dist of delta b's
+  # how many boostrapped differences where value - boostrap.dif.mean + orig.diff < 0
+  # y1 <= y2, (p.value = 1 - P(delta < 0)) x 2
+  orig.delta <- orig.vals[ii[[i]][1]] - orig.vals[ii[[i]][2]]
+  delta <- bootstrap.vals[[ii[[i]][1]]] - bootstrap.vals[[ii[[i]][2]]]
+  num.dif <- sum(delta - mean(delta) + orig.delta >= 0)
+  if(orig.delta >= 0){
+    p.val <- 2*(1 - num.dif/length(delta))
+  } else {
+    p.val <- 2*(num.dif/length(delta))
+  }
+  # or just use sd(all differences) Estimated variance via bootstrap  - standard normal approximation to calculate p-value
+  # P(mean < 0) = orig.delta/sd(diff) * 2
+  ps[i] <- p.val
+}
+all.pvals[["cv.ordinal"]] <- ps
+
+#123/45:
+ii <- list(c(1, 3), c(1, 2), c(2, 3))
+current_task <- "TG123/45 vs. P(TG45)\nAUROC"
+train_test <- "CV"
+orig.vals <- dplyr::filter(total.df.filt, task == current_task, test == train_test)$value
+bootstrap.vals <- cv.trad.models
+ps <- c(NA, NA, NA)
+names(ps) <- c("mcia~ensemble", "mcia~clin", "ensemble~clin")
+for(i in 1:3){
+  # get initial difference (delta)
+  # get bootstrap differences (delta b)
+  # distribution of bootstraps = dist of delta b's
+  # how many boostrapped differences where value - boostrap.dif.mean + orig.diff < 0
+  # y1 <= y2, (p.value = 1 - P(delta < 0)) x 2
+  orig.delta <- orig.vals[ii[[i]][1]] - orig.vals[ii[[i]][2]]
+  delta <- bootstrap.vals[[ii[[i]][1]]] - bootstrap.vals[[ii[[i]][2]]]
+  num.dif <- sum(delta - mean(delta) + orig.delta >= 0)
+  if(orig.delta >= 0){
+    p.val <- 2*(1 - num.dif/length(delta))
+  } else {
+    p.val <- 2*(num.dif/length(delta))
+  }
+  # or just use sd(all differences) Estimated variance via bootstrap  - standard normal approximation to calculate p-value
+  # P(mean < 0) = orig.delta/sd(diff) * 2
+  ps[i] <- p.val
+}
+all.pvals[["cv.trad"]] <- ps
+
+#4/5:
+ii <- list(c(1, 3), c(1, 2), c(2, 3))
+current_task <- "TG4/5 vs. P(TG5)\nAUROC"
+train_test <- "CV"
+orig.vals <- dplyr::filter(total.df.filt, task == current_task, test == train_test)$value
+bootstrap.vals <- cv.four.vs.five.models
+ps <- c(NA, NA, NA)
+names(ps) <- c("mcia~ensemble", "mcia~clin", "ensemble~clin")
+for(i in 1:3){
+  # get initial difference (delta)
+  # get bootstrap differences (delta b)
+  # distribution of bootstraps = dist of delta b's
+  # how many boostrapped differences where value - boostrap.dif.mean + orig.diff < 0
+  # y1 <= y2, (p.value = 1 - P(delta < 0)) x 2
+  orig.delta <- orig.vals[ii[[i]][1]] - orig.vals[ii[[i]][2]]
+  delta <- bootstrap.vals[[ii[[i]][1]]] - bootstrap.vals[[ii[[i]][2]]]
+  num.dif <- sum(delta - mean(delta) + orig.delta >= 0)
+  if(orig.delta >= 0){
+    p.val <- 2*(1 - num.dif/length(delta))
+  } else {
+    p.val <- 2*(num.dif/length(delta))
+  }
+  # or just use sd(all differences) Estimated variance via bootstrap  - standard normal approximation to calculate p-value
+  # P(mean < 0) = orig.delta/sd(diff) * 2
+  ps[i] <- p.val
+}
+all.pvals[["cv.four.vs.five"]] <- ps
+all.pvals.df <- as.data.frame(do.call("rbind", all.pvals))
+all.pvals.df$task <- rep(c("TG1/23/45 vs. P(TG45)\nSpearman Corr.", 
+                           "TG123/45 vs. P(TG45)\nAUROC", 
+                           "TG4/5 vs. P(TG5)\nAUROC"), 2)
+all.pvals.df$Test <- rep(c("Test", "CV"), each = 3)
+
+
+# Combine Test data for box and whisker plot:
+all.vals.df <- data.frame()
+models.list <- list(
+  ordinal.models, 
+  four.vs.five.models)
+names(models.list) <- c("TG1/23/45 vs. P(TG45)\nSpearman Corr.", "TG4/5 vs. P(TG5)\nAUROC")
+for(i in 1:2){
+  tmp.models <- models.list[[i]]
+  tmp.name <- names(models.list)[i]
+  tmp.df <- do.call("cbind", tmp.models)
+  colnames(tmp.df) <- c("mcia", "clin", "ensemble")
+  rownames(tmp.df) <- paste0("iter", 1:nrow(tmp.df))
+  tmp.melt <- reshape2::melt(tmp.df)
+  tmp.melt$Test = "Test"
+  tmp.melt$task = tmp.name
+  all.vals.df <- rbind(all.vals.df, tmp.melt)
+}
+
+
+# Make figure:
+#
+#
+comparison.bars <- data.frame(
+  x = c(1, 2, 1, 1, 2, 2, 3, 1, 3),
+  y = c(1, 1.1, 1.2, 1, 1, 1.1, 1.1, 1.2, 1.2) - .1,
+  xend = c(2, 3, 3, 1, 2, 2, 3, 1, 3),
+  yend = c(1, 1.1, 1.2, .97, .97, 1.07, 1.07, 1.17, 1.17) - .1
+)
+
+all.pvals.melt <- reshape2::melt(all.pvals.df, id.vars = c("task", "Test"))
+all.pvals.melt$xpos <- sapply(all.pvals.melt$variable, function(v){
+  if(v == "mcia~ensemble"){
+    return(2)
+  } else if(v == "mcia~clin"){
+    return(1.5)
+  } 
+  return(2.5)
+})
+all.pvals.melt$ypos <- sapply(all.pvals.melt$variable, function(v){
+  if(v == "mcia~ensemble"){
+    return(1.15)
+  } else if(v == "mcia~clin"){
+    return(.95)
+  } 
+  return(1.05)
+})
+all.pvals.melt$asterisk <- sapply(all.pvals.melt$value, function(v){
+  if(v > .05){
+    return("ns")
+  } else if(v > .001){
+    return("*")
+  } else if(v > .00001){
+    return("**")
+  } else {
+    return("***")
+  }
+})
+
+# Change CV to Train:
+total.df.filt$test[which(total.df.filt$test == "CV")] <- "Train"
+
+
+# For non-supplemental, filter out High-Risk (123/45):
+total.df.filt.main <- dplyr::filter(total.df.filt, task != "TG123/45 vs. P(TG45)\nAUROC")
+all.pvals.melt.main <- dplyr::filter(all.pvals.melt, task != "TG123/45 vs. P(TG45)\nAUROC")
+
+# Save for easy loading:
+fig2b.model.eval.results <- list(
+  metrics = total.df.filt.main,
+  pvals = all.pvals.melt.main,
+  bars = comparison.bars,
+  all.vals = all.vals.df
+)
+saveRDS(fig2b.model.eval.results,
+        "Fig2_files/Fig2B_model_eval_results.rds")
+```
+
+```{r panel 2B plotting}
+# Load result file (generated using chunk above):
+total.df.filt.main <- fig2b.model.eval.results$metrics
+comparison.bars <- fig2b.model.eval.results$bars
+all.pvals.melt.main <- fig2b.model.eval.results$pvals
+all.vals = fig2b.model.eval.results$all.vals
+
+fig.2B <- ggplot(dplyr::filter(total.df.filt.main, test == "Test")) +
+  # NOTE: JCI will not accept bar plots, so needed to restructure as boxplot...
+  #geom_bar(aes(x = model, y = value, fill = model), color = "black", stat = "identity") +
+  #geom_errorbar((aes(x = model, ymin = value - sd, ymax = value + sd)), width = .5) +
+  geom_boxplot(data = all.vals, aes(x = Var2, y = value, fill = Var2), width = .5) +
+  geom_segment(data = comparison.bars, aes(x = x, y = y, xend = xend, yend = yend), size = .5, color = "grey50") +
+  geom_text(data = dplyr::filter(all.pvals.melt.main, Test == "Test"), aes(x = xpos, y = ypos, label = asterisk)) +
+  geom_hline(yintercept = 0, color = "black", size = .5) +
+  theme_bw() +
+  ylab(NULL) +
+  xlab(NULL) +
+  theme(axis.text.x = element_text(angle = 315, hjust = 0, vjust = .5),
+        plot.title = element_text(hjust = .5, size = 12),
+        panel.grid.major.x = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank()) +
+  guides(fill = "none") +
+  scale_fill_manual(values = model_cols) +
+  scale_x_discrete(labels = c("MCIA", "Clinical", "Ensemble")) +
+  scale_y_continuous(limits = c(0, 1.1), breaks = seq(0, 1, by = .2), minor_breaks = NULL) +
+  facet_grid(rows = vars(factor(test, levels = c("Train", "Test"))), cols = vars(factor(task, levels = c("TG1/23/45 vs. P(TG45)\nSpearman Corr.",
+                                                                  "TG123/45 vs. P(TG45)\nAUROC",
+                                                                  "TG4/5 vs. P(TG5)\nAUROC"
+                                                                  ))))
+
+# save plot:
+ggsave(filename = "../output/Fig2B.pdf", plot = fig.2B, width = 4, height = 3)
+```
+
+```{r panel 2B table, eval = FALSE}
+tmp <- dplyr::filter(all.vals, Test == "Test")
+tmp$Test <- NULL
+colnames(tmp) <- c("Iteration", "Model", "Correlation/AUROC", "Task")
+write.csv(tmp, "../output/Fig2B.csv")
+```
+
+```{r panel 2C plotting}
+coef_mat_mcia = base_obj1$coef_extract_composite(
+  model = base_obj1$model_mcia$model_full,
+  method =  "MCIA")
+
+coef_mat_clin = base_obj1$coef_extract_composite(
+  model = base_obj1$model_clin$model_full,
+  method =  "CLIN")
+
+coef_mat_mcia$Feature <- c(
+  rep(paste0("Factor ", 1:7), 2)
+)
+
+coef_mat_clin$Feature <- rep(c(
+  "Sex",
+  "BMI",
+  # Comorbidities:
+  paste0("Comorb: ", c(
+  "Hypertension",
+  "Diabetes",
+  "Pulmonary Disease",
+  "Asthma",
+  "Chronic Cardiac Disease",
+  "Chronic Kidney Disease",
+  "Malignant Neoplasm",
+  "Chronic Neurological Disorder",
+  "Liver Disease",
+  "Organ/BM Transplant",
+  "HIV",
+  "Smoking/Vaping",
+  "Drugs/Alcohol Abuse/Cannibis",
+  "Total Count",
+  "Total Count (categorical)")),
+  # Baseline:
+  paste0("Baseline: ", c(
+  "Chest Image Radiography",
+  "Lymphocyte",
+  "Platelet",
+  "ALT",
+  "Creatinine",
+  "CRP",
+  "D-dimer",
+  "Troponin")),
+  # Race
+  paste0("Race: ", c(
+    "American Indian/Alaska Native",
+    "Asian",
+    "Black/African American",
+    "Multiple",
+    "Native Hawaiian/Pacific Islander",
+    "Other/Declined",
+    "White")),
+  # Ethnicity
+  paste0("Ethnicity: ", c(
+    "Hispanic/Latino",
+    "Not Hispanic/Latino"
+  )),
+  # Race
+  paste0("Age: ", c(
+    "36-51",
+    "52-66",
+    "67-81",
+    "82-96"
+  ))
+), 2)
+
+
+coef_mat = rbind(coef_mat_mcia, coef_mat_clin)
+# set to NA if below thresh
+coef.thresh <- .1
+coef_mat$coef[abs(coef_mat$coef) < coef.thresh] <- NA
+
+# factor:
+coef_mat$Feature <- factor(coef_mat$Feature, levels = unique(c(
+  paste0("Factor ", 1:7),
+  "Sex",
+  "BMI",
+  coef_mat_clin$Feature[grepl("Age", coef_mat_clin$Feature)],
+  sort(coef_mat_clin$Feature)
+)))
+
+fig.2C <- ggplot(dplyr::filter(coef_mat, method == "MCIA")) +
+  geom_tile(aes(x = Feature, y = model), fill = "white", color = "grey50", size = .1) +
+  geom_point(aes(x = Feature, y = model, fill = coef, size = abs(coef)), shape = 21) +
+  #geom_segment(x = 0.5, xend = .5 + length(unique(coef_mat$Feature)), y = 1.5, yend = 1.5, size = .1)
+  geom_rect(xmin = .5, xmax = 7.5, ymin = .5, ymax = 2.5, color = "black", fill = NA, size = .1) +
+  scale_fill_gradient2(low = "darkblue", high = "darkred", na.value = "white") +
+  scale_size_continuous(range = c(2, 7)) +
+  scale_y_discrete(labels = c("Severity", "Mortality")) +
+  #scale_x_discrete(labels = paste0("Module ", 1:7)) +
+  coord_equal() +
+  guides(size = "none") +
+  theme_bw() +
+  xlab(NULL) +
+  ylab(NULL) +
+  labs(fill = "Coef.") +
+  theme(axis.text.x = element_text(angle = 270, hjust = 0, vjust = .5),
+        panel.grid = element_blank(),
+        panel.background = element_blank(), panel.border = element_blank())
+
+ggsave(filename = "../output/Fig2C.pdf", plot = fig.2C, width = 5, height = 2.5)
+```
+
+```{r panel 2C table, eval = FALSE}
+tmp <- dplyr::filter(coef_mat, method == "MCIA")
+tmp$method <- NULL
+colnames(tmp) <- c("Multi-omics Factor", "Model", "Coefficient")
+write.csv(tmp, "../output/Fig2C.csv")
+```
+
+```{r panel 2D plotting}
+discretize_risk = function(prob, category = 5, labels = NULL){
+  qs = quantile(prob, c(1:category)/category)
+  qupper = c(qs[-category], max(prob))
+  qlower = c(min(prob)-1, qs[-category])
+  if(is.null(labels)){
+    labels = paste0("R",1:category)
+  }
+  qq = rep(NA, length(prob))
+  for(k in 1:category){
+    ll1 = which(prob<=qupper[k] & prob>qlower[k])
+    qq[ll1] = labels[k]
+  }
+  return(qq)
+  
+}
+testDF = data.frame(matrix(NA, ncol =4, nrow = 4))
+colnames(testDF) = c("t value", "p value", "CI2.5%", "CI97.5%")
+rownames(testDF) = c(paste0(c("moderate->severe", "severe->mortality"),".CV"),
+                     paste0(c("moderate->severe", "severe->mortality"),".test"))
+row_ids = which(base_obj1$clin.test$event_type%in%c("Visit 1"))
+mcia_probs= base_obj1$test_prediction_list$mcia_prob
+
+fitted_list = list()
+glist = list()
+prob1 = mcia_probs[,3]+mcia_probs[,4]
+prob2 =mcia_probs[,4]
+clinicalDF =base_obj1$clin.test[row_ids,]
+
+dataDF = clinicalDF[,c("resp_status_v1", "trajectory_group")]
+dataDF[["trajectory"]] = paste0("TG",dataDF[["trajectory_group"]])
+dataDF[["critical.prob"]] = prob1
+dataDF[["mortality.prob"]] = prob2
+dataDF[["weighted.risk"]] = sqrt(prob1 * prob2)
+dataDF[["baseline"]] = ifelse(dataDF$resp_status_v1%in%c(3,4), "moderate", "severe")
+dataDF[["baseline"]] = paste0(dataDF[["baseline"]],".v1")
+dataDF[["overall"]] = ifelse(dataDF$trajectory_group%in%c(1), "TG1", 
+                             ifelse(dataDF$trajectory_group%in%c(2,3), "TG2/TG3",
+                                    ifelse(dataDF$trajectory_group==4, "TG4", "TG5"))
+)
+dataDF[["overall"]] = paste0(dataDF[["overall"]],"")
+dataDF[["overall"]] = factor(dataDF[["overall"]], levels = 
+                                                    c("TG1","TG2/TG3", "TG4", "TG5"))
+
+dataDF[["critical.prob"]] = qqnorm(dataDF[["critical.prob"]], plot.it = F)$x
+dataDF[["mortality.prob"]] = qqnorm(dataDF[["mortality.prob"]], plot.it = F)$x
+dataDF[["weighted.risk"]] = qqnorm(dataDF[["weighted.risk"]], plot.it = F)$x
+cat = 10
+dataDF[["risk_grp"]] = discretize_risk(prob=dataDF[["weighted.risk"]], category = cat, labels = NULL)
+dataDF[["risk_grp"]] = factor(dataDF[["risk_grp"]], levels = paste0("R",1:cat))
+colorfill = RColorBrewer::brewer.pal(cat, "RdYlGn")
+colorfill=colorfill[cat:1]
+dataDF=dataDF[order(dataDF[["weighted.risk"]]),]
+
+width = .1
+
+fig.2D= ggplot(data = dataDF,
+                    aes(axis1 = resp_status_v1, axis2 = overall)) +
+  ggalluvial::geom_alluvium(aes(fill = risk_grp), width = width, curve_type = "cubic") +
+  ggalluvial::geom_stratum(fill = c(rev(respiratory_status_colors), rev(tg_colors)), width = width) +
+  scale_fill_manual(values = colorfill)+
+  #geom_text(stat = "stratum",
+  #          aes(label = after_stat(stratum))) +
+  scale_x_discrete(limits = c("resp_status_v1", "trajectory"),
+                   expand = c(0.15, 0.05)) +
+  theme_void() +
+  coord_flip()
+
+ggsave(filename = "../output/Fig2D.pdf", plot = fig.2D, width = 6, height = 3)
+
+```
+
+```{r panel 2D table, eval = FALSE}
+tmp <- dataDF
+tmp <- dplyr::select(tmp, resp_status_v1, overall, risk_grp)
+colnames(tmp) <- c("Baseline Respiratory Status", "Trajectory Group", "Risk Group Assignment")
+# NOTE: need to update to deidentified patients...
+rownames(tmp) <- NULL
+write.csv(tmp, "../output/Fig2D.csv")
+```
+
+```{r panel 2E preparation, eval = FALSE}
+## Factor to clinical feature modeling using Visit 1 Factor Score for Factors 1:7
+factors_to_screen <- 1:7
+
+################ Comorbidities, Symptoms, and Complications
+## The Scaling/Normalization for Factor Scores, applying separately
+## to train and test. This is vestigal as we only use train data, and is filter for such 
+## further below.
+factors.train <- apply(base_obj1$mcia.factors.train,2,function(z) qqnorm(z,plot.it = F)$x) %>%
+  as.data.frame() 
+factors.test <- apply(base_obj1$mcia.factors.test,2,function(z) qqnorm(z,plot.it = F)$x) %>%
+  as.data.frame() 
+
+summary_table <- rbind.data.frame(factors.train, factors.test)
+colnames(summary_table) <- paste0("Factor", 1:40)
+rownames(summary_table) <- c(rownames(base_obj1$clin.train), rownames(base_obj1$clin.test))
+################## Clinical Features ##########################################
+## Only the symptoms, comorb and ever_immsupp in this section 
+## (ie factor based clinical features that are not demographics)
+data <- summary_table %>%
+  rownames_to_column("event_id") %>%
+  mutate(cohort = ifelse(event_id %in% base_obj1$clin.train$event_id, "train", "test")) %>%
+  left_join(rbind.data.frame(base_obj1$clin.train, base_obj1$clin.test ) %>% as.data.frame()) %>%
+  pivot_longer(cols = starts_with(c("symptom_","comp_", "comorb_", "ever_immsupp"))) %>%
+  filter(!name %in% c("symptom_date", "comorb_count", "comorb_countcat")) %>% 
+  filter(event_type == "Visit 1") %>% ## This is only with Visit 1 samples
+  filter(cohort == "train") %>%
+  filter(!is.na(value)) %>%
+  filter(value != 999) %>%
+  mutate(trajectory_group = ordered(trajectory_group),
+         sex = factor(sex),
+         discretized_admit_age_quantile = ordered(discretized_admit_age_quantile),
+         cohort = factor(cohort),
+         participant_id = factor(participant_id),
+         enrollment_site = factor(enrollment_site)) 
+
+## Check both a cumulative linked mixed model (clmm) and a linear mixed effect model
+## from lme so we get the p.values.
+out.p <- data.frame(matrix(nrow = 0, ncol=5))
+colnames(out.p) <- c("clinical_feature", "Factor", "TG.adj.P", "coefficient", "coefficient_notes" )
+for(active_factor in c(paste0('Factor', factors_to_screen))){
+  for(active_name in unique(data$name)){
+    tmp <- data %>%
+      filter(name == active_name) %>%
+      mutate(trajectory_group = ordered(trajectory_group),
+             value = factor(value),
+             enrollment_site = factor(enrollment_site))
+    
+    if(nrow(tmp %>% filter(value == 1)) < 10){
+      next
+    }
+    
+    lme.formula.test <- formula(paste0(active_factor, " ~", "value + sex + discretized_admit_age_quantile"))
+    fit <- lme(fixed = lme.formula.test,
+        random = ~1|enrollment_site, data = tmp)
+    out.p <- rbind.data.frame(out.p, data.frame("clinical_feature" = active_name,
+                                                      "Factor" = active_factor,
+                                                      "TG.adj.P" = anova(fit, type = "marginal")$`p-value`[2],
+                                                    "coefficient" = fit$coefficients$fixed[2],
+                                                "coefficient_notes" = NA))
+    
+  }
+  
+}
+
+###### DEMOGRAPHICS ############################################################
+## Only the demographics that need special handling on the modeling (eg exclusion as another fixed effect such as with age)
+data <- summary_table %>%
+  rownames_to_column("event_id") %>%
+  mutate(cohort = ifelse(event_id %in% base_obj1$clin.train$event_id, "train", "test")) %>%
+  left_join(rbind.data.frame(base_obj1$clin.train, base_obj1$clin.test ) %>% as.data.frame()) %>%
+  mutate_at( c("admit_age", "sex", "race", "ethnicity", "bmi", "timetodischarge",
+               "timetodeath", "baseline_sofa_score_new") ,as.character) %>%
+  pivot_longer(cols = c(admit_age, sex, race, ethnicity, bmi, timetodischarge, timetodeath)) %>% 
+  left_join(rbind.data.frame(base_obj1$clin.train, base_obj1$clin.test ) %>%
+              as.data.frame() %>% dplyr::select(event_id, sex, discretized_admit_age_quantile)) %>%
+  mutate(value = gsub(" /", "", value)) %>%
+  filter(event_type == "Visit 1") %>%
+  filter(cohort == "train") %>%
+  filter(!is.na(value)) %>%
+  filter(value != "999") %>%
+  mutate(trajectory_group = ordered(trajectory_group),
+         sex = factor(sex),
+         discretized_admit_age_quantile = ordered(discretized_admit_age_quantile),
+         cohort = factor(cohort),
+         participant_id = factor(participant_id),
+         enrollment_site = factor(enrollment_site)) 
+
+for(active_factor in c(paste0('Factor', factors_to_screen))){
+  for(active_name in unique(data$name)){
+    tmp <- data %>%
+      filter(name == active_name) 
+    
+    if(active_name == "sex"){
+      tmp <- tmp %>% mutate(value = as.factor(value))
+      lme.formula.test <- formula(paste0(active_factor, " ~", "value + discretized_admit_age_quantile"))
+      fit <- lme(fixed = lme.formula.test,
+                 random = ~1|enrollment_site, data = tmp)
+      tmp.coef <- fit$coefficients$fixed[2]
+      coef.note <- "Coefficient for Male Sex"
+    } else if(active_name == "admit_age"){
+      tmp <- tmp %>% mutate(value = as.numeric(value))
+      lme.formula.test <- formula(paste0(active_factor, " ~", "value + sex"))
+      fit <- lme(fixed = lme.formula.test,
+                 random = ~1|enrollment_site, data = tmp)
+      tmp.coef <- fit$coefficients$fixed[2]
+      coef.note <- NA
+     } else if (active_name %in% c("race", "ethnicity")){
+       #next
+      tmp <- tmp %>% mutate(value = as.factor(value))
+      lme.formula.test <- formula(paste0(active_factor, " ~", "value + discretized_admit_age_quantile"))
+      fit <- lme(fixed = lme.formula.test,
+                 random = ~1|enrollment_site, data = tmp)
+      
+      out.p <- rbind.data.frame(out.p, data.frame("clinical_feature" = active_name,
+                           "Factor" = active_factor,
+                            "TG.adj.P" = anova(fit, type = "marginal")$`p-value`[2],
+                            "coefficient" = NA,
+                             "coefficient_notes" = NA))
+      next
+    } else {
+      tmp <- tmp %>% mutate(value = as.numeric(value))
+      lme.formula.test <- formula(paste0(active_factor, " ~", "value + sex+ discretized_admit_age_quantile"))
+      fit <- lme(fixed = lme.formula.test,
+                 random = ~1|enrollment_site, data = tmp)
+      tmp.coef <- fit$coefficients$fixed[2]
+      coef.note <- NA
+    }
+    
+    out.p <- rbind.data.frame(out.p, data.frame("clinical_feature" = active_name,
+                                                "Factor" = active_factor,
+                                                "TG.adj.P" = anova(fit, type = "marginal")$`p-value`[2],
+                                                "coefficient" =tmp.coef,
+                                                "coefficient_notes" = coef.note))
+    rm(coef.note)
+    
+  }
+  
+}
+
+#### BASELINE LABS ##################
+
+colnames(fig2e.baseline_labs)[1] <- "participant_id"
+lab_names <- c(colnames(fig2e.baseline_labs)[grepl("baseline_lab",colnames(fig2e.baseline_labs) )][1:30], "baseline_anc_lymph_ratio")
+
+lab_data <- summary_table %>%
+  rownames_to_column("event_id") %>%
+  left_join(rbind.data.frame(base_obj1$clin.train, base_obj1$clin.test ) %>% as.data.frame()) %>%
+  mutate(cohort = ifelse(event_id %in% base_obj1$clin.train$event_id, "train", "test")) %>%
+  filter(event_type == "Visit 1") %>%
+  left_join(fig2e.baseline_labs %>% dplyr::select(participant_id, all_of(lab_names))) %>%
+  pivot_longer(all_of(lab_names)) %>%
+  filter(!is.na(value))%>%
+  filter(cohort == "train") %>%
+  filter(value != 999) %>%
+  mutate(trajectory_group = ordered(trajectory_group),
+         sex = factor(sex),
+         discretized_admit_age_quantile = ordered(discretized_admit_age_quantile),
+         cohort = factor(cohort),
+         participant_id = factor(participant_id),
+         enrollment_site = factor(enrollment_site)) 
+
+for(active_factor in c(paste0('Factor', factors_to_screen))){
+  for(active_name in unique(lab_data$name)){
+    
+    tmp <- lab_data %>%
+      filter(name == active_name) %>%
+      mutate(value = scale_tidy(value))
+
+    lme.formula.test <- formula(paste0(active_factor, " ~", "value  + sex+  + discretized_admit_age_quantile"))
+    lme.formula.base <- formula(paste0(active_factor, " ~", " + sex+ discretized_admit_age_quantile"))
+    fit <- lme(fixed = lme.formula.test,
+               random = ~1|enrollment_site, data = tmp %>% filter(!is.na(value)) %>% as.data.frame())
+    fit.base <- lme(fixed = lme.formula.base,
+                    random = ~1|enrollment_site, data = tmp %>% filter(!is.na(value)) %>% as.data.frame())
+
+    out.p<- rbind.data.frame(out.p, data.frame("clinical_feature" = active_name,
+                                               "Factor" = active_factor,
+                                               "TG.adj.P" =  anova(fit, type = "marginal")$`p-value`[2],
+                                               "coefficient" = fit$coefficients$fixed[2],
+                                               "coefficient_notes" = NA
+                
+                             ))
+    
+  }
+}
+
+df <- out.p %>%
+  mutate(TG.adj.P = p.adjust(as.numeric(TG.adj.P), "fdr")) %>%
+  as.data.frame()
+
+# Save results
+write.csv(df, "Fig2_files/clinical_modeling_factors1-7_woTG.csv")
+```
+
+```{r panel 2E plotting, eval = FALSE}
+df <- fig2e.correlations
+df$PosNeg <- sapply(df$coefficient, function(tmp){
+  if(is.na(tmp)){return(NA)}else if(tmp >= 0){return(1)}else{return(-1)}
+})
+
+clin.order <- c(
+  "admit_age", "sex", "comorb_htn", "comorb_isaric_dm", "comorb_isaric_cardiac", "comorb_isaric_ckd", "comorb_isaric_neoplasm", "comorb_neuro", "comorb_isaric_liver", "comorb_hxtrans", "comorb_eversmkvape",
+"baseline_lab_wbc" , "baseline_lab_lymph" , "baseline_lab_anc", "baseline_anc_lymph_ratio" , "baseline_lab_platelets" , "baseline_lab_hct" , "baseline_lab_hgb", "baseline_lab_na" , "baseline_lab_k", "baseline_lab_hco3" , "baseline_lab_ast", "baseline_lab_alt" , "baseline_lab_bili", "baseline_lab_alb" , "baseline_lab_bun", "baseline_lab_cr" , "baseline_lab_gluc", "baseline_lab_ptt" , "baseline_lab_pt", "baseline_lab_inr" , "baseline_lab_lactate", "baseline_lab_ldh" , "baseline_lab_pct" , "baseline_lab_crp" , "baseline_lab_ddimer"  , "baseline_lab_ck", "baseline_lab_trop" , "baseline_lab_bnp" , "baseline_lab_ferritin", "comp_stroke", "comp_afib", "comp_ventricular_arr", "comp_cardarrest", "comp_chf", "comp_pneumonia", "comp_pneumo", "comp_avthromb", "comp_shock", "comp_bac", "comp_bleed", "comp_anemia", "comp_renal", "comp_hypogly", "comp_hypergly"
+)
+
+clin.labs <- c(
+  "Age", "Sex", "Hypertension", "Diabetes", "Chronic Cardiac Disease", "Chronic Kidney Disease", "Malignant Neoplasm", "Chronic Neurological Disorder", "Liver Disfunction/Failure", "Solid Organ/BM Transplant", "Smoking/Vaping",
+"White Blood Cell Count" , "Lymphocyte Count" , "Neutrophil Count (ANC)", "Neutrophil/Lymphocyte Count Ratio" , "Platelet Count" , "HTC" , "HGB", "Sodium" , "Potassium", "Bicarbonate" , "AST", "ALT" , "Bilirubin", "Albumin" , "BUN", "Creatinine" , "Glucose", "PTT" , "PT", "INR" , "Lactate", "LDH" , "Procalcitonin" , "C-Reactive Protein" , "D-Dimer" , "CK", "Troponin" , "BNP" , "Ferritin", "Stroke", "Atrial Fibrillation", "Ventricular Arrhythmia", "Cardiac Arrest", "Congestive Heart Failure (CHF)", "Pneumonia", "Pneumothorax", "Acute VTE", "Shock", "Bacteremia", "Bleeding", "Anemia", "Acute Renal Injury/Failure", "Hypoglycemia", "Hyperglycemia"
+)
+
+df$clinical_feature <- factor(df$clinical_feature, levels = clin.order)
+df$Factor <- factor(df$Factor, levels = paste0("Factor", 7:1))
+df <- dplyr::filter(df, clinical_feature %in% clin.order)
+
+df.filt <- dplyr::filter(df, Factor %in% c("Factor1", "Factor4"))
+
+Fig2E <- ggplot(df.filt) +
+  geom_point(aes(x = clinical_feature, y = Factor, fill = PosNeg * -log10(TG.adj.P + 1e-13), size = -log10(TG.adj.P + 1e-13)), shape = 21) +
+  scale_fill_gradient2(low = "darkblue", high = "darkred") +
+  coord_equal() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 270, hjust = 0, vjust = .5)) +
+  labs(fill = "Signed -log10(p-value)") +
+  guides(size = "none") +
+  scale_x_discrete(labels = clin.labs, position = "top") +
+  scale_y_discrete(labels = c("Mortality - Factor 4", "Severity - Factor 1")) +
+  xlab(NULL) +
+  ylab(NULL) +
+  theme(axis.text.x = element_text(angle = 45),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        plot.margin = margin(r = 40, unit = "pt")) +
+  geom_vline(xintercept = c(1:54) + .5, color = "grey80", size = .5) +
+  geom_hline(yintercept = c(1) + .5, color = "grey80", size = .5) +
+  geom_vline(xintercept = c(2, 11, 40) + .5, size = .5)
+  
+ggsave(filename = "../output/Fig2E.pdf", plot = Fig2E, width = 15, height = 5)
+```
+
+```{r panel 2E table}
+tmp <- df.filt
+write.csv(tmp, "../output/Fig2E.csv")
+```
+
+
+
+
+
+
+

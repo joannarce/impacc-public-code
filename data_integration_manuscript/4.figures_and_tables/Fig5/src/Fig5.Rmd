@@ -1,0 +1,627 @@
+---
+title: "Fig5"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load packages, message=FALSE, warning=FALSE}
+# Most packages are loaded by "class_structure.R" (see below). Load any additional packages here.
+library(lme4)
+library(nlme)
+library(ggpubr)
+library(circlize)
+library(igraph)
+library(ggraph)
+```
+
+
+```{r load code and data, warning=FALSE, message=FALSE}
+
+##### Load code
+source("../../../0.Codebase/class_structures.R", local=FALSE, chdir=TRUE)
+
+##### Load data object
+base_obj1 = readRDS("/scratch/data-integration/public_code_results/mod4_interpretation_base.rds")
+
+##### Load other data files, if any
+kegg_database = readRDS(file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds")
+
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+metabolite_row_DF = data_env0$plasma_metabolomics_global_rowfeature
+rownames(metabolite_row_DF) = metabolite_row_DF[["CHEMICAL_NAME"]]
+metabolite_row_DF=metabolite_row_DF[,c("CHEMICAL_NAME","SUB_PATHWAY","SUPER_PATHWAY")]
+subpath_databse = list()
+subpath_databse[["pmg"]] = data.frame(description =metabolite_row_DF[["SUB_PATHWAY"]],
+                                      CHEMICAL_NAME = metabolite_row_DF[["CHEMICAL_NAME"]])
+suppath_databse = list()
+suppath_databse[["pmg"]] = data.frame(description =metabolite_row_DF[["SUPER_PATHWAY"]],
+                                      CHEMICAL_NAME = metabolite_row_DF[["CHEMICAL_NAME"]])
+
+
+##### Set global variables
+# Trajectory group colors
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+
+# Omic names: 
+# note: ppt, ppgd, so, pmg, nt and pbmc correspond to PPT, PPG, SPT, PMG, NGX and PGX, respectively, in the manuscript.
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+
+
+##### Output directory
+out_dir = "../output/"
+dir.create(out_dir, showWarnings = F)
+```
+
+## Panels A & B
+
+```{r panels Main A & B}
+
+phase = "train"
+factor = 4
+TrajGrpCol = c("#639A21", "#39828C",  "#6371AD","#BD7D31", "#9C3418") %>% setNames(paste0("TG", 1:5))
+base_obj = base_obj1
+
+require(ggbeeswarm)
+factors <- apply(base_obj[[paste0("mcia.factors.", phase)]],2,function(z) qqnorm(z,plot.it = F)$x) %>%
+  as.data.frame()
+
+boxplot = cbind.data.frame(factors, base_obj[[paste0("clin.", phase)]]) %>%
+  filter(event_type == "Visit 1") %>% 
+  mutate(trajectory_group = paste0("TG", trajectory_group), fac_score = .[,factor]) %>%
+  ggplot(aes(x=trajectory_group, y= scale(fac_score), color = as.factor(trajectory_group))) +
+  scale_color_manual(values = unname(TrajGrpCol)) +
+  geom_boxplot() +
+  geom_quasirandom() +
+  theme_classic() +
+  theme(legend.position = "none") +
+  coord_cartesian(ylim = c(-3,3)) +
+  ylab("Factor 4") +
+  xlab("Clinical Trajectory Group")
+
+fake_loop <- data.frame(matrix(nrow=40,ncol=20))
+fake_loop[is.na(fake_loop)] <- 1
+rownames(fake_loop) <- paste0("V", 1:40)
+trajplot = cbind.data.frame(factors, base_obj[[paste0("clin.", phase)]]) %>%
+  mutate(fac_score = .[,factor]) %>%
+  pivot_longer(cols = !!paste0("V",factor)) %>%
+  mutate(trajectory_group = ordered(factor(trajectory_group)),
+         sex = factor(sex),
+         discretized_admit_age_quantile = ordered(factor(discretized_admit_age_quantile)),
+         participant_id = factor(participant_id),
+         enrollment_site = factor(enrollment_site)) %>%
+  plot_model(p_adjust = NA, modelType = "smoothSpline", model_loop = fake_loop,
+             knot_lines = F, CI = T)
+
+# Print the output in md
+print(boxplot)
+# Print pdf file
+pdf(file.path(out_dir, "Fig5A.pdf"), width=6, height=6)
+print(boxplot)
+dev.off()
+
+# Print the output in md
+print(trajplot)
+# Print pdf file
+pdf(file.path(out_dir, "Fig5B.pdf"), width=10, height=5)
+print(trajplot)
+dev.off()
+
+write.csv(boxplot$data %>% dplyr::select(V4, trajectory_group), paste0(out_dir, "Fig5_data_panelA.csv"))
+write.csv(trajplot$data %>% dplyr::select(fac_score, trajectory_group, event_date, participant_id), paste0(out_dir, "Fig5_data_panelB.csv"))
+```
+
+## Panel C
+
+```{r panel Main C}
+
+# Combine all enrichment results which will be used for generating the enrichment dotplot and network.
+streamline_enrichment_results(base_obj1, datasets=c("ppt","ppgd","so","pmg","nt","pbmc"), databases = c("kegg","hallmark","immglob", "subpathway", "isgs"))
+
+combine_enrichment_results(base_obj1, databases = c("kegg","hallmark","immglob", "subpathway"))
+
+
+path_finalOrder=c(
+  "GOCC_IMMUNOGLOBULIN_COMPLEX",
+  "GOBP_IMMUNOGLOBULIN_PRODUCTION",
+  #"GOMF_IMMUNOGLOBULIN_BINDING",
+  "HALLMARK_INTERFERON_ALPHA_RESPONSE", "HALLMARK_INTERFERON_GAMMA_RESPONSE", "HALLMARK_KRAS_SIGNALING_DN",
+  #"Complement and coagulation cascades",
+  "Cholesterol metabolism", "Acetylated Peptides"
+  #"Fatty Acid Metabolism (Acyl Glycine)"
+  )
+dot = plot_enrichment_dot_v2(base_obj1, select_pathways = path_finalOrder, thr=0.1, test_type = "mhg", databases = c("kegg","hallmark","immglob","subpathway"), auto_ordering = F, plot_title = "Factor 4")
+
+
+
+# Print the output in md
+print(dot)
+# Print pdf file
+pdf(file.path(out_dir, "Fig5C.pdf"), width=7, height=10)
+print(dot)
+dev.off()
+
+write.csv(dot$data, paste0(out_dir, "Fig5_data_panelC.csv"))
+```
+
+## Panel D
+
+```{r panel Main D}
+
+
+# Pathways to plot in the network
+path_for_network=c(
+  "GOBP_IMMUNOGLOBULIN_PRODUCTION",
+  "GOCC_IMMUNOGLOBULIN_COMPLEX",
+  #"GOMF_IMMUNOGLOBULIN_BINDING",
+  "HALLMARK_INTERFERON_GAMMA_RESPONSE","HALLMARK_INTERFERON_ALPHA_RESPONSE", "HALLMARK_KRAS_SIGNALING_DN",
+  #"Complement and coagulation cascades",
+  "Cholesterol metabolism", "Acetylated Peptides"
+  #"Fatty Acid Metabolism (Acyl Glycine)"
+  )
+
+# Features of the select pathways to include in the network
+feat_for_network = c("IGHG1","IGHA1","IGHG2","IGKC","OAS1","OAS2","IRF7","MX1","RSAD2","LY6E","4-hydroxyphenylacetylglutamine","phenylacetylglutamate","phenylacetylglutamine","APOC2","APOC3","APOA4","APOE","LPA",
+                     "IGHA2","IGHG1","IGHG2","IGHG4","IGHG3",
+                     "IGHV3-49","IGHV6-1",
+                     "IGLV3-19","IGLV8-61",
+                     "IGKV3D-15","IGKV1-5","IGKV3D-20","IGKV4-1","IGKV2-24",
+                     "IGKV3D-15","IGKV1-5","IGKV3D-20","IGKV4-1","IGKV2-24",
+                     "IGLV3-19","IGLV8-61",
+                     "IGKV4-1","IGKV1D-33","IGKV2-29","IGKV2D-29","IGKV2-30",
+                     "IGLV3-21","IGLV3-9","IGLV3-25","IGLV3-10","IGLV3-19"
+                     )
+
+
+# Make the plot.
+fac4_network = term_feature_network(base_obj1, pathways = unique(path_for_network), title="Factor 4", min_path_count = 1, REDUCED_GRAPH = F, version2 = T, select_features = feat_for_network)
+fac4_network
+png(file.path(out_dir, "Fig5D.png"), width=8, height=7, units = "in", res=600)
+fac4_network
+dev.off()
+
+write.csv(fac4_network$data, paste0(out_dir, "Fig5_data_panelD.csv"))
+```
+
+## Panel E & H
+
+```{r panel Main E & H, message=FALSE, warning=FALSE}
+## Correlation plot of Factor 4 versus IgG & VL
+train <- apply(base_obj1$mcia.factors.train,2,function(z) qqnorm(z,plot.it = F)$x) %>%
+  as.data.frame() %>%
+  mutate("event_id" = rownames(base_obj1$clin.train)) %>%
+  left_join(as.data.frame(base_obj1$others$nasal_viralload$train$nasal_viralload_counts) %>%
+              rownames_to_column("event_id")) %>%
+   left_join(as.data.frame(base_obj1$others$serum_rbd_abtiters$train$serum_rbd_abtiters_counts) %>%
+              rownames_to_column("event_id")) %>%
+  left_join(as.data.frame(base_obj1$clin.train))
+test <- apply(base_obj1$mcia.factors.test,2,function(z) qqnorm(z,plot.it = F)$x) %>%
+  as.data.frame() %>%
+  mutate("event_id" = rownames(base_obj1$clin.test)) %>%
+  left_join(as.data.frame(base_obj1$others$nasal_viralload$test$nasal_viralload_counts) %>%
+              rownames_to_column("event_id")) %>%
+  left_join(as.data.frame(base_obj1$others$serum_rbd_abtiters$test$serum_rbd_abtiters_counts) %>%
+              rownames_to_column("event_id"))%>%
+  left_join(as.data.frame(base_obj1$clin.test))
+
+model.data <- rbind.data.frame(train) %>%
+  filter(!event_type %in% c("Escalation 1", "Escalation 2")) %>%
+  filter(event_type == "Visit 1") %>%
+  mutate(cohort = ifelse(event_id %in% base_obj1$clin.train$event_id, "Train", "Test")) %>%
+  mutate(cohort = factor(cohort),
+         trajectory_group = ordered(trajectory_group),
+         sex = factor(sex),
+         discretized_admit_age_quantile = ordered(discretized_admit_age_quantile),
+         enrollment_site = factor(enrollment_site)) %>%
+  mutate(log10AUC = log10(`AUC Spike IgG`)) %>%
+  filter(!is.na(N1_CT))
+lme.formula.test <- formula(paste0("V4 ~", "N1_CT + trajectory_group + sex + discretized_admit_age_quantile"))
+fit.N1 <- lme(fixed = lme.formula.test,
+        random = ~1|enrollment_site, data = model.data)
+test.res.N1 <- anova(fit.N1, type = "marginal")
+
+model.data <- rbind.data.frame(train) %>%
+  filter(!event_type %in% c("Escalation 1", "Escalation 2")) %>%
+  filter(event_type == "Visit 1") %>%
+  mutate(cohort = ifelse(event_id %in% base_obj1$clin.train$event_id, "Train", "Test")) %>%
+  mutate(cohort = factor(cohort),
+         trajectory_group = ordered(trajectory_group),
+         sex = factor(sex),
+         discretized_admit_age_quantile = ordered(discretized_admit_age_quantile),
+         enrollment_site = factor(enrollment_site)) %>%
+  mutate(log10AUC = log10(`AUC Spike IgG`)) %>%
+  filter(!is.na(log10AUC))
+lme.formula.test <- formula(paste0("V4 ~", "log10AUC + trajectory_group + sex + discretized_admit_age_quantile"))
+fit.Anti <- lme(fixed = lme.formula.test,
+        random = ~1|enrollment_site, data = model.data)
+test.res.Anti <- anova(fit.Anti, type = "marginal")
+  
+visit_1_train <- rbind.data.frame(train) %>%
+  filter(event_type == "Visit 1")
+rho.p1 <- cor(visit_1_train$V4, visit_1_train$N1_CT * -1, method = "spearman", use = "complete.obs")
+p1 <- visit_1_train %>%
+  ggplot(aes(x=N1_CT, y= V4)) +
+  geom_hline(yintercept = 0, color = "darkgray", linetype = "dashed") +
+  geom_point(size = 0.3, color = "#B7252B") +
+  scale_color_brewer(palette = "YlOrRd", direction = -1) +
+  theme_classic(base_size = 8) +
+  geom_smooth(method='lm', color = "#72171B", se = FALSE)+
+  #stat_cor(method = "pearson", label.x = 10, label.y = 2.4) +
+  scale_x_reverse(limits = c(38, 10)) +
+  ylab("Factor 4") +
+  xlab("Nasal N1 qPCR Cycle Threshold") +
+  guides(color=guide_legend(title="Event")) +
+  labs(#title = "Visit 1: Nasal Viral Load",
+              subtitle = paste0("R = ", round(rho.p1, 2), ", adj.p = ", signif(test.res.N1$`p-value`[2], 3)))
+
+rho.p2 <- cor(visit_1_train$V4, log10(visit_1_train$`AUC Spike IgG`), method = "spearman", use = "complete.obs")
+p2 <- visit_1_train %>%
+  ggplot(aes(x=log10(`AUC Spike IgG`), y= V4)) +
+  geom_hline(yintercept = 0, color = "darkgray", linetype = "dashed") +
+  geom_point(size = 0.3, color = "#2563B7") +
+  scale_color_brewer(palette = "YlOrRd", direction = -1) +
+  theme_classic(base_size = 8) +
+  geom_smooth(method='lm', color = "#173E72", se = FALSE)+
+  #stat_cor(method = "pearson", label.x = 2.5, label.y = 3) +
+  ylab("Factor 4") +
+  #xlab(bquote(Y-Axis[subscript]))
+xlab(expression(italic(log)*{}[10]~textstyle("Serum Anti-Spike IgG AUC"))) +
+  #xlab(expression(paste(italic("log"), bquote(Y-Axis), " Serum RBD IgG AUC"))) +
+  guides(color=guide_legend(title="Event")) +
+  labs(#title = "Visit 1: Serum Antibody Titer",
+              subtitle = paste0("R = ", round(rho.p2, 2), ", adj.p < ", ifelse(signif(test.res.Anti$`p-value`[2], 3) < 2.2E-16,
+                                                           2.2E-16,  signif(test.res.Anti$`p-value`[2], 3)) ))
+
+ggarrange(p1, p2, ncol = 2, nrow =1 , common.legend = TRUE)
+ggsave(paste0(out_dir, "Fig5E_5H.pdf"), device = "pdf", width =3.75, height = 2)
+
+
+write.csv(p1$data %>% dplyr::select(V4, N1_CT) %>% filter(!is.na(`N1_CT`)), paste0(out_dir, "Fig5_data_panelE.csv"))
+write.csv(p2$data %>% dplyr::select(V4, `AUC Spike IgG`) %>% filter(!is.na(`AUC Spike IgG`)), paste0(out_dir, "Fig5_data_panelH.csv"))
+```
+
+## Panel F
+```{r panel Main F, fig.height=8, fig.width=8, message=FALSE, warning=FALSE}
+active_factor = "Factor4"
+## This will generate for train only
+
+tmp.cytof <- as.data.frame(base_obj1$others$bld_cytof$train$bld_cytof_counts)
+## Correct the typo in CyTOF
+colnames(tmp.cytof)[grepl("Hematop", colnames(tmp.cytof))] <- "Hematopoetic progenitor Cell"
+cytof_rowfeatures <- as.data.frame(base_obj1$others$bld_cytof$train$bld_cytof_rowfeature)
+rownames(cytof_rowfeatures)[grepl("Hematop", rownames(cytof_rowfeatures))] <- "Hematopoetic progenitor Cell"
+cytof_rowfeatures$`Broad Parent Population`[grepl("Hematop", cytof_rowfeatures$`Broad Parent Population`)] <- "Hematopoetic progenitor Cell"
+colnames(cytof_rowfeatures) <- gsub("\\.", " ", colnames(cytof_rowfeatures))
+tmp.cytof.parent <- base_obj1$others$bld_cytof$CyTOF_normalize(counts = tmp.cytof,
+                                                               log1p = TRUE,
+                                                               granulocytes = TRUE,
+                                                               population = "parent",
+                                                           rowfeature = cytof_rowfeatures)
+
+## Generate Factor df
+factors <- rbind.data.frame(base_obj1$mcia.factors.train)
+rownames(factors) <- rownames(base_obj1$clin.train)
+colnames(factors) <- paste0("Factor", 1:40)
+
+prep.data <- merge(factors, tmp.cytof.parent, by = 0)
+tmp.long <- prep.data %>%
+  mutate(cohort = ifelse(Row.names %in% base_obj1$clin.train$event_id, "train", "test")) %>%
+  filter(cohort == "train") %>%
+  pivot_longer(cols = `B Cell`:`Neutrophil`) %>%
+  rename(event_id = Row.names) %>%
+  left_join(rbind.data.frame(base_obj1$clin.train, base_obj1$clin.test) %>% dplyr::select(trajectory_group,enrollment_site, event_id, participant_id, sex, discretized_admit_age_quantile)) %>%
+  filter(!is.na(value)) %>%
+  mutate(trajectory_group = ordered(trajectory_group),
+         sex = factor(sex),
+         discretized_admit_age_quantile = ordered(discretized_admit_age_quantile),
+         cohort = factor(cohort),
+         participant_id = factor(participant_id),
+         enrollment_site = factor(enrollment_site)) 
+cor_res <- cor_loop(mat1 = as.data.frame(prep.data[,active_factor]),
+                    mat2 = (prep.data[, colnames(prep.data) %in%
+                                        colnames(tmp.cytof.parent)]))
+cor_res <- cor_res[cor_res$Feature != "T Cell",] ## Remove somewhat unknown T Cells per advice from CyTOF team
+cor_res <- cor_res[match(c("B Cell", "CD4 T Cell", "CD8 T Cell",
+                           "gd T Cell", "NK Cell", "ILC",
+                           "Hematopoetic progenitor Cell",
+                           "Monocytes", "Neutrophil", "Eosinophil",
+                           "Basophil", "Conventional DC",
+                           "Plasmacytoid DC"), cor_res$Feature),]
+out.p <- model_cell_pop(tmp.long, active_factor = active_factor)
+cor_res <- cor_res %>% dplyr::select(-p.adj) %>%
+  left_join(out.p %>% dplyr::select(-Factor)) %>%
+  mutate(p.adj = p.adjust(as.numeric(p.model), "fdr")) %>%
+  mutate(p.adj.star = ifelse(p.adj <= 0.001, "***",
+                             ifelse(p.adj <= 0.01, "**", 
+                                    ifelse(p.adj <= 0.05, "*", "")))) %>%
+  mutate(p.adj.star = ifelse(is.na(p.adj), "", p.adj.star)) %>%
+  mutate(coefficient_s = scale_tidy(coefficient))
+
+##############################################################################
+## Repeat for the child populations
+tmp.cytof.child <- base_obj1$others$bld_cytof$CyTOF_normalize(counts = tmp.cytof,
+                                                               log1p = TRUE,
+                                                               granulocytes = TRUE,
+                                                               population = "children",
+                                                           rowfeature = cytof_rowfeatures)
+prep.data <- merge(factors, tmp.cytof.child, by = 0)
+cor_res2 <- cor_loop(mat1 = as.data.frame(prep.data[,active_factor,drop=FALSE]),
+                     mat2 = (prep.data[colnames(prep.data) %in% colnames(tmp.cytof.child)]))
+tmp.long <- prep.data %>%
+  mutate(cohort = ifelse(Row.names %in% base_obj1$clin.train$event_id, "train", "test")) %>%
+  filter(cohort == "train") %>%
+  pivot_longer(cols = `B Cell (CD11c+ CXCR5-)`:`Neutrophil (CD16low)`) %>% 
+  rename(event_id = Row.names) %>%
+  left_join(rbind.data.frame(base_obj1$clin.train, base_obj1$clin.test) %>%
+        dplyr::select(trajectory_group,enrollment_site, event_id, participant_id, sex, discretized_admit_age_quantile)) %>%
+  filter(!is.na(value)) %>%
+  mutate(trajectory_group = ordered(trajectory_group),
+         sex = factor(sex),
+         discretized_admit_age_quantile = ordered(discretized_admit_age_quantile),
+         cohort = factor(cohort),
+         participant_id = factor(participant_id),
+         enrollment_site = factor(enrollment_site)) 
+out.p <- model_cell_pop(tmp.long, active_factor = active_factor)
+cor_res2 <- cor_res2 %>% dplyr::select(-p.adj) %>%
+  left_join(out.p %>% dplyr::select(-Factor)) %>%
+  mutate(p.adj = p.adjust(as.numeric(p.model), "fdr")) %>%
+  mutate(p.adj.star = ifelse(p.adj <= 0.001, "***",
+                             ifelse(p.adj <= 0.01, "**", 
+                                    ifelse(p.adj <= 0.05, "*", "")))) %>%
+  mutate(p.adj.star = ifelse(is.na(p.adj), "", p.adj.star)) %>%
+  mutate(coefficient_s = scale_tidy(coefficient))
+##############################################################################
+## Make main df for heatmap
+heatdf <- cor_res2 %>%
+  left_join(cytof_rowfeatures %>% rownames_to_column("Feature")) %>%
+  mutate(p.adj = ifelse(p.adj <= 0.001, "***", ifelse(p.adj <= 0.01, "**", 
+                               ifelse(p.adj <= 0.05, "*", "")))) %>%
+  mutate(p.adj = ifelse(is.na(p.adj), "", p.adj)) %>%
+  arrange(`Broad Parent Population`) %>%
+  left_join(cor_res %>% mutate(Feature = ifelse(Feature == "CD4 T Cell", "CD4+ T Cell",
+                                                ifelse(Feature == "CD8 T Cell", "CD8+ T Cell", Feature))), by = c("Broad Parent Population" = "Feature")) %>%
+  filter(!grepl("Undefined", Feature)) %>%
+  mutate(p.adj.y = ifelse(p.adj.y <= 0.001, "***", ifelse(p.adj.y <= 0.01, "**", 
+                                 ifelse(p.adj.y <= 0.05, "*", ""))))  %>%
+  mutate(`Broad Parent Population` = gsub("Plasmacytoid ", "p", gsub("Conventional ", "c", gsub("Hematopoetic progenitor Cell", "HPC", `Broad Parent Population`))))
+
+## Reorder the factor so I can get the relevant populations next to one another in the circle
+heatdf <- heatdf %>%
+  mutate(`Broad Parent Population` = factor(`Broad Parent Population`, levels = c("B Cell", "CD4+ T Cell", "CD8+ T Cell", "gd T Cell", "NK Cell", "ILC", "HPC", "Monocytes", "pDC", "cDC", "Neutrophil", "Eosinophil", "Basophil"))) %>%
+  arrange(`Broad Parent Population`)
+
+## Declaring the track height, this is global setting that applies to all tracks
+circos.par("track.height" = 0.05)
+## Define color palette for the rings
+col_fun = colorRamp2(c(-3, 0, 3), c("blue", "white", "red"))
+## This line technically isn't necessary, but there is a bug that sometimes necessitate you run it at the beginning of your session
+## (You also need to run this to clear the plotting window if you want to rerender or start the plot again)
+circos.clear()
+pdf(file.path(out_dir, "Fig5F.pdf"), width=8, height=6)
+## Generate simplified dataframe ensuring variable are proper data types
+heat_circle <- heatdf %>%
+  mutate(Feature = ifelse(Feature == "CD4+ Treg (naive)", "Treg Naive", Feature)) %>%
+  mutate(Feature = gsub(".*\\(", "", gsub(")", "", Feature))) %>%
+  mutate(Feature = ifelse(`Broad Parent Population` %in% c("CD8+ T Cell",
+                                                         "B Cell"),
+                          ifelse(`Broad Parent Population` %in% c("B Cell"),
+                                 paste0(Feature, " B"), paste0("T8 ", Feature)), Feature)) %>%
+  column_to_rownames("Feature") %>%
+  dplyr::select(coefficient_s.x, p.adj.x) %>%
+  mutate(coefficient_s.x = as.numeric(coefficient_s.x)) %>%
+  as.data.frame() 
+## Define splitting vector which is used for grouping child populations by their parents
+split <- factor(heatdf$`Broad Parent Population`)
+circos.heatmap(heat_circle %>% dplyr::select(coefficient_s.x), col = col_fun, cluster = F, split = split, #show.sector.labels =T,
+               rownames.side = "outside", bg.border = "black", cell.border = "black",
+               rownames.cex = 0.6, cell.lwd = 0.2, track.height = 0.1)
+
+## Again generate a simplified dataframe for plotting, but for the parent populations this time
+heatdf_p <- heatdf %>%
+  dplyr::select(coefficient_s.y, p.adj.y)
+heatdf_p_stars <- heatdf %>%
+  distinct(`Broad Parent Population`,p.adj.y) %>%
+  dplyr::select(p.adj.y)
+
+split_parent <- factor(heatdf_p$coefficient_s.y)
+circos.heatmap(heatdf_p %>% dplyr::select(coefficient_s.y),
+               cluster = F, col = col_fun, split = split_parent,
+               bg.border = "black", track.height = 0.1)
+
+## Annotate significance of parent populations
+##    (Sadly I can't find a way to automate the child populations as well if
+##     a split/group exists between the rings, ie I manually annotate)
+circos.track(ylim = c(0, 1), track.index = 3, panel.fun = function(x, y) {
+  circos.text(CELL_META$xcenter, CELL_META$cell.ylim[2] + convert_y(0, "mm"), 
+              paste0(heatdf_p_stars$p.adj.y[CELL_META$sector.numeric.index]),
+              facing = "clockwise", cex = 0.5,
+              adj = c(1.5,0.5), niceFacing = TRUE)
+}, bg.border = NA)
+
+## Annotate parent population text labels inside the ring
+circos.track(ylim = c(0, 1), track.index = 3, panel.fun = function(x, y) {
+  circos.text(CELL_META$xcenter, CELL_META$cell.ylim[2] + convert_y(-13, "mm"), 
+              paste0(levels(split)[CELL_META$sector.numeric.index]),
+              facing = "bending.outside", cex = 0.5,
+              adj = c( 0.5, 1), niceFacing = TRUE)
+}, bg.border = NA)
+
+## Add a legend to the top right of the figure
+lgd = Legend(title = "Rho", col_fun = col_fun)
+draw(lgd, x = unit(0.95, "npc"), y = unit(0.85, "npc"), just = c("right", "top"))
+dev.off()
+
+write.csv(heatdf %>% dplyr::select(Factor.x, Feature, coefficient_s.x, p.adj.x,
+                                   `Broad Parent Population`, coefficient_s.y, p.adj.y), paste0(out_dir, "Fig5_data_panelF.csv"))
+```
+
+## Panel G
+```{r Main panel G, message=FALSE, warning=FALSE}
+composite_mat_subsetting = function(composite_score_mat_list,selected_pathways){
+  pathway_vec = c()
+  omic_vec = c()
+  composiste_mat = NULL
+  for(d in 1:length(composite_score_mat_list)){
+    tmp_X = composite_score_mat_list[[d]]
+    intersect_pathways = intersect(selected_pathways,colnames(tmp_X ))
+    if(length(intersect_pathways)>0){
+      tmp_X = tmp_X[,intersect_pathways]
+      pathway_vec=c(pathway_vec,intersect_pathways)
+      omic_vec = c(omic_vec,rep(names(composite_score_mat_list)[d], length(intersect_pathways)))
+      if(is.null(composiste_mat)){
+        composiste_mat  = as.matrix(tmp_X)
+      }else{
+        composiste_mat  = cbind( composiste_mat,as.matrix(tmp_X))
+      }
+    }
+  }
+  return(list(composiste_mat =composiste_mat , omic_vec=omic_vec,
+         pathway_vec = pathway_vec))
+}
+
+simple_pathwaytest_wrapper = function(composite_mat, base_obj, phase = "others", adjust = F){
+  if(phase == "train"){
+    clin_dat = base_obj$clin.train
+  }else{
+    clin_dat =base_obj$clin.test
+  }
+  W =model.matrix(~as.character(clin_dat$trajectory_group)+clin_dat$event_type+clin_dat$discretized_admit_age_quantile+clin_dat$sex-1)
+  id1 = (apply(is.na(W),1,sum)==0)
+  clin_mat = clin_dat[id1,,drop = F]
+  composite_mat=composite_mat[id1,,drop = F]
+  fitted = linear_effects_simple(feature_mat=composite_mat, clin_mat=clin_mat,adjust = adjust)
+  return(fitted)
+}
+
+
+
+# In Figure G, we loop over all high contributing cytokines and metabolites to Factor 4 and identify anlytes to significantly separate TG4 and TG5 at visit 1, and is sign consistent.
+
+cytokine_mat = base_obj1$assays.train$serum_olink[,rownames(base_obj1$short_list_features$unsigned_mod$so)]
+metabolite_mat = base_obj1$assays.train$plasma_metabolomics_global[,rownames(base_obj1$short_list_features$unsigned_mod$pmg)]
+
+cytokine_test = simple_pathwaytest_wrapper(composite_mat =cytokine_mat,
+                                                              base_obj = base_obj1,
+                                                              phase = "train", adjust = F)
+cytokine_test.adj = simple_pathwaytest_wrapper(composite_mat =cytokine_mat,
+                                                              base_obj = base_obj1,
+                                                              phase = "train", adjust = T)
+
+metabolite_test = simple_pathwaytest_wrapper(composite_mat =metabolite_mat,
+                                                              base_obj = base_obj1,
+                                                              phase = "train", adjust = F)
+metabolite_test.adj = simple_pathwaytest_wrapper(composite_mat =metabolite_mat,
+                                                              base_obj = base_obj1,
+                                                              phase = "train", adjust = T)
+
+
+cytokine_test_full = data.frame(cbind(cytokine_test, cytokine_test.adj))
+cytokine_test_full$omic= "SPT"
+metabolite_test_full = data.frame(cbind(metabolite_test, metabolite_test.adj))
+metabolite_test_full$omic= "PMG"
+individual_test_full = rbind(cytokine_test_full,metabolite_test_full)
+individual_test_full=individual_test_full[,c(2,3,5,1, 7)]
+colnames(individual_test_full)=c("mortality", "slope5|4", "mortality.time.adj", "ordinal", "omic")
+
+individual_test_full[["robust.time.mortality"]]=-log(time_robust_pval_construction(pval_mat = 10**(-abs(individual_test_full[,1:3])), sign_mat = sign(individual_test_full[,1:3])), base= 10) * sign(individual_test_full[["mortality"]])
+
+individual_test_full$factor_coef = c(base_obj1$short_list_features$unsigned_mod$so[,1],
+               base_obj1$short_list_features$unsigned_mod$pmg[,1])
+signs = c(sign(base_obj1$short_list_features$unsigned_mod$so[,1]),
+          sign(base_obj1$short_list_features$unsigned_mod$pmg[,1])
+          )
+
+#individual_test_full
+individual_test_full[["sign_consistency"]] = ifelse(signs * sign(individual_test_full[["robust.time.mortality"]]) == 1, T, F)
+
+thr = 0.05
+ii = (10**(-abs(individual_test_full$robust.time.mortality)))<thr
+
+individual_test_full$selected = individual_test_full[["sign_consistency"]] & ii
+individual_test_full.selected = individual_test_full[individual_test_full$selected ,]
+ 
+tmp = data.frame(individual_test_full.selected$factor_coef)
+rownames(tmp) = rownames(individual_test_full.selected)
+shortlist_fnames = list(so =tmp[individual_test_full.selected$omic=="SPT",,drop = F])
+tmp_res1 = base_obj1$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList = kegg_database, 
+                backround = "impacc")
+
+
+tmp = data.frame(individual_test_full.selected$factor_coef)
+rownames(tmp) = rownames(individual_test_full.selected)
+shortlist_fnames = list(pmg =tmp[individual_test_full.selected$omic=="PMG",,drop = F])
+tmp_res11 = base_obj1$runMGH(short_list_coef =shortlist_fnames,
+                Term2GeneList = subpath_databse,
+                backround = "impacc")
+#print(tmp_res11$pmg[tmp_res11$pmg$p.adj<0.1,])
+###selected pathways
+lnames = tmp_res11$pmg$ID[tmp_res11$pmg$p.adj<0.1]
+mfeature = sapply(tmp_res11$pmg$core_enrichment[tmp_res11$pmg$p.adj<0.1], function(z) strsplit(x=z, split = "#"))
+lrenames = c("Pentose","Acetylated\nPeptides","Tyrosine")
+names(mfeature) = lrenames
+lrenames = sapply(1:length(lrenames), function(i) rep(lrenames[i], length(mfeature[[i]])))
+lrenames = unlist(lrenames)
+mfeature = unlist(mfeature)
+metabolite_selected = metabolite_test_full[mfeature,]
+metabolite_selected=metabolite_selected[,c(2,3,1)]
+colnames(metabolite_selected)=c("mortality", "slope5|4", "ordinal")
+plotDF = data.frame(feature = mfeature, pathway = lrenames)
+plotDF = cbind(plotDF, metabolite_selected[mfeature,])
+plotDF$pathway = factor(plotDF$pathway, levels = c("Acetylated\nPeptides", "Pentose", "Tyrosine"))
+
+plotDF = tidyr::gather(plotDF, key = "test", value = "signed_pvalue_log10", -pathway, -feature)
+#cap for visualization
+plotDF$signed_pvalue_log10[plotDF$signed_pvalue_log10>4] = 4
+plotDF$signed_pvalue_log10[plotDF$signed_pvalue_log10< -4] = -4
+plotDF$pval = 10**(-abs(plotDF$signed_pvalue_log10))
+z= plotDF$pval
+#plotDF$stars = ifelse(z>0.1, "", ifelse(z>0.05,".",ifelse(z>0.01, "*", ifelse(z>0.001,"**",ifelse(z>0.0001,"***","****")))))
+plotDF$stars = ifelse(z <= 0.001, "***", ifelse(z <= 0.01,"**",ifelse(z <= 0.05, "*", "")))
+
+b <- c(-4,  0, 4)
+library(RColorBrewer)
+addline_format <- function(x,...){
+    gsub('\\s','\n',x)
+}
+colors <- c(brewer.pal(7, "RdBu")[7], "white",brewer.pal(7, "RdBu")[1])
+plotDF$test = factor(plotDF$test, c("mortality", "slope5|4", "ordinal"))
+#p2 = ggplot(plotDF, aes(y=feature, x=test, fill= signed_pvalue_log10)) + 
+#  geom_tile()+ scale_fill_gradientn(colors = colors, breaks = b, labels = format(b), limits = c(-4,4))+theme(legend.position="top",legend.box="horizontal",axis.title.x=element_blank(), axis.title.y=element_blank(),)+geom_text(aes(label=stars), color="black", size=5)+facet_grid(pathway~.,scales = "free",space = "free", switch="y", labeller = labeller())+scale_y_discrete(position = "left") + guides(fill = guide_colourbar(title.position="top", title.vjust = 0, barwidth=8))
+
+plotDF_G = plotDF
+
+plotDF2 = plotDF %>% dplyr::select(pathway, feature, test, signed_pvalue_log10) %>% pivot_wider(names_from = test, values_from = signed_pvalue_log10)
+plotDF3 = plotDF %>% dplyr::select(pathway, feature, test, stars) %>% pivot_wider(names_from = test, values_from = stars)
+col_fun = colorRamp2(c(-max(plotDF$signed_pvalue_log10), 0, max(plotDF$signed_pvalue_log10) ), c(pals::brewer.rdbu(11)[10], "white", pals::brewer.rdbu(11)[2]))
+p2 = ComplexHeatmap::Heatmap(plotDF2[,c(2:5)] %>% column_to_rownames("feature"), split = plotDF2$pathway, 
+                        cell_fun = function(j, i, x, y, w, h, col) { # add text to each grid
+                            grid.text(plotDF3[,c(3:5)][i, j], x, y)
+                        },
+                        col = col_fun,
+                        cluster_rows = F, cluster_columns = F)
+
+
+# Print the output in md
+print(p2)
+# Print pdf file
+pdf(file.path(out_dir, "Fig5G.pdf"), width=10, height=5)
+print(p2)
+dev.off()
+
+write.csv(plotDF_G, paste0(out_dir, "Fig5_data_panelG.csv"))
+
+
+```

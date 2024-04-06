@@ -1,0 +1,407 @@
+---
+title: "data_object_preparation"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load packages}
+# Most packages are loaded by "class_structure.R" (see below). Load any additional packages here.
+
+```
+
+
+```{r load code and data, warning=FALSE, message=FALSE}
+
+##### Load code
+source("../../0.Codebase/class_structures.R", local=FALSE, chdir=TRUE)
+
+##### Load other data files, if any
+c5_db = "/scratch/data-integration/public_code_results/c5.all.v7.5.1.symbols.gmt"
+
+processed_data_path = "/scratch/data-integration/pipelines/processedData/"
+impacc_analysis_record = readRDS("/scratch/data-integration/public_code_results/flipped_impacc_analysis_record_innerfold10.rds")
+kegg_database = readRDS(file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds")
+hallmark_database = readRDS( file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/hallmark0522.rds")
+#C3_database <- msigdbr(species = "Homo sapiens", category = "C3") %>% 
+#  dplyr::select(gs_name, gene_symbol) ## Hard copy saved below, but because msigdbr package is on a locked version either could be used
+C3_database <- read.csv("/scratch/data-integration/cleanedup_cmag/final_c3.csv")
+omnipath_database <- read.csv("/scratch/data-integration/pipelines/Interpretation/Reference_databases/omnipath_gene_sets_2022-10-04.csv")
+IFN_inhibitors_database <- data.frame(gs_name = "IFN_Inhibitors", gene_name = c("PIAS1",
+                  "PIAS4", "PKD2","SPRY1", "SPRY2", "USP18", "SOCS1", "SPRY4",
+                  "PTPN6", "IRF2", "PTPN11", "PTPN1","PTPN2",  "SMAD2", "SMAD3"))
+data_env0 <- readRDS(paste0(processed_data_path, "data_env_ravi_20220513.RDS")) ## changed from data_path to processed_data_path
+
+
+##### Set global variables
+# Trajectory group colors
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+
+
+# Omic names: 
+# note: ppt, ppgd, so, pmg, nt and pbmc correspond to PPT, PPG, SPT, PMG, NGX and PGX, respectively, in the manuscript.
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+
+
+##### Output directory
+out_dir = "../output/"
+dir.create(out_dir, showWarnings = F)
+```
+
+
+
+
+# Interpretation object
+```{r preparation for interpretation object}
+
+metabolite_row_DF = data_env0$plasma_metabolomics_global_rowfeature
+rownames(metabolite_row_DF) = metabolite_row_DF[["CHEMICAL_NAME"]]
+metabolite_row_DF=metabolite_row_DF[,c("CHEMICAL_NAME","SUB_PATHWAY","SUPER_PATHWAY")]
+subpath_databse = list()
+subpath_databse[["pmg"]] = data.frame(description =metabolite_row_DF[["SUB_PATHWAY"]],
+                                      CHEMICAL_NAME = metabolite_row_DF[["CHEMICAL_NAME"]])
+
+projection_coef = convert_mciaObj_to_annotation_format(impacc_analysis_record$projection_evaluation_train$projection_coef, omic_names = names(omics_used_DR))
+projection_pval = convert_mciaObj_to_annotation_format(impacc_analysis_record$projection_evaluation_train$projection_pval, omic_names = names(omics_used_DR))
+regression_coef = convert_mciaObj_to_annotation_format(impacc_analysis_record$mcia_model.train$pb, omic_names = names(omics_used_DR))
+mag_thr  = 0.2; adjp = 0.01
+
+
+#Prepare immunoglobulin db
+library(fgsea)
+c5_pathways <- gmtPathways(c5_db)
+immglob_pathways = c5_pathways[grep("IMMUNOGLOBULIN", names(c5_pathways), value = T)]
+immglob_database = data.frame()
+for(p in names(immglob_pathways)) {
+  immglob_database = rbind(
+    immglob_database,
+    data.frame(description = p, gene_name = immglob_pathways[[p]])
+  )
+}
+
+# Add heavy vs light chain terms.
+ig_genes = unique(grep("^IG", immglob_database$gene_name, value = T))
+heavy_genes = grep("IGH", ig_genes, value = T)
+light_genes = grep("IGH", ig_genes, value = T, invert = T)
+immglob_database = rbind(
+    immglob_database,
+    data.frame(description = "IMMUNOGLOBULIN_HEAVY", gene_name = heavy_genes ),
+    data.frame(description = "IMMUNOGLOBULIN_LIGHT", gene_name = light_genes )
+)
+
+immglob_database = list(ppt = immglob_database, 
+                        ppgd = immglob_database,
+                        so = immglob_database,
+                        nt = immglob_database,
+                        pbmc = immglob_database)
+
+C3_database = list(pbmc = C3_database,
+                   nt = C3_database)
+omnipath_database = list(pbmc = omnipath_database,
+                         nt = omnipath_database)
+IFN_inhibitors_database = list(pbmc = IFN_inhibitors_database,
+                               nt = IFN_inhibitors_database)
+
+```
+
+## Factor enricment analysis
+```{r enrichment analysis}
+for(mod_id in c(1:10)){
+  mod_name = paste0("mod", mod_id)
+  print(mod_name)
+  file_impacc_interpretation= paste0(out_dir,"mod",mod_id,"_interpretation_base.rds")
+  base_obj = impacc_interpretation_pipeline$new(mod_name = mod_name,
+                                                impacc_analysis_record = impacc_analysis_record,
+                                                omic_names = omics_used_DR,
+                                                projection_coef = projection_coef[[mod_id]], 
+                                                projection_pval = projection_pval[[mod_id]],
+                                                regression_coef = regression_coef[[mod_id]])
+  
+  ###extract coefficients for relevant module
+  base_obj$coefficient_name_translator(data_env = data_env0)
+  print(head(base_obj$projection_coef$nt))
+  print(head(base_obj$projection_pvalue$nt))
+  base_obj$assay_name_translator(data_env = data_env0)
+  base_obj$short_list_features[["unsigned_mod"]] = base_obj$cutlist(
+    projection_coef = base_obj$projection_coef, 
+    projection_pval = base_obj$projection_pvalue, 
+    mag_thr = mag_thr, FWER_thr =adjp, direction = NULL)
+  base_obj$short_list_features[["pos_mod"]] =  
+    base_obj$cutlist(
+      projection_coef = base_obj$projection_coef, 
+      projection_pval = base_obj$projection_pvalue, 
+      mag_thr = mag_thr, FWER_thr = adjp, direction = 1)
+  base_obj$short_list_features[["neg_mod"]] = base_obj$cutlist(
+    projection_coef =base_obj$projection_coef, 
+    projection_pval =base_obj$projection_pvalue, 
+    mag_thr = mag_thr, FWER_thr = adjp, direction = -1)
+  
+  #KEGG
+  base_obj$MODmghRes[["kegg_pos_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["pos_mod"]],
+    Term2GeneList = kegg_database, backround = "impacc")
+  
+  base_obj$MODmghRes[["kegg_neg_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["neg_mod"]],
+    Term2GeneList = kegg_database, backround = "impacc")
+  
+  base_obj$MODmghRes[["kegg_unsigned_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["unsigned_mod"]],
+    Term2GeneList = kegg_database, backround = "impacc")
+  
+  #Hallmark
+  base_obj$MODmghRes[["hallmark_pos_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["pos_mod"]],
+    Term2GeneList =hallmark_database, backround = "impacc")
+  
+  base_obj$MODmghRes[["hallmark_neg_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["neg_mod"]],
+    Term2GeneList = hallmark_database, backround = "impacc")
+  
+  base_obj$MODmghRes[["hallmark_unsigned_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["unsigned_mod"]],
+    Term2GeneList = hallmark_database, backround = "impacc")
+  
+  ##SUBPATHWAYS
+  base_obj$MODmghRes[["subpathway_pos_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["pos_mod"]],
+    Term2GeneList = subpath_databse, backround = "impacc")
+  
+  base_obj$MODmghRes[["subpathway_neg_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["neg_mod"]],
+    Term2GeneList = subpath_databse, backround = "impacc")
+  
+  base_obj$MODmghRes[["subpathway_unsigned_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["unsigned_mod"]],
+    Term2GeneList = subpath_databse, backround = "impacc")
+
+  ## Immunoglobulin 
+  base_obj$MODmghRes[["immglob_pos_impacc"]] =   base_obj$runMGH(
+  short_list_coef =   base_obj$short_list_features[["pos_mod"]],
+  Term2GeneList = immglob_database, backround = "impacc")
+
+  base_obj$MODmghRes[["immglob_neg_impacc"]] =   base_obj$runMGH(
+  short_list_coef =   base_obj$short_list_features[["neg_mod"]],
+  Term2GeneList = immglob_database, backround = "impacc")
+
+  base_obj$MODmghRes[["immglob_unsigned_impacc"]] =   base_obj$runMGH(
+  short_list_coef =   base_obj$short_list_features[["unsigned_mod"]],
+  Term2GeneList = immglob_database, backround = "impacc")
+
+   
+  ##### Supplemental Figure Enrichment
+  ## C3
+  base_obj$MODmghRes[["C3_pos_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["pos_mod"]],
+    Term2GeneList = C3_database, backround = "impacc")
+  
+  base_obj$MODmghRes[["C3_neg_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["neg_mod"]],
+    Term2GeneList = C3_database, backround = "impacc")
+  
+  base_obj$MODmghRes[["C3_unsigned_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["unsigned_mod"]],
+    Term2GeneList = C3_database, backround = "impacc")
+  
+  ## Omnipath
+  base_obj$MODmghRes[["Omnipath_pos_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["pos_mod"]],
+    Term2GeneList = omnipath_database, backround = "impacc")
+  
+  base_obj$MODmghRes[["Omnipath_neg_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["neg_mod"]],
+    Term2GeneList = omnipath_database, backround = "impacc")
+  
+  base_obj$MODmghRes[["Omnipath_unsigned_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["unsigned_mod"]],
+    Term2GeneList = omnipath_database, backround = "impacc")
+  
+  ## IFN Inhibitors
+  base_obj$MODmghRes[["IFN_inhibitors_pos_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["pos_mod"]],
+    Term2GeneList = IFN_inhibitors_database, backround = "impacc")
+  
+  base_obj$MODmghRes[["IFN_inhibitors_neg_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["neg_mod"]],
+    Term2GeneList = IFN_inhibitors_database, backround = "impacc")
+  
+  base_obj$MODmghRes[["IFN_inhibitors_unsigned_impacc"]] =   base_obj$runMGH(
+    short_list_coef =   base_obj$short_list_features[["unsigned_mod"]],
+    Term2GeneList = IFN_inhibitors_database, backround = "impacc")
+  
+  
+  #### Supplemental Figure Enrichment
+  
+  saveRDS(base_obj, file =file_impacc_interpretation)
+
+}
+```
+
+## Create pathway activity scores
+```{r add intensitve composite score values}
+for(mod_id in c(1:10)){
+  mod_name = paste0("mod", mod_id)
+  print(mod_name)
+  file_name =paste0(out_dir,"mod",mod_id,"_interpretation_base.rds")
+  base_obj = readRDS(file_name)
+  
+  base_obj= copy_interpretation_class(
+    old_class_obj = base_obj,
+    impacc_analysis_record =impacc_analysis_record)
+  
+  base_obj$composite_features_train[["KEGG_POS"]] = list()
+  base_obj$composite_features_test[["KEGG_NEG"]] = list()
+  base_obj$composite_features_train[["HALLMARK_POS"]] = list()
+  base_obj$composite_features_test[["HALLMARK_NEG"]] = list()
+  base_obj$composite_features_members[["KEGG_POS"]] = list()
+  base_obj$composite_features_members[["KEGG_NEG"]] = list()
+  base_obj$composite_features_members[["HALLMARK_POS"]] = list()
+  base_obj$composite_features_members[["HALLMARK_NEG"]] = list()
+    
+  base_obj$composite_features_train[["SUB_POS"]] = list()
+  base_obj$composite_features_test[["SUB_NEG"]] = list()
+  base_obj$composite_features_members[["SUB_POS"]] = list()
+  base_obj$composite_features_members[["SUB_NEG"]] = list()
+  
+  A = automatic_kegg_hallmark_sub_composite_run(test_type="kegg_pos",base_obj, pval = 0.05)
+  base_obj$composite_features_train[["KEGG_POS"]]=A$term_scores$train
+  base_obj$composite_features_test[["KEGG_POS"]]=A$term_scores$test
+  base_obj$composite_features_members[["KEGG_POS"]]=A$term_members
+  sapply(base_obj$composite_features_train[["KEGG_POS"]],dim)
+  sapply(base_obj$composite_features_test[["KEGG_POS"]],dim)
+  
+  A =automatic_kegg_hallmark_sub_composite_run(test_type="kegg_neg",base_obj, pval = 0.05)
+  base_obj$composite_features_train[["KEGG_NEG"]]=A$term_scores$train
+  base_obj$composite_features_test[["KEGG_NEG"]]=A$term_scores$test
+  base_obj$composite_features_members[["KEGG_NEG"]]=A$term_members
+  sapply(base_obj$composite_features_train[["KEGG_NEG"]],dim)
+  sapply(base_obj$composite_features_test[["KEGG_NEG"]],dim)
+  
+  A = automatic_kegg_hallmark_sub_composite_run(test_type="hallmark_pos",base_obj, pval = 0.05)
+  base_obj$composite_features_train[["HALLMARK_POS"]]=A$term_scores$train
+  base_obj$composite_features_test[["HALLMARK_POS"]]=A$term_scores$test
+  base_obj$composite_features_members[["HALLMARK_POS"]]=A$term_members
+  sapply(base_obj$composite_features_train[["HALLMARK_POS"]],dim)
+  sapply(base_obj$composite_features_test[["HALLMARK_POS"]],dim)
+  
+  A =automatic_kegg_hallmark_sub_composite_run(test_type="hallmark_neg",base_obj, pval = 0.05)
+  base_obj$composite_features_train[["HALLMARK_NEG"]]=A$term_scores$train
+  base_obj$composite_features_test[["HALLMARK_NEG"]]=A$term_scores$test
+  base_obj$composite_features_members[["HALLMARK_NEG"]]=A$term_members
+  sapply(base_obj$composite_features_train[["HALLMARK_NEG"]],dim)
+  sapply(base_obj$composite_features_test[["HALLMARK_NEG"]],dim)
+  
+  A = automatic_kegg_hallmark_sub_composite_run(test_type="sub_pos",base_obj, pval = 0.05)
+  base_obj$composite_features_train[["SUB_POS"]]=A$term_scores$train
+  base_obj$composite_features_test[["SUB_POS"]]=A$term_scores$test
+  base_obj$composite_features_members[["SUB_POS"]]=A$term_members
+  
+  A = automatic_kegg_hallmark_sub_composite_run(test_type="sub_neg",base_obj, pval = 0.05)
+  base_obj$composite_features_train[["SUB_NEG"]]=A$term_scores$train
+  base_obj$composite_features_test[["SUB_NEG"]]=A$term_scores$test
+  base_obj$composite_features_members[["SUB_NEG"]]=A$term_members
+  
+  IFN_inhibitor_features <- as.data.frame(base_obj$assays.train$nasal_transcriptomics) %>%
+    dplyr::select(any_of(IFN_inhibitors_database[[1]]$gene_name))
+  base_obj$composite_features_train[["IFN_inhibitors"]][["nt"]] <- as.data.frame(rowMeans(IFN_inhibitor_features, na.rm = TRUE)) %>%
+    dplyr::rename("IFN_inhibitors" = 1)
+
+  IFN_inhibitor_features <- as.data.frame(base_obj$assays.test$nasal_transcriptomics) %>%
+    dplyr::select(any_of(IFN_inhibitors_database[[1]]$gene_name))
+  base_obj$composite_features_test[["IFN_inhibitors"]][["nt"]] <- as.data.frame(rowMeans(IFN_inhibitor_features, na.rm = TRUE)) %>%
+    dplyr::rename("IFN_inhibitors" = 1)
+
+  immunoglobulin_features <- as.data.frame(base_obj$assays.train$plasma_proteomics_global_dda) %>%
+    dplyr::select(starts_with(c("IGHA", "IGHG", "IGHD", "IGKV", "IGLV", "IGHV", "IGKC")))
+  base_obj$composite_features_train[["Immunoglobulins"]][["ppg"]] <- as.data.frame(rowMeans(immunoglobulin_features, na.rm = TRUE)) %>%
+    dplyr::rename("Immunoglobulins" = 1)
+
+  immunoglobulin_features <- as.data.frame(base_obj$assays.test$plasma_proteomics_global_dda) %>%
+    dplyr::select(starts_with(c("IGHA", "IGHG", "IGHD", "IGKV", "IGLV", "IGHV", "IGKC")))
+  base_obj$composite_features_test[["Immunoglobulins"]][["ppg"]] <- as.data.frame(rowMeans(immunoglobulin_features, na.rm = TRUE)) %>%
+    dplyr::rename("Immunoglobulins" = 1)
+  
+  saveRDS(base_obj, file =file_name)
+  
+}
+
+```
+
+
+## Add additional Omics to object
+Adding the whole blood CyTOF, nasal viral load, serum antibody, serum autoantibody
+```{r}
+## Prepare the other omics for addition
+for(i in c("train", "test")){
+    for(j in c("serum_rbd_abtiters_counts", "bld_cytof_counts", "nasal_viralload_counts", "serum_autoantibody_counts")){
+      ## tmp.meta <- get(gsub("_counts", "_metadata", j))
+      tmp.meta <- data_env0[[gsub("_counts", "_metadata", j)]]
+      tmp.meta <- replace_rownames_with_event_id(assay = tmp.meta, data_env0[["clinical_data"]])
+      tmp <- replace_rownames_with_event_id(assay = data_env0[[j]], clinical_data = data_env0[["clinical_data"]] )
+      tmp <- tmp[match(rownames(base_obj[[paste0("clin.", i)]]), rownames(tmp)), ]
+      rownames(tmp) <- rownames(base_obj[[paste0("clin.", i)]])
+      tmp.meta <- tmp.meta[match(rownames(base_obj[[paste0("clin.", i)]]), rownames(tmp.meta)), ]
+      
+      if(!sum(rownames(tmp.meta) != rownames(base_obj[[paste0("clin.", i)]])) == sum(grepl("NA", rownames(tmp.meta)))){
+        print("Warning, error in sample alignment")
+      }
+      rownames(tmp.meta) == rownames(base_obj[[paste0("clin.", i)]])
+      rownames(tmp.meta) <- rownames(base_obj[[paste0("clin.", i)]])
+      tmp.rowfeature <-  data_env0[[gsub("_counts", "_rowfeature", j)]]
+      
+      counts <- list(tmp); names(counts) <- j
+      meta <- list(tmp.meta); names(meta) <- gsub("_counts", "_metadata", j)
+      row <- list(tmp.rowfeature); names(row) <- gsub("_counts", "_rowfeature", j)
+      assign(gsub("_counts", paste0("_", i), j), c(counts,meta,row))
+      rm(counts, meta, row)
+    }
+}
+
+## Add the other omics to the objects
+for(mod_id in c(1:10)){
+  mod_name = paste0("mod", mod_id)
+  print(mod_name)
+  file_name =paste0(out_dir,"mod",mod_id,"_interpretation_base.rds")
+  #file_name.tmp =paste0("/scratch/data-integration/cleanedup_cmag/final_object_test/","mod",mod_id,"_interpretation_base.rds")
+  base_obj = readRDS(file_name)
+  
+  ## Addition of serum antibody titers, no special normalization function needed as only log transforming
+  base_obj$others$serum_rbd_abtiters <- c(list(serum_rbd_abtiters_test), list(serum_rbd_abtiters_train))
+  names(base_obj$others$serum_rbd_abtiters) <- c("test", "train")
+
+  ## Addition of whole blood CyTOF, special normalization function also added
+  base_obj$others$bld_cytof <- c(list(bld_cytof_test), list(bld_cytof_train),
+                             list(CyTOF_normalize))
+  names(base_obj$others$bld_cytof) <- c("test", "train",
+                                    "CyTOF_normalize")
+  
+  ## Addition of serum antibody titers, no special normalization function needed
+  base_obj$others$nasal_viralload <- c(list(nasal_viralload_test), list(nasal_viralload_train))
+  names(base_obj$others$nasal_viralload) <- c("test", "train")
+  
+  ## Addition of serum auto-antibody titers, since we are using blocking information from metadata no special normalization
+  ## function needed.
+  base_obj$others$serum_autoantibody <- c(list(serum_autoantibody_test), list(serum_autoantibody_train))
+  names(base_obj$others$serum_autoantibody) <- c("test", "train")
+  
+  saveRDS(base_obj, file =file_name)
+  
+}
+
+
+```
+
+
+
+

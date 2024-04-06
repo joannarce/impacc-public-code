@@ -1,0 +1,308 @@
+---
+title: "Fig6"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load packages, message=FALSE, warning=FALSE}
+# Most packages are loaded by "class_structure.R" (see below). Load any additional packages here.
+library(lme4)
+library(nlme)
+library(ggpubr)
+library(ggeffects)
+```
+
+
+```{r load code and data, warning=FALSE, message=FALSE}
+
+##### Load code
+source("../../../0.Codebase/class_structures.R", local=FALSE, chdir=TRUE)
+
+##### Load data object
+base_obj1 = readRDS("/scratch/data-integration/public_code_results/mod4_interpretation_base.rds")
+##### Load other data files, if any
+
+scale_tidy <- function(x){
+ qqnorm(x,plot.it = F)$x
+}
+##### Set global variables
+# Trajectory group colors
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+
+# Omic names: 
+# note: ppt, ppgd, so, pmg, nt and pbmc correspond to PPT, PPG, SPT, PMG, NGX and PGX, respectively, in the manuscript.
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+
+
+##### Output directory
+out_dir = "../output/"
+dir.create(out_dir, showWarnings = F)
+```
+
+## Panel B
+```{r panel Main B}
+
+NGX_features <- c("IFNAR1", "IFNAR2", "ABCA1", "TYK2", "JAK1", "JAK2", "STAT1", "STAT2", "STAT3", "STAT4", "STAT5A", "STAT5B", "CRKL", "IRF9", "OAS1", "OAS2", "PIAS4", "SOCS1", "USP18")
+PPG_features <- c("LPA", "APOC2", "APOC3", "APOA4", "APOE")
+
+combined_features <- data.frame(grouping = c("STAT5", "STAT5"),
+                                feature = c("STAT5A", "STAT5B"))
+
+pal <- scales::gradient_n_pal(colours = c("#2166AC","white","#B2182B"),
+                              values= c(-0.4, 0, 0.4))
+
+ppg_fig6 <- base_obj1$projection_coef$ppgd %>%
+  as.data.frame() %>%
+  rownames_to_column("feature") %>%
+  filter(feature %in% PPG_features) %>%
+  dplyr::rename("Factor4" = 2) %>%
+  mutate(hex_code = pal(Factor4)) %>%
+  mutate(hex_code = ifelse(Factor4>=0.4, "#B2182B", ifelse(Factor4<=-0.4, "#2166AC", hex_code))) %>%
+  mutate(omic = "PPG")
+
+ngx_fig6 <- base_obj1$projection_coef$nt %>%
+  as.data.frame() %>%
+  rownames_to_column("feature") %>%
+  filter(feature %in% NGX_features) %>%
+  dplyr::rename("Factor4" = 2) %>%
+  left_join(combined_features) %>%
+  mutate(grouping = ifelse(is.na(grouping), feature, grouping)) %>%
+  group_by(grouping) %>%
+  dplyr::summarize(Factor4 = mean(Factor4)) %>%
+  dplyr::rename("feature" = "grouping") %>%
+  mutate(hex_code = pal(round(Factor4, 2))) %>%
+  mutate(hex_code = ifelse(Factor4>=0.4, "#B2182B", ifelse(Factor4<=-0.4, "#2166AC", hex_code))) %>%
+  mutate(omic = "NGX")
+
+pgx_fig6 <- base_obj1$projection_coef$pbmc %>%
+  as.data.frame() %>%
+  rownames_to_column("feature") %>%
+  filter(feature %in% NGX_features) %>%
+  dplyr::rename("Factor4" = 2) %>%
+  left_join(combined_features) %>%
+  mutate(grouping = ifelse(is.na(grouping), feature, grouping)) %>%
+  group_by(grouping) %>%
+  dplyr::summarize(Factor4 = mean(Factor4)) %>%
+  dplyr::rename("feature" = "grouping") %>%
+  mutate(hex_code = pal(round(Factor4, 2))) %>%
+  mutate(hex_code = ifelse(Factor4>=0.4, "#B2182B", ifelse(Factor4<=-0.4, "#2166AC", hex_code))) %>%
+  mutate(omic = "PGX (Supp Fig 7)")
+
+
+tmp_gg <- data.frame(x=c(1,2,3), y=c(-0.4, 0, 0.4)) %>%
+  ggplot(aes(x=x, y=y, fill = y)) +
+  geom_point() +
+  scale_fill_gradientn(colours = c("#2166AC","white","#B2182B"),
+                              limits= c(-0.4,  0.4),
+    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black"),
+    name = "Mortality\nFactor") +
+  theme_void()
+
+legend <- get_legend(tmp_gg) 
+grid.newpage()                               
+grid.draw(legend)  
+
+Fig6_spreadsheet <- rbind.data.frame(ppg_fig6, ngx_fig6, pgx_fig6)
+write.csv(Fig6_spreadsheet, paste0(out_dir, "Fig6_FigS7_data.csv"))
+```
+
+## Panel C
+```{r panel Main C}
+
+select_features <- cbind.data.frame(base_obj1$composite_features_train$IFN_inhibitors$nt,
+                 as.data.frame(base_obj1$composite_features_train$HALLMARK_POS$nt$HALLMARK_INTERFERON_ALPHA_RESPONSE)) %>%
+  dplyr::rename(IFN_Alpha = 2)
+
+inputDF <- select_features %>%
+  rownames_to_column("event_id") %>%
+  left_join(rbind.data.frame(base_obj1$clin.train, base_obj1$clin.test)) %>%
+   mutate(cohort = ifelse(event_id %in% base_obj1$clin.train$event_id, "train", "test")) %>%
+  filter(cohort == "train") %>%
+  pivot_longer(cols = c(IFN_inhibitors, IFN_Alpha)) %>%
+  mutate(trajectory_group = ifelse(trajectory_group %in% c("1", "2", "3"), "TG1-3", trajectory_group)) %>%
+  mutate(trajectory_group = ordered(trajectory_group, levels = c("TG1-3", "4", "5")),
+         participant_id = factor(participant_id),
+         enrollment_site = factor(enrollment_site),
+         sex = factor(sex),
+         discretized_admit_age_quantile = ordered(discretized_admit_age_quantile)) %>%
+  group_by(name) %>%
+  filter(name == "IFN_Alpha") %>%
+  mutate(value = scale_tidy(value))
+CI_interval = 0.95
+formula_use <- formula(paste0("value~ s(event_date, bs = 'cr')+
+              s(event_date, bs = 'cr', by = trajectory_group) + trajectory_group + sex + discretized_admit_age_quantile"))
+fit <- gamm4::gamm4(formula_use, data = inputDF, random = ~(1|enrollment_site/participant_id))
+pred <- ggpredict(fit, c("event_date", "trajectory_group"), type = "fixed",
+                      ci.lvl = CI_interval)
+colnames(pred) <- gsub("x", "event_date", gsub("group", "trajectory_group", colnames(pred)))
+
+pred <- pred %>%
+  mutate(trajectory_group = as.character(trajectory_group)) %>%
+          left_join(inputDF %>%
+                      mutate(trajectory_group = as.character(trajectory_group)) %>%
+                      group_by(trajectory_group) %>%
+                      dplyr::summarize(max = max(event_date)), by = "trajectory_group") %>%
+          filter(event_date <= max)
+
+pC <-pred %>%
+  mutate(trajectory_group = ifelse(trajectory_group %in% c("4", "5"),
+                     paste0("TG", trajectory_group), trajectory_group)) %>%
+           ggplot(mapping = aes(x = event_date, y = predicted)) +
+  geom_line(mapping = aes(group = trajectory_group, y = predicted, x=event_date,
+                                             color = trajectory_group), size = 0.8) +
+  geom_ribbon(aes(x=event_date, ymin = conf.low, ymax = conf.high, fill = trajectory_group),
+              alpha = 0.3) +
+  
+  theme_classic(base_size  = 18) +
+  scale_color_manual(values = unname(TrajGrpCol[c(1,4,5)]))+
+  scale_fill_manual(values = unname(TrajGrpCol[c(1,4,5)])) +
+  ylab("NGX Hallmark IFN Alpha Response") +
+  xlab("Days from Hospitalization") +
+  theme(
+        legend.position = "none")
+  
+pC    
+## 6.09x4.41
+ggsave(paste0(out_dir, "Fig6C.pdf"), width = 6, height = 4.4)
+write.csv(pred, paste0(out_dir, "Fig6_data_panelC.csv"))
+```
+
+## Panel D
+```{r panel Main D}
+
+inputDF <- select_features %>%
+  rownames_to_column("event_id") %>%
+  left_join(rbind.data.frame(base_obj1$clin.train, base_obj1$clin.test)) %>%
+  mutate(cohort = ifelse(event_id %in% base_obj1$clin.train$event_id, "train", "test")) %>%
+  filter(cohort == "train") %>%
+  pivot_longer(cols = c(IFN_inhibitors, IFN_Alpha)) %>%
+  mutate(trajectory_group = ifelse(trajectory_group %in% c("1", "2", "3"), "TG1-3", trajectory_group)) %>%
+  mutate(trajectory_group = ordered(trajectory_group, levels = c("TG1-3", "4", "5")),
+         participant_id = factor(participant_id),
+         enrollment_site = factor(enrollment_site),
+         sex = factor(sex),
+         discretized_admit_age_quantile = ordered(discretized_admit_age_quantile)) %>%
+  group_by(name) %>%
+  filter(name == "IFN_inhibitors") %>%
+  mutate(value = scale_tidy(value))
+CI_interval = 0.95
+
+
+formula_use <- formula(paste0("value~ s(event_date, bs = 'cr')+
+              s(event_date, bs = 'cr', by = trajectory_group) + trajectory_group + sex + discretized_admit_age_quantile"))
+fit <- gamm4::gamm4(formula_use, data = inputDF, random = ~(1|enrollment_site/participant_id))
+pred <- ggpredict(fit, c("event_date", "trajectory_group"), type = "fixed",
+                      ci.lvl = CI_interval)
+colnames(pred) <- gsub("x", "event_date", gsub("group", "trajectory_group", colnames(pred)))
+
+pred <- pred %>%
+  mutate(trajectory_group = as.character(trajectory_group)) %>%
+          left_join(inputDF %>%
+                      mutate(trajectory_group = as.character(trajectory_group)) %>%
+                      group_by(trajectory_group) %>%
+                      dplyr::summarize(max = max(event_date)), by = "trajectory_group") %>%
+          filter(event_date <= max)
+
+pD <-pred %>%
+  mutate(trajectory_group = ifelse(trajectory_group %in% c("4", "5"),
+                     paste0("TG", trajectory_group), trajectory_group)) %>%
+           ggplot(mapping = aes(x = event_date, y = predicted)) +
+  geom_line(mapping = aes(group = trajectory_group, y = predicted, x=event_date,
+                                             color = trajectory_group), size = 0.8) +
+  geom_ribbon(aes(x=event_date, ymin = conf.low, ymax = conf.high, fill = trajectory_group),
+              alpha = 0.3) +
+  
+  theme_classic(base_size  = 18) +
+  scale_color_manual(values = unname(TrajGrpCol[c(1,4,5)]))+
+  scale_fill_manual(values = unname(TrajGrpCol[c(1,4,5)])) +
+  ylab("NGX IFN Inhibitors") +
+  xlab("Days from Hospitalization") +
+  theme(
+        legend.position = "none")
+  
+pD    
+## 6.09x4.41
+ggsave(paste0(out_dir, "Fig6D.pdf"), width = 6, height = 4.4)
+write.csv(pred, paste0(out_dir, "Fig6_data_panelD.csv"))
+```
+
+## Panel E
+```{r panel Main E}
+
+active_data <- rbind.data.frame(base_obj1$others$nasal_viralload$train$nasal_viralload_counts,
+                                base_obj1$others$nasal_viralload$test$nasal_viralload_counts)
+term <- "N1_CT"
+
+select_features <- active_data %>%
+  dplyr::select(all_of(term))
+select_features$Score <- rowMeans(select_features, na.rm = TRUE)
+
+select_features <- select_features[!is.na(select_features$Score),]
+inputDF <- select_features %>%
+  rownames_to_column("event_id") %>%
+  left_join(rbind.data.frame(base_obj1$clin.train, base_obj1$clin.test)) %>%
+  mutate(cohort = ifelse(event_id %in% base_obj1$clin.train$event_id, "train", "test")) %>%
+  filter(cohort == "train") %>%
+  pivot_longer(cols = c(Score)) %>%
+  mutate(trajectory_group = ifelse(trajectory_group %in% c("1", "2", "3"), "TG1-3", trajectory_group)) %>%
+  mutate(trajectory_group = ordered(trajectory_group, levels = c("TG1-3", "4", "5")),
+         participant_id = factor(participant_id),
+         enrollment_site = factor(enrollment_site),
+         sex = factor(sex),
+         discretized_admit_age_quantile = ordered(discretized_admit_age_quantile)) %>%
+  group_by(name) %>%
+  filter(name == "Score")
+
+
+CI_interval = 0.95
+formula_use <- formula(paste0("value~ s(event_date, bs = 'cr')+
+              s(event_date, bs = 'cr', by = trajectory_group) + trajectory_group + sex + discretized_admit_age_quantile"))
+fit <- gamm4::gamm4(formula_use, data = inputDF, random = ~(1|enrollment_site/participant_id))
+pred <- ggpredict(fit, c("event_date", "trajectory_group"), type = "fixed",
+                      ci.lvl = CI_interval)
+colnames(pred) <- gsub("x", "event_date", gsub("group", "trajectory_group", colnames(pred)))
+
+pred <- pred %>%
+  mutate(trajectory_group = as.character(trajectory_group)) %>%
+          left_join(inputDF %>%
+                      mutate(trajectory_group = as.character(trajectory_group)) %>%
+                      group_by(trajectory_group) %>%
+                      dplyr::summarize(max = max(event_date)), by = "trajectory_group") %>%
+          filter(event_date <= max)
+
+p1 <-pred %>%
+  mutate(trajectory_group = ifelse(trajectory_group %in% c("4", "5"),
+                     paste0("TG", trajectory_group), trajectory_group)) %>%
+           ggplot(mapping = aes(x = event_date, y = predicted)) +
+  geom_line(mapping = aes(group = trajectory_group, y = predicted, x=event_date,
+                                             color = trajectory_group), size = 0.8) +
+  geom_ribbon(aes(x=event_date, ymin = conf.low, ymax = conf.high, fill = trajectory_group),
+              alpha = 0.3) +
+  
+  theme_classic(base_size  = 18) +
+  scale_color_manual(values = unname(TrajGrpCol[c(1,4,5)]))+
+  scale_fill_manual(values = unname(TrajGrpCol[c(1,4,5)])) +
+  ylab("Nasal Nucleocapsid CT") +
+  xlab("Days from Hospitalization") +
+  scale_y_reverse() +
+  theme(legend.position = "none")
+  
+p1    
+## 6.09x4.41
+ggsave(paste0(out_dir, "Fig6E.pdf"), width = 6, height = 4.4)
+write.csv(pred, paste0(out_dir, "Fig6_data_panelE.csv"))
+```
+
+

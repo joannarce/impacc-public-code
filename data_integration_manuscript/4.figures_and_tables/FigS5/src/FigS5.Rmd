@@ -1,0 +1,438 @@
+---
+title: "FigS5"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load packages, message=FALSE, warning=FALSE}
+# Most packages are loaded by "class_structure.R" (see below). Load any additional packages here.
+library(nlme)
+library(lme4)
+library(ggbeeswarm)
+```
+
+
+```{r load code and data, warning=FALSE, message=FALSE}
+
+##### Load code
+source("../../../0.Codebase/class_structures.R", local=FALSE, chdir=TRUE)
+
+##### Load data object
+base_obj1 = readRDS(file ="/scratch/data-integration/public_code_results/mod4_interpretation_base.rds")
+
+##### Load other data files, if any
+
+
+##### Set global variables
+# Trajectory group colors
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+
+# Omic names: 
+# note: ppt, ppgd, so, pmg, nt and pbmc correspond to PPT, PPG, SPT, PMG, NGX and PGX, respectively, in the manuscript.
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+
+
+##### Output directory
+out_dir = "../output/"
+dir.create(out_dir, showWarnings = F)
+```
+
+
+## Panel A
+```{r panel A, fig.width=15, fig.height=15}
+
+
+path_res_tbl_lists_f4 = list(
+  "GOBP_IMMUNOGLOBULIN_PRODUCTION" = list(res = base_obj1$MODmghRes$immglob_neg_impacc, ds = c("ppt","ppgd")),
+  #"GOBP_IMMUNOGLOBULIN_PRODUCTION" = list(res = base_obj1$MODmghRes$immglob_neg_impacc, ds = "ppgd"),
+  "GOCC_IMMUNOGLOBULIN_COMPLEX" = list(res = base_obj1$MODmghRes$immglob_neg_impacc, ds = c("ppt","ppgd")),
+  #"GOCC_IMMUNOGLOBULIN_COMPLEX" = list(res = base_obj1$MODmghRes$immglob_neg_impacc, ds = "ppgd"),
+  "HALLMARK_INTERFERON_GAMMA_RESPONSE" = list(res = base_obj1$MODmghRes$hallmark_pos_impacc, ds = c("nt","pbmc")),
+  #"HALLMARK_INTERFERON_GAMMA_RESPONSE" = list(res = base_obj1$MODmghRes$hallmark_pos_impacc, ds = "pbmc"),
+  "HALLMARK_INTERFERON_ALPHA_RESPONSE" = list(res = base_obj1$MODmghRes$hallmark_pos_impacc, ds = c("nt","pbmc")),
+  #"HALLMARK_INTERFERON_ALPHA_RESPONSE" = list(res = base_obj1$MODmghRes$hallmark_pos_impacc, ds = "pbmc"),
+  "HALLMARK_KRAS_SIGNALING_DN" = list(res = base_obj1$MODmghRes$hallmark_pos_impacc, ds = c("nt","pbmc")),
+  #"HALLMARK_KRAS_SIGNALING_DN" = list(res = base_obj1$MODmghRes$hallmark_pos_impacc, ds = "pbmc"),
+  "Cholesterol metabolism" = list(res = base_obj1$MODmghRes$kegg_pos_impacc, ds = "ppgd"),
+  "Acetylated Peptides" = list(res = base_obj1$MODmghRes$subpathway_neg_impacc, ds = "pmg")
+  )
+
+
+
+plot_list = list()
+for(p in names(path_res_tbl_lists_f4)) {
+  pp = make_box_trajectory_plots_general(term = p, term_type = "pathway", term_extract_param_list = list("base_obj" = base_obj1, "result_table_list" = path_res_tbl_lists_f4[[p]]$res, "sign" = 1), phase = "train", event_date = "admission", merge123 = F, make_traj_plots = F)
+  for(ds in path_res_tbl_lists_f4[[p]]$ds) {
+    ds_lbl = case_when(
+      ds == "ppgd" ~ "PPG",
+      ds == "pmg" ~ "PMG",
+      ds == "ppt" ~ "PPT",
+      ds == "nt" ~ "NGX",
+      ds == "pbmc" ~ "PGX"
+    )
+    p_lbl = paste0(p, " (",ds_lbl,")")
+    plot_list[[p_lbl]] = pp$boxplots[[ds]]$data %>% 
+      dplyr::filter(TG %in% 4:5) %>% 
+      mutate(TG = paste0("TG", TG)) %>%
+      ggplot(aes(TG, expr, color=TG)) + 
+        geom_boxplot() + theme_classic() + 
+        ggbeeswarm::geom_beeswarm(cex = 4) + 
+        scale_color_manual(values = c("TG4"="#BD7D31", "TG5"="#9C3418")) + 
+        labs(x="Trajectory groups", y=p_lbl) +
+        geom_signif(test = "wilcox.test", comparisons = list(c("TG4","TG5")))
+  }
+}
+plot_list$`GOBP_IMMUNOGLOBULIN_PRODUCTION (PPT)`$labels$y = "GOBP Immunoglobulin production (PPT)"
+plot_list$`GOBP_IMMUNOGLOBULIN_PRODUCTION (PPG)`$labels$y = "GOBP Immunoglobulin production (PPG)"
+plot_list$`GOCC_IMMUNOGLOBULIN_COMPLEX (PPT)`$labels$y = "GOCC Immunoglobulin complex (PPT)"
+plot_list$`GOCC_IMMUNOGLOBULIN_COMPLEX (PPG)`$labels$y = "GOCC Immunoglobulin complex (PPG)"
+plot_list$`HALLMARK_INTERFERON_GAMMA_RESPONSE (NGX)`$labels$y = "Hallmark interferon gamma response (NGX)"
+plot_list$`HALLMARK_INTERFERON_GAMMA_RESPONSE (PGX)`$labels$y = "Hallmark interferon gamma response (PGX)"
+plot_list$`HALLMARK_INTERFERON_ALPHA_RESPONSE (NGX)`$labels$y = "Hallmark interferon alpha response (NGX)"
+plot_list$`HALLMARK_INTERFERON_ALPHA_RESPONSE (PGX)`$labels$y = "Hallmark interferon alpha response (PGX)"
+plot_list$`HALLMARK_KRAS_SIGNALING_DN (NGX)`$labels$y = "Hallmark KRAS signalling DN (NGX)"
+plot_list$`HALLMARK_KRAS_SIGNALING_DN (PGX)`$labels$y = "Hallmark KRAS signalling DN (PGX)"
+#plot_list$$labels$y = ""
+
+ggarrange(plotlist = plot_list, nrow=3, ncol=4)
+
+pdf(file.path(out_dir, "FigS5A.pdf"), width = 12, height = 9)
+ggarrange(plotlist = plot_list, nrow=3, ncol=4)
+dev.off()
+
+
+
+indiv_data_points = data.frame()
+for(pathway in names(plot_list)) {
+  indiv_data_points = rbind(
+    indiv_data_points,
+    as.data.frame(plot_list[[pathway]]$data) %>% mutate(pathway=pathway)
+  )
+}
+write.csv(indiv_data_points, paste0(out_dir, "FigS5_data_panelA.csv"))
+
+
+
+```
+
+
+## Panel B
+
+```{r panel B, fig.width = 4, fig.height = 12}
+graph.list <- list()
+
+parent_cytof <- base_obj1$others$bld_cytof$CyTOF_normalize(
+  counts = as.data.frame(base_obj1$others$bld_cytof$train$bld_cytof_counts),
+  rowfeature = as.data.frame(base_obj1$others$bld_cytof$train$bld_cytof_rowfeature),
+  log1p = TRUE, population = "parent", granulocytes = FALSE
+)
+
+select_features <- as.data.frame(base_obj1$composite_features_train[["Immunoglobulins"]][["ppg"]])
+colnames(select_features) <- "Score"
+############################################
+active_name = "B Cell"
+tmp <- parent_cytof %>%
+      rownames_to_column("event_id") %>%
+      left_join(select_features %>%
+                  rownames_to_column("event_id") %>%
+                  dplyr::select(event_id, Score)) %>%
+      left_join(base_obj1$clin.train) %>%
+      #filter(!is.na({{active_name}})) %>%
+      filter(!is.na(Score)) %>%
+          mutate(trajectory_group = ordered(trajectory_group),
+                value = as.numeric(.data[[active_name]]),
+                 enrollment_site = factor(enrollment_site),
+                 sex = factor(sex),
+                 discretized_admit_age_quantile = ordered(discretized_admit_age_quantile)) %>%
+      filter(!is.na(value))
+    
+lme.formula.test <- formula(paste0("Score", " ~", "value + sex + discretized_admit_age_quantile"))
+fit <- lme(fixed = lme.formula.test,
+    random = ~1|enrollment_site, data = tmp)
+
+#################################################################################
+B_1 <- parent_cytof %>%
+  rownames_to_column("event_id") %>%
+  left_join(select_features %>%
+              rownames_to_column("event_id") %>%
+              dplyr::select(event_id, Score)) %>%
+  left_join(base_obj1$clin.train) %>%
+  ggplot(aes(x=`B Cell`, y= Score, color = factor(trajectory_group))) +
+  geom_point() +
+  geom_smooth(method='lm', color = "#424242", se = FALSE, linetype = "solid")+
+  theme_classic() +
+  scale_color_manual(values = TrajGrpCol) +
+  theme(legend.position = "none") +
+  ylab("PPG Immunoglobulins") +
+  xlab("Normalized Total B Cell Frequency")+
+    labs(subtitle = paste0("adj.p = ", signif(anova(fit, type = "marginal")$`p-value`[2], 3)))
+
+graph.list <- c(graph.list, list(B_1))
+
+
+
+################################################################################
+child_cytof <- base_obj1$others$bld_cytof$CyTOF_normalize(
+  counts = as.data.frame(base_obj1$others$bld_cytof$train$bld_cytof_counts),
+  granulocytes = FALSE, log1p = TRUE, population = "child"
+)
+
+out.p <- data.frame(matrix(nrow = 0, ncol=5))
+colnames(out.p) <- c("cell_pop", "feature", "TG.adj.P", "coefficient", "coefficient_notes" )
+  for(active_name in colnames(child_cytof)[1:7]){
+    tmp <- child_cytof %>%
+      rownames_to_column("event_id") %>%
+      left_join(select_features %>%
+                  rownames_to_column("event_id") %>%
+                  dplyr::select(event_id, Score)) %>%
+      left_join(base_obj1$clin.train) %>%
+      filter(!is.na(Score)) %>%
+          mutate(trajectory_group = ordered(trajectory_group),
+                value = as.numeric(.data[[active_name]]),
+                 enrollment_site = factor(enrollment_site),
+                 sex = factor(sex),
+                 discretized_admit_age_quantile = ordered(discretized_admit_age_quantile)) %>%
+      filter(!is.na(value))
+    
+    lme.formula.test <- formula(paste0("Score", " ~", "value + sex + discretized_admit_age_quantile"))
+    fit <- lme(fixed = lme.formula.test,
+        random = ~1|enrollment_site, data = tmp)
+    out.p <- rbind.data.frame(out.p, data.frame("cell_pop" = active_name,
+                                                      "feature" = "Immunoglobulin - PPG",
+                                                      "TG.adj.P" = anova(fit, type = "marginal")$`p-value`[2],
+                                                    "coefficient" = fit$coefficients$fixed[2],
+                                                "coefficient_notes" = NA))
+    
+  }
+  
+out.p.f <- out.p %>%
+  mutate(TG.adj.P = p.adjust(as.numeric(TG.adj.P), "fdr")) %>%
+  as.data.frame()
+
+################################################################################
+ for(active_name in c("B Cell (naive)", "B Cell (transitional)", "B Cell (Plasmablast)")){
+   B_X <- child_cytof %>%
+    rownames_to_column("event_id") %>%
+    left_join(select_features %>%
+                rownames_to_column("event_id") %>%
+                dplyr::select(event_id, Score)) %>%
+    left_join(base_obj1$clin.train) %>%
+    ggplot(aes(x=.data[[active_name]], y= Score, color = factor(trajectory_group))) +
+    geom_point(size = 0.9) +
+    geom_smooth(method='lm', color = "#424242", se = FALSE, linetype = "solid")+
+    theme_classic() +
+    scale_color_manual(values = TrajGrpCol) +
+    theme(legend.position = "none") +
+    ylab("PPG Immunoglobulins") +
+    labs(subtitle = paste0("adj.p = ", signif(out.p.f$TG.adj.P[out.p.f$cell_pop == active_name], 3)))
+
+   graph.list <- c(graph.list, list(B_X))   
+}
+
+
+ggarrange(plotlist = graph.list, nrow = 4, ncol = 1)
+
+ggsave(paste0(out_dir, "panelB.pdf"),
+         device = "pdf", width = 4, height = 12)
+
+write.csv(na.omit(graph.list[[1]]$data %>% dplyr::select(event_id, Score, `B Cell`) %>%
+            left_join(graph.list[[2]]$data %>%
+                        dplyr::select(event_id, Score, `B Cell (naive)`, `B Cell (transitional)`, `B Cell (Plasmablast)`))),
+          paste0(out_dir, "FigS5_data_panelB.csv"))
+```
+
+## Panel C
+
+```{r panel C}
+## I need to raise the maxGSSize cut off, so I've just cloned the runGSEA from the object and edited it here 
+runGSEA2 <- function(projection_coef, Term2GeneList){
+                                    gsea_result = list()
+                                    for(j in 1:length(projection_coef)){
+                                      if(names(projection_coef)[j] %in% names(Term2GeneList)){
+                                        geneList = projection_coef[[j]][,1]
+                                        names(geneList) = rownames(projection_coef[[j]])
+                                        geneList = sort(geneList, decreasing = T)
+                                        Term2Gene = Term2GeneList[[names(projection_coef)[j]]]
+                                        Term2Gene=Term2Gene[Term2Gene[,2]%in%names(geneList),]
+                                        gsea_result[[names(projection_coef)[j]]] = clusterProfiler::GSEA(geneList = geneList,
+                                                              minGSSize = 3,
+                                                              maxGSSize = 2500,
+                                                              pvalueCutoff = 2,
+                                                              TERM2GENE = Term2Gene)
+                                      }
+                                    }
+                                    return(gsea_result)
+                                  }
+
+
+## See Codebase for load_blood_cell_markers
+GSEA_ready_mapping <- load_blood_cell_markers(setting = "protein", transcript_rowfeatures = nasal_transcriptomics_rowfeature)
+colnames(GSEA_ready_mapping) <- c("term", "feature")
+
+GSEA_list <- list("pbmc" = as.data.frame(GSEA_ready_mapping))
+active_database <- "pbmc_cell_type_marker_genes"
+base_obj1$MODgseaRes[[active_database]] <-runGSEA2(projection_coef = base_obj1$projection_coef, 
+      Term2GeneList = GSEA_list)
+
+#### NASAL Cell Type Enrichment #####################
+## See Codebase for load_nasal_cell_markers
+GSEA_ready_mapping <- load_nasal_cell_markers(broad = T, granulocytes = T, setting = "protein")
+GSEA_list <- list("nt" = as.data.frame(GSEA_ready_mapping))
+
+active_database <- "nasal_cell_type_marker_genes"
+base_obj1$MODgseaRes[[active_database]] <-runGSEA2(projection_coef = base_obj1$projection_coef,
+      Term2GeneList = GSEA_list)
+
+  
+ggpbmc <- circle_plot(base_obj1[["MODgseaRes"]][["pbmc_cell_type_marker_genes"]][["pbmc"]]@result,
+            title = "Factor 4")
+ggnasal <- circle_plot(base_obj1[["MODgseaRes"]][["nasal_cell_type_marker_genes"]][["nt"]]@result,
+            title = "Factor 4")
+
+ggarrange(
+  ggpbmc, ggnasal, labels = c("PGX", "NGX"),
+  common.legend = TRUE, legend = "bottom"
+  )
+ggsave(paste0(out_dir, "panelC.pdf"))
+write.csv(rbind.data.frame(ggpbmc$data %>% mutate(assay = "PBMC"),
+                           ggnasal$data %>% mutate(assay = "NT")) %>%
+            dplyr::select(assay, Description, setSize, enrichmentScore, NES, pvalue, p.adjust, signed_log10_padj),
+          paste0(out_dir, "FigS5_data_panelC.csv"), row.names = F)
+```
+
+## Panel D
+
+```{r panel D, fig.width = 16, fig.height = 3}
+graph.list <- list()
+parent_cytof <- base_obj1$others$bld_cytof$CyTOF_normalize(
+  counts = base_obj1$others$bld_cytof$train$bld_cytof_counts,
+  rowfeature = base_obj1$others$bld_cytof$train$bld_cytof_rowfeature,
+  population = "parent", log1p = TRUE, granulocytes = FALSE
+)
+
+
+tmp <- parent_cytof %>%
+      rownames_to_column("event_id") %>%
+    pivot_longer(cols = -event_id) %>%
+      left_join(base_obj1$clin.train) %>%
+   mutate(cohort = ifelse(event_id %in% base_obj1$clin.train$event_id, "train", "test")) %>%
+  filter(cohort == "train") %>%
+  filter(event_type == "Visit 1") %>%
+  mutate(trajectory_group = ifelse(trajectory_group %in% c("1", "2", "3"), "TG1-3", paste0("TG", trajectory_group))) %>%
+          mutate(trajectory_group = ordered(trajectory_group),
+                 value = as.numeric(value),
+                 enrollment_site = factor(enrollment_site),
+                 sex = factor(sex),
+                 discretized_admit_age_quantile = ordered(discretized_admit_age_quantile)) %>%
+      filter(!is.na(value))
+
+for(active_pop in c("B Cell")){
+  gg1 <- tmp %>%
+    filter(name == active_pop) %>%
+    ggplot(aes(x=trajectory_group,
+             y= value,
+             color=factor(trajectory_group))) +
+    geom_boxplot(aes(group = trajectory_group), outlier.shape = NA) +
+    geom_quasirandom(size = 0.8) +
+    theme_classic() +
+  scale_color_manual(values = unname(TrajGrpCol)[c(1,4,5)]) +
+  theme(legend.position = "none") +
+  xlab("Clinical Trajectory Group") +
+  ylab(paste0("Normalized Freq. of\n", active_pop)) +
+  stat_compare_means(comparisons = list(c("TG4", "TG5")), label.y = c(4))
+  
+ graph.list <- c(graph.list, list(gg1))
+}
+
+
+############ Children Population ###########
+child_cytof <- base_obj1$others$bld_cytof$CyTOF_normalize(
+  base_obj1$others$bld_cytof$train$bld_cytof_counts,
+  population = "child", granulocytes = FALSE, log1p = TRUE
+)
+
+tmp <- child_cytof %>%
+      rownames_to_column("event_id") %>%
+    pivot_longer(cols = -event_id) %>%
+      left_join(base_obj1$clin.train) %>%
+  mutate(cohort = ifelse(event_id %in% base_obj1$clin.train$event_id, "train", "test")) %>%
+  filter(cohort == "train") %>%
+  filter(event_type == "Visit 1") %>%
+  mutate(trajectory_group = ifelse(trajectory_group %in% c("1", "2", "3"), "TG1-3", paste0("TG", trajectory_group))) %>%
+          mutate(trajectory_group = ordered(trajectory_group),
+                 value = as.numeric(value),
+                 enrollment_site = factor(enrollment_site),
+                 sex = factor(sex),
+                 discretized_admit_age_quantile = ordered(discretized_admit_age_quantile)) %>%
+      filter(!is.na(value))
+
+for(active_pop in c("B Cell (naive)", "B Cell (transitional)", "B Cell (Plasmablast)")){
+  gg1 <- tmp %>%
+    filter(name == active_pop) %>%
+    ggplot(aes(x=trajectory_group,
+             y= value,
+             color=factor(trajectory_group))) +
+    geom_boxplot(aes(group = trajectory_group), outlier.shape = NA) +
+    geom_quasirandom(size = 0.8) +
+    theme_classic() +
+  scale_color_manual(values = unname(TrajGrpCol)[c(1,4,5)]) +
+  theme(legend.position = "none") +
+  xlab("Clinical Trajectory Group") +
+  ylab(paste0("Normalized Freq. of\n", active_pop)) +
+  stat_compare_means(comparisons = list(c("TG4", "TG5")), label.y = c(4))
+  
+  graph.list <- c(graph.list, list(gg1))
+}
+
+ggarrange(plotlist = graph.list, nrow = 1, ncol = 4)
+
+ggsave(paste0(out_dir, "panelD.pdf"),
+         device = "pdf", width = 16, height = 3)
+write.csv(rbind.data.frame(graph.list[[1]]$data, graph.list[[2]]$data, graph.list[[3]]$data, graph.list[[4]]$data) %>%
+            dplyr::select(event_id, name, value, trajectory_group),
+          paste0(out_dir, "FigS5_data_panelD.csv"))
+
+```
+
+## Panel E
+
+```{r panel E, message=FALSE, warning=FALSE}
+
+panele_data <- base_obj1$others$serum_rbd_abtiters$train$serum_rbd_abtiters_counts %>%
+  rownames_to_column("event_id") %>%
+  left_join(base_obj1$clin.train) %>%
+  mutate(trajectory_group = paste0("TG", trajectory_group)) %>%
+  filter(event_type == "Visit 1")
+panele_data %>% ggplot(aes(x=trajectory_group,
+             y= log10(`AUC Spike IgG`),
+             color=factor(trajectory_group))) +
+    geom_boxplot(aes(group = trajectory_group)) +
+    geom_quasirandom(size = 0.8) +
+    theme_classic() +
+  scale_color_manual(values = unname(TrajGrpCol)) +
+  theme(legend.position = "none") +
+  xlab("Clinical Trajectory Group") +
+  ylab(expression(italic(log)*{}[10]~textstyle("Serum Anti-Spike IgG AUC"))) +
+  stat_compare_means(comparisons = list(c("TG4", "TG5")), label.y = c(5))
+ ggsave(paste0(out_dir, "panelE.pdf"),
+         device = "pdf", width = 4, height = 3)
+write.csv(na.omit(panele_data %>% mutate(log10_AUC_Spike_IgG = log10(`AUC Spike IgG`)) %>% dplyr::select(log10_AUC_Spike_IgG, trajectory_group)),
+          paste0(out_dir, "FigS5_data_panelE.csv"))
+```
+
+
+
+
+

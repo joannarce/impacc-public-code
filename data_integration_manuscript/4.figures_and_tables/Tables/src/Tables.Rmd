@@ -1,0 +1,971 @@
+---
+title: "Tables"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load packages}
+library(tidyverse)
+library(circlize)
+library(nlme)
+library(igraph)
+library(ggraph)
+require(openxlsx)
+```
+
+
+```{r load code and data, warning=FALSE, message=FALSE}
+
+##### Load code
+source("../../../0.Codebase/class_structures.R", local=FALSE, chdir=TRUE)
+
+##### Load data object
+#base_obj1 = readRDS(file ="") # e.g., ../../3.data_object_preparation/output/mod1_interpretation_base.rds
+
+
+##### Load other data files, if any
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+kegg_database = readRDS(file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds")
+hallmark_database = readRDS( file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/hallmark0522.rds")
+
+path_impacc_analysis = "/scratch/data-integration/cleanedup/"
+inner_folds = 10
+file_impacc_analysis = paste0(path_impacc_analysis,"impacc_analysis_record_innerfold", inner_folds,".rds")
+impacc_analysis_record = readRDS(file_impacc_analysis)
+
+
+##### Set global variables
+# Trajectory group colors
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+
+# Omic names: 
+# note: ppt, ppgd, so, pmg, nt and pbmc correspond to PPT, PPG, SPT, PMG, NGX and PGX, respectively, in the manuscript.
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+
+
+##### Output directory
+out_dir = "../output/"
+dir.create(out_dir, showWarnings = F)
+```
+
+
+```{r table S1 & S2}
+
+# The code for generating tables S1 & S2 is not available.
+
+```
+
+
+```{r table S3}
+
+#source("~/impacc/Analysis/data_analysis_template_codebase.R")
+#source("~/impacc/Analysis/data-integration/scripts/CleanCode/codebase_basic.R")
+#source("~/impacc/Analysis/data-integration/scripts/CleanCode/codebase_prediction.R")
+#source("~/impacc/Analysis/data-integration/scripts/CleanCode/class_structures.R")
+#path_impacc_analysis = "/scratch/data-integration/cleanedup/"
+#inner_folds = 10
+#file_impacc_analysis = paste0(path_impacc_analysis,"impacc_analysis_record_innerfold", inner_folds,".rds")
+#file_impacc_analysis = paste0(path_impacc_analysis,"impacc_analysis_record_innerfold",inner_folds,"_reorganized.rds")
+
+#impacc_analysis_record=readRDS(file = file_impacc_analysis)
+top_factors = impacc_analysis_record$rank_selected
+factor_flipping = c(F, F, T,T, F, T, T)
+#supp_table_path = "~/impacc/Analysis/data-integration/scripts/manuscripts/Tables/"
+##save (1)high-contribution features for different assays (mag_thr = 0.2; FWER = 0.01); (2) number of high-contribution features; (3)ave_variance_explained per assay and (4) factor variability explained by high contribution features.
+
+contribution_top_features = data.frame(matrix(NA, ncol = 6, nrow = top_factors))
+ave_variance_explained = data.frame(matrix(NA, ncol = 6, nrow = top_factors))
+factor_explained_percent = matrix(NA, ncol = 6, nrow = top_factors)
+colnames(contribution_top_features) =  colnames(ave_variance_explained) =colnames(factor_explained_percent) = colnames(impacc_analysis_record$projection_evaluation_train$ave_variance_explained)
+rownames(contribution_top_features) =   rownames(ave_variance_explained) =rownames(factor_explained_percent) =paste0("factor",1:top_factors)
+high_contribution_features_list = list()
+for(mod_id in 1:top_factors){
+  high_contribution_features_list[[mod_id]] = data.frame(matrix(NA, ncol = 3, nrow= 0))
+  colnames(high_contribution_features_list[[mod_id]]) = c("feature", "assay", "coef")
+}
+
+factor_train = impacc_analysis_record$mcia.factors.train
+for(mod_id in c(1:top_factors)){
+  print(mod_id)
+  mod_name = paste0("Factor", mod_id)
+  mod_name0 = paste0("mod", mod_id)
+  print(mod_name)
+  file_impacc_interpretation = paste0("/scratch/data-integration/cleanedup/",mod_name0,"_interpretation_base.rds")
+  base_obj = readRDS(file =file_impacc_interpretation)
+  contribution_top_features[mod_id, ]=sapply(base_obj$short_list_features[["unsigned_mod"]], nrow)
+  ave_variance_explained[mod_id,] = impacc_analysis_record$projection_evaluation_train$ave_variance_explained[mod_id,]*100
+  for(j in 1:6){
+    tmp = base_obj$short_list_features$unsigned_mod[[j]]
+    if(factor_flipping[mod_id]){
+      tmp[,1]=tmp[,1] * (-1)
+    }
+    tmp = tmp[order(-abs(tmp[,1])),,drop = F]
+    tmp1 = data.frame(matrix(NA, ncol = 3, nrow = nrow(tmp)))
+    colnames(tmp1) = c("feature", "assay", "coef")
+    tmp1[,1] = rownames(tmp)
+    tmp1[,3] = tmp[,1]
+    tmp1[,2] = colnames(impacc_analysis_record$projection_evaluation_train$ave_variance_explained)[j]
+    high_contribution_features_list[[mod_id]] = rbind(high_contribution_features_list[[mod_id]], tmp1)
+    
+    X = base_obj$assays.train[[j]]
+    idx = which(!is.na(X[,1]))
+    X = apply(X[idx,], 2, function(z) qqnorm(z, plot.it = F)$x)
+    X = X[,abs(impacc_analysis_record$projection_evaluation_train$projection_coef[[j]][,mod_id])>0.2]
+    if(is.null(dim(X))){
+      X = cbind(X, X)
+    }
+    y = qqnorm(factor_train[idx,mod_id],plot.it = F)$x
+    if(ncol(X)>0){
+      tmp_fit = glmnet::cv.glmnet(X, y,alpha = 0.5)
+      yhat = predict(tmp_fit,X, s = "lambda.min")
+      factor_explained_percent[mod_id,j] = var(y-yhat)/var(y)
+    }
+  }
+}
+factor_explained_percent = 1.0-factor_explained_percent
+factor_explained_percent[is.na(factor_explained_percent)] = 0
+factor_explained_percent = data.frame(factor_explained_percent)
+
+wb <- createWorkbook()
+addWorksheet(wb, "top_features_counts")
+writeData(wb, "top_features_counts", contribution_top_features)
+for(mod_id in 1:top_factors){
+  mod_name = paste0("factor", mod_id)
+  tab_name = paste0(  mod_name, "_highfeatures")
+  addWorksheet(wb, tab_name)
+  writeData(wb, tab_name, high_contribution_features_list[[mod_id]])
+}
+addWorksheet(wb, "assay_variance_explained")
+writeData(wb, "assay_variance_explained", ave_variance_explained)
+addWorksheet(wb, "factor_variance_explained")
+writeData(wb,  "factor_variance_explained",factor_explained_percent)
+
+# save the workbook to a file
+saveWorkbook(wb, paste0(out_dir, "TableS3.xlsx"), overwrite = TRUE)
+
+```
+
+
+
+```{r table S4}
+
+##Visit 1 and longitudinal
+columns_pairwise_interest = c("1|2", "2|3", "3|4", "4|5", "1|5", "2|5", "3|5", "1|3", "1|4", "2|4") 
+A1 = impacc_analysis_record$mcia.visit1.test_plot[["train"]]$visit1_mod_train_result$res_table_ordinal
+A2 = impacc_analysis_record$mcia.visit1.test_plot[["train"]]$visit1_mod_train_result$res_table_pairwise_pvalue[,columns_pairwise_interest]
+A3 = impacc_analysis_record$mcia.visit1.test_plot[["train"]]$visit1_mod_train_result$res_table_pairwise_qvalue[,columns_pairwise_interest]
+A4 = impacc_analysis_record$mcia.visit1.test_plot[["train"]]$visit1_mod_train_result$res_table_pairwise_coef[,columns_pairwise_interest]
+
+A1te = impacc_analysis_record$mcia.visit1.test_plot[["test"]]$visit1_mod_train_result$res_table_ordinal
+A2te = impacc_analysis_record$mcia.visit1.test_plot[["test"]]$visit1_mod_train_result$res_table_pairwise_pvalue[,columns_pairwise_interest]
+A3te = impacc_analysis_record$mcia.visit1.test_plot[["test"]]$visit1_mod_train_result$res_table_pairwise_qvalue[,columns_pairwise_interest]
+A4te = impacc_analysis_record$mcia.visit1.test_plot[["test"]]$visit1_mod_train_result$res_table_pairwise_coef[,columns_pairwise_interest]
+columns_pairwise_redefine = c("1vs2", "2vs3", "3vs4", "4vs5","1vs5", "2vs5", "3vs5","1vs3", "1vs4", "2vs4")  
+
+
+
+
+#save full results into table: global test, and pairwise-test for consecutive groups
+#if results not significant in the training, it will not be checked and replaced as NA in the test
+B1 = A1; B2 = A2; B3 = A3; B4=A4
+global_qval = 0.05
+pairwise_qval = 0.05
+res_table_train_v1 = module_test_table_creation_visit1_helper(A1, A2, A3, A4, B1, B2, B3, B4, 
+                                        global_qval = 1.0, pairwise_qval =1.0 ,
+                                        test = "two-sided",
+                                        columns_pairwise_interest, columns_pairwise_redefine)
+res_table_test_v1 = module_test_table_creation_visit1_helper(A1te, A2te, A3te, A4te, B1, B2, B3, B4, 
+                                        global_qval = global_qval, pairwise_qval = pairwise_qval ,
+                                        test = "one-sided",
+                                        columns_pairwise_interest, columns_pairwise_redefine)
+
+smooth_pvalue = impacc_analysis_record$mcia.trajectory.test_plot[["train"]]$smooth_pvalue
+direction =  impacc_analysis_record$mcia.trajectory.test_plot[["train"]]$direction
+
+smooth_pvalue_te = impacc_analysis_record$mcia.trajectory.test_plot[["test"]]$smooth_pvalue
+direction_te =  impacc_analysis_record$mcia.trajectory.test_plot[["test"]]$direction
+
+
+smooth_pvalue_filter = impacc_analysis_record$mcia.trajectory.test_plot[["train"]]$smooth_pvalue
+direction_filter =  impacc_analysis_record$mcia.trajectory.test_plot[["train"]]$direction
+
+res_table_train_longi = module_test_table_creation_lonitudinaltest_helper(smooth_pvalue=smooth_pvalue,  direction =direction,
+                                      smooth_pvalue_filter = smooth_pvalue_filter,
+                                      direction_filter = direction_filter,
+                                                 global_qval = 1.0,
+                                                 pairwise_qval =  1.0,
+                                        test = "two-sided")
+
+res_table_test_longi = module_test_table_creation_lonitudinaltest_helper(smooth_pvalue=smooth_pvalue_te,  direction =direction_te,
+                                      smooth_pvalue_filter = smooth_pvalue_filter,
+                                      direction_filter = direction_filter,
+                                                 global_qval = global_qval,
+                                                 pairwise_qval =  pairwise_qval,
+                                        test = "one-sided")
+res_table_test_longi$adj_pval = NULL
+
+res_table_test_v1$adj_pval = NULL
+
+res_table_train_longi$Test = paste0("Longitudinal_", res_table_train_longi$Test)
+res_table_test_longi$Test = paste0("Longitudinal_", res_table_test_longi$Test)
+res_table_train_v1$Test = paste0("Visit1_", res_table_train_v1$Test)
+res_table_test_v1$Test = paste0("Visit1_",res_table_test_v1$Test)
+
+res_table_train = rbind(res_table_train_v1, res_table_train_longi)
+res_table_test = rbind(res_table_test_v1, res_table_test_longi)
+write.csv(res_table_train, file = paste0(out_dir,"TableS4.csv"))
+#write.csv(res_table_test, file = paste0(out_dir,"Table_validation_module_significance_test.csv"))
+
+
+```
+
+
+
+```{r table S5 & S7}
+# Severity factor
+base_obj1 = readRDS("/scratch/data-integration/public_code_results/mod1_interpretation_base.rds")
+# Mortality factor
+base_obj4 = readRDS("/scratch/data-integration/public_code_results/mod4_interpretation_base.rds")
+
+# Combine all enrichment results which will be used for generating the enrichment dotplot and network.
+streamline_enrichment_results(base_obj1, datasets=c("ppt","ppgd","so","pmg","nt","pbmc"), databases = c("kegg","hallmark","immglob", "subpathway"))
+
+combine_enrichment_results(base_obj1, databases = c("kegg","hallmark","immglob", "subpathway"))
+
+
+# Combine all enrichment results which will be used for generating the enrichment dotplot and network.
+streamline_enrichment_results(base_obj4, datasets=c("ppt","ppgd","so","pmg","nt","pbmc"), databases = c("kegg","hallmark","immglob", "subpathway"))
+
+combine_enrichment_results(base_obj4, databases = c("kegg","hallmark","immglob", "subpathway"))
+
+
+# Full dot plot for suppl.
+mod1_dot_full = plot_enrichment_dot_v2(base_obj1, thr=0.1, test_type = "mhg", databases = c("kegg","hallmark","immglob","subpathway"), plot_title = "Factor1")
+mod4_dot_full = plot_enrichment_dot_v2(base_obj4, thr=0.1, test_type = "mhg", databases = c("kegg","hallmark","immglob","subpathway"), plot_title = "Factor4")
+
+levels(mod1_dot_full$data$dataset) = c("PPT","PPG","SPT","PMG","NGX","PGX","Joint")
+levels(mod4_dot_full$data$dataset) = c("PPT","PPG","SPT","PMG","NGX","PGX","Joint")
+
+
+# Full pathways suppl. csv
+# Used the data from the the dotplot output. This was done intentionally to use the same pvalues as those used for the dotplot, which are sometimes slightly different from those in mhg results because after merging the pos and neg tables using "enrichment_aggregation" in "plot_enrichment_dot_v2", the adjusted pvalues are recalculated on the merged table, which are sometimes slightly different from the padj in mhg results.
+mod1_dot_full$data %>% 
+    dplyr::select(score,p,p.adj,pathway,database,dataset,core_enrichment) %>% 
+    rename(pval=p, pval_adj = p.adj, leading_edge = core_enrichment, direction = score) %>% 
+    mutate(
+        dataset = toupper(dataset), 
+        dataset = case_when(dataset == "PPGD" ~ "PPG", dataset == "SO" ~ "SPT", dataset == "NT" ~ "NGX", dataset == "PBMC" ~ "PGX", dataset == "JOINT" ~ "Joint", TRUE ~ dataset)) %>%
+    pivot_wider(
+        values_from = c("direction","pval","pval_adj","leading_edge"), 
+        names_from = "dataset", 
+        names_vary = "slowest", 
+        names_sep = "#") %>% 
+    setNames(
+        sapply(colnames(.), function(x){ if(grepl("#",x)) {vals=unlist(str_split(x, "#")); paste0(vals[2],":",vals[1])} else {x} })
+    ) %>% 
+  write.csv(file = file.path(out_dir, "TableS5.csv"), row.names = F)
+
+
+mod4_dot_full$data %>% 
+    dplyr::select(score,p,p.adj,pathway,database,dataset,core_enrichment) %>% 
+    rename(pval=p, pval_adj = p.adj, leading_edge = core_enrichment, direction = score) %>% 
+    #mutate(
+    #    dataset = toupper(dataset), 
+    #    dataset = case_when(dataset == "PPGD" ~ "PPG", dataset == "SO" ~ "SPT", dataset == "NT" ~ "NGX", dataset == "PBMC" ~ "PGX", dataset == "JOINT" ~ "Joint", TRUE ~ dataset)) %>%
+    pivot_wider(
+        values_from = c("direction","pval","pval_adj","leading_edge"), 
+        names_from = "dataset", 
+        names_vary = "slowest", 
+        names_sep = "#") %>% 
+    setNames(
+        sapply(colnames(.), function(x){ if(grepl("#",x)) {vals=unlist(str_split(x, "#")); paste0(vals[2],":",vals[1])} else {x} })
+    ) %>% 
+  write.csv(file = file.path(out_dir, "TableS7.csv"), row.names = F)
+
+
+```
+
+
+
+```{r table S6}
+# TG4|5 filtered analysis for the severity factor (Factor 1)
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+base_obj = readRDS(file ="/scratch/data-integration/cleanedup/mod1_interpretation_base.rds")
+
+#source("~/impacc/Analysis/data-integration/scripts/CleanCode/codebase_basic.R")
+#source("~/impacc/Analysis/data-integration/scripts/CleanCode/codebase_interpretation.R")
+#source("~/impacc/Analysis/data-integration/scripts/CleanCode/class_structures.R")
+
+metabolite_row_DF = data_env0$plasma_metabolomics_global_rowfeature
+rownames(metabolite_row_DF) = metabolite_row_DF[["CHEMICAL_NAME"]]
+metabolite_row_DF=metabolite_row_DF[,c("CHEMICAL_NAME","SUB_PATHWAY","SUPER_PATHWAY")]
+subpath_databse = list()
+subpath_databse[["pmg"]] = data.frame(description =metabolite_row_DF[["SUB_PATHWAY"]],
+                                      CHEMICAL_NAME = metabolite_row_DF[["CHEMICAL_NAME"]])
+
+#path_impacc_analysis = "/scratch/data-integration/cleanedup/"
+#inner_folds = 10
+#file_impacc_analysis = paste0(path_impacc_analysis,"impacc_analysis_record_innerfold", inner_folds,".rds")
+#impacc_analysis_record = readRDS(file_impacc_analysis)
+
+
+sign_flipping = FALSE
+fig3C_pathways = c("HALLMARK_INFLAMMATORY_RESPONSE",
+                      "HALLMARK_IL6_JAK_STAT3_SIGNALING",
+                      "Neutrophil extracellular trap formation",
+                      "Platelet activation" ,"Complement and coagulation cascades","TNF signaling pathway",
+                      "T cell receptor signaling pathway",
+                      "Th17 cell differentiation",
+                      "Th1 and Th2 cell differentiation",
+                      "Antigen processing and presentation",
+                      "Apoptosis", "Necroptosis","Tryptophan metabolism","Histidine metabolism", "Phenylalanine metabolism")
+omic_uniq = names(base_obj$omic_names)
+
+
+####### Sheet 1
+KEGG_POS_subset = composite_mat_subsetting(composite_score_mat_list = base_obj$composite_features_train$KEGG_POS,
+                         selected_pathways = fig3C_pathways)
+KEGG_NEG_subset = composite_mat_subsetting(composite_score_mat_list = base_obj$composite_features_train$KEGG_NEG,
+                         selected_pathways = fig3C_pathways)
+Hallmark_POS_subset = composite_mat_subsetting(composite_score_mat_list = base_obj$composite_features_train$HALLMARK_POS,
+                         selected_pathways = fig3C_pathways)
+composite_mat = cbind(Hallmark_POS_subset$composiste_mat, KEGG_POS_subset$composiste_mat, KEGG_NEG_subset$composiste_mat)
+omic_vec = c(Hallmark_POS_subset$omic_vec, KEGG_POS_subset$omic_vec, KEGG_NEG_subset$omic_vec)
+pathway_vec = c(Hallmark_POS_subset$pathway_vec, KEGG_POS_subset$pathway_vec, KEGG_NEG_subset$pathway_vec)
+sign_vec = c(rep(1,length(Hallmark_POS_subset$omic_vec)),
+             rep(1, length(KEGG_POS_subset$omic_vec)),
+             rep(-1, length(KEGG_NEG_subset$omic_vec)))
+pathway_test_DF = data.frame(matrix(NA, ncol = 8, nrow = length(pathway_vec)))
+colnames(pathway_test_DF) = c("assay", "pathway", "sign", "severity", "mortality", "slope_adj", "mortality_adj","selected")
+for(i in 1:length(omic_uniq)){
+  omic_name0 = omic_uniq[i]
+  ii = which(omic_vec==omic_name0)
+  if(length(ii)>0){
+    pathway_test_DF[ii,1]=omic_name0
+    pathway_test_DF[ii,2]=pathway_vec[ii]
+    pathway_test_DF[ii,3] = sign_vec[ii]
+    composite_mat_sub = composite_mat[,ii] 
+    pathway_test_DF[ii,-c(1:3)]= TG45_selection(composite_mat_sub, base_obj = base_obj, sign = sign_vec[ii], phase = "train")
+
+  }
+
+}
+pathway_test_DF=pathway_test_DF[pathway_test_DF$selected,]
+pathway_test_DF=pathway_test_DF[(pathway_test_DF$assay != "ppgd"|pathway_test_DF$pathway!="HALLMARK_INFLAMMATORY_RESPONSE"),]
+pathway_test_DF=pathway_test_DF[,c("assay","pathway","severity","mortality","slope_adj")]
+colnames(pathway_test_DF)[ncol(pathway_test_DF)] = "slope4|5"
+pathway_test_DF_sign = pathway_test_DF
+pathway_test_DF_sign[,c(3:5)] = sign(pathway_test_DF[,3:5])
+sheet1_Fig3C_selected = gather(pathway_test_DF, key = "Test", value = "pvalue", -assay, -pathway,)
+tmp2 = gather(pathway_test_DF_sign, key = "Test", value = "pvalue", -assay, -pathway,)
+sheet1_Fig3C_selected$direction = ifelse(tmp2$pvalue == 1, "Severe", "Mild")
+sheet1_Fig3C_selected$pvalue = 10**(-abs(sheet1_Fig3C_selected$pvalue))
+sheet1_Fig3C_selected$assay = base_obj$omic_names[sheet1_Fig3C_selected$assay]
+
+
+
+
+####### Sheet 2
+## After filtering, does metabolite and cytokine show new enrichment?
+# examine if addtional TG4v5 filtered pathways should be included
+
+cytokine_mat = base_obj$assays.train$serum_olink[,rownames(base_obj$short_list_features$unsigned_mod$so)]
+metabolite_mat = base_obj$assays.train$plasma_metabolomics_global[,rownames(base_obj$short_list_features$unsigned_mod$pmg)]
+s_cytokine = sign(base_obj$short_list_features$unsigned_mod$so[,1])
+s_metaboloite = sign(base_obj$short_list_features$unsigned_mod$pmg[,1])
+if(sign_flipping){
+  s_cytokine = -s_cytokine
+  s_metaboloite = -s_metaboloite
+}
+cytokine_test= TG45_selection(cytokine_mat, base_obj = base_obj, sign = s_cytokine, phase = "train")
+metabolite_test= TG45_selection(metabolite_mat, base_obj = base_obj, sign = s_metaboloite, phase = "train")
+
+cytokine_mat_selected= cytokine_test
+metabolite_mat_selected=metabolite_test
+
+cytokine_mat_selected=cytokine_mat_selected[cytokine_mat_selected$selected,]
+metabolite_mat_selected=metabolite_mat_selected[metabolite_mat_selected$selected,]
+###enrichmenent analysis with filtered cytokines/metabolites
+projection_coef_cytokine = base_obj$projection_coef$so[rownames(cytokine_mat_selected),,drop = F]
+projection_coef_cytokine=projection_coef_cytokine[order(-abs(projection_coef_cytokine[,1])),,drop = F]
+cytokein_filtered_enrichement = list()
+shortlist_fnames = list("so"=projection_coef_cytokine[projection_coef_cytokine[,1]>0,,drop = F])
+cytokein_filtered_enrichement[["Hallmark_pos"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList = hallmark_database, 
+                backround = "impacc")$so
+cytokein_filtered_enrichement[["Kegg_pos"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList = kegg_database, 
+                backround = "impacc")$so
+shortlist_fnames = list("so"=projection_coef_cytokine[projection_coef_cytokine[,1]<0,,drop = F])
+cytokein_filtered_enrichement[["Hallmark_neg"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList = hallmark_database, 
+                backround = "impacc")$so
+cytokein_filtered_enrichement[["Kegg_neg"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList = kegg_database, 
+                backround = "impacc")$so
+for(l in 1:length(cytokein_filtered_enrichement)){
+  cytokein_filtered_enrichement[[l]] = cytokein_filtered_enrichement[[l]][cytokein_filtered_enrichement[[l]]$pvalue<0.05,]
+}
+##no additional enrichment for cytokine
+projection_coef_metabolite = base_obj$projection_coef$pmg[rownames(metabolite_mat_selected),,drop = F]
+projection_coef_metabolite=projection_coef_metabolite[order(-abs(projection_coef_metabolite[,1])),,drop = F]
+metabolite_filtered_enrichement = list()
+shortlist_fnames = list("pmg"=projection_coef_metabolite[projection_coef_metabolite[,1]>0,,drop = F])
+metabolite_filtered_enrichement[["subpath_pos"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList =subpath_databse, 
+                backround = "impacc")$pmg
+metabolite_filtered_enrichement[["Kegg_pos"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList = kegg_database, 
+                backround = "impacc")$pmg
+shortlist_fnames = list("pmg"=projection_coef_metabolite[projection_coef_metabolite[,1]<0,,drop = F])
+metabolite_filtered_enrichement[["subpath_neg"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList = subpath_databse, 
+                backround = "impacc")$pmg
+metabolite_filtered_enrichement[["Kegg_neg"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList = kegg_database, 
+                backround = "impacc")$pmg
+for(l in 1:length(metabolite_filtered_enrichement)){
+  metabolite_filtered_enrichement[[l]] = metabolite_filtered_enrichement[[l]][metabolite_filtered_enrichement[[l]]$pvalue<0.05,]
+}
+
+
+
+## show leading edge features
+##No additional pathways stands out from KEGG
+prev = c("Tryptophan metabolism", "Phenylalanine metabolism", "Histidine metabolism")
+sheet2_mgh_TG45fitered_factor4 =  metabolite_filtered_enrichement[["Kegg_pos"]][metabolite_filtered_enrichement[["Kegg_pos"]]$p.adj<0.1, ,drop = F]
+sheet2_mgh_TG45fitered_factor4$database = "KEGG"
+sheet2_mgh_TG45fitered_factor4$assay = base_obj$omic_names["pmg"]
+sheet2_mgh_TG45fitered_factor4$direction = 1 #positive
+sheet2_mgh_TG45fitered_factor4$leading_edge = sheet2_mgh_TG45fitered_factor4$core_enrichment
+sheet2_mgh_TG45fitered_factor4$core_enrichment = NULL
+
+
+
+####### Sheet 3
+
+# new_pathways = F; show the leading edge features of the originals
+combined = prev
+mat1 = base_obj$MODmghRes$kegg_pos_impacc$pmg[base_obj$MODmghRes$kegg_pos_impacc$pmg$ID%in%combined,]
+ss = strsplit(mat1$core_enrichment, "#")
+names(ss) = mat1$ID
+metabo_selected = unlist(ss)
+pathways = rep(NA, length(metabo_selected))
+for(i in 1:length(pathways)){
+  for(k in 1:length(ss)){
+      if(metabo_selected[i]%in%ss[[k]]){
+        pathways[i] = names(ss)[k]
+      }
+  }
+}
+
+data_use = metabolite_mat[,metabo_selected]
+
+
+
+tmp0 = simple_pathwaytest_wrapper(composite_mat = data_use,
+                                   base_obj = base_obj,
+                                   phase ="train", adjust = F)
+tmp0 = data.frame(tmp0)
+tmp1 = sign(tmp0) * ifelse(sign_flipping,-1,1)
+tmp0=10**(-abs(tmp0))
+tmp0 = data.frame(tmp0)
+colnames(tmp0) = colnames(tmp1) = c("severity", "mortality", "slope4|5")
+tmp0$feature = tmp1$feature=rownames(tmp0)
+
+tmp0$pathway = tmp1$pathway = pathways
+tmp0$assay = base_obj$omic_names["pmg"]
+tmp1$assay =  base_obj$omic_names["pmg"]
+sheet3_leading_edges_3H = gather(tmp0, key="Test", value = "pvalue",-feature, -pathway, -assay)
+tmp2 = gather(tmp1, key="Test", value = "pvalue",-feature, -pathway, -assay)
+sheet3_leading_edges_3H$direction = tmp2$pvalue
+sheet3_leading_edges_3H$direction = ifelse(sheet3_leading_edges_3H$direction==1,"Severe","Mild")
+
+
+
+
+####### Sheet 4
+cytokine_mat_selected = cytokine_mat_selected[,c(1:3)]
+metabolite_mat_selected = metabolite_mat_selected[,c(1:3)]
+tmp_list = list(so = cytokine_mat_selected,
+                pmg = metabolite_mat_selected)
+sheet4_all_filtered_soluables = NULL
+for(l in 1:length(tmp_list)){
+  tmp0 = data.frame(tmp_list[[l]])
+  tmp1 = sign(tmp0) * ifelse(sign_flipping,1,-1)
+  tmp0=10**(-abs(tmp0))
+  tmp0 = data.frame(tmp0)
+  colnames(tmp0) = colnames(tmp1) = c("severity", "mortatily", "slope4|5")
+  tmp0$feature = tmp1$feature=rownames(tmp0)
+  
+  tmp0$assay = base_obj$omic_names[names(tmp_list)[l]]
+  tmp1$assay =  base_obj$omic_names[names(tmp_list)[l]]
+  
+  tmp2 = gather(tmp0, key="Test", value = "pvalue",-feature,  -assay)
+  tmp3 = gather(tmp1, key="Test", value = "pvalue",-feature,  -assay)
+  tmp2$direction = tmp3$pvalue
+  tmp2$direction = ifelse(tmp2$direction==1,"Severe","Mild")
+  if(is.null(sheet4_all_filtered_soluables)){
+    sheet4_all_filtered_soluables = tmp2
+  }else{
+    sheet4_all_filtered_soluables = rbind(sheet4_all_filtered_soluables, tmp2)
+  }
+
+}
+
+
+
+# Save the sheets
+wb <- createWorkbook()
+addWorksheet(wb, "Fig3F_separating_pathway")
+writeData(wb, "Fig3F_separating_pathway", sheet1_Fig3C_selected)
+
+addWorksheet(wb, "TG45filtered_enrichment")
+writeData(wb,  "TG45filtered_enrichment", sheet2_mgh_TG45fitered_factor4)
+
+addWorksheet(wb, "Fig3G_metabolites")
+writeData(wb,  "Fig3G_metabolites", sheet3_leading_edges_3H)
+
+addWorksheet(wb, "all_filtered_so_pmg_feature")
+writeData(wb, "all_filtered_so_pmg_feature",sheet4_all_filtered_soluables)
+
+# save the workbook to a file
+saveWorkbook(wb, paste0(out_dir, "TableS6.xlsx"), overwrite = TRUE)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r table S8}
+# TG4|5 filtered analysis for the mortality factor (Factor 4)
+
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+
+
+metabolite_row_DF = data_env0$plasma_metabolomics_global_rowfeature
+rownames(metabolite_row_DF) = metabolite_row_DF[["CHEMICAL_NAME"]]
+metabolite_row_DF=metabolite_row_DF[,c("CHEMICAL_NAME","SUB_PATHWAY","SUPER_PATHWAY")]
+subpath_databse = list()
+subpath_databse[["pmg"]] = data.frame(description =metabolite_row_DF[["SUB_PATHWAY"]],
+                                      CHEMICAL_NAME = metabolite_row_DF[["CHEMICAL_NAME"]])
+
+base_obj = readRDS(file ="/scratch/data-integration/public_code_results/mod4_interpretation_base.rds")
+sign_flipping = FALSE
+omic_uniq = names(base_obj$omic_names)
+
+
+
+### Functions
+
+local_helper1 = function(subset_local, tmp_mat_dir, tmp_mat_pval, sign_local = "+"){
+  mat_subset = NULL
+  omic_vec = NULL
+  path_vec = NULL
+  direction_vec = NULL
+  pval_vec = NULL
+  p1 = length(subset_local$omic_vec)
+  row_paths = rownames(tmp_mat_dir)
+  col_omics = colnames(tmp_mat_dir)
+  if(p1>0){
+    for(i in 1:p1){
+      omic0 = subset_local$omic_vec[i]
+      path0 = subset_local$pathway_vec[i]
+      ii = which(row_paths == path0)
+      jj = which(col_omics == omic0)
+      if(length(ii)>0 & length(jj)>0){
+        sign0 = tmp_mat_dir[ii,jj]
+        pval0 = tmp_mat_pval[ii,jj]
+        if(!is.na(sign0)){
+          if(sign0 ==sign_local){
+            if(is.null(mat_subset)){
+               mat_subset =subset_local$composiste_mat[,i,drop = F]
+            }else{
+               mat_subset = cbind(mat_subset,subset_local$composiste_mat[,i,drop = F])
+            }
+           
+          }
+          omic_vec =c(omic_vec, omic0)
+          path_vec = c(path_vec, path0)
+          direction_vec = c(direction_vec, sign0)
+          pval_vec=c(pval_vec, pval0)
+        }
+      }
+    }
+  }
+  return(list(mat_subset=mat_subset, omic_vec=omic_vec, path_vec=path_vec, direction_vec=direction_vec, pval_vec = pval_vec))
+}
+
+local_helper2 = function(mat_pos,mat_neg, mat_direction,mat_pval, selected_pathways){
+  NEG_subset = composite_mat_subsetting(composite_score_mat_list = mat_neg,
+                         selected_pathways = selected_pathways)
+  POS_subset = composite_mat_subsetting(composite_score_mat_list = mat_pos,
+                         selected_pathways = selected_pathways)
+  out1 = local_helper1(subset_local=NEG_subset, tmp_mat_dir=mat_direction, tmp_mat_pval = mat_pval,sign_local = "-")
+  out2 = local_helper1(subset_local=POS_subset, tmp_mat_dir=mat_direction, tmp_mat_pval = mat_pval,sign_local = "+")
+  if(length(out1$omic_vec)==0){
+    return(out2)
+  }else if(length(out2)==0){
+    return(out1)
+  }else{
+    out1$mat_subset = cbind(out1$mat_subset, out2$mat_subset)
+    out1$omic_vec = c( out1$omic_vec, out2$omic_vec)
+    out1$path_vec = c( out1$path_vec,out2$path_vec)
+    out1$direction_vec = c( out1$direction_vec, out2$direction_vec)
+    out1$pval_vec = c(out1$pval_vec,out2$pval_vec)
+    return(out1)
+  }
+}
+
+local_helper3 = function(kegg_out, ravi_compisite_scores_factor4, terms, terms_new, omics, signs = "+", pvals = 1E-12){
+  for(l in 1:length(terms)){
+    kegg_out$mat_subset = cbind(kegg_out$mat_subset, ravi_compisite_scores_factor4[[terms[l]]][[omics[l]]])
+    kegg_out$omic_vec = c(kegg_out$omic_vec, omics[l])
+    kegg_out$path_vec = c(kegg_out$path_vec, terms_new[l])
+    kegg_out$direction_vec = c(kegg_out$direction_vec, signs[l])
+    kegg_out$pval_vec = c( kegg_out$pval_vec, pvals[l])
+  }
+  return(kegg_out)
+}
+
+
+
+
+###### Which unfiltered pathways can separate TG4 and TG5 at visit 1?
+## Filter payhways
+#enrichment p-value filtering of a single assay
+mhg_pathway_factor4 <- read_csv("~/impacc/Analysis/data-integration/scripts/manuscripts/Tables/mhg_pathway_factor4.csv")
+### get pathways activities
+tmp_list = list()
+databases = unique(mhg_pathway_factor4$database)
+omic_short_names = names(base_obj$omic_names)
+OMIC_UNIQ = c("PPT", "PPG", "SPT", "PMG", "NGX", "PGX")
+for(database_id in 1:length(databases)){
+  database=databases[database_id];tmp_list[[database]] = list()
+  temp1 = mhg_pathway_factor4[mhg_pathway_factor4$database==database,]
+  omic_vec = c(); sign_vec = c();pval_vec = c(); pval_joint =c();mat = NULL; pathway_vec = c()
+  for(l in 1:nrow(temp1)){
+    temp2 = temp1[l,]
+    for(OMIC_id in 1:length(OMIC_UNIQ)){
+      OMIC = OMIC_UNIQ[OMIC_id]
+      omic = omic_short_names[OMIC_id]
+      omic1= base_obj$omic_names[OMIC_id]
+      ll = grepl(x=colnames(temp2),pattern = OMIC)
+      temp3 = temp2[,ll,drop = F]
+      if(!is.na(temp3[2])){
+      if(temp3[2] < 0.05){
+        omic_vec=c(omic_vec, OMIC)
+        pathway_vec=c(pathway_vec, temp2$pathway)
+        sign_vec = c(sign_vec,  as.numeric(temp3[1,1]))
+        pval_vec = c(pval_vec,  as.numeric(temp3[1,2]))
+        pval_joint = c(pval_joint, temp2$`Joint:pval_adj`)
+        temp4 = as.character(temp3[1,4]); temp4 = strsplit(x=temp4, split= "#")[[1]]
+        weight = abs(base_obj$projection_coef[[omic]][ temp4,1])
+        mat1 = base_obj$assays.train[[omic1]][,temp4];mat1 = as.matrix(mat1)%*%weight;colnames( mat1) =  temp2$pathway
+        mat = cbind(mat, mat1)
+      }        
+      }
+    }
+  }
+  tmp_list[[database_id]]$pathway_mat = mat; tmp_list[[database_id]]$omic_vec=omic_vec;
+  tmp_list[[database_id]]$pathway_vec=pathway_vec;  tmp_list[[database_id]]$sign_vec=sign_vec;
+  tmp_list[[database_id]]$adj_joint=pval_joint;  tmp_list[[database_id]]$pval_vec=pval_vec;
+}
+##many overlapping IG, keep the large ones suggested by ravi
+ll = tmp_list$immglob$pathway_vec %in% c("GOCC_IMMUNOGLOBULIN_COMPLEX","GOBP_IMMUNOGLOBULIN_PRODUCTION")
+tmp_list$immglob$pathway_mat =tmp_list$immglob$pathway_mat[,ll];
+for(nam in names(tmp_list$immglob)[-1]){
+  tmp_list$immglob[[nam]] = tmp_list$immglob[[nam]][ll]
+}
+thr = 0.05
+selection_list = list()
+for(d in 1:length(tmp_list)){
+  sign_vec = tmp_list[[d]]$sign_vec
+  #sign_vec = ifelse(sign_vec=="-", -1, 1) * (-1)
+  sign_vec = ifelse(sign_vec== -1, -1, 1) 
+  if(sign_flipping ){
+    sign_vec = ifelse(sign_vec== -1, -1, 1) * (-1)
+  }
+  tmp0 = simple_pathwaytest_wrapper(composite_mat = tmp_list[[d]]$pathway_mat,
+                                   base_obj = base_obj,
+                                   phase ="train", adjust = F)
+  tmp0 = data.frame(tmp0)
+  tmp0$sign = tmp_list[[d]]$sign_vec
+  tmp0$assay = tmp_list[[d]]$omic_vec
+  tmp0$pathway = tmp_list[[d]]$pathway_vec
+  selected1 = (sign_vec*tmp0$mortality)>abs(log(thr, base = 10))
+  selection_list[[d]] = list()
+  selection_list[[d]]$test = tmp0[selected1,]
+  selection_list[[d]]$omic_vec = tmp_list[[d]]$omic_vec[selected1]  
+  selection_list[[d]]$path_vec = tmp_list[[d]]$pathway_vec[selected1]  
+  selection_list[[d]]$direction_vec = tmp_list[[d]]$sign_vec[selected1]  
+}
+names(selection_list) =databases 
+
+#enrichment p-value filtering of a single assay
+sheet1_separating_pathway = data.frame(matrix(NA, ncol = 5, nrow = 1000))
+colnames(sheet1_separating_pathway) = c("assay", "pathway", "Test", "p.val", "direction")
+ll = 0
+test_names = c("mortality", "ordinal", "slope5.4")
+for(d in 1:length(selection_list)){
+  tmp1 = selection_list[[d]]
+  for(l in 1:nrow(tmp1$test)){
+    for(j in 1:3){
+          ll = ll+1
+          sheet1_separating_pathway[ll,1]=tmp1$omic_vec[l]
+          sheet1_separating_pathway[ll,2]=tmp1$path_vec[l]
+          sheet1_separating_pathway[ll,3]= test_names[j]
+          sheet1_separating_pathway[ll,4] = 10**(-abs(tmp1$test[l,test_names[j]]))
+          sheet1_separating_pathway[ll,5] = sign(tmp1$test[l,test_names[j]])
+    }
+
+  }
+}
+sheet1_separating_pathway=sheet1_separating_pathway[!is.na(sheet1_separating_pathway[,1]),]
+sheet1_separating_pathway$Test[sheet1_separating_pathway$Test=="ordinal"] = "severity"
+sheet1_separating_pathway$Test[sheet1_separating_pathway$Test=="slope5.4"] = "slope4|5"
+sheet1_separating_pathway$direction = ifelse(sheet1_separating_pathway$direction==1, "Severe", "Mild")
+
+####### After filtering, does metabolite and cytokine show new enrichment?
+# examine if addtional TG4v5 filtered pathways should be included
+cytokine_mat = base_obj$assays.train$serum_olink[,rownames(base_obj$short_list_features$unsigned_mod$so)]
+metabolite_mat = base_obj$assays.train$plasma_metabolomics_global[,rownames(base_obj$short_list_features$unsigned_mod$pmg)]
+s_cytokine = sign(base_obj$short_list_features$unsigned_mod$so[,1])
+s_metaboloite = sign(base_obj$short_list_features$unsigned_mod$pmg[,1])
+if(sign_flipping){
+  s_cytokine = -s_cytokine
+  s_metaboloite = -s_metaboloite
+}
+thr = 0.05
+cytokine_mat_test= TG45_selection(cytokine_mat, base_obj = base_obj, sign = s_cytokine, phase = "train", thr = thr)
+metabolite_mat_test= TG45_selection(metabolite_mat, base_obj = base_obj, sign = s_metaboloite, phase = "train", thr = thr)
+cytokine_mat_selected = cytokine_mat_test
+metabolite_mat_selected = metabolite_mat_test
+signs =sign(base_obj$short_list_features$unsigned_mod$so[,1])
+tmp1 = time_robust_pval_construction(pval_mat = 10**(-abs(cytokine_mat_selected[,2:4])), sign_mat = sign(cytokine_mat_selected[,2:4]))
+if(sign_flipping){
+  tmp1 = (tmp1 < thr) & ((signs * sign(cytokine_mat_selected$mortality))<0)
+}else{
+  tmp1 = (tmp1 < thr) & ((signs * sign(cytokine_mat_selected$mortality))>0)
+}
+
+#tmp1 =  ((signs * sign(cytokine_mat_selected$mortality))<0)
+cytokine_mat_selected$selected = tmp1
+
+
+
+signs =sign(base_obj$short_list_features$unsigned_mod$pmg[,1])
+tmp1 =time_robust_pval_construction(pval_mat = 10**(-abs(metabolite_mat_selected[,2:4])), sign_mat = sign(metabolite_mat_selected[,2:4]))
+
+if(sign_flipping){
+  tmp1 = (tmp1 < thr) & ((signs * sign(metabolite_mat_selected$mortality))<0)
+}else{
+  tmp1 = (tmp1 < thr) & ((signs * sign(metabolite_mat_selected$mortality))>0)
+}
+#tmp1 = ((signs * sign(metabolite_mat_selected$mortality))<0)
+metabolite_mat_selected$selected = tmp1
+
+cytokine_mat_selected=cytokine_mat_selected[cytokine_mat_selected$selected,]
+metabolite_mat_selected=metabolite_mat_selected[metabolite_mat_selected$selected,]
+###enrichmenent analysis with filtered cytokines/metabolites
+projection_coef_cytokine = base_obj$projection_coef$so[rownames(cytokine_mat_selected),,drop = F]
+projection_coef_cytokine=projection_coef_cytokine[order(-abs(projection_coef_cytokine[,1])),,drop = F]
+cytokein_filtered_enrichement = list()
+shortlist_fnames = list("so"=projection_coef_cytokine[projection_coef_cytokine[,1]>0,,drop = F])
+cytokein_filtered_enrichement[["Hallmark_pos"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList = hallmark_database, 
+                backround = "impacc")$so
+cytokein_filtered_enrichement[["Kegg_pos"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList = kegg_database, 
+                backround = "impacc")$so
+shortlist_fnames = list("so"=projection_coef_cytokine[projection_coef_cytokine[,1]<0,,drop = F])
+cytokein_filtered_enrichement[["Hallmark_neg"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList = hallmark_database, 
+                backround = "impacc")$so
+cytokein_filtered_enrichement[["Kegg_neg"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList = kegg_database, 
+                backround = "impacc")$so
+for(l in 1:length(cytokein_filtered_enrichement)){
+  cytokein_filtered_enrichement[[l]] = cytokein_filtered_enrichement[[l]][cytokein_filtered_enrichement[[l]]$pvalue<0.1,]
+}
+##no additional enrichment for cytokine
+projection_coef_metabolite = base_obj$projection_coef$pmg[rownames(metabolite_mat_selected),,drop = F]
+projection_coef_metabolite=projection_coef_metabolite[order(-abs(projection_coef_metabolite[,1])),,drop = F]
+metabolite_filtered_enrichement = list()
+if(sign_flipping){
+  shortlist_fnames = list("pmg"=projection_coef_metabolite[projection_coef_metabolite[,1]<0,,drop = F])
+}else{
+  shortlist_fnames = list("pmg"=projection_coef_metabolite[projection_coef_metabolite[,1]>0,,drop = F])
+}
+metabolite_filtered_enrichement[["subpath_pos"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList =subpath_databse, 
+                backround = "impacc")$pmg
+metabolite_filtered_enrichement[["Kegg_pos"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList = kegg_database, 
+                backround = "impacc")$pmg
+shortlist_fnames = list("pmg"=projection_coef_metabolite[projection_coef_metabolite[,1]<0,,drop = F])
+metabolite_filtered_enrichement[["subpath_neg"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList = subpath_databse, 
+                backround = "impacc")$pmg
+metabolite_filtered_enrichement[["Kegg_neg"]]= base_obj$runMGH(short_list_coef =shortlist_fnames, 
+                Term2GeneList = kegg_database, 
+                backround = "impacc")$pmg
+for(l in 1:length(metabolite_filtered_enrichement)){
+  metabolite_filtered_enrichement[[l]] = metabolite_filtered_enrichement[[l]][metabolite_filtered_enrichement[[l]]$pvalue<0.1,]
+}
+##No additional pathways stands out from KEGG
+prev = c("Acetylated Peptides")
+if(sign_flipping){
+  new = metabolite_filtered_enrichement[["subpath_neg"]][metabolite_filtered_enrichement[["subpath_neg"]]$p.adj<0.1,"ID"]
+}else{
+  new = metabolite_filtered_enrichement[["subpath_pos"]][metabolite_filtered_enrichement[["subpath_pos"]]$p.adj<0.1,"ID"]
+}
+
+new = setdiff(new, prev)
+new_pathways = FALSE
+if(length(new)>0){
+  new_pathways = T
+}
+if(sign_flipping){
+sheet2_mgh_TG45fitered_factor4 =  metabolite_filtered_enrichement[["subpath_neg"]][metabolite_filtered_enrichement[["subpath_neg"]]$p.adj<0.1, ,drop = F]
+}else{
+  sheet2_mgh_TG45fitered_factor4 =  metabolite_filtered_enrichement[["subpath_pos"]][metabolite_filtered_enrichement[["subpath_pos"]]$p.adj<0.1, ,drop = F]
+}
+sheet2_mgh_TG45fitered_factor4$database = "subpathway"
+sheet2_mgh_TG45fitered_factor4$assay = base_obj$omic_names["pmg"]
+sheet2_mgh_TG45fitered_factor4$direction = 1 #positive
+sheet2_mgh_TG45fitered_factor4$leading_edge = sheet2_mgh_TG45fitered_factor4$core_enrichment
+sheet2_mgh_TG45fitered_factor4$core_enrichment = NULL
+
+
+####### show leading edge features
+# new_pathways = F; show the leading edge features of the originals
+combined = unique(c(prev, new))
+if(sign_flipping){
+  mat1 = metabolite_filtered_enrichement[["subpath_neg"]][metabolite_filtered_enrichement$subpath_neg$ID%in%combined, ,drop = F]
+}else{
+    mat1 = metabolite_filtered_enrichement[["subpath_pos"]][metabolite_filtered_enrichement$subpath_pos$ID%in%combined, ,drop = F]
+}
+
+
+ss = strsplit(mat1$core_enrichment, "#")
+names(ss) = mat1$ID
+metabo_selected = unlist(ss)
+pathways = rep(NA, length(metabo_selected))
+for(i in 1:length(pathways)){
+  for(k in 1:length(ss)){
+      if(metabo_selected[i]%in%ss[[k]]){
+        pathways[i] = names(ss)[k]
+      }
+  }
+}
+data_use = metabolite_mat[,metabo_selected]
+
+
+
+tmp0 = simple_pathwaytest_wrapper(composite_mat = data_use,
+                                   base_obj = base_obj,
+                                   phase ="train", adjust = F)
+tmp0 = data.frame(tmp0)
+#mod 4 is negative before flipping
+tmp1 = sign(tmp0) * ifelse(sign_flipping,1,-1)
+tmp0=10**(-abs(tmp0))
+tmp0 = data.frame(tmp0)
+colnames(tmp0) = colnames(tmp1) = c("severity", "mortatily", "slope4|5")
+tmp0$feature = tmp1$feature=rownames(tmp0)
+
+tmp0$pathway = tmp1$pathway = pathways
+tmp0$assay = base_obj$omic_names["pmg"]
+tmp1$assay =  base_obj$omic_names["pmg"]
+sheet3_leading_edges_5H = gather(tmp0, key="Test", value = "pvalue",-feature, -pathway, -assay)
+tmp2 = gather(tmp1, key="Test", value = "pvalue",-feature, -pathway, -assay)
+sheet3_leading_edges_5H$direction = tmp2$pvalue
+sheet3_leading_edges_5H$direction = ifelse(sheet3_leading_edges_5H$direction==1,"Severe","Mild")
+
+###### all selected featuers
+cytokine_mat_selected = cytokine_mat_selected[,c(1:3)]
+metabolite_mat_selected = metabolite_mat_selected[,c(1:3)]
+tmp_list = list(so = cytokine_mat_selected,
+                pmg = metabolite_mat_selected)
+sheet4_all_filtered_soluables = NULL
+for(l in 1:length(tmp_list)){
+  tmp0 = data.frame(tmp_list[[l]])
+  tmp1 = sign(tmp0) * ifelse(sign_flipping,1,-1)
+  tmp0=10**(-abs(tmp0))
+  tmp0 = data.frame(tmp0)
+  colnames(tmp0) = colnames(tmp1) = c("severity", "mortatily", "slope4|5")
+  tmp0$feature = tmp1$feature=rownames(tmp0)
+  
+  tmp0$assay = base_obj$omic_names[names(tmp_list)[l]]
+  tmp1$assay =  base_obj$omic_names[names(tmp_list)[l]]
+  
+  tmp2 = gather(tmp0, key="Test", value = "pvalue",-feature,  -assay)
+  tmp3 = gather(tmp1, key="Test", value = "pvalue",-feature,  -assay)
+  tmp2$direction = tmp3$pvalue
+  tmp2$direction = ifelse(tmp2$direction==1,"Severe","Mild")
+  if(is.null(sheet4_all_filtered_soluables)){
+    sheet4_all_filtered_soluables = tmp2
+  }else{
+    sheet4_all_filtered_soluables = rbind(sheet4_all_filtered_soluables, tmp2)
+  }
+
+}
+
+###### save to excel file
+require(openxlsx)
+wb <- createWorkbook()
+addWorksheet(wb, "Fig5C_separating_pathway")
+writeData(wb, "Fig5C_separating_pathway", sheet1_separating_pathway)
+
+addWorksheet(wb, "TG45filtered_enrichment")
+writeData(wb,  "TG45filtered_enrichment", sheet2_mgh_TG45fitered_factor4)
+
+addWorksheet(wb, "Fig5H_metabolites")
+writeData(wb,  "Fig5H_metabolites", sheet3_leading_edges_5H)
+
+
+
+addWorksheet(wb, "all_filtered_so_pmg_feature")
+writeData(wb, "all_filtered_so_pmg_feature",sheet4_all_filtered_soluables)
+
+# save the workbook to a file
+saveWorkbook(wb, paste0(out_dir, "TableS8.xlsx"), overwrite = TRUE)
+
+```
+
+
+
+```{r table S9}
+
+# The code for generating table S9 can be found in "1.data_preprocessing/src/data_preprocessing.Rmd"
+
+```
+
+
+
+
+

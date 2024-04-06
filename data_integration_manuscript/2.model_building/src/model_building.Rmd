@@ -1,0 +1,211 @@
+---
+title: "model_building"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load packages}
+# Most packages are loaded by "class_structure.R" (see below). Load any additional packages here.
+codebase_path = "../../0.Codebase"
+processed_data_path = "/scratch/data-integration/pipelines/processedData/"
+output_dir = "/scratch/data-integration/public_code_results/"
+computation_model_save_file ="../../3.data_object_preparation/impacc_analysis_record_noData.rds"
+inner_folds = 10
+factor_sign_flipping = rep(F, 7)
+factor_sign_flipping[c(3,4,6,7)] = T
+base_file_impacc_analysis =paste0(output_dir,"impacc_analysis_record_innerfold", inner_folds,".rds")
+file_impacc_analysis = paste0(output_dir,"impacc_analysis_record_innerfold", inner_folds,".rds")
+file_impacc_analysis_sign_flipped = paste0(output_dir,"flipped_impacc_analysis_record_innerfold", inner_folds,".rds")
+use_flipped = T
+if(use_flipped){
+  file_impacc_analysis_use = file_impacc_analysis_sign_flipped
+}else{
+  file_impacc_analysis_use = file_impacc_analysis
+}
+factor_signs = rep(F, 7)
+if(!use_flipped){
+  factor_signs = factor_sign_flipping
+}
+# The sign flipping is for the ease of description and we flipped factors such that high values indicate more severe disease
+
+##### Load code
+source(paste0(codebase_path,"/class_structures.R"), local=FALSE, chdir=TRUE)
+#source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+#source(paste0(codebase_path,"/codebase_basic.R"))
+#source(paste0(codebase_path,"/codebase_prediction.R"))
+#source(paste0(codebase_path,"/codebase_interpretation.R"))
+#source(paste0(codebase_path,"/class_structures.R"))
+
+c5_db = "/scratch/data-integration/public_code_results/c5.all.v7.5.1.symbols.gmt"
+```
+
+# Construct impacc_analysis object
+The impacc analysis object contains results from MCIA dimension reduction, and MCIA prediction models with varying rank, and the chosen MCIA model rank based on cross-validation.
+```{r load code and data, warning=FALSE, message=FALSE}
+MofaOutPut_trainPath= paste0(processed_data_path, "mofa_imputed_train_jeremy_20220517.RDS")
+MofaOutPut_testPath=  paste0(processed_data_path, "mofa_imputed_test_jeremy_20220517.RDS")
+Clin_trainPath =  paste0(processed_data_path, "clin_data_for_pred_060822.csv")
+Clin_testPath =  paste0(processed_data_path, "clin_data_for_test_060822.csv")
+
+
+impacc_analysis_record_new = run_impacc_analysis(
+  MofaOutPut_trainPath = MofaOutPut_trainPath,
+  MofaOutPut_testPath = MofaOutPut_testPath,
+  Clin_trainPath = Clin_trainPath,
+  base_file_impacc_analysis = base_file_impacc_analysis,
+  file_impacc_analysis = file_impacc_analysis,
+  rank_max=40, 
+  rank_grids=c(c(2:10),15, 20, 30, 40),
+  nest_cv_folds= 50, 
+  inner_loop_folds = inner_folds,
+  random_seed=2022)
+
+if(!file.exists(file_impacc_analysis)){
+  saveRDS(impacc_analysis_record_new, file = file_impacc_analysis)
+}
+saveRDS(impacc_analysis_record_organized, file = file_impacc_analysis_sign_flipped)
+impacc_analysis_record = readRDS(file=file_impacc_analysis_use)
+```
+
+
+```{r ensemble model}
+#impacc_analysis_record = readRDS(file=file_impacc_analysis)
+##Ensemble model construction
+clin = impacc_analysis_record$clin.train[impacc_analysis_record$clin.train$event_type=="Visit 1",]
+z1 = data.frame(mcia = 1.0-impacc_analysis_record$model_mcia$nested_cv_probs[,1],
+           clin = 1.0 - impacc_analysis_record$model_clin$nested_cv_probs[,1],
+           baseline =clin$resp_status_v1)
+z1[,1] = log(z1[,1]/(1.0 - z1[,1]))
+z1[,2] = log(z1[,2]/(1.0 - z1[,2]))
+
+z2 = data.frame(mcia = (impacc_analysis_record$model_mcia$nested_cv_probs[,4]/(impacc_analysis_record$model_mcia$nested_cv_probs[,3]+impacc_analysis_record$model_mcia$nested_cv_probs[,4])),
+                clin =(impacc_analysis_record$model_clin$nested_cv_probs[,4]/(impacc_analysis_record$model_clin$nested_cv_probs[,3]+impacc_analysis_record$model_clin$nested_cv_probs[,4])) , baseline =clin$resp_status_v1)
+z2[,1] = log(z2[,1]/(1.0 - z2[,1]))
+z2[,2] = log(z2[,2]/(1.0 - z2[,2]))
+
+
+impacc_analysis_record$other_model_list[["ENSEMBL.mcia.clin"]]=impacc_analysis_record$model_ensemble_construct(z1[,c(1:2)],z2[,c(1:2)], impacc_analysis_record$y)
+
+impacc_analysis_record$other_model_list[["ENSEMBL.mcia.clin.baseline"]]=impacc_analysis_record$model_ensemble_construct(z1, z2,impacc_analysis_record$y)
+
+### Out-of-sample evaluation
+
+##prediction of mcia and clin
+clinDF = impacc_analysis_record$clin.test
+row_ids_te = which(clinDF$event_type %in% c("Visit 1"))
+clinDF=clinDF[row_ids_te,]
+model = impacc_analysis_record$model_mcia$model_full
+mod_names = colnames(model$layer1model$coefs)[-c(1:3)]
+xnew=apply(impacc_analysis_record$mcia.factors.test[row_ids_te,1:impacc_analysis_record$rank_selected],2, function(z) qqnorm(z, plot.it = F)$x)
+colnames(xnew) = mod_names
+impacc_analysis_record$test_prediction_list$mcia_prob = impacc_analysis_record$make_prediction(xnew = xnew, model = model)
+
+model = impacc_analysis_record$model_clin$model_full
+mod_names = colnames(model$layer1model$coefs)[-c(1:3)]
+xnew=  read.csv(file = Clin_testPath)[,-1]
+colnames(xnew) = mod_names
+impacc_analysis_record$test_prediction_list$clin_prob = impacc_analysis_record$make_prediction(xnew = xnew, model = model)
+
+###make prediction for ensemble model(s)
+z1 = data.frame(mcia = 1.0-impacc_analysis_record$test_prediction_list$mcia_prob[,1],
+                clin = 1.0 - impacc_analysis_record$test_prediction_list$clin_prob[,1]
+)
+z1[,1] = log(z1[,1]/(1.0 - z1[,1]))
+z1[,2] = log(z1[,2]/(1.0 - z1[,2]))
+
+z2 = data.frame(mcia = impacc_analysis_record$test_prediction_list$mcia_prob[,4]/(impacc_analysis_record$test_prediction_list$mcia_prob[,3]+impacc_analysis_record$test_prediction_list$mcia_prob[,4]),
+                clin = impacc_analysis_record$test_prediction_list$clin_prob[,4]/(impacc_analysis_record$test_prediction_list$clin_prob[,3]+impacc_analysis_record$test_prediction_list$clin_prob[,4])
+)
+z2[,1] = log(z2[,1]/(1.0 - z2[,1]))
+z2[,2] = log(z2[,2]/(1.0 - z2[,2]))
+
+impacc_analysis_record$test_prediction_list[["ENSEMBL.mcia.clin"]] = impacc_analysis_record$make_ensemble_prediction(z1[,c(1:2)], z2[,c(1:2)], impacc_analysis_record$other_model_list[["ENSEMBL.mcia.clin"]])
+
+##coefficients
+
+coef_mcia = impacc_analysis_record$coef_extract_composite(model = impacc_analysis_record$model_mcia$model_full,
+                                                              method =  "MCIA")
+coef_clin = impacc_analysis_record$coef_extract_composite(model = impacc_analysis_record$model_clin$model_full,
+                                                              method =  "clin")
+print(coef_mcia)
+saveRDS(impacc_analysis_record,file=file_impacc_analysis_use)
+```
+
+```{r run impacc analysis pipeline-marginal test}
+#impacc_analysis_record = copy_computational_class(impacc_analysis_record)
+#file_impacc_analysis = paste0(path_impacc_analysis,"impacc_analysis_record_innerfold", inner_folds,".rds")
+#impacc_analysis_record_new=readRDS(file = file_impacc_analysis)
+
+visit1_train_result = run_visit1_module_analysis(impacc_analysis_record, phase = "train", flipping = factor_signs)
+visit1_test_result = run_visit1_module_analysis(impacc_analysis_record, phase = "test", flipping =  factor_signs)
+
+####add results to object
+impacc_analysis_record$mcia.visit1.test_plot = list() 
+impacc_analysis_record$mcia.visit1.test_plot[["train"]] = visit1_train_result
+impacc_analysis_record$mcia.visit1.test_plot[["test"]] = visit1_test_result
+
+#########
+impacc_analysis_record$mcia.trajectory.test_plot = list()
+impacc_analysis_record$mcia.trajectory.test_plot[["train"]] = list()
+impacc_analysis_record$mcia.trajectory.test_plot[["test"]] = list()
+
+inputDF_train = data_prepare_trajectory(impacc_analysis_record, phase = "train", flipping = factor_signs)
+
+# Linear test
+lme_model_loop_train <- model_loop_coef(inputDF_train, age_sex=T, endpoint = "trajectory_group")
+
+# Smooth test
+smooth_model_loop_train <- model_loop(inputDF_train, age_sex=T, modelType = "smoothSpline", 
+                                      endpoint = "trajectory_group", old_p_corrections = TRUE)
+module_names = paste0("factor",1:7)
+lme_model_loop_train = lme_model_loop_train[module_names,]
+smooth_model_loop_train = smooth_model_loop_train[module_names,]
+
+
+inputDF_train$trajectory_group = ordered(inputDF_train$trajectory_group)
+longi_train = list()
+for(k in  1:length(module_names)){
+  mod = module_names[k]
+  longi_train[[k]] = plot_model(inputDF_train[inputDF_train$name == mod,], model_loop = smooth_model_loop_train, 
+                               modelType = "smoothSpline", CI =T, p_adjust = NA, endpoint = "trajectory_group", 
+                               signif_markers = T, remove_NS = T, bar_height = 10, age_sex = F)
+}
+names(longi_train) = module_names
+impacc_analysis_record$mcia.trajectory.test_plot[["train"]][["direction"]] = lme_model_loop_train
+impacc_analysis_record$mcia.trajectory.test_plot[["train"]][["smooth_pvalue"]] = smooth_model_loop_train 
+impacc_analysis_record$mcia.trajectory.test_plot[["train"]][["smooth_plots"]] = longi_train
+
+inputDF_test = data_prepare_trajectory(impacc_analysis_record, phase = "test", flipping = factor_signs)
+
+# Linear test
+lme_model_loop_test <- model_loop_coef(inputDF_test, age_sex=T, endpoint = "trajectory_group")
+lme_model_loop_test= lme_model_loop_test[module_names,]
+
+# Smooth test
+smooth_model_loop_test <- model_loop(inputDF_test, age_sex=T, modelType = "smoothSpline", 
+                                      endpoint = "trajectory_group", old_p_corrections = TRUE)
+smooth_model_loop_test = smooth_model_loop_test[module_names,]
+
+inputDF_test$trajectory_group = ordered(inputDF_test$trajectory_group)
+longi_test = list()
+for(k in  1:length(module_names)){
+  mod = module_names[k]
+  longi_test[[k]] = plot_model(inputDF_train[inputDF_train$name == mod,], model_loop = smooth_model_loop_train, 
+                               modelType = "smoothSpline", CI =T, p_adjust = NA, endpoint = "trajectory_group", 
+                               signif_markers = T, remove_NS = T, bar_height = 10, age_sex = F)
+}
+
+names(longi_test) = module_names
+impacc_analysis_record$mcia.trajectory.test_plot[["test"]][["direction"]] = lme_model_loop_test
+impacc_analysis_record$mcia.trajectory.test_plot[["test"]][["smooth_pvalue"]] = smooth_model_loop_test
+impacc_analysis_record$mcia.trajectory.test_plot[["test"]][["smooth_plots"]] = longi_test
+
+saveRDS(impacc_analysis_record, file = file_impacc_analysis_use)
+
+```
+
+

@@ -1,0 +1,1388 @@
+---
+title: "FigS6"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load packages}
+# Most packages are loaded by "class_structure.R" (see below). Load any additional packages here.
+library(ggbeeswarm)
+library(ggeffects)
+library(readxl)
+library(circlize)
+```
+
+
+```{r load code and data, warning=FALSE, message=FALSE}
+
+##### Load code
+source("../../../0.Codebase/class_structures.R", local=FALSE, chdir=TRUE)
+
+##### Load data object
+base_obj1 = readRDS(file ="/scratch/data-integration/public_code_results/mod4_interpretation_base.rds")
+
+##### Load other data files, if any
+
+
+##### Set global variables
+# Trajectory group colors
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+
+# Omic names: 
+# note: ppt, ppgd, so, pmg, nt and pbmc correspond to PPT, PPG, SPT, PMG, NGX and PGX, respectively, in the manuscript.
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+
+
+
+
+path_impacc_analysis = "/scratch/data-integration/cleanedup/"
+inner_folds = 10
+file_impacc_analysis = paste0(path_impacc_analysis,"impacc_analysis_record_innerfold", inner_folds,".rds")
+impacc_analysis_record = readRDS(file_impacc_analysis)
+base_obj = readRDS(file ="/scratch/data-integration/cleanedup/mod4_interpretation_base.rds")
+base_obj0 = readRDS(file ="/scratch/data-integration/cleanedup/mod1_interpretation_base.rds")
+##organized kegg database
+kegg_database = readRDS(file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds")
+
+hallmark_database = readRDS( file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/hallmark0522.rds")
+
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+ravi_compisite_scores_factor4 = readRDS("/scratch/data-integration/composite_scores_factor4.rds")
+metabolite_row_DF = data_env0$plasma_metabolomics_global_rowfeature
+rownames(metabolite_row_DF) = metabolite_row_DF[["CHEMICAL_NAME"]]
+metabolite_row_DF=metabolite_row_DF[,c("CHEMICAL_NAME","SUB_PATHWAY","SUPER_PATHWAY")]
+subpath_databse = list()
+subpath_databse[["pmg"]] = data.frame(description =metabolite_row_DF[["SUB_PATHWAY"]],
+                                      CHEMICAL_NAME = metabolite_row_DF[["CHEMICAL_NAME"]])
+suppath_databse = list()
+suppath_databse[["pmg"]] = data.frame(description =metabolite_row_DF[["SUPER_PATHWAY"]],
+                                      CHEMICAL_NAME = metabolite_row_DF[["CHEMICAL_NAME"]])
+
+
+
+#supp_figure_path = "~/impacc/Analysis/data-integration/scripts/manuscripts/Figures/"
+
+
+
+
+
+##### Output directory
+out_dir = "../output/"
+dir.create(out_dir, showWarnings = F)
+```
+
+## Panel A
+
+```{r panel A}
+gg1 <- plot_enrichment_dot_v2(base_obj1, thr=0.1, test_type = "mhg", databases = c("IFN_inhibitors","C3","Omnipath"), plot_title = "Factor4")
+
+gg1
+ggsave(paste0(out_dir, "panelA.pdf"), width = 3.95, height = 4, device = "pdf")
+write.csv(gg1$data %>% dplyr::select(-core_enrichment), paste0(out_dir, "FigS6_data_panelA.csv"))
+```
+
+
+## Panel B 
+```{r panel B revised calculations (revised on 202402)}
+library(tidyverse)
+cytokine_mat = base_obj$assays.train$serum_olink[,rownames(base_obj$short_list_features$unsigned_mod$so)]
+
+tmp_res11 = read.csv(file = "../../../../../scripts/manuscripts/Tables/Factor4_additional_enrichmenet_TG_filtered.csv", header = TRUE)[,-1]
+PMG_pathmat = base_obj$composite_features_train$SUB_POS$pmg[,"Acetylated Peptides",drop = F]
+PMG_pathmat[["Pentose Metabolism"]] = comoposite_features_creation_unit(omic_assay_DF = base_obj1$assays.train$plasma_metabolomics_global,
+                                                                        projection_coef_DF = base_obj1$projection_coef$pmg, leading_edges = tmp_res11$core_enrichment[tmp_res11$ID=="Pentose Metabolism"],
+                                                                        sep = "#")[,1]
+PMG_pathmat[["Tyrosine Metabolism"]]= comoposite_features_creation_unit(omic_assay_DF = base_obj1$assays.train$plasma_metabolomics_global,
+                                                                        projection_coef_DF = base_obj1$projection_coef$pmg, leading_edges = tmp_res11$core_enrichment[tmp_res11$ID=="Tyrosine Metabolism"],
+                                                                        sep = "#")[,1]
+
+composite_scores_factor4 = ravi_compisite_scores_factor4[grepl(x=names(ravi_compisite_scores_factor4), pattern = "train")]
+omic_vec = c()
+pathway_vec = c()
+submat_pathways = NULL
+for(j in 1:length(composite_scores_factor4)){
+  for(l in 1:length(composite_scores_factor4[[j]])){
+    if(is.null(submat_pathways)){
+      submat_pathways = composite_scores_factor4[[j]][[l]]
+    }else{
+      submat_pathways = cbind(submat_pathways, composite_scores_factor4[[j]][[l]])
+    }
+    print(ncol(submat_pathways))
+    omic_vec = c(omic_vec,names(composite_scores_factor4[[j]])[l])
+    pathway_vec = c(pathway_vec,names(composite_scores_factor4)[j])
+  }
+}
+pathway_uniq = unique(pathway_vec )
+omic_uniq = unique(omic_vec)
+
+cytof_mat = base_obj0$others$bld_cytof$train$bld_cytof_counts
+cytof_mat = base_obj0$others$bld_cytof$preprocess_bld_cytof_parent_granulo_separate(counts = cytof_mat, rowfeature = base_obj0$others$bld_cytof$train$bld_cytof_rowfeatures )
+
+PPG_pathmat =  cbind(cbind(ravi_compisite_scores_factor4$GOBP_IMMUNOGLOBULIN_PRODUCTION_train$ppgd,ravi_compisite_scores_factor4$GOCC_IMMUNOGLOBULIN_COMPLEX_train$ppgd),
+                     ravi_compisite_scores_factor4$`Cholesterol metabolism_train`$ppgd)
+colnames(PPG_pathmat) = c("GOBP_IMMUNOGLOBULIN_PRODUCTION","GOCC_IMMUNOGLOBULIN_COMPLEX",
+                          "Cholesterol metabolism")
+GX_pathways = c("HALLMARK_INTERFERON_ALPHA_RESPONSE","HALLMARK_INTERFERON_GAMMA_RESPONSE", "HALLMARK_KRAS_SIGNALING_DN")
+PGX_pathmat =  base_obj1$composite_features_train$HALLMARK_POS$pbmc[,colnames(base_obj1$composite_features_train$HALLMARK_POS$pbmc)%in%GX_pathways]
+
+NGX_pathmat = base_obj1$composite_features_train$HALLMARK_POS$nt[,colnames(base_obj$composite_features_train$HALLMARK_POS$nt)%in%GX_pathways]
+
+
+data_mat_list0 = list(PMG_pathmat=PMG_pathmat,
+                     cytokine_mat=cytokine_mat,
+                     PPG_pathmat=PPG_pathmat,
+                     NGX_pathmat=NGX_pathmat,
+                     PGX_pathmat=PGX_pathmat
+                     )
+fnames = c(colnames(PMG_pathmat), colnames(cytokine_mat), colnames(PPG_pathmat), colnames(NGX_pathmat), colnames(PGX_pathmat))
+omic_vecs = c(rep("PMG", ncol(PMG_pathmat)), rep("SPT", ncol(cytokine_mat)), rep("PPG", ncol(PPG_pathmat)),
+              rep("NGX", ncol(NGX_pathmat)),rep("PGX", ncol(PGX_pathmat)))
+
+fnames = c(colnames(PMG_pathmat), colnames(cytokine_mat), colnames(PPG_pathmat), colnames(NGX_pathmat), colnames(PGX_pathmat))
+omic_vecs = c(rep("PMG", ncol(PMG_pathmat)), rep("SPT", ncol(cytokine_mat)), rep("PPG", ncol(PPG_pathmat)),
+              rep("NGX", ncol(NGX_pathmat)),rep("PGX", ncol(PGX_pathmat)))
+clin_mat = base_obj1$clin.train
+W = model.matrix(~as.character(clin_mat$trajectory_group)+clin_mat$discretized_admit_age_quantile+clin_mat$event_type+clin_mat$sex+clin_mat$enrollment_site-1)
+
+data_mat_list = list()
+for(j in 1:length(data_mat_list0)){
+  data_mat_list0[[j]] = apply(data_mat_list0[[j]],2,function(z) qqnorm(z, plot.it = F)$x)
+  data_mat_list[[j]] = residuals(lm(data_mat_list0[[j]]~W, na.action = na.exclude))
+}
+
+
+dat_agg = NULL;dat_agg0 = NULL
+for(j in 1:length(data_mat_list)){
+  if(is.null(dat_agg)){
+    dat_agg = data_mat_list[[j]]; dat_agg0 = data_mat_list0[[j]]
+  }else{
+    dat_agg = cbind(dat_agg, data_mat_list[[j]]);  dat_agg0 = cbind(dat_agg0, data_mat_list[[j]])
+  }
+}
+dat_agg=data.frame(dat_agg); dat_agg0=data.frame(dat_agg0)
+
+COR = matrix(NA, length(omic_vecs), length(omic_vecs))
+PVAL = matrix(0, length(omic_vecs), length(omic_vecs))
+clin_mat$trajectory_group = factor(clin_mat$trajectory_group)
+for(j in 1:(length(omic_vecs)-1)){
+  print(j)
+  for(l in (j+1):length(omic_vecs)){
+    if(omic_vecs[j]!=omic_vecs[l]){
+          tmp = cor.test(dat_agg[,l], dat_agg[,j])
+          COR[j,l] = COR[l,j] = tmp$estimate
+          ##OLD p-value
+          ##PVAL[j,l] = PVAL[l,j] = tmp$p.value
+          if(omic_vecs[l] == "SPT"){
+            formula_use = as.formula(paste0(omic_vecs[j],"~SPT+discretized_admit_age_quantile+sex+trajectory_group+event_type"))
+          }else{
+            formula_use = as.formula(paste0(omic_vecs[l],"~",omic_vecs[j],"+discretized_admit_age_quantile+sex"))
+          }
+                    
+          ##NEW p-value
+          dat_lme = cbind(cbind(dat_agg0[,j], dat_agg0[,l]), clin_mat[, c("discretized_admit_age_quantile",
+                                                                                            "sex",
+                                                                          "trajectory_group","event_type",
+                                                                                            "enrollment_site",
+                                                                                            "participant_id")])
+          colnames(dat_lme)[c(1, 2)] = omic_vecs[c(j,l)]
+          dat_lme = dat_lme[apply(is.na(dat_lme), 1, sum) == 0, ]
+          temp_lmx = nlme::lme(
+            fixed = formula_use,
+            random = ~ 1 | enrollment_site / participant_id,
+            data = dat_lme
+          )
+          temp_lmx = summary(temp_lmx)
+          PVAL[j,l] = PVAL[l,j]= temp_lmx$tTable[2, "p-value"]
+    }
+  }
+}
+##metabo-cytokine
+COR_thr = COR
+COR_thr[PVAL*(sum(!is.na(COR))) > 0.01] = NA
+
+tmp_res_list = list()
+tmp_res_list[["COR"]] = COR
+tmp_res_list[["PVAL"]] = PVAL
+tmp_res_list[["CORsig"]] = COR_thr
+tmp_res_list[["omic_names"]] = omic_vecs
+tmp_res_list[["feature_names"]] = fnames
+
+
+
+data_mat_list = list(PMG_pathmat=PMG_pathmat,
+                     cytokine_mat=cytokine_mat,
+                     PPG_pathmat=PPG_pathmat,
+                     NGX_pathmat=NGX_pathmat,
+                     PGX_pathmat=PGX_pathmat
+                     )
+tmp_res_list[["data_list"]] = data_mat_list
+factor4_transomics_association_train=tmp_res_list
+
+projection_coef_so <- base_obj1$projection_coef$so %>%
+  rownames_to_column("Description") %>% 
+  dplyr::rename("coeficient" = "4", "cytokine" = "Description") 
+```
+
+<!-- ```{r panel B} -->
+<!-- factor4_transomics_association_train = read_rds("/scratch/data-integration/cleanedup_lguan/factor4_transomics_association_train.rds") -->
+
+<!-- projection_coef_so <- base_obj1$projection_coef$so %>% -->
+<!--   rownames_to_column("Description") %>% -->
+<!--   dplyr::rename("coeficient" = "4", "cytokine" = "Description") -->
+<!-- ``` -->
+
+### Panel B1: Plot complex heatmap
+```{r Panel B1, fig.width=18, fig.height=10}
+Olink_modules_cmag <- read_excel("/scratch/data-integration/cleanedup_cmag/Olink_modules.xlsx")
+corr_matrix_panelA <- factor4_transomics_association_train$CORsig
+corr_matrix_panelA[is.na(corr_matrix_panelA)] = 0
+
+rownames(corr_matrix_panelA) <- paste0(factor4_transomics_association_train$omic_names, "_", factor4_transomics_association_train$feature_names)
+colnames(corr_matrix_panelA) <- paste0(factor4_transomics_association_train$omic_names, "_", factor4_transomics_association_train$feature_names)
+ 
+not_spt_columns <- colnames(corr_matrix_panelA)[substr(colnames(corr_matrix_panelA), 1, 3) != "SPT"]
+spt_columns <- colnames(corr_matrix_panelA)[substr(colnames(corr_matrix_panelA), 1, 3) == "SPT"]
+
+PMG_columns <- colnames(corr_matrix_panelA)[substr(colnames(corr_matrix_panelA), 1, 3) == "PMG"]
+
+corr_matrix_df_PMG <- as.data.frame(corr_matrix_panelA) %>%
+  dplyr::select(not_spt_columns) %>%
+  filter(rownames(corr_matrix_panelA) %in% PMG_columns)   %>%
+  rownames_to_column("SPT") %>%
+  mutate(SPT = substr(SPT, 5, nchar(SPT))) %>%
+  column_to_rownames("SPT")
+  
+corr_matrix_df <- as.data.frame(corr_matrix_panelA) %>%
+  dplyr::select(not_spt_columns) %>%
+  filter(rownames(corr_matrix_panelA) %in% spt_columns)  %>%
+  rownames_to_column("SPT") %>%
+  mutate(SPT = substr(SPT, 5, nchar(SPT))) %>%
+  column_to_rownames("SPT")
+
+colnames(Olink_modules_cmag) <- c("cluster", "cytokine")
+
+Olink_modules_cmag_v1 <- Olink_modules_cmag %>%
+  filter(cytokine %in% rownames(corr_matrix_df))  %>%
+  left_join(projection_coef_so)  
+
+metabolite_clustering_factor2_modified <- data.frame(cytokine = rownames(corr_matrix_df_PMG)) %>%
+  mutate(cluster = "PMG pathway",
+         coeficient = 0) %>%
+  rbind(Olink_modules_cmag_v1) %>%
+  mutate(  omics_row = if_else(cluster == "PMG pathway", "PMG", "SPT"),
+    cluster_order = case_when(
+      cluster == "PMG pathway" ~ 1,
+      cluster == "Olink_mod0" ~ 2,
+      cluster == "Olink_mod1" ~ 3,
+      cluster == "Olink_mod2" ~ 4,
+      cluster == "Olink_mod3" ~ 5,
+      cluster == "Olink_mod4" ~ 6,
+      cluster == "Olink_mod5" ~ 7,
+      cluster == "Olink_mod6" ~ 8,
+      TRUE ~ 9
+    ),
+    cluster = case_when(
+      cluster == "Olink_mod0" ~ "Other Cytokines",
+      cluster == "Olink_mod1" ~ "Cytokines produced by Neutrophils",
+      cluster == "Olink_mod2" ~ "Cytokines produced by Macrophages",
+      cluster == "Olink_mod3" ~ "Activators of cytotoxic NKs",
+      cluster == "Olink_mod4" ~ "coreassay Mod 4",
+      cluster == "Olink_mod5" ~ "Cytokines related to B cells",
+      cluster == "Olink_mod6" ~ "Activators of Macrophages",
+      TRUE ~ cluster
+     )
+  )   %>%
+  arrange(cluster_order, desc(coeficient))  %>%
+  dplyr::select(-omics_row, -cluster_order)
+
+corr_matrix_df_metabolites <- rbind(corr_matrix_df, corr_matrix_df_PMG)
+
+corr_matrix_df_metabolites_v2 <- corr_matrix_df_metabolites[metabolite_clustering_factor2_modified$cytokine,, drop=T]
+
+annotation_row = metabolite_clustering_factor2_modified %>%
+  column_to_rownames("cytokine") 
+
+annotation_col <- data.frame(omics = colnames(corr_matrix_df_metabolites_v2)) %>%
+  mutate(
+         #feature = substr(omics, 5, nchar(omics)),
+         feature = omics,
+         omics = substr(omics, 1, 3)) %>%
+  column_to_rownames("feature")
+
+labels_col = data.frame(omics = colnames(corr_matrix_df_metabolites_v2)) %>%
+  mutate(
+         feature = substr(omics, 5, nchar(omics)),
+         ) %>%
+  column_to_rownames("omics")
+
+paletteLength <- 50
+myColor <- colorRampPalette(c("blue", "white", "red"))(paletteLength)
+myBreaks <- c(seq(min(corr_matrix_df_metabolites_v2), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(corr_matrix_df_metabolites_v2)/paletteLength, max(corr_matrix_df_metabolites_v2), length.out=floor(paletteLength/2)))
+
+annotation_row_v1 <- annotation_row %>%
+  mutate(coeficient = case_when(
+    coeficient >= 0.7 ~ "0.7 and high",
+    coeficient < 0.7 & coeficient >= 0.5 ~ "0.5 to 0.7",
+    coeficient < 0.5 & coeficient >= 0.3 ~ "0.3 to 0.5",
+    coeficient < 0.3 & coeficient >= 0.1 ~ "0.1 to 0.3",
+    coeficient < 0.1 & coeficient > 0 ~ "0.0 to 0.1",
+    coeficient == 0  ~ "0",
+    coeficient < 0 & coeficient >= -0.1 ~ "-0.1 to 0",
+    coeficient < -0.1 & coeficient >= -0.3 ~ "-0.1 to -0.3",
+    coeficient < -0.3 & coeficient >= -0.5 ~ "-0.3 to -0.5",
+    coeficient < -0.5 & coeficient >= -0.7 ~ "-0.5 to -0.7",
+    coeficient <= 0.7 ~ "-0.7 and less",
+  ))  
+
+annotation_row_v1 <- annotation_row_v1[, c("coeficient", "cluster")]
+
+col1 <- brewer.pal(n = length(unique(annotation_row_v1$cluster)), name = 'Dark2')
+names(col1)= unique(annotation_row_v1$cluster) 
+
+plot_mat = t(corr_matrix_df_metabolites_v2)
+col_fun = colorRamp2(c(min(corr_matrix_df_metabolites_v2), 0, max(corr_matrix_df_metabolites_v2)), c("blue", "white", "red"))
+col_fun_2 = colorRamp2(c(min(annotation_row$coeficient), 0, max(annotation_row$coeficient)), c("blue", "white", "red"))
+col_fun_3 = colorRamp2(c(-0.2, 0, 0.2), c("blue", "white", "red"))
+
+top_annotation = ComplexHeatmap::HeatmapAnnotation(
+                               coeficient = annotation_row$coeficient, 
+                               col = list(coeficient = col_fun_2),
+                               gp = gpar(col = "black")
+                               )
+
+FigS6B1 <- ComplexHeatmap::Heatmap(
+        as.matrix(plot_mat),
+        name = "Pathways", 
+        col = col_fun,
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        width = ncol(plot_mat)*unit(5, "mm"), 
+        height = nrow(plot_mat)*unit(5, "mm"),
+        column_split = annotation_row$cluster,
+        row_split = annotation_col$omics,
+        row_title_rot = 0,
+        column_title_rot = 90,
+        row_gap = unit(2, "mm"),
+        column_gap = unit(2, "mm"),
+        column_names_gp = grid::gpar(fontsize = 7),
+        row_title_gp = gpar(fontsize = 10),
+        column_title_gp = gpar(fontsize = 10),
+        row_names_gp = grid::gpar(fontsize = 8),
+        border = TRUE,
+        top_annotation = top_annotation,
+        row_names_side = "left"
+        
+        )
+order_of_cols <- colnames(plot_mat)
+write.csv(plot_mat, paste0(out_dir, "FigS6_data_panelB1_revisedI.csv"))
+
+FigS6B1
+pdf(file.path(out_dir, "FigS6B1_revisedI.pdf"), width=15, height=10)
+print(FigS6B1)
+dev.off()
+
+```
+
+### Panel B2 (1/2): Prepare matrix file
+
+```{r panel B2}
+data_mat_list0 = list(
+                     cytokine_mat=cytokine_mat,
+                     cytof_mat = cytof_counts_train,
+                     PMG_mat = PMG_pathmat
+                     )
+
+cytof_mat1 = cytof_counts_train
+cytof_mat = cytof_counts_train
+
+clin_mat = base_obj1$clin.train
+W = model.matrix(~clin_mat$discretized_admit_age_quantile+clin_mat$sex+clin_mat$enrollment_site-1)
+
+for(j in 1:length(data_mat_list0)){
+  
+data_mat_list0[[j]] = apply(data_mat_list0[[j]],2,function(z) qqnorm(z, plot.it = F)$x)
+data_mat_list[[j]] = residuals(lm(data_mat_list0[[j]]~W, na.action = na.exclude))
+}
+
+PMG_cytof_pval = data.frame(matrix(NA, nrow = ncol(data_mat_list[["PMG_mat"]]),ncol = ncol(cytof_mat1)))
+PMG_cytof_est = data.frame(matrix(NA, nrow = ncol(data_mat_list[["PMG_mat"]]),ncol = ncol(cytof_mat1)))
+formula_use = as.formula("PMG~CYTOF+discretized_admit_age_quantile+sex")
+for(j in 1:ncol(data_mat_list[["PMG_mat"]])){
+for(j2 in 1:ncol(cytof_mat)){
+tmp0 = cor.test(data_mat_list[["PMG_mat"]][,j], cytof_mat[,j2])
+PMG_cytof_est[j,j2] = tmp0$estimate
+###p-values from mixed effect modeling
+dat_lme = cbind(cbind(data_mat_list0$PMG_mat[,j],cytof_mat[,j2]), clin_mat[,c("discretized_admit_age_quantile","sex","enrollment_site","participant_id")]);colnames(dat_lme)[c(1,2)] = c("PMG", "CYTOF")
+dat_lme = dat_lme[apply(is.na(dat_lme),1,sum)==0,]
+temp_lmx = nlme::lme(fixed = formula_use, random = ~1|enrollment_site/participant_id, data = dat_lme)
+temp_lmx=summary(temp_lmx)
+PMG_cytof_pval[j,j2] = temp_lmx$tTable["CYTOF","p-value"]
+}
+}
+colnames(PMG_cytof_pval) = colnames(PMG_cytof_est) =colnames(cytof_mat1)
+rownames(PMG_cytof_pval) = rownames(PMG_cytof_est) =colnames(PMG_pathmat)
+PMG_cytof_est_thr = PMG_cytof_est
+PMG_cytof_est_thr[PMG_cytof_pval>(0.01/((nrow(PMG_cytof_pval)*ncol(PMG_cytof_pval))))] = 0
+
+
+
+cytokine_cytof_pval = data.frame(matrix(NA, nrow = ncol(data_mat_list[["cytokine_mat"]]),ncol = ncol(cytof_mat1)))
+cytokine_cytof_est = data.frame(matrix(NA, nrow = ncol(data_mat_list[["cytokine_mat"]]),ncol = ncol(cytof_mat1)))
+formula_use = as.formula("CYTOKINE~CYTOF+discretized_admit_age_quantile+sex")
+for(j in 1:ncol(data_mat_list[["cytokine_mat"]])){
+for(j2 in 1:ncol(cytof_mat)){
+tmp0 = cor.test(data_mat_list[["cytokine_mat"]][,j], cytof_mat[,j2])
+cytokine_cytof_est[j,j2] = tmp0$estimate
+
+dat_lme = cbind(cbind(data_mat_list0$cytokine_mat[,j],cytof_mat[,j2]), clin_mat[,c("discretized_admit_age_quantile","sex","enrollment_site","participant_id")]);colnames(dat_lme)[c(1,2)] = c("CYTOKINE", "CYTOF")
+dat_lme = dat_lme[apply(is.na(dat_lme),1,sum)==0,]
+temp_lmx = nlme::lme(fixed = formula_use, random = ~1|enrollment_site/participant_id, data = dat_lme)
+temp_lmx=summary(temp_lmx)
+cytokine_cytof_pval[j,j2] = temp_lmx$tTable["CYTOF","p-value"]
+
+}
+}
+colnames(cytokine_cytof_pval) = colnames(cytokine_cytof_est) =colnames(cytof_mat1)
+rownames(cytokine_cytof_pval) = rownames(cytokine_cytof_est) =colnames(cytokine_mat)
+cytokine_cytof_est_thr = cytokine_cytof_est
+cytokine_cytof_est_thr[cytokine_cytof_pval>(0.01/((nrow(cytokine_cytof_pval)*ncol(cytokine_cytof_pval))))] = 0
+
+PMG_pathmat = factor4_transomics_association_train$data_list$PMG_pathmat
+selected_pathways = colnames(PMG_pathmat)
+
+bld_cytof_counts <- base_obj1$others$bld_cytof$train$bld_cytof_counts
+cytof_counts_train <- preprocess_bld_cytof_parent_granulo_separate(counts = bld_cytof_counts,
+                                                                   rowfeature = as.data.frame(base_obj1$others$bld_cytof$train$bld_cytof_rowfeature))
+
+cytokine_mat = factor4_transomics_association_train$data_list$cytokine_mat
+
+
+data_mat_list0 = list(
+                     cytokine_mat=cytokine_mat,
+                     cytof_mat = cytof_counts_train,
+                     PMG_mat = PMG_pathmat
+                     )
+
+cytof_mat1 = cytof_counts_train
+cytof_mat = cytof_counts_train
+
+clin_mat = base_obj1$clin.train
+W = model.matrix(~clin_mat$discretized_admit_age_quantile+clin_mat$sex+clin_mat$enrollment_site-1)
+
+for(j in 1:length(data_mat_list0)){
+  
+data_mat_list0[[j]] = apply(data_mat_list0[[j]],2,function(z) qqnorm(z, plot.it = F)$x)
+data_mat_list[[j]] = residuals(lm(data_mat_list0[[j]]~W, na.action = na.exclude))
+}
+
+PMG_cytof_pval = data.frame(matrix(NA, nrow = ncol(data_mat_list[["PMG_mat"]]),ncol = ncol(cytof_mat1)))
+PMG_cytof_est = data.frame(matrix(NA, nrow = ncol(data_mat_list[["PMG_mat"]]),ncol = ncol(cytof_mat1)))
+formula_use = as.formula("PMG~CYTOF+discretized_admit_age_quantile+sex")
+for(j in 1:ncol(data_mat_list[["PMG_mat"]])){
+for(j2 in 1:ncol(cytof_mat)){
+tmp0 = cor.test(data_mat_list[["PMG_mat"]][,j], cytof_mat[,j2])
+PMG_cytof_est[j,j2] = tmp0$estimate
+###p-values from mixed effect modeling
+dat_lme = cbind(cbind(data_mat_list0$PMG_mat[,j],cytof_mat[,j2]), clin_mat[,c("discretized_admit_age_quantile","sex","enrollment_site","participant_id")]);colnames(dat_lme)[c(1,2)] = c("PMG", "CYTOF")
+dat_lme = dat_lme[apply(is.na(dat_lme),1,sum)==0,]
+temp_lmx = nlme::lme(fixed = formula_use, random = ~1|enrollment_site/participant_id, data = dat_lme)
+temp_lmx=summary(temp_lmx)
+PMG_cytof_pval[j,j2] = temp_lmx$tTable["CYTOF","p-value"]
+}
+}
+colnames(PMG_cytof_pval) = colnames(PMG_cytof_est) =colnames(cytof_mat1)
+rownames(PMG_cytof_pval) = rownames(PMG_cytof_est) =colnames(PMG_pathmat)
+PMG_cytof_est_thr = PMG_cytof_est
+PMG_cytof_est_thr[PMG_cytof_pval>(0.01/((nrow(PMG_cytof_pval)*ncol(PMG_cytof_pval))))] = 0
+
+
+
+cytokine_cytof_pval = data.frame(matrix(NA, nrow = ncol(data_mat_list[["cytokine_mat"]]),ncol = ncol(cytof_mat1)))
+cytokine_cytof_est = data.frame(matrix(NA, nrow = ncol(data_mat_list[["cytokine_mat"]]),ncol = ncol(cytof_mat1)))
+formula_use = as.formula("CYTOKINE~CYTOF+discretized_admit_age_quantile+sex")
+for(j in 1:ncol(data_mat_list[["cytokine_mat"]])){
+for(j2 in 1:ncol(cytof_mat)){
+tmp0 = cor.test(data_mat_list[["cytokine_mat"]][,j], cytof_mat[,j2])
+cytokine_cytof_est[j,j2] = tmp0$estimate
+
+dat_lme = cbind(cbind(data_mat_list0$cytokine_mat[,j],cytof_mat[,j2]), clin_mat[,c("discretized_admit_age_quantile","sex","enrollment_site","participant_id")]);colnames(dat_lme)[c(1,2)] = c("CYTOKINE", "CYTOF")
+dat_lme = dat_lme[apply(is.na(dat_lme),1,sum)==0,]
+temp_lmx = nlme::lme(fixed = formula_use, random = ~1|enrollment_site/participant_id, data = dat_lme)
+temp_lmx=summary(temp_lmx)
+cytokine_cytof_pval[j,j2] = temp_lmx$tTable["CYTOF","p-value"]
+
+}
+}
+colnames(cytokine_cytof_pval) = colnames(cytokine_cytof_est) =colnames(cytof_mat1)
+rownames(cytokine_cytof_pval) = rownames(cytokine_cytof_est) =colnames(cytokine_mat)
+cytokine_cytof_est_thr = cytokine_cytof_est
+cytokine_cytof_est_thr[cytokine_cytof_pval>(0.01/((nrow(cytokine_cytof_pval)*ncol(cytokine_cytof_pval))))] = 0
+
+```
+
+
+### Panel B2 (2/2): Plot complex heatmap
+```{r fig.width=25, fig.height=10}
+plot_mat =t(rbind(cytokine_cytof_est_thr, PMG_cytof_est_thr))
+plot_mat <- plot_mat[,match(order_of_cols, colnames(plot_mat))]
+
+
+FigS6B2 <- Heatmap(
+        as.matrix(plot_mat),
+        name = "Blood CyTOF", 
+        col = col_fun_3,
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        width = ncol(plot_mat)*unit(8, "mm"), 
+        height = nrow(plot_mat)*unit(8, "mm"),
+        row_title_rot = 0,
+        column_split = annotation_row$cluster[match(colnames(plot_mat), rownames(annotation_row))],
+        row_gap = unit(2, "mm"),
+        column_gap = unit(2, "mm"),
+        column_names_gp = grid::gpar(fontsize = 8),
+        row_names_gp = grid::gpar(fontsize = 8),
+        border = TRUE,
+        row_title = "Blood CyTOF",
+        row_names_side = "left"
+        #row_title_rot = 270,
+
+        
+        )
+
+write.csv(plot_mat, paste0(out_dir, "FigS6_data_panelB2_revisedI.csv"))
+
+FigS6B2
+pdf(file.path(out_dir, "FigS6B2_revisedI.pdf"), width=15, height=10)
+print(FigS6B2)
+dev.off()
+
+
+```
+
+### Panel B3 (1/2): Prepare matrix file
+```{r Panel B3-1}
+library(readxl)
+library(RColorBrewer)
+library(circlize)
+col_fun = colorRamp2(c(-0.8, 0, 0.8), c("#2166AC", "white", "#B2182B"))
+clustering <- read_xlsx("../../FigS4/src/Olink_modules.xlsx")
+
+clustering <- clustering %>%
+  left_join(base_obj1$projection_coef$so %>% rownames_to_column("Feature")) %>%
+  arrange(Module, desc(abs(`4`))) %>%
+  dplyr::select(Module, Feature)
+
+lr_Network_Omnipath_Unique <- read_tsv("/scratch/data-integration/pipelines/Interpretation/Reference_databases/CellTalkDB_human_lr_pair_2023_03_17.txt") %>% rename(from = ligand_gene_symbol, to = receptor_gene_symbol) %>% distinct(from, to)
+
+cyto.out <- data.frame(); cyto.out.key <- data.frame()
+for(active_ligand in c(clustering$Feature)){
+  tmp.1 <- lr_Network_Omnipath_Unique %>% filter(from==active_ligand)
+  tmp.2 <- tmp.1 %>% 
+    left_join(base_obj1$projection_coef$pbmc %>% rownames_to_column("feature"), by = c("to" = "feature")) %>%
+    filter(!is.na(`4`))%>%
+    distinct(from, to, `4`) %>%
+    mutate(abs_val = abs(`4`)) %>%
+    arrange(abs_val) %>%
+    slice_head(n = 10) %>%
+    arrange(desc(`4`)) 
+  if(nrow(tmp.2) == 0){
+    cyto.out <- plyr::rbind.fill(cyto.out, data.frame("from" = active_ligand))
+    cyto.out.key <- plyr::rbind.fill(cyto.out.key, data.frame("from" = active_ligand))
+    next
+  }
+  tmp.3 <- tmp.2 %>%
+    mutate(Receptor = paste0("Receptor", 1:nrow(tmp.2))) %>%
+    pivot_wider(names_from = Receptor, values_from = `4`, id_cols = from)
+  tmp.3.key <- tmp.2 %>%
+    mutate(Receptor = paste0("Receptor", 1:nrow(tmp.2))) %>%
+    pivot_wider(names_from = Receptor, values_from = to, id_cols = from)
+cyto.out <- plyr::rbind.fill(cyto.out, tmp.3)
+cyto.out.key <- plyr::rbind.fill(cyto.out.key, tmp.3.key)
+}
+
+
+load("/scratch/data-integration/metabolomics/Map_mets_genes_mod1_4.RData")
+factor4_metabolites_of_high_interest_cleaned <- factor4_metabolites_of_high_interest_transcripts %>%
+  separate_rows(rxn_partner_common_name  ) %>%
+  mutate(pathway = ifelse(input_common_names %in% c("Quinolinic acid", "2-Aminobenzoic acid", "picolinate", "Kynurenine", "kynurenine", "Kynurenine; L-Kynurenine", "Kynurenic acid"), "Tryptophan metabolism",
+             ifelse( input_common_names %in% c("Vanillactic acid", "Homovanillic acid", "Vanillylmandelic acid"), "Tyrosine metabolism",
+                     ifelse(input_common_names %in% c("phenyllactate (PLA)", "phenylalanine", "N-acetylphenylalanine",
+                                                      "D-Phenyllactic acid", "Phenyllactic acid", "L-Phenylalanine; Phenylalanine"), "Phenylalanine metabolism", "Error"))
+             ) )
+
+for(active_ligand in c("Tyrosine metabolism")){
+  tmp.2 <- factor4_metabolites_of_high_interest_cleaned %>% 
+    filter(pathway == active_ligand) %>%
+    left_join(base_obj1$projection_coef$pbmc %>% rownames_to_column("rxn_partner_common_name")) %>%
+    filter(!is.na(`4`))%>%
+    rename(from = pathway) %>%
+    distinct(from, rxn_partner_common_name, `4`) %>%
+    mutate(abs_val = abs(`4`)) %>%
+    arrange(abs_val) %>%
+    slice_head(n = 10) %>%
+    arrange(desc(`4`)) 
+  if(nrow(tmp.2) == 0){
+    cyto.out <- plyr::rbind.fill(cyto.out, data.frame("from" = active_ligand))
+    cyto.out.key <- plyr::rbind.fill(cyto.out.key, data.frame("from" = active_ligand))
+    next
+  }
+  tmp.3 <- tmp.2 %>%
+    mutate(Receptor = paste0("Receptor", 1:nrow(tmp.2))) %>%
+    pivot_wider(names_from = Receptor, values_from = `4`, id_cols = from)
+  tmp.3.key <- tmp.2 %>%
+    mutate(Receptor = paste0("Receptor", 1:nrow(tmp.2))) %>%
+    pivot_wider(names_from = Receptor, values_from = rxn_partner_common_name , id_cols = from)
+cyto.out <- plyr::rbind.fill(cyto.out, tmp.3)
+cyto.out.key <- plyr::rbind.fill(cyto.out.key, tmp.3.key)
+}
+
+heatdf <- cyto.out %>% column_to_rownames("from")
+heatdf.key <- cyto.out.key %>% column_to_rownames("from")
+heatdf.key[is.na(heatdf.key)] <- ""
+
+so_receptor_matrix_top10_f4 <- heatdf
+so_receptor_key_top10_f4 <- heatdf.key
+
+```
+
+### Panel B3 (2/2): Plot complex heatmap
+```{r Panel C-2, fig.width=25, fig.height=10}
+iamsmallnumber = -55000
+so_receptor_matrix_top10_v1 <- so_receptor_matrix_top10_f4 %>%
+  rownames_to_column("feature") %>%
+  #rename(feature = "...1") %>%
+  mutate(feature = if_else(feature == "Tyrosine metabolism", "Tyrosine Metabolism", feature)) %>%
+  pivot_longer(!feature, names_to = "receptor", values_to = "correlation") %>%
+  mutate(correlation = if_else(is.na(correlation) == T, iamsmallnumber, correlation))
+
+so_receptor_key_top10_v1 <- so_receptor_key_top10_f4 %>%
+   rownames_to_column("feature") %>%
+  #rename(feature = "...1") %>%
+  mutate(feature = if_else(feature == "Tyrosine metabolism", "Tyrosine Metabolism", feature)) %>%
+  pivot_longer(!feature, names_to = "receptor", values_to = "key")
+
+so_receptor_matrix_key <- merge(so_receptor_matrix_top10_v1, so_receptor_key_top10_v1) 
+
+so_receptor_matrix_key_v1 <- so_receptor_matrix_key %>%
+  group_by(feature) %>%
+  arrange(desc(correlation)) %>%
+  mutate(numbering = paste0("receptor_", row_number()))  %>%
+  mutate(correlation = if_else(correlation == iamsmallnumber, 0, correlation)) %>%
+  filter(feature %in% rownames(corr_matrix_df_metabolites_v2)) 
+
+so_receptor_matrix_top10_v2 <- so_receptor_matrix_key_v1 %>%
+  dplyr::select(-key, -receptor) %>%
+  pivot_wider(names_from="numbering", values_from = "correlation") %>%
+  column_to_rownames("feature")
+
+so_receptor_key_top10_v2 <- so_receptor_matrix_key_v1 %>%
+  dplyr::select(-correlation, -receptor) %>%
+  pivot_wider(names_from="numbering", values_from = "key") %>%
+  column_to_rownames("feature")
+
+
+so_receptor_matrix_top10_v3 <- so_receptor_matrix_top10_v2[rownames(corr_matrix_df_metabolites_v2),]
+so_receptor_key_top10_v3 <- so_receptor_key_top10_v2[rownames(corr_matrix_df_metabolites_v2),]
+
+so_receptor_matrix_top10_v3[is.na(so_receptor_matrix_top10_v3)] = 0
+so_receptor_key_top10_v3[is.na(so_receptor_key_top10_v3)] = ""
+
+rownames(so_receptor_matrix_top10_v3) <- rownames(corr_matrix_df_metabolites_v2)
+rownames(so_receptor_key_top10_v3) <- rownames(corr_matrix_df_metabolites_v2)
+
+col_fun_f2 = colorRamp2(c(min(so_receptor_matrix_top10_v3), 0, max(so_receptor_matrix_top10_v3)), c("blue", "white", "red"))
+
+
+
+
+
+colnames(Olink_modules_cmag) <- c("cluster", "cytokine")
+
+Olink_modules_cmag_v1 <- Olink_modules_cmag %>%
+  filter(cytokine %in% rownames(corr_matrix_df))  %>%
+  left_join(projection_coef_so)  
+
+metabolite_clustering_factor4_modified <- data.frame(cytokine = rownames(corr_matrix_df_PMG)) %>%
+  mutate(cluster = "PMG pathway",
+         coeficient = 0) %>%
+  rbind(Olink_modules_cmag_v1) %>%
+  mutate(  omics_row = if_else(cluster == "PMG pathway", "PMG", "SPT"),
+    cluster_order = case_when(
+      cluster == "PMG pathway" ~ 1,
+      cluster == "Olink_mod0" ~ 2,
+      cluster == "Olink_mod1" ~ 3,
+      cluster == "Olink_mod2" ~ 4,
+      cluster == "Olink_mod3" ~ 5,
+      cluster == "Olink_mod4" ~ 6,
+      cluster == "Olink_mod5" ~ 7,
+      cluster == "Olink_mod6" ~ 8,
+      TRUE ~ 9
+    ),
+    cluster = case_when(
+      cluster == "Olink_mod0" ~ "Other Cytokines",
+      cluster == "Olink_mod1" ~ "Cytokines produced by Neutrophils",
+      cluster == "Olink_mod2" ~ "Cytokines produced by Macrophages",
+      cluster == "Olink_mod3" ~ "Activators of cytotoxic NKs",
+      cluster == "Olink_mod4" ~ "coreassay Mod 4",
+      cluster == "Olink_mod5" ~ "Cytokines related to B cells",
+      cluster == "Olink_mod6" ~ "Activators of Macrophages",
+      TRUE ~ cluster
+     )
+  )   %>%
+  arrange(cluster_order, desc(coeficient))  %>%
+  dplyr::select(-omics_row, -cluster_order)
+
+corr_matrix_df_metabolites <- rbind(corr_matrix_df, corr_matrix_df_PMG)
+
+corr_matrix_df_metabolites_v2 <- corr_matrix_df_metabolites[metabolite_clustering_factor4_modified$cytokine,, drop=T]
+
+      
+      
+annotation_column = metabolite_clustering_factor4_modified %>%
+  column_to_rownames("cytokine")  %>%
+  mutate(coeficient = -coeficient)
+
+annotation_col <- data.frame(omics = colnames(corr_matrix_df_metabolites_v2)) %>%
+  mutate(
+         #feature = substr(omics, 5, nchar(omics)),
+         feature = omics,
+         omics = substr(omics, 1, 3),
+         feature_new = substr(feature, 5, nchar(feature))
+         ) %>%
+  column_to_rownames("feature")
+
+labels_col = data.frame(omics = colnames(corr_matrix_df_metabolites_v2)) %>%
+  mutate(
+         feature = substr(omics, 5, nchar(omics)),
+         ) %>%
+  column_to_rownames("omics")
+
+paletteLength <- 50
+myColor <- colorRampPalette(c("blue", "white", "red"))(paletteLength)
+myBreaks <- c(seq(min(corr_matrix_df_metabolites_v2), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(corr_matrix_df_metabolites_v2)/paletteLength, max(corr_matrix_df_metabolites_v2), length.out=floor(paletteLength/2)))
+
+annotation_column_v1 <- annotation_column %>%
+  mutate(coeficient = case_when(
+    coeficient >= 0.7 ~ "0.7 and high",
+    coeficient < 0.7 & coeficient >= 0.5 ~ "0.5 to 0.7",
+    coeficient < 0.5 & coeficient >= 0.3 ~ "0.3 to 0.5",
+    coeficient < 0.3 & coeficient >= 0.1 ~ "0.1 to 0.3",
+    coeficient < 0.1 & coeficient > 0 ~ "0.0 to 0.1",
+    coeficient == 0  ~ "0",
+    coeficient < 0 & coeficient >= -0.1 ~ "-0.1 to 0",
+    coeficient < -0.1 & coeficient >= -0.3 ~ "-0.1 to -0.3",
+    coeficient < -0.3 & coeficient >= -0.5 ~ "-0.3 to -0.5",
+    coeficient < -0.5 & coeficient >= -0.7 ~ "-0.5 to -0.7",
+    coeficient <= 0.7 ~ "-0.7 and less",
+  ))  
+
+col1 <- brewer.pal(n = length(unique(annotation_column_v1$cluster)), name = 'Dark2')
+names(col1)= unique(annotation_column_v1$cluster) 
+
+FigS6B3 <- ComplexHeatmap::Heatmap(
+    t(as.matrix(so_receptor_matrix_top10_v3)),
+    name = "PGX receptors", 
+    col = col_fun_f2,
+    cluster_rows = FALSE,
+    cluster_columns = FALSE,
+    height = ncol(so_receptor_matrix_top10_v3)*unit(12, "mm"), 
+    width = nrow(so_receptor_matrix_top10_v3)*unit(8, "mm"),
+    #column_split = annotation_col$omics,
+    column_split = annotation_column_v1$cluster,
+    column_title_rot = 0,
+    column_gap = unit(2, "mm"),
+    row_gap = unit(2, "mm"),
+    row_names_gp = grid::gpar(fontsize = 8),
+    column_names_gp = grid::gpar(fontsize = 8),
+    border = TRUE,
+    cell_fun = function(j, i, x, y, width, height, fill) {
+        
+        grid.text(sprintf("%s", so_receptor_key_top10_v3[j, i]), x, y, gp = gpar(fontsize = 7), rot=90)
+    },
+    row_title = "PGX receptors",
+        row_names_side = "left"
+    #left_annotation = left_row_annotation,
+    #bottom_annotation = bottom_annotation
+    
+)
+
+write.csv(t(so_receptor_matrix_top10_v3), paste0(out_dir, "FigS6_data_panelB3.csv"))
+
+FigS6B3
+pdf(file.path(out_dir, "FigS6B3.pdf"), width=15, height=10)
+print(FigS6B3)
+dev.off()
+
+
+
+```
+
+```{r fig.width=18, fig.height=30}
+FigS6B = FigS6B1 %v% FigS6B2 %v% FigS6B3
+draw(FigS6B, column_title = "SPT/PMG")
+
+pdf(file.path(out_dir, "FigS6B_revisedI.pdf"), width=15, height=30)
+draw(FigS6B, column_title = "SPT/PMG")
+dev.off()
+
+```
+
+
+## Panel C
+
+```{r panel C, message=FALSE, warning=FALSE}
+term <- c("PIAS1", "PIAS4", "PKD2","SPRY1", "SPRY2", "USP18", "SOCS1","SPRY4",
+          "PTPN6", "IRF2", "PTPN11", "PTPN1","PTPN2",  "SMAD2", "SMAD3" )
+
+active_data <- rbind.data.frame(base_obj1$assays.train$pbmc_transcriptomics, base_obj1$assays.test$pbmc_transcriptomics)
+term <- colnames(active_data)[colnames(active_data) %in% term]
+
+select_features <- active_data %>%
+  dplyr::select(all_of(term))
+select_features$Score <- rowMeans(select_features, na.rm = TRUE)
+PGX_IFN_inhibitors <- select_features %>%
+  rownames_to_column("event_id") %>%
+  dplyr::select(event_id, Score) %>%
+  mutate(Score = ifelse(is.nan(Score), NA, Score)) %>%
+  rename("PGX_pathmat.IFN Inhibitors" = "Score")
+
+################## NASAL
+term <- c("PIAS1", "PIAS4", "PKD2","SPRY1", "SPRY2", "USP18", "SOCS1","SPRY4",
+          "PTPN6", "IRF2", "PTPN11", "PTPN1","PTPN2",  "SMAD2", "SMAD3" )
+
+active_data <- rbind.data.frame(base_obj1$assays.train$nasal_transcriptomics, base_obj1$assays.test$nasal_transcriptomics)
+term <- colnames(active_data)[colnames(active_data) %in% term]
+
+select_features <- active_data %>%
+  dplyr::select(all_of(term))
+select_features$Score <- rowMeans(select_features, na.rm = TRUE)
+NGX_IFN_inhibitors <- select_features %>%
+  rownames_to_column("event_id") %>%
+  dplyr::select(event_id, Score) %>%
+  mutate(Score = ifelse(is.nan(Score), NA, Score)) %>%
+  rename("NGX_pathmat.IFN Inhibitors" = "Score")
+
+pathways <- readRDS("/scratch/data-integration/cleanedup_lguan/factor4_transomics_association_train.rds")
+parent_cytof <- base_obj1$others$bld_cytof$CyTOF_normalize(
+  counts = base_obj1$others$bld_cytof$train$bld_cytof_counts,
+  rowfeature = base_obj1$others$bld_cytof$train$bld_cytof_rowfeature,
+  population = "parent", granulocytes = TRUE, log1p = TRUE
+)
+## Invert the CT
+viral_data <- base_obj1$others$nasal_viralload$train$nasal_viralload_counts
+viral_data <- viral_data * -1
+
+factors.train <- apply(base_obj1$mcia.factors.train,2,function(z) qqnorm(z,plot.it = F)$x) %>%
+  as.data.frame() 
+colnames(factors.train) <- paste0("Factor", 1:40); rownames(factors.train) <- base_obj1$clin.train$event_id
+
+antibody_data <- base_obj1$others$serum_rbd_abtiters$train$serum_rbd_abtiters_counts
+antibody_data <- log10(antibody_data)
+baseline_labs <- read.csv("../../Fig2/src/Fig2_files/impacc-baseline-labs.csv") %>%
+  dplyr::rename(participant_id = studyid) %>%
+  dplyr::select(participant_id, 5:33, 48)
+baseline_labs$event_type <- 'Visit 1'
+
+pathways_df <- as.data.frame(pathways$data_list) %>%
+  rownames_to_column("event_id") %>%
+  left_join(base_obj1$clin.train) %>%
+  left_join(factors.train %>% rownames_to_column("event_id") ) %>%
+  left_join(parent_cytof %>% rownames_to_column("event_id")) %>%
+  left_join(viral_data %>% rownames_to_column("event_id")) %>%
+  left_join(antibody_data %>% rownames_to_column("event_id")) %>%
+  left_join(baseline_labs) %>%
+  left_join(PGX_IFN_inhibitors) %>%
+  left_join(NGX_IFN_inhibitors)
+
+Interest <- c(paste0("Factor",1:7), colnames(as.data.frame(pathways$data_list)), "NGX_pathmat.IFN Inhibitors", "PGX_pathmat.IFN Inhibitors")
+mat1 <- pathways_df[,colnames(pathways_df) %in% Interest]
+mat2 <- pathways_df[,c(colnames(parent_cytof), "N1_CT", "N2_CT", "AUC Spike IgG", "AUC RBD IgG",
+                       colnames(baseline_labs)[c(-1,-32)])]
+out <- data.frame()
+result <- apply(mat1, 2, function(col_mat1){
+  apply(mat2, 2, function(col2, col1) {
+    cc <- cor.test(col2, col1, method = "spearman")
+    out <- rbind(out, cbind(cc$estimate,cc$p.value))
+  }, col1=col_mat1)
+})
+
+out <- data.frame()
+for(column1 in colnames(mat1)){
+  for(column2 in colnames(mat2)){
+    tmp.test <- cor.test(mat1[,column1], mat2[,column2], method = "spearman")
+    out <- rbind(out, cbind(column1, column2, tmp.test$estimate, tmp.test$p.value))
+  }
+}
+rownames(out) <- 1:nrow(out); colnames(out) <- c("Factor", "Cell_Type", "Rho", "p-value")
+out$Rho <- as.numeric(out$Rho); out$`p-value` <- as.numeric(out$`p-value`)
+out$p.adj <- p.adjust(out$`p-value`, method = "fdr")
+out$Rho <- ifelse(out$`p.adj` > 0.05, 0, out$Rho)
+heatmap_df <- out %>%
+  #filter(`p-value` <= 0.05) %>%
+  filter(Factor %in% Interest) %>%
+  pivot_wider(id_cols = Factor, names_from = "Cell_Type", values_from = "Rho") %>%
+  column_to_rownames("Factor") %>%
+  as.data.frame()
+
+heatmap_df <- heatmap_df[order(rownames(heatmap_df)), ]
+split_vector <- c( rep("SPT", 14), rep("Factors", 7), rep("NGX", 4), rep("PGX", 4), rep("PMG", 3), rep("PPG",3) )
+col_split_vector <- c(rep("CyTOF", 14), rep("Nasal\nViral Load", 2),
+                      rep("Serum\nAntibody Titer",2),
+                      rep("Clinical Labs (Visit 1 Only)", 30))
+col_split_vector <- factor(col_split_vector, c("CyTOF", "Nasal\nViral Load", "Serum\nAntibody Titer", "Clinical Labs (Visit 1 Only)"))
+heatmap_df_final <- heatmap_df
+
+colnames(heatmap_df_final)[19:48] <- c("White Blood Cell Count", "Lymphocyte Count", "Neutrophil Count (ANC)","Platelets", "Hematocrit", "Hemoglobin", "Lactate", "PTT", "PT","INR", "AST", "ALT", "Total Bilirubin", "Albumin", "Sodium", "Potassium","Serum Bicarbonate (HCO3)", "BUN", "Creatinine", "Glucose", "Procalcitonin","CRP", "LDH", "CK", "Tropnin", "BNP", "ESR", "D-Dimer", "Ferritin","Neutrophil/Lyphocyte Ratio")
+library(circlize)
+col_fun = colorRamp2(c(-0.5, 0, 0.5), c("blue", "white", "red"))
+ht_opt( 
+    heatmap_column_title_gp = gpar(fontsize = 10),
+    legend_border = "black",
+    heatmap_border = TRUE,
+    annotation_border = TRUE
+)
+Heatmap(heatmap_df_final, cluster_rows = F, cluster_columns = F,
+        name = "Coefficient", col = col_fun,
+        row_split = split_vector, column_split = col_split_vector)
+
+pdf(paste0(out_dir, "panelC.pdf"), width=10, height=10)
+Heatmap(heatmap_df_final, cluster_rows = F, cluster_columns = F,
+        name = "Coefficient", col = col_fun,
+        row_split = split_vector, column_split = col_split_vector)
+dev.off()
+
+
+ht_opt(RESET = TRUE)
+
+write.csv(heatmap_df_final, paste0(out_dir, "FigS6_data_panelC.csv"))
+```
+
+## Panel D
+
+```{r panel D}
+
+composite_mat_subsetting = function(composite_score_mat_list,selected_pathways){
+  pathway_vec = c()
+  omic_vec = c()
+  composiste_mat = NULL
+  for(d in 1:length(composite_score_mat_list)){
+    tmp_X = composite_score_mat_list[[d]]
+    intersect_pathways = intersect(selected_pathways,colnames(tmp_X ))
+    if(length(intersect_pathways)>0){
+      tmp_X = tmp_X[,intersect_pathways]
+      pathway_vec=c(pathway_vec,intersect_pathways)
+      omic_vec = c(omic_vec,rep(names(composite_score_mat_list)[d], length(intersect_pathways)))
+      if(is.null(composiste_mat)){
+        composiste_mat  = as.matrix(tmp_X)
+      }else{
+        composiste_mat  = cbind( composiste_mat,as.matrix(tmp_X))
+      }
+    }
+  }
+  return(list(composiste_mat =composiste_mat , omic_vec=omic_vec,
+         pathway_vec = pathway_vec))
+}
+
+simple_pathwaytest_wrapper = function(composite_mat, base_obj, phase = "others", adjust = F){
+  if(phase == "train"){
+    clin_dat = base_obj$clin.train
+  }else{
+    clin_dat =base_obj$clin.test
+  }
+  W =model.matrix(~as.character(clin_dat$trajectory_group)+clin_dat$event_type+clin_dat$discretized_admit_age_quantile+clin_dat$sex-1)
+  clin_mat = clin_dat
+  #id1 = (apply(is.na(W),1,sum)==0)
+  #clin_mat = clin_dat[id1,,drop = F]
+  #composite_mat=composite_mat[id1,,drop = F]
+  fitted = linear_effects_simple(feature_mat=composite_mat, clin_mat=clin_mat,adjust = adjust)
+  return(fitted)
+}
+
+
+### Prepare composite scores for Factor 4 pathways
+path3_res_tbl_lists = list(
+  "GOBP_IMMUNOGLOBULIN_PRODUCTION" = base_obj1$MODmghRes$immglob_pos_impacc,
+  "GOCC_IMMUNOGLOBULIN_COMPLEX" = base_obj1$MODmghRes$immglob_pos_impacc,
+  "HALLMARK_INTERFERON_GAMMA_RESPONSE" = base_obj1$MODmghRes$hallmark_neg_impacc,
+  "HALLMARK_INTERFERON_ALPHA_RESPONSE" = base_obj1$MODmghRes$hallmark_neg_impacc,
+  "Complement and coagulation cascades" = base_obj1$MODmghRes$kegg_neg_impacc,
+  "Cholesterol metabolism" = base_obj1$MODmghRes$kegg_neg_impacc,
+  "Acetylated Peptides" = base_obj1$MODmghRes$metabSub_neg_impacc,
+  "Fatty Acid Metabolism (Acyl Glycine)" = base_obj1$MODmghRes$metabSub_neg_impacc
+  )
+
+# Composite scores for Leying to make an ordinal and mortalitiy comparisons.
+composite_scores_factor4 = list()
+for(term in names(path3_res_tbl_lists)) {
+  composite_scores_factor4[[paste0(term, "_train")]] = 
+    base_obj1$composite_features_creation(
+    result_table_list = path3_res_tbl_lists[[term]],
+    term = term,
+    core_enrichment_name = "core_enrichment",phase = "train")
+  
+  composite_scores_factor4[[paste0(term, "_test")]] = 
+    base_obj1$composite_features_creation(
+    result_table_list = path3_res_tbl_lists[[term]],
+    term = term,
+    core_enrichment_name = "core_enrichment",phase = "test")
+}
+#ravi_compisite_scores_factor4 = readRDS("/scratch/data-integration/composite_scores_factor4.rds")
+ravi_compisite_scores_factor4 = composite_scores_factor4
+
+
+
+#viral adjusted 
+options(na.action='na.pass')
+saved_mat_FIGS6D = NULL
+saved_mat_FIGS6E = NULL
+x1=ravi_compisite_scores_factor4$HALLMARK_INTERFERON_ALPHA_RESPONSE_train$nt[,1]
+
+z= base_obj0$others$nasal_viralload$train$nasal_viralload_counts$N1_CT
+
+idx1 = which(!is.na(z) & !is.na(x1) & base_obj$clin.train$event_type == "Visit 1")
+dat1 = data.frame(y = x1[idx1], x = z[idx1])
+dat1$TG =  base_obj$clin.train$trajectory_group[idx1]
+set.seed(1984)
+rf_fit1 = ranger::ranger(y~x, data = dat1)
+
+dat1$resid =dat1$y-predict(rf_fit1, dat1)$predictions
+
+
+
+
+pval_visit1 = c(NA, NA)
+
+xhat0 = rep(NA, nrow(base_obj$clin.train))
+xhat0[idx1] = dat1$y
+saved_mat_FIGS6D=cbind(saved_mat_FIGS6D,xhat0)
+IFNalphaNGX_v1 = run_visit1_analysis_inputresponse(x=(xhat0),  impacc_analysis_record,fname = "INTERFERON_ALPHA_RESPONSE_viral.unadjusted",phase = "train",
+                                          show_legend = T, 
+                                          show_significance = TRUE)
+
+ii = (base_obj$clin.train$event_type %in%c("Visit 1")) & (base_obj$clin.train$trajectory_group %in% c(4,5) & !is.na(xhat0))
+ww1 = xhat0[ii]
+ww2 = base_obj$clin.train$trajectory_group[ii]
+pval_visit1[1] = wilcox.test(x=ww1[ww2==4], y=ww1[ww2==5])$p.value
+
+xhat0 = rep(NA, nrow(base_obj$clin.train))
+xhat0[idx1] = dat1$resid
+saved_mat_FIGS6D=cbind(saved_mat_FIGS6D,xhat0)
+IFNalphaNGXadj_v1 = run_visit1_analysis_inputresponse(x=(xhat0),  impacc_analysis_record,fname = "INTERFERON_ALPHA_RESPONSE_viral.adjusted",phase = "train",
+                                          show_legend = T, 
+                                          show_significance = TRUE)
+##wilcoxon rank test TG4|5
+ii = (base_obj$clin.train$event_type %in%c("Visit 1")) & (base_obj$clin.train$trajectory_group %in% c(4,5) & !is.na(xhat0))
+ww1 = xhat0[ii]
+ww2 = base_obj$clin.train$trajectory_group[ii]
+pval_visit1[2] = wilcox.test(x=ww1[ww2==4], y=ww1[ww2==5])$p.value
+names(pval_visit1) = c("INTERFERON_ALPHA_RESPONSE_viral.unadjusted","INTERFERON_ALPHA_RESPONSE_viral.adjusted")
+
+saved_mat_FIGS6D = cbind(saved_mat_FIGS6D,base_obj$clin.train$trajectory_group)
+colnames(saved_mat_FIGS6D) =  c("INTERFERON_ALPHA_RESPONSE_viral.unadjusted","INTERFERON_ALPHA_RESPONSE_viral.adjusted", "TG")
+saved_mat_FIGS6D = data.frame(saved_mat_FIGS6D)
+rownames(saved_mat_FIGS6D) = base_obj$clin.train$event_id
+saved_mat_FIGS6D$event_type = base_obj$clin.train$event_type
+saved_mat_FIGS6D=saved_mat_FIGS6D[ii,]
+
+FIGS6D = ggarrange(IFNalphaNGX_v1$FIG, IFNalphaNGXadj_v1$FIG,  common.legend = T, legend = "bottom")
+
+
+print(FIGS6D)
+
+cairo_ps(file = paste0(out_dir,"panelD.eps"), onefile = FALSE, fallback_resolution = 600, width=11.7, height = 4.28)
+print(FIGS6D)
+dev.off()
+
+write.csv(x = saved_mat_FIGS6D, file = paste0(out_dir,"FigS6_data_panelD.csv"), quote = FALSE)
+
+```
+
+## Panel E
+
+```{r panel E}
+
+####Trajectory
+x=ravi_compisite_scores_factor4$HALLMARK_INTERFERON_ALPHA_RESPONSE_train$nt[,1]
+z = base_obj0$others$nasal_viralload$train$nasal_viralload_counts$N1_CT
+x = qqnorm(x, plot.it=F)$x
+idx = which(!is.na(z) & !is.na(x))
+dat1 = data.frame(y = x[idx], x = z[idx])#, x2 = z1[idx])
+set.seed(2023)
+rf_fit1full = ranger::ranger(y~x, data = dat1)
+dat1$resid = dat1$y- predict(rf_fit1full, dat1)$predictions
+
+X = matrix(NA, ncol = 2, nrow = nrow(base_obj$clin.train))
+X[idx,1] = dat1$y
+X[idx,2] = dat1$resid
+
+
+###trajectory plot: combine TG1-3, TG4, TG5
+TG = base_obj$clin.train$trajectory_group
+TG = ifelse(TG%in%c(1:3), "TG1:3", ifelse(TG == 4, "TG4", "TG5"))
+expr_list =  list(NGX =data.frame(X[,1]) , NGX.viral.adj = data.frame(X[,2] ))
+max_date_admission = 30
+max_date_dfso = 65
+colors =  c("#639A21" ,"#BD7D31", "#9C3418")
+IFNalphaNGX_admission = condensed_trajectory_plotI(expr_list =expr_list,base_obj = base_obj, TG = TG, plot_name = "INTERFERON_ALPHA_RESPONSE",colors = colors, max_date = max_date_admission)
+
+FIGS6E = IFNalphaNGX_admission$plot
+plot_IFN_NGX = ggarrange(FIGS6D, FIGS6E, nrow = 1)
+
+pval_kinetics = c(NA, NA)
+names(pval_kinetics) = c("INTERFERON_ALPHA_RESPONSE_viral.unadjusted","INTERFERON_ALPHA_RESPONSE_viral.adjusted")
+pval_kinetics[1] = IFNalphaNGX_admission$modelDF$p.slope_TG4vTG5[1] 
+pval_kinetics[2] = IFNalphaNGX_admission$modelDF$p.slope_TG4vTG5[2]
+#ggarrange(IFNalphaNGX_v1$FIG, IFNalphaNGXadj_v1$FIG,  common.legend = T)
+
+print(pval_visit1)
+print(pval_kinetics)
+
+# > print(pval_visit1)
+# INTERFERON_ALPHA_RESPONSE_viral.unadjusted   INTERFERON_ALPHA_RESPONSE_viral.adjusted 
+#                                0.006126758                                0.109752199 
+# > print(pval_kinetics)
+# INTERFERON_ALPHA_RESPONSE_viral.unadjusted   INTERFERON_ALPHA_RESPONSE_viral.adjusted 
+#                                0.009351625                                0.006923555 
+                               
+#cairo_ps(file = paste0(supp_figure_path,"Supplement/IFNalpha_TGtest_viraladjust_comparison_Factor4.eps"), onefile = FALSE, fallback_resolution = 600, width=11.7, height = 4.28)
+#print(plot_IFN_NGX )
+#dev.off()
+
+
+print(FIGS6E)
+cairo_ps(file = paste0(out_dir,"panelE.eps"), onefile = FALSE, fallback_resolution = 600, width=11.7, height = 4.28)
+print(FIGS6E)
+dev.off()
+
+
+saved_mat_FIGS6E = cbind(saved_mat_FIGS6E,TG)
+saved_mat_FIGS6E = cbind(saved_mat_FIGS6E,X)
+saved_mat_FIGS6E = data.frame(saved_mat_FIGS6E)
+colnames(saved_mat_FIGS6E) = c("TG","INTERFERON_ALPHA_RESPONSE_viral.unadjusted","INTERFERON_ALPHA_RESPONSE_viral.adjusted")
+saved_mat_FIGS6E$participant_id = base_obj$clin.train$participant_id
+saved_mat_FIGS6E$date = base_obj$clin.train$event_date
+rownames(saved_mat_FIGS6E) = base_obj$clin.train$event_id
+saved_mat_FIGS6E=saved_mat_FIGS6E[!is.na(saved_mat_FIGS6E$INTERFERON_ALPHA_RESPONSE_viral.adjusted),]
+
+write.csv(x = saved_mat_FIGS6E, file = paste0(out_dir,"FigS6_data_panelE.csv"), quote = FALSE)
+
+
+```
+
+## Panel F
+
+```{r panel F}
+## These frequencies are those reported previously in https://doi.org/10.1016/j.xcrm.2023.101079
+
+positive_core_lab <- data.frame(trajectory_group = c("TG1\n(n=101)", "TG2\n(n=131)", "TG3\n(n=102)", "TG4\n(n=104)", "TG5\n(n=51)"),
+                                total = c(101, 131, 102, 104, 51),
+                                positive = c(0, 2, 5, 10, 4))
+positive_core_lab %>%
+  mutate(freq = positive / total * 100) %>%
+  mutate(y_height = freq +0.7) %>%
+  mutate(label = paste0("n=", positive, "\n", round(freq, 2), "%")) %>%
+  ggplot(aes(x=trajectory_group, y= freq, fill = trajectory_group)) +
+ geom_bar(stat = "identity") + 
+  theme_classic() +
+  ylab("Percent Positive for\nAnti-IFN Antibodies in each TG") +
+  xlab("Clinical Trajectory Group") +
+  theme(legend.position = "none") +
+  scale_fill_manual(values = unname(TrajGrpCol))+ 
+    geom_text(aes(x=trajectory_group, y=y_height, label=label), size=3.5)
+ggsave(paste0(out_dir, "panelF.pdf"), width = 4, height = 3, device = "pdf")
+write.csv(positive_core_lab, paste0(out_dir, "FigS6_data_panelF.csv"))
+```
+
+## Panel G
+
+```{r panel G}
+
+
+IFN_inhibitors <- c("PIAS1",
+                  "PIAS4", "PKD2","SPRY1", "SPRY2", "USP18", "SOCS1", "SPRY4",
+                  "PTPN6", "IRF2", "PTPN11", "PTPN1","PTPN2",  "SMAD2", "SMAD3")
+blockingdata <- base_obj1$others$serum_autoantibody$train$serum_autoantibody_metadata %>% dplyr::select(-phase) %>%
+  rownames_to_column("event_id") %>%
+  left_join(base_obj1$clin.train %>% dplyr::select(event_id, event_type, participant_id), by = "event_id") %>%
+   filter(event_type == "Visit 1") %>%
+  mutate(positive.for.blocking.anti.IFNa. = gsub("yes", 1, gsub("no", 0, positive.for.blocking.anti.IFNa.))) %>%
+  mutate(positive.for.blocking.anti.IFNb. = gsub("yes", 1, gsub("no", 0, positive.for.blocking.anti.IFNb.))) %>%
+  mutate(positive.for.blocking.anti.IFNw. = gsub("yes", 1, gsub("no", 0, positive.for.blocking.anti.IFNw.))) %>%
+  rowwise() %>%
+  mutate(antibody_sum = sum(as.numeric(positive.for.blocking.anti.IFNa.), as.numeric(positive.for.blocking.anti.IFNb.),as.numeric(positive.for.blocking.anti.IFNw.), na.rm = T)) 
+
+blocking_positive <-blockingdata  %>%
+  filter(antibody_sum >= 1)
+blocking_negative <-blockingdata  %>%
+  filter(antibody_sum < 1)
+
+active_data <- as.data.frame(base_obj1$assays.train$nasal_transcriptomics)
+IFN_inhibitors <- colnames(active_data)[colnames(active_data) %in% IFN_inhibitors]
+
+select_features <- active_data %>%
+  dplyr::select(all_of(IFN_inhibitors))
+select_features$Score <- rowMeans(select_features, na.rm = TRUE)
+IFN_alpha <- c(base_obj1$composite_features_train$HALLMARK_POS$nt$HALLMARK_INTERFERON_ALPHA_RESPONSE)
+select_features$IFN_Alpha <- IFN_alpha
+
+select_features <- select_features[!is.na(select_features$Score),]
+inputDF <- select_features %>%
+  rownames_to_column("event_id") %>%
+  left_join(base_obj1$clin.train) %>%
+  pivot_longer(cols = c(Score, IFN_Alpha)) %>%
+  mutate(trajectory_group = ordered(trajectory_group),
+         participant_id = factor(participant_id),
+         enrollment_site = factor(enrollment_site),
+         sex = factor(sex),
+         discretized_admit_age_quantile = ordered(discretized_admit_age_quantile)) %>%
+  group_by(name) %>%
+  mutate(value = scale_tidy(value))
+
+##### IFN Alpha Testing
+model.data <- inputDF %>%
+  mutate(name = gsub("Score", "IFN_Inhibitors", name)) %>%
+  mutate(trajectory_group = paste0("TG", trajectory_group)) %>%
+  filter(event_type == "Visit 1") %>%
+  mutate(IFN_blocking_positive = participant_id %in% blocking_positive$participant_id) %>%
+  filter(participant_id %in% c(blocking_positive$participant_id, blocking_negative$participant_id)) %>%
+  filter(name == "IFN_Alpha")
+formula_use = formula(value ~ IFN_blocking_positive + trajectory_group + sex + discretized_admit_age_quantile)
+fit <-lme(fixed = formula_use, random = ~1|enrollment_site/participant_id, data = model.data)
+anova(fit, type = "marginal")
+
+##### IFN Inhibitor Testing
+model.data <- inputDF %>%
+  mutate(name = gsub("Score", "IFN_Inhibitors", name)) %>%
+  mutate(trajectory_group = paste0("TG", trajectory_group)) %>%
+  filter(event_type == "Visit 1") %>%
+  mutate(IFN_blocking_positive = participant_id %in% blocking_positive$participant_id) %>%
+  filter(participant_id %in% c(blocking_positive$participant_id, blocking_negative$participant_id)) %>%
+  filter(name == "IFN_Inhibitors")
+formula_use = formula(value ~ IFN_blocking_positive + trajectory_group + sex + discretized_admit_age_quantile)
+fit <-lme(fixed = formula_use, random = ~1|enrollment_site/participant_id, data = model.data)
+anova(fit,  type = "marginal")
+
+
+
+p_g1 = inputDF %>%
+  mutate(name = gsub("Score", "IFN_Inhibitors", name)) %>%
+  mutate(trajectory_group = paste0("TG", trajectory_group)) %>%
+  filter(event_type == "Visit 1") %>%
+  mutate(IFNa_blocking_positive = participant_id %in% blocking_positive$participant_id) %>%
+  filter(participant_id %in% c(blocking_positive$participant_id, blocking_negative$participant_id)) %>%
+  mutate(IFNa_blocking_positive = ifelse(IFNa_blocking_positive == TRUE, "Detected", "Not Detected")) %>%
+  mutate(IFNa_blocking_positive = factor(IFNa_blocking_positive, c("Not Detected", "Detected"))) %>%
+  ggplot(aes(x=IFNa_blocking_positive, y= value)) +
+  geom_boxplot(fill = NA, outlier.shape = NA, aes(color = IFNa_blocking_positive)) +
+  ggbeeswarm::geom_quasirandom(aes(color = IFNa_blocking_positive, fill = IFNa_blocking_positive), size = 0.8) +
+  theme_classic() +
+  facet_grid(~name) +
+  ylab("NGX Expression") +
+  xlab("Anti-IFN Antibodies") +
+  theme(legend.position = "none") +
+  scale_color_manual(values = c("#737373", "darkred"))
+print(p_g1)
+
+ggsave(paste0(out_dir, "panelG_1.pdf"), width = 5, height = 3, device = "pdf")
+
+```
+
+```{r}
+IFN_inhibitors <- c("PIAS1",
+                  "PIAS4", "PKD2","SPRY1", "SPRY2", "USP18", "SOCS1", "SPRY4",
+                  "PTPN6", "IRF2", "PTPN11", "PTPN1","PTPN2",  "SMAD2", "SMAD3")
+
+active_data <- as.data.frame(base_obj1$assays.train$pbmc_transcriptomics)
+IFN_inhibitors <- colnames(active_data)[colnames(active_data) %in% IFN_inhibitors]
+select_features <- active_data %>%
+  dplyr::select(all_of(IFN_inhibitors))
+select_features$Score <- rowMeans(select_features, na.rm = TRUE)
+
+IFN_alpha <- base_obj1$composite_features_train$HALLMARK_POS$pbmc$HALLMARK_INTERFERON_ALPHA_RESPONSE
+select_features$IFN_Alpha <- IFN_alpha
+
+select_features <- select_features[!is.na(select_features$Score),]
+inputDF <- select_features %>%
+  rownames_to_column("event_id") %>%
+  left_join(base_obj1$clin.train) %>%
+  pivot_longer(cols = c(Score, IFN_Alpha)) %>%
+  mutate(trajectory_group = ordered(trajectory_group),
+         participant_id = factor(participant_id),
+         enrollment_site = factor(enrollment_site),
+         sex = factor(sex),
+         discretized_admit_age_quantile = ordered(discretized_admit_age_quantile)) %>%
+  group_by(name) %>%
+  mutate(value = scale_tidy(value))
+
+##### IFN Alpha Testing
+model.data <- inputDF %>%
+  mutate(name = gsub("Score", "IFN_Inhibitors", name)) %>%
+  mutate(trajectory_group = paste0("TG", trajectory_group)) %>%
+  filter(event_type == "Visit 1") %>%
+  mutate(IFN_blocking_positive = participant_id %in% blocking_positive$participant_id) %>%
+  filter(participant_id %in% c(blocking_positive$participant_id, blocking_negative$participant_id)) %>%
+  filter(name == "IFN_Alpha")
+formula_use = formula(value ~ IFN_blocking_positive + trajectory_group + sex + discretized_admit_age_quantile)
+fit <-lme(fixed = formula_use, random = ~1|enrollment_site/participant_id, data = model.data)
+anova(fit, type = "marginal")
+
+##### IFN Inhibitor Testing
+model.data <- inputDF %>%
+  mutate(name = gsub("Score", "IFN_Inhibitors", name)) %>%
+  mutate(trajectory_group = paste0("TG", trajectory_group)) %>%
+  filter(event_type == "Visit 1") %>%
+  mutate(IFN_blocking_positive = participant_id %in% blocking_positive$participant_id) %>%
+  filter(participant_id %in% c(blocking_positive$participant_id, blocking_negative$participant_id)) %>%
+  filter(name == "IFN_Inhibitors")
+formula_use = formula(value ~ IFN_blocking_positive + trajectory_group + sex + discretized_admit_age_quantile)
+fit <-lme(fixed = formula_use, random = ~1|enrollment_site/participant_id, data = model.data)
+anova(fit, type = "marginal")
+
+p_g2 = inputDF %>%
+  mutate(name = gsub("Score", "IFN_Inhibitors", name)) %>%
+  mutate(trajectory_group = paste0("TG", trajectory_group)) %>%
+  filter(event_type == "Visit 1") %>%
+  mutate(IFNa_blocking_positive = participant_id %in% blocking_positive$participant_id) %>%
+  filter(participant_id %in% c(blocking_positive$participant_id, blocking_negative$participant_id)) %>%
+  mutate(IFNa_blocking_positive = ifelse(IFNa_blocking_positive == TRUE, "Detected", "Not Detected")) %>%
+  mutate(IFNa_blocking_positive = factor(IFNa_blocking_positive, c("Not Detected", "Detected"))) %>%
+  ggplot(aes(x=IFNa_blocking_positive, y= value)) +
+  geom_boxplot(fill = NA, outlier.shape = NA, aes(color = IFNa_blocking_positive)) +
+  geom_quasirandom(aes(color = IFNa_blocking_positive, fill = IFNa_blocking_positive), size = 0.8) +
+  theme_classic() +
+  facet_grid(~name) +
+  ylab("PGX Expression") +
+  xlab("Anti-IFN Antibodies") +
+  theme(legend.position = "none") +
+  scale_color_manual(values = c("#737373", "darkred"))
+print(p_g2)
+
+
+write.csv(
+  rbind(
+    p_g1$data[,c("IFNa_blocking_positive","value","name")] %>% mutate(panel = "NGX_expression"),
+    p_g2$data[,c("IFNa_blocking_positive","value","name")] %>% mutate(panel = "PGX_expression")
+  ),
+  paste0(out_dir, "FigS6_data_panelG.csv"))
+
+
+
+ggsave(paste0(out_dir, "panelG_2.pdf"), width = 5, height = 3, device = "pdf")
+
+
+```

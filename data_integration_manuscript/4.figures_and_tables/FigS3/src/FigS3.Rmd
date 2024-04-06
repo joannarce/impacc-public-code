@@ -1,0 +1,576 @@
+---
+title: "FigS3"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load packages}
+# Most packages are loaded by "class_structure.R" (see below). Load any additional packages here.
+library(RcmdrMisc)
+library(broom)
+library(corrplot)
+library(ggrepel)
+library(ggeffects)
+
+```
+
+
+```{r load code and data, warning=FALSE, message=FALSE}
+
+##### Load code
+source("../../../0.Codebase/class_structures.R", local=FALSE, chdir=TRUE)
+
+##### Load data object
+base_obj1 = readRDS(file ="/scratch/data-integration/public_code_results/mod1_interpretation_base.rds") 
+##### Load other data files, if any
+
+
+##### Set global variables
+# Trajectory group colors
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+
+# Omic names: 
+# note: ppt, ppgd, so, pmg, nt and pbmc correspond to PPT, PPG, SPT, PMG, NGX and PGX, respectively, in the manuscript.
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+
+kegg_database = readRDS(file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds")
+
+##### Output directory
+out_dir = "../output/"
+dir.create(out_dir, showWarnings = F)
+```
+
+## Panel A
+```{r panel A, fig.width=8, fig.height=8}
+
+# Calculate composite scores
+path_res_tbl_lists_2 = list(
+  "Apoptosis" = list(res = base_obj1$MODmghRes$kegg_pos_impacc, ds = "ppgd"),
+  #"HALLMARK_INFLAMMATORY_RESPONSE" = list(res = base_obj1$MODmghRes$hallmark_pos_impacc, ds = "ppgd"),
+  "Platelet activation" = list(res = base_obj1$MODmghRes$kegg_pos_impacc, ds = "ppgd"),
+  "Tryptophan metabolism" = list(res = base_obj1$MODmghRes$kegg_pos_impacc, ds = "pmg"),
+  "Phenylalanine metabolism" = list(res = base_obj1$MODmghRes$kegg_pos_impacc, ds = "pmg"),
+  "Histidine metabolism" = list(res = base_obj1$MODmghRes$kegg_pos_impacc, ds = "pmg")
+)
+
+plot_list = list()
+for(p in names(path_res_tbl_lists_2)) {
+  pp = make_box_trajectory_plots_general(term = p, term_type = "pathway", term_extract_param_list = list("base_obj" = base_obj1, "result_table_list" = path_res_tbl_lists_2[[p]]$res, "sign" = 1), phase = "train", event_date = "admission", merge123 = F, make_traj_plots = F)
+  ds_lbl = case_when(
+    path_res_tbl_lists_2[[p]]$ds == "ppgd" ~ "PPG",
+    path_res_tbl_lists_2[[p]]$ds == "pmg" ~ "PMG"
+  )
+  plot_list[[p]] = pp$boxplots[[path_res_tbl_lists_2[[p]]$ds]]$data %>% 
+    dplyr::filter(TG %in% 4:5) %>% 
+    mutate(TG = paste0("TG", TG)) %>%
+    ggplot(aes(TG, expr, color=TG)) + 
+      geom_boxplot() + theme_classic() + 
+      ggbeeswarm::geom_beeswarm(cex = 4) + 
+      scale_color_manual(values = c("TG4"="#BD7D31", "TG5"="#9C3418")) + 
+      labs(x="Trajectory groups", y=paste0(p, " (",ds_lbl,")")) +
+      geom_signif(test = "wilcox.test", comparisons = list(c("TG4","TG5")))
+}
+#plot_list$HALLMARK_INFLAMMATORY_RESPONSE$labels$y = "Hallmark inflammatory response (PPG)"
+
+ggarrange(plotlist = plot_list, nrow=2, ncol=3)
+
+pdf(file.path(out_dir, "FigS3A.pdf"), width = 9, height = 5)
+ggarrange(plotlist = plot_list, nrow=2, ncol=3)
+dev.off()
+
+indiv_data_points = data.frame()
+for(pathway in names(plot_list)) {
+  indiv_data_points = rbind(
+    indiv_data_points,
+    as.data.frame(plot_list[[pathway]]$data) %>% mutate(pathway=pathway)
+  )
+}
+write.csv(indiv_data_points, paste0(out_dir, "FigS3_data_panelA.csv"))
+
+
+
+
+```
+
+
+## Panel B
+```{r panel B}
+## I need to raise the maxGSSize cut off, so I've just cloned the runGSEA from the object and edited it here 
+runGSEA2 <- function(projection_coef, Term2GeneList){
+                                    gsea_result = list()
+                                    for(j in 1:length(projection_coef)){
+                                      if(names(projection_coef)[j] %in% names(Term2GeneList)){
+                                        geneList = projection_coef[[j]][,1]
+                                        names(geneList) = rownames(projection_coef[[j]])
+                                        geneList = sort(geneList, decreasing = T)
+                                        Term2Gene = Term2GeneList[[names(projection_coef)[j]]]
+                                        Term2Gene=Term2Gene[Term2Gene[,2]%in%names(geneList),]
+                                        gsea_result[[names(projection_coef)[j]]] = clusterProfiler::GSEA(geneList = geneList,
+                                                              minGSSize = 3,
+                                                              maxGSSize = 2500,
+                                                              pvalueCutoff = 2,
+                                                              TERM2GENE = Term2Gene)
+                                      }
+                                    }
+                                    return(gsea_result)
+                                  }
+
+
+## See Codebase for load_blood_cell_markers
+GSEA_ready_mapping <- load_blood_cell_markers(setting = "protein", transcript_rowfeatures = nasal_transcriptomics_rowfeature)
+colnames(GSEA_ready_mapping) <- c("term", "feature")
+
+GSEA_list <- list("pbmc" = as.data.frame(GSEA_ready_mapping))
+active_database <- "pbmc_cell_type_marker_genes"
+base_obj1$MODgseaRes[[active_database]] <-runGSEA2(projection_coef = base_obj1$projection_coef, 
+      Term2GeneList = GSEA_list)
+
+#### NASAL Cell Type Enrichment #####################
+## See Codebase for load_nasal_cell_markers
+GSEA_ready_mapping <- load_nasal_cell_markers(broad = T, granulocytes = T, setting = "protein")
+GSEA_list <- list("nt" = as.data.frame(GSEA_ready_mapping))
+
+active_database <- "nasal_cell_type_marker_genes"
+base_obj1$MODgseaRes[[active_database]] <-runGSEA2(projection_coef = base_obj1$projection_coef,
+      Term2GeneList = GSEA_list)
+
+  
+ggpbmc <- circle_plot(base_obj1[["MODgseaRes"]][["pbmc_cell_type_marker_genes"]][["pbmc"]]@result,
+            title = "Factor 1")
+ggnasal <- circle_plot(base_obj1[["MODgseaRes"]][["nasal_cell_type_marker_genes"]][["nt"]]@result,
+            title = "Factor 4")
+
+ggarrange(
+  ggpbmc, ggnasal, labels = c("PGX", "NGX"),
+  common.legend = TRUE, legend = "bottom"
+  )
+ggsave(paste0(out_dir, "panelB.pdf"))
+write.csv(rbind.data.frame(ggpbmc$data %>% mutate(assay = "PBMC"),
+                           ggnasal$data %>% mutate(assay = "NT")) %>%
+            dplyr::select(assay, Description, setSize, enrichmentScore, NES, pvalue, p.adjust, signed_log10_padj),
+          paste0(out_dir, "FigS3_data_panelB.csv"), row.names = F)
+```
+
+## Panel C
+```{r panel C, fig.width=10, fig.height=4}
+
+
+T_cell_combo <- function(counts, rowfeature) { 
+  ## Log1p normalize and scale the major parent frequnencies
+  bld_cytof_parent_counts_processed <- counts %>%
+    rownames_to_column(var = "event_id") %>%
+    pivot_longer(cols = -event_id, names_to = "rowname") %>%
+    merge(y = rownames_to_column(rowfeature), by = "rowname") %>%
+    group_by(event_id, `Broad Parent Population`) %>%
+    mutate(`Broad Parent Population` = gsub(pattern = "\\+", replacement = "", `Broad Parent Population`)) %>%
+    mutate(`Broad Parent Population` = ifelse(grepl("T Cell", `Broad Parent Population`), "T Cell", `Broad Parent Population`)) %>%
+    dplyr::summarize(value = sum(value)) %>%
+    pivot_wider(names_from = `Broad Parent Population`) %>%
+    dplyr::select(-contains(match = "Debris"), 
+                  -contains(match = "Multiplet"),
+                  -`Platelets`, 
+                  -`RBC`, 
+                  -`Neutrophil`,
+                  -`Eosinophil`,
+                  -`Basophil`,
+                  -`Undefined`) %>%
+    column_to_rownames(var = "event_id")
+  bld_cytof_parent_counts_processed <-   bld_cytof_parent_counts_processed/rowSums(bld_cytof_parent_counts_processed)
+  
+  # # Log-transform 
+  # bld_cytof_parent_counts_processed <- log1p(bld_cytof_parent_counts_processed)
+  # 
+  # bld_cytof_parent_counts_processed <- bld_cytof_parent_counts_processed %>% 
+  #   apply(2, scale) %>% 
+  #   data.frame(check.names = F) %>% 
+  #   `rownames<-`(row.names(bld_cytof_parent_counts_processed))
+  
+  return(value = bld_cytof_parent_counts_processed)
+}
+
+
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+scale_tidy <- function(x){
+ qqnorm(x,plot.it = F)$x
+}
+
+
+
+plotlist = list()
+raw_plot = list()
+## Put pathway here
+for(pathway in c("Th1 and Th2 cell differentiation",
+                 "Th17 cell differentiation",
+                 "T cell receptor signaling pathway")){
+  
+  ## Prepare CyTOF Normalized counts
+  ## Using a CyTOF normalization that combined CD4 and CD8
+  ## NEW 4-27-2023
+  normalized_CyTOF_counts_train <-T_cell_combo(base_obj1$others$bld_cytof$train$bld_cytof_counts, base_obj1$others$bld_cytof$train$bld_cytof_rowfeature)
+  
+  
+  colnames(normalized_CyTOF_counts_train) <- gsub(" ", "", colnames(normalized_CyTOF_counts_train))
+  
+  for(i in 1:2){ ## on pass 1 run 4v5 compairson and on pass 2 run global
+    ## Prepare a modeling data frame
+    #### RATHER THAN USE THE PATHWAY MODULATE TO GET THE AVERAGE OF ALL GENES
+    #### Ravi this is the spot we were hoping to switch from composite features to the average
+    
+    pathway_feat = kegg_database$pbmc$gene_name[kegg_database$pbmc$description == pathway]
+    pathway_feat = pathway_feat[pathway_feat %in% colnames(base_obj1$assays.train$pbmc_transcriptomics)]
+    
+     inputDF <- cbind.data.frame( 
+       base_obj1$assays.train$pbmc_transcriptomics[, pathway_feat] %>% rowSums(),
+       base_obj1$clin.train) %>%
+      rename("pathway" = 1) %>%
+      filter(!is.na(pathway)) %>%
+       mutate(cohort = ifelse(event_id %in% base_obj1$clin.train$event_id, "train", "test")) %>%
+      filter(cohort == "train") %>%
+      left_join(normalized_CyTOF_counts_train %>% rownames_to_column("event_id")) %>%
+      pivot_longer(cols = c(pathway)) 
+     if(i==2) {
+      inputDF <- inputDF %>%
+      mutate(trajectory_group = ifelse(trajectory_group %in% c("1", "2", "3"), "TG1-3", trajectory_group)) %>%
+      mutate(trajectory_group = ordered(trajectory_group, levels = c("TG1-3", "4", "5")))
+     }else{
+       inputDF <- inputDF %>%
+      mutate(trajectory_group = ifelse(trajectory_group %in% c("1", "2", "3"), NA, trajectory_group)) %>%
+       filter(!is.na(trajectory_group)) %>%
+      mutate(trajectory_group = ordered(trajectory_group, levels = c("4", "5")))
+       }
+     inputDF <- inputDF %>%
+       mutate(
+             participant_id = factor(participant_id),
+             enrollment_site = factor(enrollment_site),
+             sex = factor(sex),
+             discretized_admit_age_quantile = ordered(discretized_admit_age_quantile)) %>%
+      group_by(name) %>%
+      filter(name == "pathway") %>%
+       filter(!is.na(`TCell`)) %>%
+      ##filter(!is.na(`CD4TCell`)) %>% ## If CD4 is present, CD8 is also always present which is why I only filter on CD4
+      mutate(value = scale_tidy(value))
+    
+    ## GAM Model that adds CD4TCell and CD8TCell
+    # formula_use <- formula(paste0("value~ s(event_date, bs = 'cr')+
+    #               s(event_date, bs = 'cr', by = trajectory_group) + trajectory_group + sex + discretized_admit_age_quantile +CD4TCell + CD8TCell"))
+     formula_use <- formula(paste0("value~ s(event_date, bs = 'cr')+
+                  s(event_date, bs = 'cr', by = trajectory_group) + trajectory_group + sex + discretized_admit_age_quantile +TCell"))
+    fit <- gamm4::gamm4(formula_use, data = inputDF, random = ~(1|enrollment_site/participant_id))
+    
+    ##### Anova results
+    ### Match this to how the p-values are currently being calculated for the longitudinal plots.
+    a1 <- anova(fit$gam)
+    aa1 = sum(a1$s.table[-c(1), 3]*a1$s.table[-c(1), 2])
+    aa2 = sum(a1$s.table[-c(1), 2])
+    global.p = pchisq(aa1,aa2, lower.tail = F)
+    parametric.p = a1$pTerms.pv
+    digit=1
+    if(i==1){
+      p_shape = formatC(global.p, format = "e", digits = digit)
+      p_average =  formatC(a1$pTerms.pv[1], format = "e", digits = digit)
+      text2 = paste0("4|5.shp/ave:", p_shape,"/", p_average)
+    } else if(i==2){
+      p_shape = formatC(global.p, format = "e", digits = digit)
+      p_average =  formatC(a1$pTerms.pv[1], format = "e", digits = digit)
+      text1 = paste0("all.shp/ave:", p_shape,"/", p_average)
+    }
+  
+  }
+  
+  pred <- ggpredict(fit, c("event_date", "trajectory_group"), type = "fixed",
+                        ci.lvl = 0.95)
+  colnames(pred) <- gsub("x", "event_date", gsub("group", "trajectory_group", colnames(pred)))
+  
+  ## Clean the trend lines to cut the line at the last timepoint per TG
+  pred <- pred %>%
+    mutate(trajectory_group = as.character(trajectory_group)) %>%
+            left_join(inputDF %>%
+                        mutate(trajectory_group = as.character(trajectory_group)) %>%
+                        group_by(trajectory_group) %>%
+                        dplyr::summarize(max = max(event_date)), by = "trajectory_group") %>%
+            filter(event_date <= max)
+  
+  p1 <-pred %>%
+    mutate(trajectory_group = ifelse(trajectory_group %in% c("4", "5"),
+                       paste0("TG", trajectory_group), trajectory_group)) %>%
+             ggplot(mapping = aes(x = event_date, y = predicted)) +
+    geom_line(mapping = aes(group = trajectory_group, y = predicted, x=event_date,
+                                               color = trajectory_group), size = 0.8) +
+    geom_ribbon(aes(x=event_date, ymin = conf.low, ymax = conf.high, fill = trajectory_group),
+                alpha = 0.3) +
+    
+    theme_classic(base_size  = 18) +
+    scale_color_manual(values = unname(TrajGrpCol[c(1,4,5)]))+
+    scale_fill_manual(values = unname(TrajGrpCol[c(1,4,5)])) +
+    ylab(pathway) +
+    xlab("Days from Hospitalization") +
+    theme(
+          legend.position = "none")
+    
+  raw_plot[[pathway]] = p1
+  plotlist[[pathway]] = annotate_figure(p1, top = text_grob(paste0(text1,"\n", text2), color = "black", face = "bold", size = 12))
+}
+
+
+
+ggarrange(plotlist = plotlist, nrow=1)
+pdf(paste0(out_dir, "panelC.pdf"), width = 15, height = 6)
+ggarrange(plotlist = plotlist, nrow=1)
+dev.off()
+
+indiv_data_points = data.frame()
+for(pathway in names(raw_plot)) {
+  indiv_data_points = rbind(
+    indiv_data_points,
+    as.data.frame(raw_plot[[pathway]]$data) %>% mutate(pathway=pathway)
+  )
+}
+write.csv(indiv_data_points, paste0(out_dir, "FigS3_data_panelC.csv"))
+
+
+
+
+```
+
+
+## Panel D
+```{r}
+
+fix_dataset_clm_names <- function(ctype.names) {
+  ctype.names = gsub(" ", "_", ctype.names)
+  ctype.names = gsub("\\(", "_po_", ctype.names)
+  ctype.names = gsub("\\)", "_pc_", ctype.names)
+  ctype.names = gsub("\\+", "_pos_", ctype.names)
+  ctype.names = gsub("\\-", "_neg_", ctype.names)
+  return(ctype.names)
+}
+
+unfix_dataset_clm_names <- function(ctype.names) {
+  ctype.names = gsub("_po_", "\\(", ctype.names)
+  ctype.names = gsub("_pc_", "\\)", ctype.names)
+  ctype.names = gsub("_pos_", "\\+", ctype.names)
+  ctype.names = gsub("_neg_", "\\-", ctype.names)
+  ctype.names = gsub("_", " ", ctype.names)
+  return(ctype.names)
+}
+ 
+
+compare_pathway_datasets <- function(pathway_score, dataset, any_base_obj, univariate = TRUE, qqnorm = FALSE, additional_clin_covariates = NULL, use_lm = FALSE) {
+  my_res = list()
+  if(qqnorm) {
+    pathway_score[,1] <- qqnorm(pathway_score[,1], plot.it = F)$x
+    dataset <- apply(dataset,2,function(z) qqnorm(z,plot.it = F)$x) %>% as.data.frame()
+  }
+
+  dataset_clm = colnames(dataset)
+  
+  model.data <- dataset %>%
+    rownames_to_column("event_id") %>%
+    right_join(rbind(any_base_obj$clin.train, any_base_obj$clin.test)[,c("event_id","trajectory_group","sex","discretized_admit_age_quantile","enrollment_site","participant_id", additional_clin_covariates)], by="event_id") %>%
+    left_join(pathway_score %>% setNames("pathway") %>% rownames_to_column("event_id"), by="event_id")
+
+  ## Remove missing data
+  model.data <- model.data[ !is.na(rowSums(model.data[,c("pathway", dataset_clm )])), ]
+  
+  # Created ordered factor for TG and age.
+  model.data$trajectory_group = factor(model.data$trajectory_group, levels=1:5, ordered = TRUE)
+  model.data$discretized_admit_age_quantile = factor(model.data$discretized_admit_age_quantile, c("[18,35]","[36,51]","[52,66]","[67,81]","[82,96]"), ordered = TRUE)
+  # Factorizing categorical variables
+  model.data$sex = factor(model.data$sex)
+  
+  if(sum(is.na(model.data$discretized_admit_age_quantile)) > 0) {
+    stop("Creating ordered factor for age creates NA values.")
+  }
+  
+  res_df = data.frame()
+  
+  if(univariate) {
+    ## Univariate model
+    for(clm in dataset_clm) {
+      if(use_lm) {
+        warning("Beware: you may want to one-hot encode the categorical variables while using lm.")
+        fit <- lm(formula(as.formula(paste("pathway ~ ", clm, " + trajectory_group + sex + discretized_admit_age_quantile + enrollment_site",
+                                           ifelse(!is.null(additional_clin_covariates), 
+                       paste(" + ", additional_clin_covariates, collapse = " + "), 
+                       "")
+                                           ))), data = model.data) %>% summary()
+        
+        res_df <- rbind(res_df, data.frame(
+          pval=fit$coefficients[2,4], 
+          coef=sign(fit$coefficients[2,1])
+          ) %>% 
+            mutate(clm = clm))
+      } else {
+        formula_use <- formula(as.formula(
+          paste("pathway ~ ", clm, " + trajectory_group + sex + discretized_admit_age_quantile",
+                ifelse(!is.null(additional_clin_covariates), 
+                       paste(" + ", additional_clin_covariates, collapse = " + "), 
+                       "")
+                )
+          ))
+        fit <- lme(fixed = formula_use, random = ~1|enrollment_site/participant_id, data = model.data, control = lmeControl(opt = "optim")) # Had to add `control = lmeControl(opt = "optim")`, because the lme broke with complement pathway and ppgd ds.
+        res <- anova(fit, type = "marginal")
+        res_df <- rbind(res_df, data.frame(
+          pval=res[clm, "p-value"], 
+          coef=sign(fit$coefficients$fixed[clm])
+          ) %>% 
+            mutate(clm = clm))
+      }
+
+    }
+    res_df = res_df  %>% arrange(-pval) %>% 
+      mutate(
+        clm = factor(clm, levels=.$clm), 
+        pval = ifelse(pval == 0, 10^-20, pval )
+        )
+    res_lbl = paste0("uni_", ifelse(qqnorm,"wQQnorm","woQQnorm"))
+    my_res[[res_lbl]] = res_df
+    
+  } else {
+    ## Multivariate model:
+    formula_use = formula(as.formula(
+        paste("pathway ~ ", clm, " + trajectory_group + sex + discretized_admit_age_quantile",
+              ifelse(!is.null(additional_clin_covariates), 
+                     paste(" + ", additional_clin_covariates, collapse = " + "), 
+                     "")
+              )
+      ))
+    if(!is.null(additional_clin_covariates)) {
+      formula_use = paste(formula_use, "+", paste(additional_clin_covariates, collapse = " + "))
+    }
+    fit <-lme(fixed = formula_use, random = ~1|enrollment_site/participant_id, data = model.data)
+    res = anova(fit, type = "marginal")
+    res_df = data.frame(
+      pval=res[dataset_clm, "p-value"], 
+      coef=sign(fit$coefficients$fixed[dataset_clm])) %>%
+      mutate(clm = dataset_clm) %>% arrange(-pval) %>% 
+      mutate(clm = factor(clm, levels=.$clm), 
+             pval = ifelse(pval == 0, 10^-20, pval ))
+    res_lbl = paste0("multi_", ifelse(qqnorm,"wQQnorm","woQQnorm"))
+    my_res[[res_lbl]] = res_df
+  }
+  return(my_res)
+}
+
+
+
+# Calculate composite scores
+path_res_tbl_lists = list(
+  "Apoptosis" = base_obj1$MODmghRes$kegg_pos_impacc,
+  "Necroptosis" = base_obj1$MODmghRes$kegg_pos_impacc,
+  "Neutrophil extracellular trap formation" = base_obj1$MODmghRes$kegg_pos_impacc,
+  "HALLMARK_INFLAMMATORY_RESPONSE" = base_obj1$MODmghRes$hallmark_pos_impacc,
+  "Complement and coagulation cascades" = base_obj1$MODmghRes$kegg_pos_impacc,
+  "TNF signaling pathway" = base_obj1$MODmghRes$kegg_pos_impacc,
+  "HALLMARK_IL6_JAK_STAT3_SIGNALING" = base_obj1$MODmghRes$hallmark_pos_impacc,
+  "Platelet activation" = base_obj1$MODmghRes$kegg_pos_impacc,
+  "Tryptophan metabolism" = base_obj1$MODmghRes$kegg_pos_impacc,
+  "Phenylalanine metabolism" = base_obj1$MODmghRes$kegg_pos_impacc,
+  "Histidine metabolism" = base_obj1$MODmghRes$kegg_pos_impacc,
+  "Th17 cell differentiation" = base_obj1$MODmghRes$kegg_neg_impacc,
+  "Th1 and Th2 cell differentiation" = base_obj1$MODmghRes$kegg_neg_impacc,
+  "T cell receptor signaling pathway" = base_obj1$MODmghRes$kegg_neg_impacc
+)
+
+composite_scores_factor1 = list()
+for(term in names(path_res_tbl_lists)) {
+  composite_scores_factor1[[paste0(term, "_train")]] = 
+    base_obj1$composite_features_creation(
+      result_table_list = path_res_tbl_lists[[term]],
+      term = term,
+      core_enrichment_name = "core_enrichment",phase = "train")
+  
+  composite_scores_factor1[[paste0(term, "_test")]] = 
+    base_obj1$composite_features_creation(
+      result_table_list = path_res_tbl_lists[[term]],
+      term = term,
+      core_enrichment_name = "core_enrichment",phase = "test")
+}
+
+
+normalized_CyTOF_counts <- base_obj1$others$bld_cytof$train$bld_cytof_counts
+ctype.names = fix_dataset_clm_names(colnames(normalized_CyTOF_counts))
+colnames(normalized_CyTOF_counts) <- ctype.names
+
+# qqnormed apoptosis score, but not the olink data.
+apopPBMC_so = compare_pathway_datasets(
+    composite_scores_factor1$Apoptosis_train$pbmc %>% mutate(V1=qqnorm(V1, plot.it = F)$x), 
+    base_obj1$assays.train$serum_olink,
+    base_obj1, univariate = TRUE, qqnorm = FALSE)[[1]]
+apopPBMC_so$padj <- p.adjust(apopPBMC_so$pval, method="BH")
+apopPBMC_so$isSig <- apopPBMC_so$padj < 0.05
+apopPBMC_so = mutate(apopPBMC_so, clm = fct_reorder(clm, -log10(padj)*coef))
+apop_vs_so = ggplot(apopPBMC_so, aes(clm, -log10(padj)*coef, color = coef)) + geom_point() + theme_classic() + theme(axis.text.x = element_blank(), axis.ticks = element_blank()) + scale_color_distiller(palette = "RdBu") + geom_text_repel(data = dplyr::filter(apopPBMC_so, padj < 0.05), mapping = aes(label=clm), max.overlaps = Inf) + labs(x="Rank", y="Signed -log10(padj)", title = "Apoptosis-PBMC vs SPT")
+
+print(apop_vs_so)
+pdf(paste0(out_dir, "panelD.pdf"), width = 10, height = 6)
+print(apop_vs_so)
+dev.off()
+
+write.csv(apop_vs_so$data, paste0(out_dir, "FigS3_data_panelD.csv"))
+
+```
+
+## Panel E
+```{r panel E, fig.height=10, fig.width=6}
+gg1 <- plot_enrichment_dot_v2(base_obj1, thr=0.1, test_type = "mhg", databases = c("IFN_inhibitors","C3","Omnipath"), plot_title = "Factor1")
+
+gg1
+ggsave(paste0(out_dir, "panelE.pdf"), width = 3.95, height = 4, device = "pdf")
+write.csv(gg1$data %>% dplyr::select(-core_enrichment), paste0(out_dir, "FigS3_data_panelE.csv"))
+```
+
+# Panel F1
+```{r}
+genes = c("HPD", "FAH",  "SLC16A1")
+projections_genes <- base_obj1$assays.train$pbmc_transcriptomics %>%
+  dplyr::select(genes)
+
+metabolites = c("N-acetylphenylalanine", "phenylalanine", "phenyllactate (PLA)")
+projections_metabolites <- base_obj1$assays.train$plasma_metabolomics_global %>%
+  dplyr::select(metabolites)
+
+projections_genes_metabolites = cbind(projections_genes, projections_metabolites)
+
+master_corr <- rcorr.adjust(as.matrix(projections_genes_metabolites),  type = "spearman")
+master_corr_estimate = master_corr$R$r
+master_corr_p = master_corr$R$P
+
+master_corr_estimate_thr = master_corr_estimate
+master_corr_estimate_thr[master_corr_p >(0.01/((nrow(master_corr_p)*ncol(master_corr_p))))] = 0
+
+master_corr_estimate_thr1 = master_corr_estimate_thr[metabolites, genes]
+
+
+corrplot(master_corr_estimate_thr1,
+         col = colorRampPalette(c("blue", "white", "red"))(100),
+         #type = 'upper',
+         col.lim = c(min(master_corr_estimate_thr1), max(master_corr_estimate_thr1)),
+         tl.col = 'black'
+       )
+
+
+pdf(file = paste0(out_dir, "panelF1.pdf"))
+
+corrplot(master_corr_estimate_thr1,
+         col = colorRampPalette(c("blue", "white", "red"))(100),
+         #type = 'upper',
+         col.lim = c(min(master_corr_estimate_thr1), max(master_corr_estimate_thr1)),
+         tl.col = 'black'
+       )
+
+dev.off()
+write.csv(master_corr_estimate_thr1, paste0(out_dir, "FigS3_data_panelF.csv"))
+```

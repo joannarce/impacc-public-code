@@ -1,0 +1,299 @@
+---
+title: "FigS2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load packages}
+# Most packages are loaded by "class_structure.R" (see below). Load any additional packages here.
+library(tidyverse)
+library(circlize)
+library(ComplexHeatmap)
+library(nlme)
+
+library(igraph)
+library(ggraph)
+```
+
+
+```{r load code and data, warning=FALSE, message=FALSE}
+
+##### Load code
+source("../../../0.Codebase/class_structures.R", local=FALSE, chdir=TRUE)
+
+##### Load data object
+base_obj1 = readRDS(file ="/scratch/data-integration/cleanedup_rkp/mod1_interpretation_base.rds") # e.g., ../../3.data_object_preparation/output/mod1_interpretation_base.rds
+
+##### Load other data files, if any
+
+
+##### Set global variables
+# Trajectory group colors
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+
+# Omic names: 
+# note: ppt, ppgd, so, pmg, nt and pbmc correspond to PPT, PPG, SPT, PMG, NGX and PGX, respectively, in the manuscript.
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+
+
+##### Output directory
+out_dir = "../output/"
+dir.create(out_dir, showWarnings = F)
+```
+
+
+```{r reformat the mHG enrichment results for downstream analysis}
+
+# Combine all enrichment results which will be used for generating the enrichment dotplot.
+streamline_enrichment_results(base_obj1, datasets=c("ppt","ppgd","so","pmg","nt","pbmc"), databases = c("kegg","hallmark","smpdb","immglob", "metabSub", "isgs"))
+
+combine_enrichment_results(base_obj1, databases = c("kegg","hallmark","smpdb","immglob", "metabSub","isgs"))
+
+```
+
+## Panel A
+```{r panel Suppl A}
+
+# This chunk of code prepares data files for enrichment maps and uses Cytoscape API to generate an enrichment map in Cytoscape. 
+# Users can save the enrichment map manually to their favorite location. We have provided the output of this code during our analysis in "../output/FigS2A_enrichmentMap_factor1_v2.pdf".
+# NOTE: it is assumed that Cytoscape is installed and R is able to connect to Cytoscape.
+
+nDatasets = 1
+databases = c("kegg","hallmark")
+qval_cutoff = 0.1
+data = data.frame()
+for(d in omic_short_names) {
+  data = rbind( 
+    data, 
+    base_obj1$MODmghRes$all_mod[[d]]$result %>% 
+      dplyr::filter(database %in% databases) %>%
+      dplyr::select(c("Description","pvalue","qvalues","NES","core_enrichment")) %>%
+      mutate(omic = d)
+    )
+}
+
+# Keep only those pathways that have consistent sign across >= n datasets
+n = nDatasets
+data$sign = sign(data$NES)
+consistent_path = group_by(data, Description) %>% summarise( consistent = max(table(sign)) >= n ) %>% dplyr::filter(consistent) %>% pull(Description)
+signif_path = group_by(data, Description) %>% summarise( signif = sum(qvalues < qval_cutoff) > 0 ) %>% dplyr::filter(signif) %>% pull(Description)
+data = data %>% dplyr::filter(Description %in% intersect(consistent_path, signif_path))
+
+
+#write.csv(data, file.path(out_dir, "FigS2A_enrichmentmap_mod1.csv"))
+
+
+
+mod_dir = file.path(out_dir, "enrichment_map_factor1")
+dir.create( mod_dir )
+gmt = data %>% dplyr::filter(qvalues < qval_cutoff) %>% 
+  mutate(core_enrichment = gsub("#","\t",core_enrichment) ) %>% 
+  group_by(Description) %>% 
+  summarise(core_enrichment = paste0(core_enrichment, collapse="\t")) %>% 
+  mutate(id = Description) %>%
+  mutate( core_enrichment = sapply( stringr::str_split(core_enrichment, "\t"), function(x) paste0(unique(unlist(x)), collapse="\t") ) ) %>%
+  relocate(id)
+
+write.table(gmt, file.path(mod_dir,"1.gmt"), quote=F, row.names = F, col.names = F, sep="\t")
+
+mat_figs2a = data.frame()
+for(i in unique(data$omic)) {
+  td = data %>% filter(omic == i) %>%
+    mutate(GO.ID = Description, p.Val = pvalue, FDR = qvalues) %>%
+    filter(qvalues < qval_cutoff) %>%
+    dplyr::select(c("GO.ID","Description","p.Val","FDR","NES"))
+  mat_figs2a = rbind(mat_figs2a, mutate(td, omic = i))
+  write.table(td, file.path(mod_dir, paste0(i,".txt")), quote=F, row.names = F, col.names = T, sep="\t" )
+}
+
+write.csv(x = mat_figs2a, file = paste0(out_dir,"FigS2_data_panelA.csv"), quote = FALSE)
+
+check = tryCatch({
+  # Generate a network in Cytoscape
+  cmd = paste0("enrichmentmap mastermap rootFolder=\"",mod_dir,"\" pvalue=1 qvalue=0.1 similaritycutoff=0.3 combinedConstant=0.5")
+  response <- commandsGET(cmd)
+  
+  # Make heat_strips
+  response <- commandsGET("enrichmentmap chart data=NES_VALUE showChartLabels=false")
+}, warning = function(w){
+  warning(w)
+}, error = function(e){
+  cat("Error: Can't generate enrichment maps. Make sure your R can talk to Cytoscape and rerun.")
+})
+
+
+
+
+
+```
+
+```{r panel Suppl B}
+
+## Dot plot of select pathways from the four groups in enrichment map in panel A.
+mod1_suppl_pathways = c(
+  # inflammation
+"Cytokine-cytokine receptor interaction",
+"Chemokine signaling pathway",
+"IL-17 signaling pathway",
+"HALLMARK_IL2_STAT5_SIGNALING",
+"HALLMARK_INTERFERON_GAMMA_RESPONSE",
+"HALLMARK_INTERFERON_ALPHA_RESPONSE",
+"HALLMARK_COMPLEMENT",
+"HALLMARK_COAGULATION",
+"HALLMARK_TNFA_SIGNALING_VIA_NFKB",
+"NF-kappa B signaling pathway",
+"Toll-like receptor signaling pathway",
+"NOD-like receptor signaling pathway",
+"Leukocyte transendothelial migration",
+"HIF-1 signaling pathway",
+
+# metabolism
+"Biosynthesis of amino acids",
+"Tyrosine metabolism",
+"Glutathione metabolism",
+"Starch and sucrose metabolism",
+"Mucin type O-glycan biosynthesis",
+"HALLMARK_GLYCOLYSIS",
+"Glycolysis / Gluconeogenesis",
+"Neomycin, kanamycin and gentamicin biosynthesis",
+"Pantothenate and CoA biosynthesis",
+"Primary bile acid biosynthesis",
+"HALLMARK_REACTIVE_OXYGEN_SPECIES_PATHWAY",
+"HALLMARK_HYPOXIA",
+
+# t cell
+"PD-L1 expression and PD-1 checkpoint pathway in cancer",
+"Human T-cell leukemia virus 1 infection",
+"Cell adhesion molecules",
+"Hematopoietic cell lineage",
+"Graft-versus-host disease",
+"HALLMARK_ALLOGRAFT_REJECTION",
+"Influenza A",
+"Intestinal immune network for IgA production",
+"Natural killer cell mediated cytotoxicity",
+
+# cell cycle & cell death
+"Cell cycle",
+"Cellular senescence",
+"p53 signaling pathway",
+"HALLMARK_MITOTIC_SPINDLE",
+"HALLMARK_G2M_CHECKPOINT",
+"HALLMARK_E2F_TARGETS",
+"mTOR signaling pathway",
+"HALLMARK_APOPTOSIS"
+)
+
+dot = plot_enrichment_dot_v2(base_obj1, select_pathways = mod1_suppl_pathways, thr=0.1, test_type = "mhg", databases = c("kegg","hallmark","isgs","metaSub"), auto_ordering = T, plot_title = "Factor 1", pathway_groups = c(rep("1i",14),rep("2m",12),rep("3t",9),rep("4c",8)) %>% setNames(mod1_suppl_pathways), nested_ordering_with_databases = F)
+
+
+# Print the output in md
+print(dot)
+# Print pdf file
+pdf(file.path(out_dir, "FigS2B.pdf"), width=6.04, height=8.3)
+print(dot)
+dev.off()
+
+write.csv(dot$data, paste0(out_dir, "FigS2_data_panelB.csv"))
+
+```
+
+
+```{r panel Suppl C, fig.width=19, fig.height=18}
+
+### Panel C
+terms = c(
+    "Neutrophil extracellular trap formation",
+    "HALLMARK_INFLAMMATORY_RESPONSE",
+    "TNF signaling pathway",
+    "Complement and coagulation cascades",
+    "Platelet activation",
+    "Apoptosis",
+    "Necroptosis",
+    "Th1 and Th2 cell differentiation",
+    "Th17 cell differentiation",
+    "T cell receptor signaling pathway",
+    "Antigen processing and presentation",
+    "Tryptophan metabolism",
+    "Phenylalanine metabolism",
+    "Histidine metabolism")
+db = c("kegg","hallm",rep("kegg",12)) %>% setNames(terms)
+sign_ds = list(
+    "Neutrophil extracellular trap formation" = c("ppt"=1,"ppgd"=1,"nt"=1,"pbmc"=1),
+    "HALLMARK_INFLAMMATORY_RESPONSE" = c("so"=1,"nt"=1,"pbmc"=1),
+    "Complement and coagulation cascades" = c("ppgd"=1,"pbmc"=1),
+    "TNF signaling pathway" = c("so"=1,"nt"=1,"pbmc"=1),
+    "Platelet activation" = c("ppt"=1,"ppgd"=1),
+    "Apoptosis" = c("ppgd"=1,"pbmc"=1),
+    "Necroptosis" = c("ppgd"=1,"pbmc"=1),
+    "Th1 and Th2 cell differentiation" = c("pbmc"=-1),
+    "Th17 cell differentiation" = c("pbmc"=-1),
+    "T cell receptor signaling pathway" = c("pbmc"=-1),
+    "Antigen processing and presentation" = c("pbmc"=-1),
+    "Tryptophan metabolism" = c("pmg"=1),
+    "Phenylalanine metabolism" = c("pmg"=1),
+    "Histidine metabolism" = c("pmg"=1)
+)
+#sign = c(rep(1,7),rep(-1,4),rep(1,3)) %>% setNames(terms)
+
+
+indiv_data_points = data.frame()
+all_plot_objs = list()
+for(term in terms) {
+  for(ds in names(sign_ds[[term]])) {
+    sign = sign_ds[[term]][ds]
+    mhg_res = case_when(
+      db[term] == "kegg" & sign == 1 ~ "kegg_pos_impacc",
+      db[term] == "kegg" & sign == -1 ~ "kegg_neg_impacc",
+      db[term] == "hallm" & sign == 1 ~ "hallmark_pos_impacc",
+      db[term] == "hallm" & sign == -1 ~ "hallmark_neg_impacc"
+    )
+    pp = make_box_trajectory_plots_general(term = term, term_type = "pathway", term_extract_param_list = list("base_obj" = base_obj1, "result_table_list" = base_obj1$MODmghRes[[mhg_res]], "sign" = sign), phase = "train", event_date = "admission", merge123 = T)
+    data_pt_local = data.frame()
+    if(!is.null(pp$traj_indiv_plot_list[[ds]])) {
+      data_pt_local = 
+        as.data.frame(
+          ggcheck::get_data(
+            ggcheck::get_geom_layer(
+              pp$traj_indiv_plot_list[[ds]][[1]], geom = "ribbon"
+              )
+            )
+          ) %>%
+        mutate(term = term, dataset = ds)
+      # To make the trajectory plot using the extracted data.
+      # data_pt_local %>% ggplot(aes(event_date, predicted, group=trajectory_group))  + geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=trajectory_group)) + geom_line()
+    }
+    
+    indiv_data_points = rbind(
+      indiv_data_points,
+      data_pt_local
+    )
+    all_plot_objs[[paste(term,ds,sep="_")]] = list(boxplot = pp$boxplots[[ds]], trajplot = pp$trajplots[[ds]])
+  }
+}
+
+plot_list = lapply(all_plot_objs, function(x){x$trajplot})
+
+# Print the output in md
+ggarrange(plotlist = plot_list, ncol = 6, nrow = 5)
+# Print pdf file
+pdf(file.path(out_dir, "FigS2C.pdf"), width=19, height=18)
+ggarrange(plotlist = plot_list, ncol = 6, nrow = 5)
+dev.off()
+
+write.csv(indiv_data_points, paste0(out_dir, "FigS2_data_panelC.csv"))
+
+
+```
+

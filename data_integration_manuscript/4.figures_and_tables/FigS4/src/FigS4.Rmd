@@ -1,0 +1,626 @@
+---
+title: "FigS4"
+output: html_document
+---
+
+
+```{r load packages}
+# Most packages are loaded by "class_structure.R" (see below). Load any additional packages here.
+library(ggraph)
+library(readxl)
+library(RColorBrewer)
+library(circlize)
+library(grid)
+library(ComplexHeatmap)
+```
+
+
+```{r load code and data, warning=FALSE, message=FALSE}
+
+##### Load code
+source("../../../0.Codebase/class_structures.R", local=FALSE, chdir=TRUE)
+
+##### Load data object
+base_obj1 = readRDS(file ="/scratch/data-integration/public_code_results/mod1_interpretation_base.rds") # e.g., ../../3.data_object_preparation/output/mod1_interpretation_base.rds
+
+
+##### Load other data files, if any
+Olink_modules_cmag <- read_excel("Olink_modules.xlsx")
+
+##### Set global variables
+# Trajectory group colors
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+
+# Omic names: 
+# note: ppt, ppgd, so, pmg, nt and pbmc correspond to PPT, PPG, SPT, PMG, NGX and PGX, respectively, in the manuscript.
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+
+
+
+
+factor1_transomics_association_train = read_rds("/scratch/data-integration/cleanedup_lguan/factor1_transomics_association_train.rds")
+
+projection_coef_so <- base_obj1$projection_coef$so %>%
+  rownames_to_column("Description") %>%
+  dplyr::rename("coeficient" = "1", "cytokine" = "Description")
+
+
+
+
+##### Output directory
+out_dir = "../output/"
+dir.create(out_dir, showWarnings = F)
+```
+
+# (1/2) Panel A: Prepare matrix file
+```{r Panel A-1}
+
+corr_matrix_panelA <- factor1_transomics_association_train$CORsig
+
+
+
+```
+
+# (2/2) Panel A: Plot complex heatmap
+```{r Panel A-2, fig.width=18, fig.height=10}
+corr_matrix_panelA <- factor1_transomics_association_train$CORsig
+corr_matrix_panelA[is.na(corr_matrix_panelA)] = 0
+
+rownames(corr_matrix_panelA) <- paste0(factor1_transomics_association_train$omic_names, "_", factor1_transomics_association_train$feature_names)
+colnames(corr_matrix_panelA) <- paste0(factor1_transomics_association_train$omic_names, "_", factor1_transomics_association_train$feature_names)
+ 
+not_spt_columns <- colnames(corr_matrix_panelA)[substr(colnames(corr_matrix_panelA), 1, 3) != "SPT"]
+spt_columns <- colnames(corr_matrix_panelA)[substr(colnames(corr_matrix_panelA), 1, 3) == "SPT"]
+
+PMG_columns <- colnames(corr_matrix_panelA)[substr(colnames(corr_matrix_panelA), 1, 3) == "PMG"]
+
+corr_matrix_df_PMG <- as.data.frame(corr_matrix_panelA) %>%
+  dplyr::select(not_spt_columns) %>%
+  filter(rownames(corr_matrix_panelA) %in% PMG_columns)   %>%
+  rownames_to_column("SPT") %>%
+  mutate(SPT = substr(SPT, 5, nchar(SPT))) %>%
+  column_to_rownames("SPT")
+  
+corr_matrix_df <- as.data.frame(corr_matrix_panelA) %>%
+  dplyr::select(not_spt_columns) %>%
+  filter(rownames(corr_matrix_panelA) %in% spt_columns)  %>%
+  rownames_to_column("SPT") %>%
+  mutate(SPT = substr(SPT, 5, nchar(SPT))) %>%
+  column_to_rownames("SPT")
+
+colnames(Olink_modules_cmag) <- c("cluster", "cytokine")
+
+Olink_modules_cmag_v1 <- Olink_modules_cmag %>%
+  filter(cytokine %in% rownames(corr_matrix_df))  %>%
+  left_join(projection_coef_so)  
+
+metabolite_clustering_factor2_modified <- data.frame(cytokine = rownames(corr_matrix_df_PMG)) %>%
+  mutate(cluster = "PMG pathway",
+         coeficient = 0) %>%
+  rbind(Olink_modules_cmag_v1) %>%
+  mutate(  omics_row = if_else(cluster == "PMG pathway", "PMG", "SPT"),
+    cluster_order = case_when(
+      cluster == "PMG pathway" ~ 1,
+      cluster == "Olink_mod0" ~ 2,
+      cluster == "Olink_mod1" ~ 3,
+      cluster == "Olink_mod2" ~ 4,
+      cluster == "Olink_mod3" ~ 5,
+      cluster == "Olink_mod4" ~ 6,
+      cluster == "Olink_mod5" ~ 7,
+      cluster == "Olink_mod6" ~ 8,
+      TRUE ~ 9
+    ),
+    cluster = case_when(
+      cluster == "Olink_mod0" ~ "Other Cytokines",
+      cluster == "Olink_mod1" ~ "Cytokines produced by Neutrophils",
+      cluster == "Olink_mod2" ~ "Cytokines produced by Macrophages",
+      cluster == "Olink_mod3" ~ "Activators of cytotoxic NKs",
+      cluster == "Olink_mod4" ~ "coreassay Mod 4",
+      cluster == "Olink_mod5" ~ "Cytokines related to B cells",
+      cluster == "Olink_mod6" ~ "Activators of Macrophages",
+      TRUE ~ cluster
+     )
+  )   %>%
+  arrange(cluster_order, desc(coeficient))  %>%
+  dplyr::select(-omics_row, -cluster_order)
+
+corr_matrix_df_metabolites <- rbind(corr_matrix_df, corr_matrix_df_PMG)
+
+corr_matrix_df_metabolites_v2 <- corr_matrix_df_metabolites[metabolite_clustering_factor2_modified$cytokine,, drop=T]
+
+annotation_row = metabolite_clustering_factor2_modified %>%
+  column_to_rownames("cytokine") 
+
+annotation_col <- data.frame(omics = colnames(corr_matrix_df_metabolites_v2)) %>%
+  mutate(
+         #feature = substr(omics, 5, nchar(omics)),
+         feature = omics,
+         omics = substr(omics, 1, 3)) %>%
+  column_to_rownames("feature")
+
+labels_col = data.frame(omics = colnames(corr_matrix_df_metabolites_v2)) %>%
+  mutate(
+         feature = substr(omics, 5, nchar(omics)),
+         ) %>%
+  column_to_rownames("omics")
+
+paletteLength <- 50
+myColor <- colorRampPalette(c("blue", "white", "red"))(paletteLength)
+myBreaks <- c(seq(min(corr_matrix_df_metabolites_v2), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(corr_matrix_df_metabolites_v2)/paletteLength, max(corr_matrix_df_metabolites_v2), length.out=floor(paletteLength/2)))
+
+annotation_row_v1 <- annotation_row %>%
+  mutate(coeficient = case_when(
+    coeficient >= 0.7 ~ "0.7 and high",
+    coeficient < 0.7 & coeficient >= 0.5 ~ "0.5 to 0.7",
+    coeficient < 0.5 & coeficient >= 0.3 ~ "0.3 to 0.5",
+    coeficient < 0.3 & coeficient >= 0.1 ~ "0.1 to 0.3",
+    coeficient < 0.1 & coeficient > 0 ~ "0.0 to 0.1",
+    coeficient == 0  ~ "0",
+    coeficient < 0 & coeficient >= -0.1 ~ "-0.1 to 0",
+    coeficient < -0.1 & coeficient >= -0.3 ~ "-0.1 to -0.3",
+    coeficient < -0.3 & coeficient >= -0.5 ~ "-0.3 to -0.5",
+    coeficient < -0.5 & coeficient >= -0.7 ~ "-0.5 to -0.7",
+    coeficient <= 0.7 ~ "-0.7 and less",
+  ))  
+
+annotation_row_v1 <- annotation_row_v1[, c("coeficient", "cluster")]
+
+col1 <- brewer.pal(n = length(unique(annotation_row_v1$cluster)), name = 'Dark2')
+names(col1)= unique(annotation_row_v1$cluster) 
+
+plot_mat = t(corr_matrix_df_metabolites_v2)
+col_fun = colorRamp2(c(min(corr_matrix_df_metabolites_v2), 0, max(corr_matrix_df_metabolites_v2)), c("blue", "white", "red"))
+col_fun_2 = colorRamp2(c(min(annotation_row$coeficient), 0, max(annotation_row$coeficient)), c("blue", "white", "red"))
+
+top_annotation = ComplexHeatmap::HeatmapAnnotation(
+                               coeficient = annotation_row$coeficient, 
+                               col = list(coeficient = col_fun_2),
+                               gp = gpar(col = "black")
+                               )
+
+FigS4A <- ComplexHeatmap::Heatmap(
+        as.matrix(plot_mat),
+        name = "Pathways", 
+        col = col_fun,
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        width = ncol(plot_mat)*unit(5, "mm"), 
+        height = nrow(plot_mat)*unit(5, "mm"),
+        column_split = annotation_row$cluster,
+        row_split = annotation_col$omics,
+        row_title_rot = 0,
+        column_title_rot = 90,
+        row_gap = unit(2, "mm"),
+        column_gap = unit(2, "mm"),
+        column_names_gp = grid::gpar(fontsize = 7),
+        row_title_gp = gpar(fontsize = 10),
+        column_title_gp = gpar(fontsize = 10),
+        row_names_gp = grid::gpar(fontsize = 8),
+        border = TRUE,
+        top_annotation = top_annotation
+        #left_annotation = left_row_annotation,
+        #bottom_annotation = bottom_annotation
+        
+        )
+order_of_cols <- colnames(plot_mat)
+write.csv(plot_mat, paste0(out_dir, "FigS4_data_panelA.csv"))
+
+FigS4A
+pdf(file.path(out_dir, "FigS4A.pdf"), width=15, height=10)
+print(FigS4A)
+dev.off()
+
+```
+
+# (1/2) Panel C: Prepare matrix file
+```{r Panel C-1}
+library(readxl)
+library(RColorBrewer)
+library(circlize)
+col_fun = colorRamp2(c(-0.8, 0, 0.8), c("#2166AC", "white", "#B2182B"))
+clustering <- read_xlsx("Olink_modules.xlsx")
+
+clustering <- clustering %>%
+  left_join(base_obj1$projection_coef$so %>% rownames_to_column("Feature")) %>%
+  arrange(Module, desc(abs(`1`))) %>%
+  dplyr::select(Module, Feature)
+
+lr_Network_Omnipath_Unique <- read_tsv("/scratch/data-integration/pipelines/Interpretation/Reference_databases/CellTalkDB_human_lr_pair_2023_03_17.txt") %>% rename(from = ligand_gene_symbol, to = receptor_gene_symbol) %>% distinct(from, to)
+
+cyto.out <- data.frame(); cyto.out.key <- data.frame()
+for(active_ligand in c(clustering$Feature)){
+  tmp.1 <- lr_Network_Omnipath_Unique %>% filter(from==active_ligand)
+  tmp.2 <- tmp.1 %>% 
+    left_join(base_obj1$projection_coef$pbmc %>% rownames_to_column("feature"), by = c("to" = "feature")) %>%
+    filter(!is.na(`1`))%>%
+    distinct(from, to, `1`) %>%
+    mutate(abs_val = abs(`1`)) %>%
+    arrange(abs_val) %>%
+    slice_head(n = 10) %>%
+    arrange(desc(`1`)) 
+  if(nrow(tmp.2) == 0){
+    cyto.out <- plyr::rbind.fill(cyto.out, data.frame("from" = active_ligand))
+    cyto.out.key <- plyr::rbind.fill(cyto.out.key, data.frame("from" = active_ligand))
+    next
+  }
+  tmp.3 <- tmp.2 %>%
+    mutate(Receptor = paste0("Receptor", 1:nrow(tmp.2))) %>%
+    pivot_wider(names_from = Receptor, values_from = `1`, id_cols = from)
+  tmp.3.key <- tmp.2 %>%
+    mutate(Receptor = paste0("Receptor", 1:nrow(tmp.2))) %>%
+    pivot_wider(names_from = Receptor, values_from = to, id_cols = from)
+cyto.out <- plyr::rbind.fill(cyto.out, tmp.3)
+cyto.out.key <- plyr::rbind.fill(cyto.out.key, tmp.3.key)
+}
+
+
+load("/scratch/data-integration/metabolomics/Map_mets_genes_mod1_4.RData")
+factor1_metabolites_of_high_interest_cleaned <- factor1_metabolites_of_high_interest_transcripts %>%
+  separate_rows(rxn_partner_common_name  ) %>%
+  mutate(pathway = ifelse(input_common_names %in% c("Quinolinic acid", "2-Aminobenzoic acid", "picolinate", "Kynurenine", "kynurenine", "Kynurenine; L-Kynurenine", "Kynurenic acid"), "Tryptophan metabolism",
+             ifelse( input_common_names %in% c("1-methyl-4-imidazoleacetate", "hydantoin-5-propionate", "Formiminoglutamic acid", "Methylimidazoleacetic acid"), "Histidine metabolism",
+                     ifelse(input_common_names %in% c("phenyllactate (PLA)", "phenylalanine", "N-acetylphenylalanine",
+                                                      "D-Phenyllactic acid", "Phenyllactic acid", "L-Phenylalanine; Phenylalanine"), "Phenylalanine metabolism", "Error"))
+             ) )
+
+for(active_ligand in c("Phenylalanine metabolism", "Tryptophan metabolism", "Histidine metabolism")){
+  tmp.2 <- factor1_metabolites_of_high_interest_cleaned %>% 
+    filter(pathway == active_ligand) %>%
+    left_join(base_obj1$projection_coef$pbmc %>% rownames_to_column("rxn_partner_common_name")) %>%
+    filter(!is.na(`1`))%>%
+    rename(from = pathway) %>%
+    distinct(from, rxn_partner_common_name, `1`) %>%
+    mutate(abs_val = abs(`1`)) %>%
+    arrange(abs_val) %>%
+    slice_head(n = 10) %>%
+    arrange(desc(`1`)) 
+  if(nrow(tmp.2) == 0){
+    cyto.out <- plyr::rbind.fill(cyto.out, data.frame("from" = active_ligand))
+    cyto.out.key <- plyr::rbind.fill(cyto.out.key, data.frame("from" = active_ligand))
+    next
+  }
+  tmp.3 <- tmp.2 %>%
+    mutate(Receptor = paste0("Receptor", 1:nrow(tmp.2))) %>%
+    pivot_wider(names_from = Receptor, values_from = `1`, id_cols = from)
+  tmp.3.key <- tmp.2 %>%
+    mutate(Receptor = paste0("Receptor", 1:nrow(tmp.2))) %>%
+    pivot_wider(names_from = Receptor, values_from = rxn_partner_common_name , id_cols = from)
+cyto.out <- plyr::rbind.fill(cyto.out, tmp.3)
+cyto.out.key <- plyr::rbind.fill(cyto.out.key, tmp.3.key)
+}
+
+heatdf <- cyto.out %>% column_to_rownames("from")
+heatdf.key <- cyto.out.key %>% column_to_rownames("from")
+heatdf.key[is.na(heatdf.key)] <- ""
+
+so_receptor_matrix_top10_f1 <- heatdf
+so_receptor_key_top10_f1 <- heatdf.key
+
+```
+
+# (2/2) Panel C: Plot complex heatmap
+```{r Panel C-2, fig.width=25, fig.height=10}
+
+iamsmallnumber = -55000
+so_receptor_matrix_top10_v1 <- so_receptor_matrix_top10_f1 %>%
+  rownames_to_column("feature") %>%
+  #rename(feature = "...1") %>%
+  mutate(feature = if_else(feature == "Tyrosine metabolism", "Tyrosine Metabolism", feature)) %>%
+  pivot_longer(!feature, names_to = "receptor", values_to = "correlation") %>%
+  mutate(correlation = if_else(is.na(correlation) == T, iamsmallnumber, correlation))
+
+so_receptor_key_top10_v1 <- so_receptor_key_top10_f1 %>%
+   rownames_to_column("feature") %>%
+  #rename(feature = "...1") %>%
+  mutate(feature = if_else(feature == "Tyrosine metabolism", "Tyrosine Metabolism", feature)) %>%
+  pivot_longer(!feature, names_to = "receptor", values_to = "key")
+
+so_receptor_matrix_key <- merge(so_receptor_matrix_top10_v1, so_receptor_key_top10_v1) 
+
+so_receptor_matrix_key_v1 <- so_receptor_matrix_key %>%
+  group_by(feature) %>%
+  arrange(desc(correlation)) %>%
+  mutate(numbering = paste0("receptor_", row_number()))  %>%
+  mutate(correlation = if_else(correlation == iamsmallnumber, 0, correlation)) %>%
+  filter(feature %in% rownames(corr_matrix_df_metabolites_v2)) 
+
+so_receptor_matrix_top10_v2 <- so_receptor_matrix_key_v1 %>%
+  dplyr::select(-key, -receptor) %>%
+  pivot_wider(names_from="numbering", values_from = "correlation") %>%
+  column_to_rownames("feature")
+
+so_receptor_key_top10_v2 <- so_receptor_matrix_key_v1 %>%
+  dplyr::select(-correlation, -receptor) %>%
+  pivot_wider(names_from="numbering", values_from = "key") %>%
+  column_to_rownames("feature")
+
+
+so_receptor_matrix_top10_v3 <- so_receptor_matrix_top10_v2[rownames(corr_matrix_df_metabolites_v2),]
+so_receptor_key_top10_v3 <- so_receptor_key_top10_v2[rownames(corr_matrix_df_metabolites_v2),]
+
+so_receptor_matrix_top10_v3[is.na(so_receptor_matrix_top10_v3)] = 0
+so_receptor_key_top10_v3[is.na(so_receptor_key_top10_v3)] = ""
+
+rownames(so_receptor_matrix_top10_v3) <- rownames(corr_matrix_df_metabolites_v2)
+rownames(so_receptor_key_top10_v3) <- rownames(corr_matrix_df_metabolites_v2)
+
+col_fun_f2 = colorRamp2(c(min(so_receptor_matrix_top10_v3), 0, max(so_receptor_matrix_top10_v3)), c("blue", "white", "red"))
+
+
+
+
+Olink_modules_cmag <- read_excel("/scratch/data-integration/cleanedup_cmag/Olink_modules.xlsx")
+colnames(Olink_modules_cmag) <- c("cluster", "cytokine")
+
+Olink_modules_cmag_v1 <- Olink_modules_cmag %>%
+  filter(cytokine %in% rownames(corr_matrix_df))  %>%
+  left_join(projection_coef_so)  
+
+metabolite_clustering_factor4_modified <- data.frame(cytokine = rownames(corr_matrix_df_PMG)) %>%
+  mutate(cluster = "PMG pathway",
+         coeficient = 0) %>%
+  rbind(Olink_modules_cmag_v1) %>%
+  mutate(  omics_row = if_else(cluster == "PMG pathway", "PMG", "SPT"),
+    cluster_order = case_when(
+      cluster == "PMG pathway" ~ 1,
+      cluster == "Olink_mod0" ~ 2,
+      cluster == "Olink_mod1" ~ 3,
+      cluster == "Olink_mod2" ~ 4,
+      cluster == "Olink_mod3" ~ 5,
+      cluster == "Olink_mod4" ~ 6,
+      cluster == "Olink_mod5" ~ 7,
+      cluster == "Olink_mod6" ~ 8,
+      TRUE ~ 9
+    ),
+    cluster = case_when(
+      cluster == "Olink_mod0" ~ "Other Cytokines",
+      cluster == "Olink_mod1" ~ "Cytokines produced by Neutrophils",
+      cluster == "Olink_mod2" ~ "Cytokines produced by Macrophages",
+      cluster == "Olink_mod3" ~ "Activators of cytotoxic NKs",
+      cluster == "Olink_mod4" ~ "coreassay Mod 4",
+      cluster == "Olink_mod5" ~ "Cytokines related to B cells",
+      cluster == "Olink_mod6" ~ "Activators of Macrophages",
+      TRUE ~ cluster
+     )
+  )   %>%
+  arrange(cluster_order, desc(coeficient))  %>%
+  dplyr::select(-omics_row, -cluster_order)
+
+corr_matrix_df_metabolites <- rbind(corr_matrix_df, corr_matrix_df_PMG)
+
+corr_matrix_df_metabolites_v2 <- corr_matrix_df_metabolites[metabolite_clustering_factor4_modified$cytokine,, drop=T]
+
+      
+      
+annotation_column = metabolite_clustering_factor4_modified %>%
+  column_to_rownames("cytokine")  %>%
+  mutate(coeficient = -coeficient)
+
+annotation_col <- data.frame(omics = colnames(corr_matrix_df_metabolites_v2)) %>%
+  mutate(
+         #feature = substr(omics, 5, nchar(omics)),
+         feature = omics,
+         omics = substr(omics, 1, 3),
+         feature_new = substr(feature, 5, nchar(feature))
+         ) %>%
+  column_to_rownames("feature")
+
+labels_col = data.frame(omics = colnames(corr_matrix_df_metabolites_v2)) %>%
+  mutate(
+         feature = substr(omics, 5, nchar(omics)),
+         ) %>%
+  column_to_rownames("omics")
+
+paletteLength <- 50
+myColor <- colorRampPalette(c("blue", "white", "red"))(paletteLength)
+myBreaks <- c(seq(min(corr_matrix_df_metabolites_v2), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(corr_matrix_df_metabolites_v2)/paletteLength, max(corr_matrix_df_metabolites_v2), length.out=floor(paletteLength/2)))
+
+annotation_column_v1 <- annotation_column %>%
+  mutate(coeficient = case_when(
+    coeficient >= 0.7 ~ "0.7 and high",
+    coeficient < 0.7 & coeficient >= 0.5 ~ "0.5 to 0.7",
+    coeficient < 0.5 & coeficient >= 0.3 ~ "0.3 to 0.5",
+    coeficient < 0.3 & coeficient >= 0.1 ~ "0.1 to 0.3",
+    coeficient < 0.1 & coeficient > 0 ~ "0.0 to 0.1",
+    coeficient == 0  ~ "0",
+    coeficient < 0 & coeficient >= -0.1 ~ "-0.1 to 0",
+    coeficient < -0.1 & coeficient >= -0.3 ~ "-0.1 to -0.3",
+    coeficient < -0.3 & coeficient >= -0.5 ~ "-0.3 to -0.5",
+    coeficient < -0.5 & coeficient >= -0.7 ~ "-0.5 to -0.7",
+    coeficient <= 0.7 ~ "-0.7 and less",
+  ))  
+
+col1 <- brewer.pal(n = length(unique(annotation_column_v1$cluster)), name = 'Dark2')
+names(col1)= unique(annotation_column_v1$cluster) 
+
+FigS4C <- ComplexHeatmap::Heatmap(
+        as.matrix(so_receptor_matrix_top10_v3),
+        name = "PGX receptors", 
+        col = col_fun_f2,
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        width = ncol(so_receptor_matrix_top10_v3)*unit(12, "mm"), 
+        height = nrow(so_receptor_matrix_top10_v3)*unit(8, "mm"),
+        #column_split = annotation_col$omics,
+        row_split = annotation_column_v1$cluster,
+        row_title_rot = 0,
+        row_gap = unit(2, "mm"),
+        column_gap = unit(2, "mm"),
+        column_names_gp = grid::gpar(fontsize = 8),
+        row_names_gp = grid::gpar(fontsize = 8),
+        border = TRUE,
+        cell_fun = function(j, i, x, y, width, height, fill) {
+          
+            grid.text(sprintf("%s", so_receptor_key_top10_v3[i, j]), x, y, gp = gpar(fontsize = 7))
+        },
+        column_title = "PGX receptors"
+        #left_annotation = left_row_annotation,
+        #bottom_annotation = bottom_annotation
+        
+        )
+
+FigS4C <- ComplexHeatmap::Heatmap(
+    t(as.matrix(so_receptor_matrix_top10_v3)),
+    name = "PGX receptors", 
+    col = col_fun_f2,
+    cluster_rows = FALSE,
+    cluster_columns = FALSE,
+    height = ncol(so_receptor_matrix_top10_v3)*unit(12, "mm"), 
+    width = nrow(so_receptor_matrix_top10_v3)*unit(8, "mm"),
+    #column_split = annotation_col$omics,
+    column_split = annotation_column_v1$cluster,
+    column_title_rot = 0,
+    column_gap = unit(2, "mm"),
+    row_gap = unit(2, "mm"),
+    row_names_gp = grid::gpar(fontsize = 8),
+    column_names_gp = grid::gpar(fontsize = 8),
+    border = TRUE,
+    cell_fun = function(j, i, x, y, width, height, fill) {
+        
+        grid.text(sprintf("%s", so_receptor_key_top10_v3[j, i]), x, y, gp = gpar(fontsize = 7), rot=90)
+    },
+    row_title = "PGX receptors"
+    #left_annotation = left_row_annotation,
+    #bottom_annotation = bottom_annotation
+    
+)
+
+write.csv(t(so_receptor_matrix_top10_v3), paste0(out_dir, "FigS4_data_panelC.csv"))
+
+FigS4C
+#pdf(file.path(out_dir, "FigS4C.pdf"), width=15, height=10)
+print(FigS4C)
+#dev.off()
+
+
+
+```
+
+# (1/2) Panel B: Prepare matrix file
+```{r panel B}
+
+selected_pathways = c("Tryptophan metabolism", "Histidine metabolism", "Phenylalanine metabolism")
+
+PMG_pathmat <- base_obj1$composite_features_train$KEGG_POS$pmg %>%
+  dplyr::select(selected_pathways)
+
+bld_cytof_counts <- base_obj1$others$bld_cytof$train$bld_cytof_counts
+cytof_counts_train <- preprocess_bld_cytof_parent_granulo_separate(counts = bld_cytof_counts,
+                                                                   rowfeature = base_obj1$others$bld_cytof$train$bld_cytof_rowfeature)
+
+cytokine_mat = base_obj1$assays.train$serum_olink[,rownames(base_obj1$short_list_features$unsigned_mod$so)]
+
+data_mat_list = list(
+                     cytokine_mat=cytokine_mat,
+                     cytof_mat = cytof_counts_train,
+                     PMG_mat = PMG_pathmat
+                     )
+
+cytof_mat1 = cytof_counts_train
+cytof_mat = cytof_counts_train
+
+clin_mat = base_obj1$clin.train
+W = model.matrix(~clin_mat$discretized_admit_age_quantile+clin_mat$sex+clin_mat$enrollment_site-1)
+
+for(j in 1:length(data_mat_list)){
+  
+data_mat_list[[j]] = apply(data_mat_list[[j]],2,function(z) qqnorm(z, plot.it = F)$x)
+data_mat_list[[j]] = residuals(lm(data_mat_list[[j]]~W, na.action = na.exclude))
+}
+
+PMG_cytof_pval = data.frame(matrix(NA, nrow = ncol(data_mat_list[["PMG_mat"]]),ncol = ncol(cytof_mat1)))
+PMG_cytof_est = data.frame(matrix(NA, nrow = ncol(data_mat_list[["PMG_mat"]]),ncol = ncol(cytof_mat1)))
+
+for(j in 1:ncol(data_mat_list[["PMG_mat"]])){
+for(j2 in 1:ncol(cytof_mat)){
+tmp0 = cor.test(data_mat_list[["PMG_mat"]][,j], cytof_mat[,j2])
+PMG_cytof_pval[j,j2] = tmp0$p.value
+PMG_cytof_est[j,j2] = tmp0$estimate
+}
+}
+colnames(PMG_cytof_pval) = colnames(PMG_cytof_est) =colnames(cytof_mat1)
+rownames(PMG_cytof_pval) = rownames(PMG_cytof_est) =colnames(PMG_pathmat)
+PMG_cytof_est_thr = PMG_cytof_est
+PMG_cytof_est_thr[PMG_cytof_pval>(0.01/((nrow(PMG_cytof_pval)*ncol(PMG_cytof_pval))))] = 0
+
+cytof_mat1 = cytof_counts_train
+cytof_mat = cytof_counts_train
+
+for(j in 1:length(data_mat_list)){
+data_mat_list[[j]] = apply(data_mat_list[[j]],2,function(z) qqnorm(z, plot.it = F)$x)
+data_mat_list[[j]] = residuals(lm(data_mat_list[[j]]~W, na.action = na.exclude))
+}
+
+cytokine_cytof_pval = data.frame(matrix(NA, nrow = ncol(data_mat_list[["cytokine_mat"]]),ncol = ncol(cytof_mat1)))
+cytokine_cytof_est = data.frame(matrix(NA, nrow = ncol(data_mat_list[["cytokine_mat"]]),ncol = ncol(cytof_mat1)))
+for(j in 1:ncol(data_mat_list[["cytokine_mat"]])){
+for(j2 in 1:ncol(cytof_mat)){
+tmp0 = cor.test(data_mat_list[["cytokine_mat"]][,j], cytof_mat[,j2])
+cytokine_cytof_pval[j,j2] = tmp0$p.value
+cytokine_cytof_est[j,j2] = tmp0$estimate
+}
+}
+colnames(cytokine_cytof_pval) = colnames(cytokine_cytof_est) =colnames(cytof_mat1)
+rownames(cytokine_cytof_pval) = rownames(cytokine_cytof_est) =colnames(cytokine_mat)
+cytokine_cytof_est_thr = cytokine_cytof_est
+cytokine_cytof_est_thr[cytokine_cytof_pval>(0.01/((nrow(cytokine_cytof_pval)*ncol(cytokine_cytof_pval))))] = 0
+```
+
+# (2/2) Panel B: Plot complex heatmap
+```{r fig.width=25, fig.height=10}
+plot_mat =t(rbind(cytokine_cytof_est_thr, PMG_cytof_est_thr))
+plot_mat <- plot_mat[,match(order_of_cols, colnames(plot_mat))]
+
+
+FigS4B <- Heatmap(
+        as.matrix(plot_mat),
+        name = "Blood CyTOF", 
+        col = col_fun_f2,
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        width = ncol(plot_mat)*unit(8, "mm"), 
+        height = nrow(plot_mat)*unit(8, "mm"),
+        row_title_rot = 0,
+        column_split = annotation_row$cluster[match(colnames(plot_mat), rownames(annotation_row))],
+        row_gap = unit(2, "mm"),
+        column_gap = unit(2, "mm"),
+        column_names_gp = grid::gpar(fontsize = 8),
+        row_names_gp = grid::gpar(fontsize = 8),
+        border = TRUE,
+        row_title = "Blood CyTOF",
+        #row_title_rot = 270,
+
+        
+        )
+
+write.csv(plot_mat, paste0(out_dir, "FigS4_data_panelB.csv"))
+
+FigS4B
+pdf(file.path(out_dir, "FigS4B.pdf"), width=15, height=10)
+print(FigS4B)
+dev.off()
+
+
+```
+
+```{r fig.width=18, fig.height=30}
+FigS4 = FigS4A %v% FigS4B %v% FigS4C
+draw(FigS4, column_title = "SPT/PMG")
+
+pdf(file.path(out_dir, "FigS4.pdf"), width=15, height=30)
+draw(FigS4, column_title = "SPT/PMG")
+dev.off()
+
+```
+
+
