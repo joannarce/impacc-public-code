@@ -10,7 +10,7 @@ Jeremy P. Gygi, Cole Maguire, Ravi K. Patel, Pramod Shinde, Anna Konstorum, Case
 Clinical Investigation (2024).
 
 
-Manuscript with supplemental figures can be downloaded [here](JCI link to come).
+Manuscript with supplemental figures can be downloaded [here](https://www.jci.org/articles/view/176640).
 
 </br>
 
