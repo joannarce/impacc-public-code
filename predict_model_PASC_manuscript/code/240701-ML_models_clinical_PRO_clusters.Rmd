@@ -1,0 +1,2435 @@
+--
+title: "Developing machine learning models to predict long COVID outcomes using baseline clinical variables and viral load, titers"
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+
+### Load libraries
+```{r load-packages}
+suppressPackageStartupMessages(library(package = "knitr"))
+suppressPackageStartupMessages(library(package = "impute"))
+# suppressPackageStartupMessages(library(package = "igraph"))
+suppressPackageStartupMessages(library(package = "ggnetwork"))
+suppressPackageStartupMessages(library(package = "ordinal"))
+suppressPackageStartupMessages(library(package = "qvalue"))
+suppressPackageStartupMessages(library(package = "ggbeeswarm"))
+suppressPackageStartupMessages(library(package = "ggeffects"))
+suppressPackageStartupMessages(library(package = "pvca"))
+suppressPackageStartupMessages(library(package = "GSA"))
+suppressPackageStartupMessages(library(package = "lme4"))
+suppressPackageStartupMessages(library(package = "nlme"))
+suppressPackageStartupMessages(library(package = "tidyverse"))
+
+# set session options
+options(show_col_types = FALSE)
+VarCorr <- lme4::VarCorr
+```
+
+
+# Re-running the analysis with feature selection within the training data and preserving 3 long COVID phenotypes in training and testing 
+
+## load the data
+
+```{r load the Data, echo=FALSE}
+filename_1 <- "/scratch/nasal-transcriptomics/Naresh/data/MLmodels/temp_240115.rda"
+
+# save(X_all, Y_all, nasal_viralload_copies_per_ul, clinical_data, clin_supp_viral_titers_data_1, clin_supp_viral_titers_data_2, clinical_supp_data_PRO_clust, file = filename_1)
+
+load(filename_1)
+
+
+```
+
+## Split the data into training and testing
+
+```{r Split the data into training and testing, echo=FALSE}
+
+set.seed(100)
+sampling_indices <- caret::createDataPartition(clin_supp_viral_titers_data_2$conv_cluster4, p = 0.7, list = FALSE, times = 15) %>%
+  as.data.frame()
+
+
+```
+
+
+
+#### Perform feature selection using LASSO
+
+```{r LASSO feature selection, echo=FALSE}
+
+# X_test <- X_all[-indices$Resample1, ]
+# Y_test <- Y_all[-indices$Resample1 ]
+
+temp_data <- clin_supp_viral_titers_data_2 %>%
+    select(participant_id, conv_cluster4)
+temp_data$outcome <- factor(ifelse(temp_data$conv_cluster4 == 1, "Non_LongCOVID", "LongCOVID"))
+
+sampling_lasso <- vector("list", length = 15)
+sampling_lasso_features <- vector("list", length = 15)
+
+for(m in 1:length(sampling_lasso)){
+  idx_m <- sampling_indices[, m]
+  
+  # train data
+  X_train <- X_all[idx_m, ]
+  temp_data_train <- temp_data[idx_m, ]
+  temp_data_train$outcome <- factor(ifelse(temp_data_train$conv_cluster4 == 1, "Non_LongCOVID", "LongCOVID"))
+  Y_train <- temp_data_train$outcome
+  
+  # test data
+  # temp_data_test <- temp_data[-idx_m, ]
+  # temp_data_test$outcome <- factor(ifelse(temp_data_test$conv_cluster4 == 1, "Non_LongCOVID", "LongCOVID"))
+  
+  # Run cross-validation step 100 times
+  set.seed(100)
+  # AUC_vals <- NULL
+  nonzero_coefs_lambda_min_all <- NULL
+  for (k in 1:100) {
+    cvglm_k <-
+      glmnet::cv.glmnet(
+        x = as.matrix(X_train),
+        y = Y_train,
+        family = "binomial",
+        alpha = 1,
+        type.measure = "auc",
+        nfolds = 5,
+        standardize = TRUE
+      )
+    # AUC_vals <- cbind(AUC_vals, cvglm_k$cvm)
+    nonzero_coefs_lambda_min_k <-
+      coef(cvglm_k, s = "lambda.min")[, 1] %>% .[. != 0]
+    nonzero_coefs_lambda_min_k <-
+      data.frame(feature = names(nonzero_coefs_lambda_min_k),
+                 coef = nonzero_coefs_lambda_min_k) %>%
+      mutate(iter = k)
+    nonzero_coefs_lambda_min_all <-
+      rbind(nonzero_coefs_lambda_min_all, nonzero_coefs_lambda_min_k) 
+    }
+    lasso_features_m <- nonzero_coefs_lambda_min_all %>% 
+      group_by(feature) %>%
+      summarise(count = n()) %>% 
+      filter(feature != "(Intercept)") %>% 
+      arrange(desc(count)) %>% 
+      top_n(n = 15, wt = count)
+    lasso_feature_sel_m <- lasso_features_m$feature
+    sampling_lasso[[m]] <- lasso_features_m
+    sampling_lasso_features[[m]] <- lasso_feature_sel_m  
+  }
+
+filename_1 <- "/scratch/nasal-transcriptomics/Naresh/data/MLmodels/temp_240702_lasso_feature_sel.rda"
+
+# save(sampling_lasso, sampling_lasso_features, file = filename_1)
+
+
+
+### do not re-run multiple times
+### just 1 time
+
+# sampling_lasso <- vector("list", length = 15)
+# sampling_lasso_features <- vector("list", length = 15)
+# 
+# for(m in 1:length(sampling_lasso)){
+#   idx_m <- sampling_indices[, m]
+#   X_train <- X_all[idx_m, ]
+#   Y_train <- Y_all[idx_m]
+#   # Run cross-validation step 100 times
+#   set.seed(100)
+#   nonzero_coefs_lambda_min_all <- NULL
+#   cvglm_k <-
+#     glmnet::cv.glmnet(
+#       x = as.matrix(X_train),
+#       y = Y_train,
+#       family = "binomial",
+#       alpha = 1,
+#       type.measure = "auc",
+#       nfolds = 5,
+#       standardize = TRUE
+#     )
+#     
+#     nonzero_coefs_lambda_min_k <-
+#       coef(cvglm_k, s = "lambda.min")[, 1] %>% .[. != 0]
+#     lasso_features_m <- nonzero_coefs_lambda_min_k
+#     lasso_feature_sel_m <- setdiff(names(lasso_features_m), "(Intercept)")
+#     sampling_lasso[[m]] <- lasso_features_m
+#     sampling_lasso_features[[m]] <- lasso_feature_sel_m  
+#   }
+# 
+
+
+
+
+
+```
+
+
+## train the models bGLM and NNET
+
+```{r train the models, echo=FALSE}
+
+tune_control <- caret::trainControl(
+  method = "cv", # cross-validation
+  number = 3, # with n folds 
+  #index = createFolds(tr_treated$Id_clean), # fix the folds
+  verboseIter = FALSE, # no training log
+  allowParallel = FALSE, # FALSE for reproducible results
+  returnResamp = "all", 
+  summaryFunction = twoClassSummary, 
+  classProbs = TRUE, 
+  savePredictions = TRUE
+)
+
+tune_control_none <- caret::trainControl(
+  method = "none", # cross-validation
+  number = 1, # with n folds 
+  #index = createFolds(tr_treated$Id_clean), # fix the folds
+  verboseIter = FALSE, # no training log
+  allowParallel = FALSE, # FALSE for reproducible results
+  returnResamp = "all", 
+  summaryFunction = twoClassSummary, 
+  classProbs = TRUE, 
+  savePredictions = TRUE
+)
+
+
+
+itr <- 15
+nitr <- 15
+auroc_itr_all <- NULL
+auprc_itr_all <- NULL
+pr_data_itr_all <- NULL
+roc_data_itr_all <- NULL
+# Initialize a list to store models
+model_list <- list()
+
+for(itr in 1:nitr){
+  idx_itr <- sampling_indices[, itr]
+  X_train <- X_all[idx_itr, ]
+  Y_train <- temp_data$outcome[idx_itr]
+  lasso_feature_sel <- sampling_lasso_features[[itr]]
+  X_train_select <- X_train %>% 
+    select(all_of(lasso_feature_sel)) 
+  
+  X_test <- X_all[-idx_itr, ]
+  X_test <- X_test %>%
+    select(all_of(lasso_feature_sel))
+  
+  # bGLM model
+  
+  set.seed(100)
+  model_final <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control_none,
+    # tuneGrid = final_grid_knn,
+    method = "bayesglm",
+    metric = "ROC",
+    # preProcess = c("center", "scale")
+    preProcess = NULL
+  )
+  
+  Y_test <- temp_data$outcome[-idx_itr]
+  # compute probabilities
+  pred_test <- predict(model_final, newdata = X_test, type = "prob") %>% dplyr::mutate(truth = Y_test)
+  
+  auroc_itr <- roc_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  auprc_itr <- pr_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  
+  pr_data_itr <- pr_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  roc_data_itr <- roc_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  
+  auroc_itr_all <- c(auroc_itr_all, auroc_itr)
+  auprc_itr_all <- c(auprc_itr_all, auprc_itr)
+  
+  roc_data_itr_all <- rbind(roc_data_itr_all, roc_data_itr)
+  pr_data_itr_all <- rbind(pr_data_itr_all, pr_data_itr)
+  
+  # Add the model to the list
+  model_list[[paste0("iteration_", itr)]] <- model_final
+}
+
+# save data for this model
+bGLM_model_results <- list(auroc_itr_all = auroc_itr_all,
+                           auprc_itr_all = auprc_itr_all,
+                           roc_data_itr_all = roc_data_itr_all,
+                           pr_data_itr_all = pr_data_itr_all,
+                           model_list = model_list)
+
+bGLM_m1 <- bGLM_model_results$model_list[["iteration_11"]]
+var_imp_features_bGLM_m1 <- varImp(bGLM_m1)$importance %>%
+  rownames_to_column(var = "feature")
+
+X_train_temp <- bGLM_m1$trainingData %>%
+  select(-.outcome)
+Y_train_temp <- bGLM_m1$trainingData %>%
+  pull(.outcome)
+pred_train <- predict(bGLM_m1, newdata = X_train_temp, type = "prob") %>% dplyr::mutate(truth = Y_train_temp)
+  
+auroc_itr <- roc_auc(pred_train, truth, LongCOVID, event_level = "first")$.estimate
+auprc_itr <- pr_auc(pred_train, truth, LongCOVID, event_level = "first")$.estimate
+  
+bGLM_model_results$auroc_itr_all[[11]]
+bGLM_model_results$auprc_itr_all[[11]]
+
+ROC_plot_all_itrs <- roc_data_itr_all %>%
+  mutate(iteration = factor(iteration)) %>%
+  ggplot(aes(x = 1-specificity, y = sensitivity)) +
+  geom_path(aes(color = iteration), linewidth = 0.8) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 12),
+        axis.text.y = element_text(size = 12),
+        text = element_text(size = 12),
+        plot.title = element_text(size = 12, face = "bold"),
+        legend.position = "none") +
+  xlab("1-specificity") + 
+  ylab("sensitivity") # +
+  facet_wrap(~model)
+  
+PRC_plot_all_itrs <- pr_data_itr_all %>%
+  mutate(iteration = factor(iteration)) %>%
+  ggplot(aes(x = recall, y = precision)) +
+  geom_path(aes(color = iteration), linewidth = 0.8) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 12),
+        axis.text.y = element_text(size = 12),
+        text = element_text(size = 12),
+        plot.title = element_text(size = 12, face = "bold"),
+        legend.position = "none") +
+  xlab("Recall") + 
+  ylab("Precision") # +
+  facet_wrap(~model)
+
+PRC_plot_all_models
+
+
+
+# NNet model
+
+tune_control_none <- caret::trainControl(
+  method = "none", # cross-validation
+  number = 1, # with n folds 
+  #index = createFolds(tr_treated$Id_clean), # fix the folds
+  verboseIter = FALSE, # no training log
+  allowParallel = FALSE, # FALSE for reproducible results
+  returnResamp = "all", 
+  summaryFunction = twoClassSummary, 
+  classProbs = TRUE, 
+  savePredictions = TRUE
+)
+
+
+
+itr <- 1
+nitr <- 15
+auroc_itr_all <- NULL
+auprc_itr_all <- NULL
+pr_data_itr_all <- NULL
+roc_data_itr_all <- NULL
+# model_list <- vector("list", length = nitr)
+model_list <- list()
+
+for(itr in 1:nitr){
+  idx_itr <- sampling_indices[, itr]
+  X_train <- X_all[idx_itr, ]
+  Y_train <- temp_data$outcome[idx_itr]
+  lasso_feature_sel <- sampling_lasso_features[[itr]]
+  X_train_select <- X_train %>% 
+    select(all_of(lasso_feature_sel)) 
+  
+  X_test <- X_all[-idx_itr, ]
+  X_test <- X_test %>%
+    select(all_of(lasso_feature_sel))
+  
+  # NNET model
+  tune_grid1 <- expand.grid(
+    size = c(4, 8, 16, 32), 
+    decay = c(seq(0,1,0.1)),
+    bag = TRUE)
+
+  
+  set.seed(100)
+  model_tune1 <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control,
+    tuneGrid = tune_grid1,
+    method = "avNNet",
+    metric = "ROC",
+    nthread = 1,
+    # preProcess = c("center", "scale")
+    preProcess = NULL
+  )
+  
+  # mean(model_tune1$resample$ROC) # 0.7138039
+  
+  final_grid <- expand.grid(size = model_tune1$bestTune$size,
+                                 decay = model_tune1$bestTune$decay,
+                                 bag = model_tune1$bestTune$bag)
+  set.seed(100)
+  model_final <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control_none,
+    tuneGrid = final_grid,
+    method = "avNNet",
+    metric = "ROC",
+    nthread = 1,
+    # preProcess = c("center", "scale")
+    preProcess = NULL
+    )
+
+  Y_test <- temp_data$outcome[-idx_itr]
+  
+  # compute probabilities
+  pred_test <- predict(model_final, newdata = X_test, type = "prob") %>% dplyr::mutate(truth = Y_test)
+  
+  auroc_itr <- roc_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  auprc_itr <- pr_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  
+  pr_data_itr <- pr_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  roc_data_itr <- roc_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  
+  auroc_itr_all <- c(auroc_itr_all, auroc_itr)
+  auprc_itr_all <- c(auprc_itr_all, auprc_itr)
+  
+  roc_data_itr_all <- rbind(roc_data_itr_all, roc_data_itr)
+  pr_data_itr_all <- rbind(pr_data_itr_all, pr_data_itr)
+  
+  # Add the model to the list
+  model_list[[paste0("iteration_", itr)]] <- model_final
+  
+}
+
+mean(auroc_itr_all)
+median(auroc_itr_all)
+mean(auprc_itr_all)
+median(auprc_itr_all)
+
+# save data for this model
+NNET_model_results <- list(auroc_itr_all = auroc_itr_all,
+                           auprc_itr_all = auprc_itr_all,
+                           roc_data_itr_all = roc_data_itr_all,
+                           pr_data_itr_all = pr_data_itr_all,
+                           model_list = model_list)
+
+# save the data
+filename_2 <- "/scratch/nasal-transcriptomics/Naresh/data/MLmodels/temp_240703_bGLM_NNET_results.rda"
+
+# save(NNET_model_results, bGLM_model_results, file = filename_2)
+
+NNET_m1 <- NNET_model_results$model_list[["iteration_11"]]
+var_imp_features_NNET_m1 <- varImp(NNET_m1)$importance %>%
+  rownames_to_column(var = "feature")
+
+
+```
+## train the models svmRadial
+
+```{r train the models, echo=FALSE}
+
+itr <- 1
+nitr <- 15
+auroc_itr_all <- NULL
+auprc_itr_all <- NULL
+pr_data_itr_all <- NULL
+roc_data_itr_all <- NULL
+# model_list <- vector("list", length = nitr)
+model_list <- list()
+
+for(itr in 1:nitr){
+  idx_itr <- sampling_indices[, itr]
+  X_train <- X_all[idx_itr, ]
+  Y_train <- temp_data$outcome[idx_itr]
+  lasso_feature_sel <- sampling_lasso_features[[itr]]
+  X_train_select <- X_train %>% 
+    select(all_of(lasso_feature_sel)) 
+  
+  X_test <- X_all[-idx_itr, ]
+  X_test <- X_test %>%
+    select(all_of(lasso_feature_sel))
+  
+  # svm Radial model
+  # first compute sigma parameter
+  sigma_svmRadial <- kernlab::sigest(as.matrix(X_train_select), na.action = na.omit, scaled = TRUE)
+  # caret by default takes the mean of 90% and 10% values, mean(as.vector(sigma_svmRadial[-2]))
+  sigma_svmRadial_2 <- c(as.vector(sigma_svmRadial), mean(as.vector(sigma_svmRadial[-2])))
+  tune_grid1 <- expand.grid(C = seq(0.1, 3, by = 0.1),
+                                   sigma = sigma_svmRadial_2)
+
+  
+  set.seed(100)
+  model_tune1 <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control,
+    tuneGrid = tune_grid1,
+    method = "svmRadial",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    preProcess = NULL
+  )
+  
+  final_grid <- expand.grid(C =  model_tune1$bestTune$C,
+                            sigma = model_tune1$bestTune$sigma)
+  set.seed(100)
+  model_final <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control_none,
+    tuneGrid = final_grid,
+    method = "svmRadial",
+    verbose = TRUE,
+    metric = "ROC",
+    nthread = 1,
+    preProcess = NULL
+    )
+
+  Y_test <- temp_data$outcome[-idx_itr]
+  
+  # compute probabilities
+  pred_test <- predict(model_final, newdata = X_test, type = "prob") %>% dplyr::mutate(truth = Y_test)
+  
+  auroc_itr <- roc_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  auprc_itr <- pr_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  
+  pr_data_itr <- pr_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  roc_data_itr <- roc_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  
+  auroc_itr_all <- c(auroc_itr_all, auroc_itr)
+  auprc_itr_all <- c(auprc_itr_all, auprc_itr)
+  
+  roc_data_itr_all <- rbind(roc_data_itr_all, roc_data_itr)
+  pr_data_itr_all <- rbind(pr_data_itr_all, pr_data_itr)
+  
+  # Add the model to the list
+  model_list[[paste0("iteration_", itr)]] <- model_final
+  
+}
+
+mean(auroc_itr_all)
+median(auroc_itr_all)
+mean(auprc_itr_all)
+median(auprc_itr_all)
+
+# save data for this model
+svmRadial_model_results <- list(auroc_itr_all = auroc_itr_all,
+                           auprc_itr_all = auprc_itr_all,
+                           roc_data_itr_all = roc_data_itr_all,
+                           pr_data_itr_all = pr_data_itr_all,
+                           model_list = model_list)
+
+# save the data
+filename_3 <- "/scratch/nasal-transcriptomics/Naresh/data/MLmodels/temp_240705_bGLM_NNET_svmRadial_results.rda"
+
+# save(svmRadial_model_results, NNET_model_results, bGLM_model_results, file = filename_3)
+
+```
+
+
+## train the models XBG
+
+```{r train the models, echo=FALSE}
+
+itr <- 1
+nitr <- 15
+auroc_itr_all <- NULL
+auprc_itr_all <- NULL
+pr_data_itr_all <- NULL
+roc_data_itr_all <- NULL
+# model_list <- vector("list", length = nitr)
+model_list <- list()
+
+for(itr in 1:nitr){
+  idx_itr <- sampling_indices[, itr]
+  X_train <- X_all[idx_itr, ]
+  Y_train <- temp_data$outcome[idx_itr]
+  lasso_feature_sel <- sampling_lasso_features[[itr]]
+  X_train_select <- X_train %>% 
+    select(all_of(lasso_feature_sel)) 
+  
+  X_test <- X_all[-idx_itr, ]
+  X_test <- X_test %>%
+    select(all_of(lasso_feature_sel))
+  
+  # note to start nrounds from 200, as smaller learning rates result in errors so
+  # big with lower starting points that they'll mess the scales
+  tune_grid1 <- expand.grid(
+    nrounds = seq(from = 100, to = 500, by = 50),
+    eta = c(0.025, 0.05, 0.1, 0.2, 0.3),
+    max_depth = c(2, 3, 4, 5),
+    gamma = 0,
+    colsample_bytree = 1,
+    min_child_weight = 1,
+    subsample = 1
+  )
+  
+
+  
+  set.seed(100)
+  xgb_tune1 <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control,
+    tuneGrid = tune_grid1,
+    method = "xgbTree",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    preProcess = NULL
+    # preProcess = c("center", "scale")
+  )
+  
+  tune_grid2 <- expand.grid(
+    nrounds = xgb_tune1$bestTune$nrounds,
+    eta = xgb_tune1$bestTune$eta,
+    max_depth = xgb_tune1$bestTune$max_depth,
+    gamma = 0,
+    colsample_bytree = 1,
+    min_child_weight = c(1, 2, 3, 4, 5),
+    subsample = 1
+  )
+  
+  set.seed(100)
+  xgb_tune2 <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control,
+    tuneGrid = tune_grid2,
+    method = "xgbTree",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    preProcess = NULL
+    # preProcess = c("center", "scale")
+  )
+  
+
+  tune_grid3 <- expand.grid(
+    nrounds = xgb_tune1$bestTune$nrounds,
+    eta = xgb_tune1$bestTune$eta,
+    max_depth = xgb_tune1$bestTune$max_depth,
+    gamma = 0,
+    colsample_bytree = seq(from = 0.2, to = 1, by = 0.1),
+    min_child_weight = xgb_tune2$bestTune$min_child_weight,
+    subsample = c(0.25, 0.5, 0.75, 1.0)
+  )
+  
+  set.seed(100)
+  xgb_tune3 <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control,
+    tuneGrid = tune_grid3,
+    method = "xgbTree",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    preProcess = NULL
+    # preProcess = c("center", "scale")
+  )
+  
+  tune_grid4 <- expand.grid(
+    nrounds = xgb_tune1$bestTune$nrounds,
+    eta = xgb_tune1$bestTune$eta,
+    max_depth = xgb_tune1$bestTune$max_depth,
+    gamma = c(0, 0.05, 0.1, 0.5, 0.7, 0.9, 1.0),
+    colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
+    min_child_weight = xgb_tune2$bestTune$min_child_weight,
+    subsample = xgb_tune3$bestTune$subsample
+  )
+  
+  set.seed(100)
+  xgb_tune4 <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control,
+    tuneGrid = tune_grid4,
+    method = "xgbTree",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    preProcess = NULL
+    # preProcess = c("center", "scale")
+  )
+  
+  final_grid_xgb <- expand.grid(
+    nrounds = xgb_tune1$bestTune$nrounds,
+    eta = xgb_tune1$bestTune$eta,
+    max_depth = xgb_tune1$bestTune$max_depth,
+    gamma = xgb_tune4$bestTune$gamma,
+    colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
+    min_child_weight = xgb_tune2$bestTune$min_child_weight,
+    subsample = xgb_tune3$bestTune$subsample
+  )
+  
+
+  set.seed(100)
+  model_final <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control_none,
+    tuneGrid = final_grid_xgb,
+    method = "xgbTree",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    preProcess = NULL
+    )
+
+  Y_test <- temp_data$outcome[-idx_itr]
+  
+  # compute probabilities
+  pred_test <- predict(model_final, newdata = X_test, type = "prob") %>% dplyr::mutate(truth = Y_test)
+  
+  auroc_itr <- roc_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  auprc_itr <- pr_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  
+  pr_data_itr <- pr_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  roc_data_itr <- roc_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  
+  auroc_itr_all <- c(auroc_itr_all, auroc_itr)
+  auprc_itr_all <- c(auprc_itr_all, auprc_itr)
+  
+  roc_data_itr_all <- rbind(roc_data_itr_all, roc_data_itr)
+  pr_data_itr_all <- rbind(pr_data_itr_all, pr_data_itr)
+  
+  # Add the model to the list
+  model_list[[paste0("iteration_", itr)]] <- model_final
+  
+}
+
+mean(auroc_itr_all)
+median(auroc_itr_all)
+mean(auprc_itr_all)
+median(auprc_itr_all)
+
+# save data for this model
+XGB_model_results <- list(auroc_itr_all = auroc_itr_all,
+                           auprc_itr_all = auprc_itr_all,
+                           roc_data_itr_all = roc_data_itr_all,
+                           pr_data_itr_all = pr_data_itr_all,
+                           model_list = model_list)
+
+# save the data
+filename_4 <- "/scratch/nasal-transcriptomics/Naresh/data/MLmodels/temp_240705_bGLM_NNET_svmRadial_XGB_results.rda"
+
+# save(XGB_model_results, svmRadial_model_results, NNET_model_results, bGLM_model_results, file = filename_4)
+
+```
+
+
+## train the models RF
+
+```{r train the models, echo=FALSE}
+
+itr <- 1
+nitr <- 15
+auroc_itr_all <- NULL
+auprc_itr_all <- NULL
+pr_data_itr_all <- NULL
+roc_data_itr_all <- NULL
+# model_list <- vector("list", length = nitr)
+model_list <- list()
+
+for(itr in 1:nitr){
+  idx_itr <- sampling_indices[, itr]
+  X_train <- X_all[idx_itr, ]
+  Y_train <- temp_data$outcome[idx_itr]
+  lasso_feature_sel <- sampling_lasso_features[[itr]]
+  X_train_select <- X_train %>% 
+    select(all_of(lasso_feature_sel)) 
+  
+  X_test <- X_all[-idx_itr, ]
+  X_test <- X_test %>%
+    select(all_of(lasso_feature_sel))
+  
+  tune_grid1 <- expand.grid(
+    mtry = 1:10
+  )
+  
+  
+  set.seed(100)
+  rf_tune1 <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control,
+    tuneGrid = tune_grid1,
+    method = "rf",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    # preProcess = c("center", "scale"),
+    preProcess = NULL
+  )
+  
+  # Iterate over a number of trees
+  ntree_values <- c(100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 10000)
+
+  # tune_grid <- expand.grid(.mtry = c(sqrt(ncol(dataset))))
+  tune_grid <- expand.grid(.mtry = rf_tune1$bestTune)
+  modellist_ntree <- list()
+  
+  #train with different ntree parameters
+  for (ntree in ntree_values){
+    set.seed(100)
+    fit <- caret::train(
+      x = X_train_select, 
+      y = Y_train, 
+      trControl = tune_control, 
+      tuneGrid = tune_grid, 
+      method = "rf", 
+      verbose = TRUE, 
+      nthread = 1, 
+      ntree = ntree,
+      # preProcess = c("center", "scale")
+      preProcess = NULL
+    )
+    key <- toString(ntree)
+    modellist_ntree[[key]] <- fit
+  }
+  
+  # Aggregate resampling results
+  rf_tune_results <- resamples(modellist_ntree)
+  
+  # Summarize results
+  summary_rf_results <- summary(rf_tune_results)
+  
+  # Extract median ROC for each ntree value
+  median_roc_values <- summary_rf_results$statistics$ROC[,"Median"]
+  
+  # Find the ntree value with the highest median ROC
+  best_ntree <- names(median_roc_values)[which.max(median_roc_values)]
+  best_ntree <- as.numeric(best_ntree)
+  
+  # Print the best ntree value and corresponding median ROC
+  cat("Best ntree:", best_ntree, "\n")
+  cat("Highest median ROC:", max(median_roc_values), "\n")
+
+  final_grid_rf <- expand.grid(.mtry = rf_tune1$bestTune)
+  
+  
+  set.seed(100)
+  model_final <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control_none,
+    tuneGrid = final_grid_rf,
+    ntree = best_ntree,
+    method = "rf",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    preProcess = NULL
+    )
+
+  Y_test <- temp_data$outcome[-idx_itr]
+  
+  # compute probabilities
+  pred_test <- predict(model_final, newdata = X_test, type = "prob") %>% dplyr::mutate(truth = Y_test)
+  
+  auroc_itr <- roc_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  auprc_itr <- pr_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  
+  pr_data_itr <- pr_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  roc_data_itr <- roc_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  
+  auroc_itr_all <- c(auroc_itr_all, auroc_itr)
+  auprc_itr_all <- c(auprc_itr_all, auprc_itr)
+  
+  roc_data_itr_all <- rbind(roc_data_itr_all, roc_data_itr)
+  pr_data_itr_all <- rbind(pr_data_itr_all, pr_data_itr)
+  
+  # Add the model to the list
+  model_list[[paste0("iteration_", itr)]] <- model_final
+  
+}
+
+mean(auroc_itr_all)
+median(auroc_itr_all)
+mean(auprc_itr_all)
+median(auprc_itr_all)
+
+# save data for this model
+RF_model_results <- list(auroc_itr_all = auroc_itr_all,
+                           auprc_itr_all = auprc_itr_all,
+                           roc_data_itr_all = roc_data_itr_all,
+                           pr_data_itr_all = pr_data_itr_all,
+                           model_list = model_list)
+
+# save the data
+filename_5 <- "/scratch/nasal-transcriptomics/Naresh/data/MLmodels/temp_240705_bGLM_NNET_svmRadial_XGB_RF_results.rda"
+
+# save(RF_model_results, XGB_model_results, svmRadial_model_results, NNET_model_results, bGLM_model_results, file = filename_5)
+
+all_model_results_list <- list(bGLM_model_results = bGLM_model_results,
+                               NNET_model_results = NNET_model_results,
+                               svmRadial_model_results = svmRadial_model_results,
+                               XGB_model_results = XGB_model_results,
+                               RF_model_results = RF_model_results)
+
+# make data frames for plotting
+# Initialize empty lists to store merged data
+auroc_auprc_merged <- data.frame()
+roc_data_merged <- data.frame()
+pr_data_merged <- data.frame()
+
+# Define model names
+model_names <- c("bGLM", "NNET", "svmRadial", "XGB", "RF")
+
+# Iterate through each model and combine the data
+for (model in model_names) {
+  # Extract the model results
+  model_results <- all_model_results_list[[paste0(model, "_model_results")]]
+  
+  # Combine auroc_itr_all and auprc_itr_all with model information
+  auroc_auprc_df <- data.frame(
+    AUROC = model_results$auroc_itr_all,
+    AUPRC = model_results$auprc_itr_all,
+    iteration = 1:length(model_results$auroc_itr_all),
+    Model = model
+  )
+  
+  # Append to the merged data frame
+  auroc_auprc_merged <- rbind(auroc_auprc_merged, auroc_auprc_df)
+  
+  # Combine roc_data_itr_all with model information
+  roc_df <- model_results$roc_data_itr_all
+  roc_df$Model <- model
+  
+  # Append to the merged data frame
+  roc_data_merged <- rbind(roc_data_merged, roc_df)
+  
+  # Combine pr_data_itr_all with model information
+  pr_df <- model_results$pr_data_itr_all
+  pr_df$Model <- model
+  
+  # Append to the merged data frame
+  pr_data_merged <- rbind(pr_data_merged, pr_df)
+}
+
+# Print the merged data frames
+View(auroc_auprc_merged)
+View(roc_data_merged)
+View(pr_data_merged)
+
+df_mean <- auroc_auprc_merged %>% 
+  group_by(Model) %>%
+  summarise(n = n(),
+            AUROC_mean = mean(AUROC),
+            AUROC_median = median(AUROC),
+            AUPRC_mean = mean(AUPRC),
+            AUPRC_median = median(AUPRC)) %>%
+  mutate(AUROC_mean_text = round(AUROC_mean, 3),
+         AUPRC_mean_text = round(AUPRC_mean, 3))
+
+
+
+paletteer::paletteer_d("calecopal::superbloom2")
+col_sel <- c("bGLM" = "#DE7424FF", "NNET" = "#496849FF", "RF" = "#F5CA37FF",
+             "svmRadial" = "#654783FF", "XGB" = "#AD8D26FF")
+
+# plotting AUROC and AUPRC as box plots
+AUROC_plot1 <- auroc_auprc_merged %>%
+  ggplot(aes(x = Model, y = AUROC)) +
+  geom_boxplot(aes(color = Model), alpha = 1, lwd = 1.2) +
+  geom_quasirandom(aes(color = Model), width = 0.2, alpha = 0.7, size = 1.5) +
+  geom_point(data = df_mean, aes(x = Model, y = AUROC_mean), color = "black", size = 5, alpha = 0.7) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, size = 14),
+        # axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        strip.text = element_text(size=14),
+        legend.title=element_blank(),
+        legend.text = element_text(size = 12)) +
+  # xlab("UMAP 1") +
+  # ylab("UMAP 2") +
+  scale_color_manual(values = col_sel) 
+
+
+AUPRC_plot1 <- auroc_auprc_merged %>%
+  ggplot(aes(x = Model, y = AUPRC)) +
+  geom_boxplot(aes(color = Model), alpha = 1, lwd = 1.2) +
+  geom_quasirandom(aes(color = Model), width = 0.2, alpha = 0.7, size = 1.5) +
+  geom_point(data = df_mean, aes(x = Model, y = AUPRC_mean), color = "black", size = 5, alpha = 0.7) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, size = 14),
+        # axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        strip.text = element_text(size=14),
+        legend.title=element_blank(),
+        legend.text = element_text(size = 12)) +
+  # xlab("UMAP 1") +
+  # ylab("UMAP 2") +
+  scale_color_manual(values = col_sel) 
+
+AUROC_AUPRC_plot1 <- cowplot::plot_grid(AUROC_plot1, AUPRC_plot1, ncol = 1, labels = NULL, rel_widths = c(1, 1))
+
+### Plotting ROC and PRC curves
+ROC_plot1 <- roc_data_merged %>%
+  mutate(iteration = factor(iteration)) %>%
+  ggplot(aes(x = 1-specificity, y = sensitivity)) +
+  geom_path(aes(color = iteration), linewidth = 0.8) + 
+  geom_text(data = df_mean, aes(x = 0.8, y = 0.2, label = AUROC_mean_text), size = 6) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, size = 14),
+        # axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        strip.text = element_text(size=14),
+        legend.title=element_blank(),
+        legend.text = element_text(size = 12)) +
+  xlab("1-Specificity") +
+  ylab("Sensitivity") +
+  # scale_color_manual(values = col_sel) +
+  geom_abline(slope = 1, intercept = 0, color = "black", linewidth = 1.5, linetype = "dashed") +
+  scale_y_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_x_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  facet_wrap(~Model, ncol = 5) +
+  theme(legend.position = "none")
+
+PRC_plot1 <- pr_data_merged %>%
+  mutate(iteration = factor(iteration)) %>%
+  ggplot(aes(x = recall, y = precision)) +
+  geom_path(aes(color = iteration), linewidth = 0.8) + 
+  geom_text(data = df_mean, aes(x = 0.8, y = 0.2, label = AUPRC_mean_text), size = 6) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, size = 14),
+        # axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        strip.text = element_text(size=14),
+        legend.title=element_blank(),
+        legend.text = element_text(size = 12)) +
+  xlab("Recall") +
+  ylab("Precision") +
+  # scale_color_manual(values = col_sel) +
+  # geom_abline(slope = 1, intercept = 0, color = "red", linewidth = 1.5, linetype = "dashed") +
+  scale_y_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_x_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  facet_wrap(~Model, ncol = 5) +
+  theme(legend.position = "none")
+
+ROC_PRC_plot1 <- cowplot::plot_grid(ROC_plot1, PRC_plot1, ncol = 1, labels = NULL, rel_widths = c(1, 1))
+
+
+### Feature importance data
+# Initialize empty data frame to store feature importance data
+feature_importance_merged <- data.frame()
+
+# Define model names
+model_names <- c("bGLM", "NNET", "svmRadial", "XGB", "RF")
+
+# Iterate through each model and extract feature importance for each iteration
+for (model in model_names) {
+  # Extract the model list
+  model_results <- all_model_results_list[[paste0(model, "_model_results")]]
+  model_list <- model_results$model_list
+  
+  # Iterate over each model in the list
+  for (iteration in 1:length(model_list)) {
+    # Extract the fitted model for the current iteration
+    fitted_model <- model_list[[iteration]]
+    
+    # Extract feature importance
+    importance <- varImp(fitted_model, scale = TRUE)
+    importance_df <- as.data.frame(importance$importance)
+    
+    # for XGB and RF models varImp output is different so adjust to be consistent with other models
+    if(model == "XGB" | model == "RF"){
+      importance_df <- importance_df %>%
+        dplyr::rename(LongCOVID = Overall) %>%
+        mutate(Non_LongCOVID = LongCOVID)
+    }
+    
+    # Add model and iteration information
+    importance_df$Feature <- rownames(importance_df)
+    importance_df$Model <- model
+    importance_df$Iteration <- iteration
+    
+    # Append to the merged data frame
+    feature_importance_merged <- rbind(feature_importance_merged, importance_df)
+  }
+  
+  # Print the model
+  cat("Model finished", model, "\n")
+}
+
+# Print the merged feature importance data frame
+View(feature_importance_merged)
+
+feature_importance_mean <- feature_importance_merged %>%
+  group_by(Model, Feature) %>%
+  summarise(count = n(),
+            mean_imp = mean(LongCOVID),
+            median_imp = median(LongCOVID))
+
+feature_importance_mean_NNET <- feature_importance_mean %>%
+  filter(Model == "NNET") %>%
+  dplyr::filter(count > 6 & median_imp > 0) %>%
+  arrange(desc(median_imp))
+
+# Convert Feature column to factor with levels in the order of descending median_imp
+feature_importance_mean <- feature_importance_mean %>% mutate(Feature = factor(Feature, levels = rev(feature_importance_mean_NNET$Feature)))
+
+
+# variable importance plot
+feature_imp_dotplot_all_models <- feature_importance_mean %>%
+  dplyr::filter(Model %in% c("XGB", "RF", "svmRadial", "bGLM", "NNET")) %>%
+  dplyr::filter(count > 6) %>%
+  dplyr::filter(Feature %in% feature_importance_mean_NNET$Feature) %>%
+  ggplot(aes(x = Model, y = Feature)) +
+  geom_point(aes(color = median_imp, size = median_imp)) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 14),
+        axis.text.y = element_text(size = 14),
+        text = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold")) +
+  scale_color_continuous(type = "viridis", name = "Score") +
+  guides(size = "none") +
+  xlab("") + 
+  ylab("")
+
+
+
+```
+
+
+## Model predictions on training data
+
+```{r Model predictions on training data, echo=FALSE}
+
+model_pred_train_itr <- function(model_data = model_data){
+  train_data <- model_data$trainingData
+  X_train <- train_data %>%
+    select(-.outcome)
+  Y_train <- train_data %>%
+    pull(.outcome)
+  # compute probabilities
+  pred_train <- predict(model_data, newdata = X_train, type = "prob") %>% dplyr::mutate(truth = Y_train)
+  
+  auroc_itr <- roc_auc(pred_train, truth, LongCOVID, event_level = "first")$.estimate
+  auprc_itr <- pr_auc(pred_train, truth, LongCOVID, event_level = "first")$.estimate
+  
+  pr_data_itr <- pr_curve(pred_train, truth, LongCOVID, event_level = "first") 
+  roc_data_itr <- roc_curve(pred_train, truth, LongCOVID, event_level = "first")
+  
+  model_output <- list(auroc_itr = auroc_itr,
+                       auprc_itr = auprc_itr,
+                       pr_data_itr = pr_data_itr,
+                       roc_data_itr = roc_data_itr)
+  
+  return(model_output)
+}
+
+tt = model_pred_train_itr(model_data = all_model_results_list$bGLM_model_results$model_list[[1]])$roc_data_itr
+tt1 = model_pred_train_itr(model_data = all_model_results_list$bGLM_model_results$model_list[[11]])$roc_data_itr
+
+model_pred_train_itr_all <- function(data_list = all_model_results_list$bGLM_model_results$model_list){
+  nitr <- length(data_list)
+  auroc_itr_all <- NULL
+  auprc_itr_all <- NULL
+  pr_data_itr_all <- NULL
+  roc_data_itr_all <- NULL
+  for(itr in 1:nitr){
+    model_output_itr <- model_pred_train_itr(model_data = data_list[[itr]])
+    
+    auroc_itr <- model_output_itr$auroc_itr
+    auprc_itr <- model_output_itr$auprc_itr
+    
+    pr_data_itr <- model_output_itr$pr_data_itr %>%
+      mutate(iteration = itr)
+    roc_data_itr <- model_output_itr$roc_data_itr %>%
+      mutate(iteration = itr)
+    
+    auroc_itr_all <- c(auroc_itr_all, auroc_itr)
+    auprc_itr_all <- c(auprc_itr_all, auprc_itr)
+    
+    roc_data_itr_all <- rbind(roc_data_itr_all, roc_data_itr)
+    pr_data_itr_all <- rbind(pr_data_itr_all, pr_data_itr)
+    
+  }
+  
+  model_results <- list(auroc_itr_all = auroc_itr_all,
+                        auprc_itr_all = auprc_itr_all,
+                        roc_data_itr_all = roc_data_itr_all,
+                        pr_data_itr_all = pr_data_itr_all)
+  
+  return(model_results)
+}
+
+bGLM_model_results_train <- model_pred_train_itr_all(data_list = all_model_results_list$bGLM_model_results$model_list)
+NNET_model_results_train <- model_pred_train_itr_all(data_list = all_model_results_list$NNET_model_results$model_list)
+svmRadial_model_results_train <- model_pred_train_itr_all(data_list = all_model_results_list$svmRadial_model_results$model_list)
+XGB_model_results_train <- model_pred_train_itr_all(data_list = all_model_results_list$XGB_model_results$model_list)
+RF_model_results_train <- model_pred_train_itr_all(data_list = all_model_results_list$RF_model_results$model_list)
+
+all_model_results_list_train <- list(bGLM_model_results = bGLM_model_results_train,
+                               NNET_model_results = NNET_model_results_train,
+                               svmRadial_model_results = svmRadial_model_results_train,
+                               XGB_model_results = XGB_model_results_train,
+                               RF_model_results = RF_model_results_train)
+
+# make data frames for plotting
+# Initialize empty lists to store merged data
+auroc_auprc_merged <- data.frame()
+roc_data_merged <- data.frame()
+pr_data_merged <- data.frame()
+
+# Define model names
+model_names <- c("bGLM", "NNET", "svmRadial", "XGB", "RF")
+
+# Iterate through each model and combine the data
+for (model in model_names) {
+  # Extract the model results
+  model_results <- all_model_results_list_train[[paste0(model, "_model_results")]]
+  
+  # Combine auroc_itr_all and auprc_itr_all with model information
+  auroc_auprc_df <- data.frame(
+    AUROC = model_results$auroc_itr_all,
+    AUPRC = model_results$auprc_itr_all,
+    iteration = 1:length(model_results$auroc_itr_all),
+    Model = model
+  )
+  
+  # Append to the merged data frame
+  auroc_auprc_merged <- rbind(auroc_auprc_merged, auroc_auprc_df)
+  
+  # Combine roc_data_itr_all with model information
+  roc_df <- model_results$roc_data_itr_all
+  roc_df$Model <- model
+  
+  # Append to the merged data frame
+  roc_data_merged <- rbind(roc_data_merged, roc_df)
+  
+  # Combine pr_data_itr_all with model information
+  pr_df <- model_results$pr_data_itr_all
+  pr_df$Model <- model
+  
+  # Append to the merged data frame
+  pr_data_merged <- rbind(pr_data_merged, pr_df)
+}
+
+# Print the merged data frames
+View(auroc_auprc_merged)
+View(roc_data_merged)
+View(pr_data_merged)
+
+df_mean <- auroc_auprc_merged %>% 
+  group_by(Model) %>%
+  summarise(n = n(),
+            AUROC_mean = mean(AUROC),
+            AUROC_median = median(AUROC),
+            AUPRC_mean = mean(AUPRC),
+            AUPRC_median = median(AUPRC)) %>%
+  mutate(AUROC_mean_text = round(AUROC_mean, 3),
+         AUPRC_mean_text = round(AUPRC_mean, 3))
+
+
+
+paletteer::paletteer_d("calecopal::superbloom2")
+col_sel <- c("bGLM" = "#DE7424FF", "NNET" = "#496849FF", "RF" = "#F5CA37FF",
+             "svmRadial" = "#654783FF", "XGB" = "#AD8D26FF")
+
+# plotting AUROC and AUPRC as box plots
+AUROC_plot1 <- auroc_auprc_merged %>%
+  ggplot(aes(x = Model, y = AUROC)) +
+  geom_boxplot(aes(color = Model), alpha = 1, lwd = 1.2) +
+  geom_quasirandom(aes(color = Model), width = 0.2, alpha = 0.7, size = 1.5) +
+  geom_point(data = df_mean, aes(x = Model, y = AUROC_mean), color = "black", size = 5, alpha = 0.7) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, size = 14),
+        # axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        strip.text = element_text(size=14),
+        legend.title=element_blank(),
+        legend.text = element_text(size = 12)) +
+  # xlab("UMAP 1") +
+  # ylab("UMAP 2") +
+  scale_color_manual(values = col_sel) +
+  scale_y_continuous(limits = c(0.6,1))
+
+
+AUPRC_plot1 <- auroc_auprc_merged %>%
+  ggplot(aes(x = Model, y = AUPRC)) +
+  geom_boxplot(aes(color = Model), alpha = 1, lwd = 1.2) +
+  geom_quasirandom(aes(color = Model), width = 0.2, alpha = 0.7, size = 1.5) +
+  geom_point(data = df_mean, aes(x = Model, y = AUPRC_mean), color = "black", size = 5, alpha = 0.7) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, size = 14),
+        # axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        strip.text = element_text(size=14),
+        legend.title=element_blank(),
+        legend.text = element_text(size = 12)) +
+  # xlab("UMAP 1") +
+  # ylab("UMAP 2") +
+  scale_color_manual(values = col_sel) +
+  scale_y_continuous(limits = c(0.6,1))
+
+AUROC_AUPRC_plot1 <- cowplot::plot_grid(AUROC_plot1, AUPRC_plot1, ncol = 1, labels = NULL, rel_widths = c(1, 1))
+
+### Plotting ROC and PRC curves
+ROC_plot1 <- roc_data_merged %>%
+  mutate(iteration = factor(iteration)) %>%
+  ggplot(aes(x = 1-specificity, y = sensitivity)) +
+  geom_path(aes(color = iteration), linewidth = 0.8) + 
+  geom_text(data = df_mean, aes(x = 0.8, y = 0.2, label = AUROC_mean_text), size = 6) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, size = 14),
+        # axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        strip.text = element_text(size=14),
+        legend.title=element_blank(),
+        legend.text = element_text(size = 12)) +
+  xlab("1-Specificity") +
+  ylab("Sensitivity") +
+  # scale_color_manual(values = col_sel) +
+  geom_abline(slope = 1, intercept = 0, color = "black", linewidth = 1.5, linetype = "dashed") +
+  scale_y_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_x_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  facet_wrap(~Model, ncol = 5) +
+  theme(legend.position = "none")
+
+PRC_plot1 <- pr_data_merged %>%
+  mutate(iteration = factor(iteration)) %>%
+  ggplot(aes(x = recall, y = precision)) +
+  geom_path(aes(color = iteration), linewidth = 0.8) + 
+  geom_text(data = df_mean, aes(x = 0.8, y = 0.2, label = AUPRC_mean_text), size = 6) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, size = 14),
+        # axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        strip.text = element_text(size=14),
+        legend.title=element_blank(),
+        legend.text = element_text(size = 12)) +
+  xlab("Recall") +
+  ylab("Precision") +
+  # scale_color_manual(values = col_sel) +
+  # geom_abline(slope = 1, intercept = 0, color = "red", linewidth = 1.5, linetype = "dashed") +
+  scale_y_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_x_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  facet_wrap(~Model, ncol = 5) +
+  theme(legend.position = "none")
+
+ROC_PRC_plot1 <- cowplot::plot_grid(ROC_plot1, PRC_plot1, ncol = 1, labels = NULL, rel_widths = c(1, 1))
+
+
+#
+
+
+
+
+```
+
+## Find key features from the feature importance by univariate assessments by logistic regression
+* LASSO selected features
+* variable importance by logistic regression
+
+
+```{r variable importance logistic regression, echo=FALSE}
+
+
+# make sure rows are ordered correctly
+all(rownames(X_all) == nasal_viralload_copies_per_ul$participant_id)
+
+data_temp <- X_all %>%
+  select(-N1_CT_au) %>%
+  cbind(N1_CT_au = nasal_viralload_copies_per_ul$N1_CT_au) %>%
+  mutate_if(is.integer, as.factor) %>% 
+  cbind(Y_all)
+  
+LR_out <- NULL
+# feature_names <- setdiff(colnames(data_temp), "Y_all")
+feature_names <- feature_importance_mean_NNET$Feature
+for (k in 1:length(feature_names)){
+  feature_k <- feature_names[k]
+  formula_k <- paste0("Y_all~", feature_k)
+  LR_out_k <- broom::tidy(glm(formula_k, family = binomial(logit), data = data_temp), exponentiate = TRUE, conf.int = TRUE)[2,] %>%
+    mutate(feature_name = feature_k)
+  LR_out <- rbind(LR_out, LR_out_k)
+}
+
+LR_out2 <- LR_out %>%
+  mutate(feature_name = factor(feature_name, levels = rev(feature_importance_mean_NNET$Feature)))
+# forest plot
+
+temp_plot <- LR_out2 %>%
+  ggplot() + 
+  geom_point(data = LR_out, aes(x = feature_name, y = estimate), size = 4, alpha = 1) +
+  geom_errorbar(aes(x = feature_name, ymin = conf.low, ymax = conf.high), width = 0.4, colour = "black", alpha = 1, linewidth = 1) + 
+  scale_y_continuous(trans='log', breaks=c(0.05, 0.5, 1, 10, 30), labels = c("0.05", "0.5", "1", "10", "30")) + 
+  geom_hline(yintercept = 1, linetype="dashed", 
+                color = "darkgrey", size = 0.8) +
+  theme_bw() +
+  ylab("Odds Ratio (95% CI)") +
+  xlab("") +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 16),
+        axis.text.y = element_text(size = 16),
+        text = element_text(size=18)) +
+  coord_flip() # +
+  # scale_y_continuous(trans='log', breaks=c(0.0625, 1, 16, 256), labels = c("0.0625", "1", "16", "256"))
+  
+temp_plot
+
+
+```
+
+
+### Trying cross-site analysis to see if models performances are comparable across sites.
+
+
+
+```{r cross-site analysis, echo=FALSE}
+df_site <- data.frame(participant_id = rownames(X_all), outcome = Y_all) %>%
+  inner_join(clinical_data %>% select(participant_id, enrollment_site)) %>%
+  distinct(participant_id, enrollment_site, .keep_all = TRUE)
+
+table(df_site$enrollment_site)
+table(df_site$enrollment_site, df_site$outcome)
+
+# merged_sites <- c("Arizona", "Boston/BWH", "Case Western", "ISMMS (Mt Sinai)", 
+#                   "OHSU (Oregon)", "OUHSC (Oklahoma)", "Stanford")
+
+merged_sites <- c("Case Western", "ISMMS (Mt Sinai)", 
+                  "OHSU (Oregon)", "OUHSC (Oklahoma)")
+
+df_site_5_groups <- df_site %>%
+  mutate(new_site = case_when(
+    enrollment_site %in% merged_sites ~ "merged_sites",
+    .default = enrollment_site
+  ))
+
+table(df_site_5_groups$new_site, df_site_5_groups$outcome)
+
+
+# custom function to create folds based on site
+groupKFold_custom <- function(group, k = length(unique(group)), seed_number = 100){
+  g_unique <- unique(group)
+  m <- length(g_unique)
+  if (k > m) {
+    stop("`k` should be less than ", m)
+  }
+  set.seed(seed_number)
+  g_folds <- sample(k, size = m, replace = FALSE)
+  out <- split(seq_along(group), g_folds[match(group, g_unique)])
+  names(out) <- paste0("Fold", gsub(" ", "0", format(seq_along(out))))
+  # lapply(out, function(z) seq_along(group)[-z])
+  return(out)
+}
+
+# cc <- createFolds(Y_all, k = 2, list = TRUE, returnTrain = TRUE)
+site_fold_idx <- groupKFold_custom(df_site$enrollment_site, k = length(unique(df_site$enrollment_site)), seed_number = 100)
+# lapply(site_fold_idx, length)
+
+site_fold_idx <- groupKFold_custom(df_site_5_groups$new_site, k = length(unique(df_site_5_groups$new_site)), seed_number = 100)
+
+### Feature selection using lasso  
+
+sampling_lasso_site <- vector("list", length = 12)
+sampling_lasso_features_site <- vector("list", length = 12)
+
+for(m in 1:length(sampling_lasso_site)){
+  idx_m <- site_fold_idx[[m]]
+  
+  # train data
+  X_train <- X_all[-idx_m, ]
+  # temp_data_train <- temp_data[idx_m, ]
+  # temp_data_train$outcome <- factor(ifelse(temp_data_train$conv_cluster4 == 1, "Non_LongCOVID", "LongCOVID"))
+  # Y_train <- temp_data_train$outcome
+  
+  Y_train = Y_all[-idx_m]
+  
+  # test data
+  # temp_data_test <- temp_data[-idx_m, ]
+  # temp_data_test$outcome <- factor(ifelse(temp_data_test$conv_cluster4 == 1, "Non_LongCOVID", "LongCOVID"))
+  
+  # Run cross-validation step 100 times
+  set.seed(100)
+  # AUC_vals <- NULL
+  nonzero_coefs_lambda_min_all <- NULL
+  for (k in 1:100) {
+    cvglm_k <-
+      glmnet::cv.glmnet(
+        x = as.matrix(X_train),
+        y = Y_train,
+        family = "binomial",
+        alpha = 1,
+        type.measure = "auc",
+        nfolds = 5,
+        standardize = TRUE
+      )
+    # AUC_vals <- cbind(AUC_vals, cvglm_k$cvm)
+    nonzero_coefs_lambda_min_k <-
+      coef(cvglm_k, s = "lambda.min")[, 1] %>% .[. != 0]
+    nonzero_coefs_lambda_min_k <-
+      data.frame(feature = names(nonzero_coefs_lambda_min_k),
+                 coef = nonzero_coefs_lambda_min_k) %>%
+      mutate(iter = k)
+    nonzero_coefs_lambda_min_all <-
+      rbind(nonzero_coefs_lambda_min_all, nonzero_coefs_lambda_min_k) 
+    }
+    lasso_features_m <- nonzero_coefs_lambda_min_all %>% 
+      group_by(feature) %>%
+      summarise(count = n()) %>% 
+      filter(feature != "(Intercept)") %>% 
+      arrange(desc(count)) %>% 
+      top_n(n = 15, wt = count)
+    lasso_feature_sel_m <- lasso_features_m$feature
+    sampling_lasso_site[[m]] <- lasso_features_m
+    sampling_lasso_features_site[[m]] <- lasso_feature_sel_m  
+  }
+
+filename_1_site <- "/scratch/nasal-transcriptomics/Naresh/data/MLmodels/temp_240717_lasso_feature_sel_site.rda"
+
+# save(sampling_lasso_site, sampling_lasso_features_site, file = filename_1_site)
+
+
+
+
+tune_control_site_cv <- caret::trainControl(
+  # method = "repeatedcv", # cross-validation
+  # number = 5, # with n folds
+  # repeats = 3,
+  #index = createFolds(tr_treated$Id_clean), # fix the folds
+  index = site_fold_idx,
+  # sampling = "rose",
+  verboseIter = FALSE, # no training log
+  allowParallel = FALSE, # FALSE for reproducible results
+  returnResamp = "all", 
+  summaryFunction = twoClassSummary, 
+  classProbs = TRUE, 
+  savePredictions = TRUE
+)
+
+###################
+### bGLM model ####
+###################
+
+itr <- 1
+nitr <- 12
+auroc_itr_all <- NULL
+auprc_itr_all <- NULL
+pr_data_itr_all <- NULL
+roc_data_itr_all <- NULL
+# Initialize a list to store models
+model_list <- list()
+
+for(itr in 1:nitr){
+  idx_itr <- site_fold_idx[[itr]]
+  X_train <- X_all[-idx_itr, ]
+  # Y_train <- temp_data$outcome[idx_itr]
+  Y_train <- factor(Y_all[-idx_itr], levels = c("LongCOVID", "Non_LongCOVID"))
+  lasso_feature_sel <- sampling_lasso_features_site[[itr]]
+  X_train_select <- X_train %>% 
+    select(all_of(lasso_feature_sel)) 
+  
+  X_test <- X_all[idx_itr, ]
+  X_test <- X_test %>%
+    select(all_of(lasso_feature_sel))
+  
+  # bGLM model
+  
+  set.seed(100)
+  model_final <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control_none,
+    # tuneGrid = final_grid_knn,
+    method = "bayesglm",
+    metric = "ROC",
+    # preProcess = c("center", "scale")
+    preProcess = NULL
+  )
+  
+  # Y_test <- temp_data$outcome[-idx_itr]
+  Y_test <- factor(Y_all[idx_itr], levels = c("LongCOVID", "Non_LongCOVID"))
+  # compute probabilities
+  pred_test <- predict(model_final, newdata = X_test, type = "prob") %>% dplyr::mutate(truth = Y_test)
+  
+  auroc_itr <- roc_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  auprc_itr <- pr_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  
+  pr_data_itr <- pr_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  roc_data_itr <- roc_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  
+  auroc_itr_all <- c(auroc_itr_all, auroc_itr)
+  auprc_itr_all <- c(auprc_itr_all, auprc_itr)
+  
+  roc_data_itr_all <- rbind(roc_data_itr_all, roc_data_itr)
+  pr_data_itr_all <- rbind(pr_data_itr_all, pr_data_itr)
+  
+  # Add the model to the list
+  model_list[[paste0("iteration_", itr)]] <- model_final
+}
+
+# save data for this model
+bGLM_model_results_site <- list(auroc_itr_all = auroc_itr_all,
+                           auprc_itr_all = auprc_itr_all,
+                           roc_data_itr_all = roc_data_itr_all,
+                           pr_data_itr_all = pr_data_itr_all,
+                           model_list = model_list)
+###################
+### NNet model ####
+###################
+
+itr <- 1
+nitr <- 12
+auroc_itr_all <- NULL
+auprc_itr_all <- NULL
+pr_data_itr_all <- NULL
+roc_data_itr_all <- NULL
+# model_list <- vector("list", length = nitr)
+model_list <- list()
+
+for(itr in 1:nitr){
+  idx_itr <- site_fold_idx[[itr]]
+  X_train <- X_all[-idx_itr, ]
+  # Y_train <- temp_data$outcome[idx_itr]
+  Y_train <- factor(Y_all[-idx_itr], levels = c("LongCOVID", "Non_LongCOVID"))
+  lasso_feature_sel <- sampling_lasso_features_site[[itr]]
+  X_train_select <- X_train %>% 
+    select(all_of(lasso_feature_sel)) 
+  
+  X_test <- X_all[idx_itr, ]
+  X_test <- X_test %>%
+    select(all_of(lasso_feature_sel))
+  
+  # NNET model
+  tune_grid1 <- expand.grid(
+    size = c(4, 8, 16, 32), 
+    decay = c(seq(0,1,0.1)),
+    bag = TRUE)
+
+  
+  set.seed(100)
+  model_tune1 <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control,
+    tuneGrid = tune_grid1,
+    method = "avNNet",
+    metric = "ROC",
+    nthread = 1,
+    # preProcess = c("center", "scale")
+    preProcess = NULL
+  )
+  
+  final_grid <- expand.grid(size = model_tune1$bestTune$size,
+                                 decay = model_tune1$bestTune$decay,
+                                 bag = model_tune1$bestTune$bag)
+  set.seed(100)
+  model_final <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control_none,
+    tuneGrid = final_grid,
+    method = "avNNet",
+    metric = "ROC",
+    nthread = 1,
+    # preProcess = c("center", "scale")
+    preProcess = NULL
+    )
+
+  Y_test <- factor(Y_all[idx_itr], levels = c("LongCOVID", "Non_LongCOVID"))
+  
+  # compute probabilities
+  pred_test <- predict(model_final, newdata = X_test, type = "prob") %>% dplyr::mutate(truth = Y_test)
+  
+  auroc_itr <- roc_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  auprc_itr <- pr_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  
+  pr_data_itr <- pr_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  roc_data_itr <- roc_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  
+  auroc_itr_all <- c(auroc_itr_all, auroc_itr)
+  auprc_itr_all <- c(auprc_itr_all, auprc_itr)
+  
+  roc_data_itr_all <- rbind(roc_data_itr_all, roc_data_itr)
+  pr_data_itr_all <- rbind(pr_data_itr_all, pr_data_itr)
+  
+  # Add the model to the list
+  model_list[[paste0("iteration_", itr)]] <- model_final
+  
+}
+
+mean(auroc_itr_all)
+median(auroc_itr_all)
+mean(auprc_itr_all)
+median(auprc_itr_all)
+
+# save data for this model
+NNET_model_results_site <- list(auroc_itr_all = auroc_itr_all,
+                           auprc_itr_all = auprc_itr_all,
+                           roc_data_itr_all = roc_data_itr_all,
+                           pr_data_itr_all = pr_data_itr_all,
+                           model_list = model_list)
+
+#######################
+### svmRadial #########
+#######################
+
+itr <- 1
+nitr <- 12
+auroc_itr_all <- NULL
+auprc_itr_all <- NULL
+pr_data_itr_all <- NULL
+roc_data_itr_all <- NULL
+# model_list <- vector("list", length = nitr)
+model_list <- list()
+
+for(itr in 1:nitr){
+  idx_itr <- site_fold_idx[[itr]]
+  X_train <- X_all[-idx_itr, ]
+  # Y_train <- temp_data$outcome[idx_itr]
+  Y_train <- factor(Y_all[-idx_itr], levels = c("LongCOVID", "Non_LongCOVID"))
+  lasso_feature_sel <- sampling_lasso_features_site[[itr]]
+  X_train_select <- X_train %>% 
+    select(all_of(lasso_feature_sel)) 
+  
+  X_test <- X_all[idx_itr, ]
+  X_test <- X_test %>%
+    select(all_of(lasso_feature_sel))
+  
+  # svm Radial model
+  # first compute sigma parameter
+  sigma_svmRadial <- kernlab::sigest(as.matrix(X_train_select), na.action = na.omit, scaled = TRUE)
+  # caret by default takes the mean of 90% and 10% values, mean(as.vector(sigma_svmRadial[-2]))
+  sigma_svmRadial_2 <- c(as.vector(sigma_svmRadial), mean(as.vector(sigma_svmRadial[-2])))
+  tune_grid1 <- expand.grid(C = seq(0.1, 3, by = 0.1),
+                                   sigma = sigma_svmRadial_2)
+
+  
+  set.seed(100)
+  model_tune1 <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control,
+    tuneGrid = tune_grid1,
+    method = "svmRadial",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    preProcess = NULL
+  )
+  
+  final_grid <- expand.grid(C =  model_tune1$bestTune$C,
+                            sigma = model_tune1$bestTune$sigma)
+  set.seed(100)
+  model_final <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control_none,
+    tuneGrid = final_grid,
+    method = "svmRadial",
+    verbose = TRUE,
+    metric = "ROC",
+    nthread = 1,
+    preProcess = NULL
+    )
+
+  Y_test <- factor(Y_all[idx_itr], levels = c("LongCOVID", "Non_LongCOVID"))
+  
+  # compute probabilities
+  pred_test <- predict(model_final, newdata = X_test, type = "prob") %>% dplyr::mutate(truth = Y_test)
+  
+  auroc_itr <- roc_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  auprc_itr <- pr_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  
+  pr_data_itr <- pr_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  roc_data_itr <- roc_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  
+  auroc_itr_all <- c(auroc_itr_all, auroc_itr)
+  auprc_itr_all <- c(auprc_itr_all, auprc_itr)
+  
+  roc_data_itr_all <- rbind(roc_data_itr_all, roc_data_itr)
+  pr_data_itr_all <- rbind(pr_data_itr_all, pr_data_itr)
+  
+  # Add the model to the list
+  model_list[[paste0("iteration_", itr)]] <- model_final
+  
+}
+
+mean(auroc_itr_all)
+median(auroc_itr_all)
+mean(auprc_itr_all)
+median(auprc_itr_all)
+
+# save data for this model
+svmRadial_model_results_site <- list(auroc_itr_all = auroc_itr_all,
+                           auprc_itr_all = auprc_itr_all,
+                           roc_data_itr_all = roc_data_itr_all,
+                           pr_data_itr_all = pr_data_itr_all,
+                           model_list = model_list)
+
+################
+### XGB ########
+################
+
+itr <- 1
+nitr <- 12
+auroc_itr_all <- NULL
+auprc_itr_all <- NULL
+pr_data_itr_all <- NULL
+roc_data_itr_all <- NULL
+# model_list <- vector("list", length = nitr)
+model_list <- list()
+
+for(itr in 1:nitr){
+  idx_itr <- site_fold_idx[[itr]]
+  X_train <- X_all[-idx_itr, ]
+  # Y_train <- temp_data$outcome[idx_itr]
+  Y_train <- factor(Y_all[-idx_itr], levels = c("LongCOVID", "Non_LongCOVID"))
+  lasso_feature_sel <- sampling_lasso_features_site[[itr]]
+  X_train_select <- X_train %>% 
+    select(all_of(lasso_feature_sel)) 
+  
+  X_test <- X_all[idx_itr, ]
+  X_test <- X_test %>%
+    select(all_of(lasso_feature_sel))
+  
+  # note to start nrounds from 200, as smaller learning rates result in errors so
+  # big with lower starting points that they'll mess the scales
+  tune_grid1 <- expand.grid(
+    nrounds = seq(from = 100, to = 500, by = 50),
+    eta = c(0.025, 0.05, 0.1, 0.2, 0.3),
+    max_depth = c(2, 3, 4, 5),
+    gamma = 0,
+    colsample_bytree = 1,
+    min_child_weight = 1,
+    subsample = 1
+  )
+  
+
+  
+  set.seed(100)
+  xgb_tune1 <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control,
+    tuneGrid = tune_grid1,
+    method = "xgbTree",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    preProcess = NULL
+    # preProcess = c("center", "scale")
+  )
+  
+  tune_grid2 <- expand.grid(
+    nrounds = xgb_tune1$bestTune$nrounds,
+    eta = xgb_tune1$bestTune$eta,
+    max_depth = xgb_tune1$bestTune$max_depth,
+    gamma = 0,
+    colsample_bytree = 1,
+    min_child_weight = c(1, 2, 3, 4, 5),
+    subsample = 1
+  )
+  
+  set.seed(100)
+  xgb_tune2 <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control,
+    tuneGrid = tune_grid2,
+    method = "xgbTree",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    preProcess = NULL
+    # preProcess = c("center", "scale")
+  )
+  
+
+  tune_grid3 <- expand.grid(
+    nrounds = xgb_tune1$bestTune$nrounds,
+    eta = xgb_tune1$bestTune$eta,
+    max_depth = xgb_tune1$bestTune$max_depth,
+    gamma = 0,
+    colsample_bytree = seq(from = 0.2, to = 1, by = 0.1),
+    min_child_weight = xgb_tune2$bestTune$min_child_weight,
+    subsample = c(0.25, 0.5, 0.75, 1.0)
+  )
+  
+  set.seed(100)
+  xgb_tune3 <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control,
+    tuneGrid = tune_grid3,
+    method = "xgbTree",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    preProcess = NULL
+    # preProcess = c("center", "scale")
+  )
+  
+  tune_grid4 <- expand.grid(
+    nrounds = xgb_tune1$bestTune$nrounds,
+    eta = xgb_tune1$bestTune$eta,
+    max_depth = xgb_tune1$bestTune$max_depth,
+    gamma = c(0, 0.05, 0.1, 0.5, 0.7, 0.9, 1.0),
+    colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
+    min_child_weight = xgb_tune2$bestTune$min_child_weight,
+    subsample = xgb_tune3$bestTune$subsample
+  )
+  
+  set.seed(100)
+  xgb_tune4 <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control,
+    tuneGrid = tune_grid4,
+    method = "xgbTree",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    preProcess = NULL
+    # preProcess = c("center", "scale")
+  )
+  
+  final_grid_xgb <- expand.grid(
+    nrounds = xgb_tune1$bestTune$nrounds,
+    eta = xgb_tune1$bestTune$eta,
+    max_depth = xgb_tune1$bestTune$max_depth,
+    gamma = xgb_tune4$bestTune$gamma,
+    colsample_bytree = xgb_tune3$bestTune$colsample_bytree,
+    min_child_weight = xgb_tune2$bestTune$min_child_weight,
+    subsample = xgb_tune3$bestTune$subsample
+  )
+  
+
+  set.seed(100)
+  model_final <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control_none,
+    tuneGrid = final_grid_xgb,
+    method = "xgbTree",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    preProcess = NULL
+    )
+
+  Y_test <- factor(Y_all[idx_itr], levels = c("LongCOVID", "Non_LongCOVID"))
+  
+  # compute probabilities
+  pred_test <- predict(model_final, newdata = X_test, type = "prob") %>% dplyr::mutate(truth = Y_test)
+  
+  auroc_itr <- roc_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  auprc_itr <- pr_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  
+  pr_data_itr <- pr_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  roc_data_itr <- roc_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  
+  auroc_itr_all <- c(auroc_itr_all, auroc_itr)
+  auprc_itr_all <- c(auprc_itr_all, auprc_itr)
+  
+  roc_data_itr_all <- rbind(roc_data_itr_all, roc_data_itr)
+  pr_data_itr_all <- rbind(pr_data_itr_all, pr_data_itr)
+  
+  # Add the model to the list
+  model_list[[paste0("iteration_", itr)]] <- model_final
+  
+}
+
+mean(auroc_itr_all)
+median(auroc_itr_all)
+mean(auprc_itr_all)
+median(auprc_itr_all)
+
+# save data for this model
+XGB_model_results_site <- list(auroc_itr_all = auroc_itr_all,
+                           auprc_itr_all = auprc_itr_all,
+                           roc_data_itr_all = roc_data_itr_all,
+                           pr_data_itr_all = pr_data_itr_all,
+                           model_list = model_list)
+
+################
+### RF #########
+################
+
+itr <- 1
+nitr <- 12
+auroc_itr_all <- NULL
+auprc_itr_all <- NULL
+pr_data_itr_all <- NULL
+roc_data_itr_all <- NULL
+# model_list <- vector("list", length = nitr)
+model_list <- list()
+
+for(itr in 1:nitr){
+  idx_itr <- site_fold_idx[[itr]]
+  X_train <- X_all[-idx_itr, ]
+  # Y_train <- temp_data$outcome[idx_itr]
+  Y_train <- factor(Y_all[-idx_itr], levels = c("LongCOVID", "Non_LongCOVID"))
+  lasso_feature_sel <- sampling_lasso_features_site[[itr]]
+  X_train_select <- X_train %>% 
+    select(all_of(lasso_feature_sel)) 
+  
+  X_test <- X_all[idx_itr, ]
+  X_test <- X_test %>%
+    select(all_of(lasso_feature_sel))
+  
+  tune_grid1 <- expand.grid(
+    mtry = 1:10
+  )
+  
+  
+  set.seed(100)
+  rf_tune1 <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control,
+    tuneGrid = tune_grid1,
+    method = "rf",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    # preProcess = c("center", "scale"),
+    preProcess = NULL
+  )
+  
+  # Iterate over a number of trees
+  ntree_values <- c(100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 10000)
+
+  # tune_grid <- expand.grid(.mtry = c(sqrt(ncol(dataset))))
+  tune_grid <- expand.grid(.mtry = rf_tune1$bestTune)
+  modellist_ntree <- list()
+  
+  #train with different ntree parameters
+  for (ntree in ntree_values){
+    set.seed(100)
+    fit <- caret::train(
+      x = X_train_select, 
+      y = Y_train, 
+      trControl = tune_control, 
+      tuneGrid = tune_grid, 
+      method = "rf", 
+      verbose = TRUE, 
+      nthread = 1, 
+      ntree = ntree,
+      # preProcess = c("center", "scale")
+      preProcess = NULL
+    )
+    key <- toString(ntree)
+    modellist_ntree[[key]] <- fit
+  }
+  
+  # Aggregate resampling results
+  rf_tune_results <- resamples(modellist_ntree)
+  
+  # Summarize results
+  summary_rf_results <- summary(rf_tune_results)
+  
+  # Extract median ROC for each ntree value
+  median_roc_values <- summary_rf_results$statistics$ROC[,"Median"]
+  
+  # Find the ntree value with the highest median ROC
+  best_ntree <- names(median_roc_values)[which.max(median_roc_values)]
+  best_ntree <- as.numeric(best_ntree)
+  
+  # Print the best ntree value and corresponding median ROC
+  cat("Best ntree:", best_ntree, "\n")
+  cat("Highest median ROC:", max(median_roc_values), "\n")
+
+  final_grid_rf <- expand.grid(.mtry = rf_tune1$bestTune)
+  
+  
+  set.seed(100)
+  model_final <- caret::train(
+    x = X_train_select,
+    y = Y_train,
+    trControl = tune_control_none,
+    tuneGrid = final_grid_rf,
+    ntree = best_ntree,
+    method = "rf",
+    verbose = TRUE,
+    metric = "ROC", 
+    nthread = 1,
+    preProcess = NULL
+    )
+
+  Y_test <- factor(Y_all[idx_itr], levels = c("LongCOVID", "Non_LongCOVID"))
+  
+  # compute probabilities
+  pred_test <- predict(model_final, newdata = X_test, type = "prob") %>% dplyr::mutate(truth = Y_test)
+  
+  auroc_itr <- roc_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  auprc_itr <- pr_auc(pred_test, truth, LongCOVID, event_level = "first")$.estimate
+  
+  pr_data_itr <- pr_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  roc_data_itr <- roc_curve(pred_test, truth, LongCOVID, event_level = "first") %>%
+    mutate(iteration = itr)
+  
+  auroc_itr_all <- c(auroc_itr_all, auroc_itr)
+  auprc_itr_all <- c(auprc_itr_all, auprc_itr)
+  
+  roc_data_itr_all <- rbind(roc_data_itr_all, roc_data_itr)
+  pr_data_itr_all <- rbind(pr_data_itr_all, pr_data_itr)
+  
+  # Add the model to the list
+  model_list[[paste0("iteration_", itr)]] <- model_final
+  
+}
+
+mean(auroc_itr_all)
+median(auroc_itr_all)
+mean(auprc_itr_all)
+median(auprc_itr_all)
+
+# save data for this model
+RF_model_results_site <- list(auroc_itr_all = auroc_itr_all,
+                           auprc_itr_all = auprc_itr_all,
+                           roc_data_itr_all = roc_data_itr_all,
+                           pr_data_itr_all = pr_data_itr_all,
+                           model_list = model_list)
+
+# save the data
+filename_5_site <- "/scratch/nasal-transcriptomics/Naresh/data/MLmodels/temp_240717_bGLM_NNET_svmRadial_XGB_RF_results_cross_site.rda"
+
+# save(RF_model_results_site, XGB_model_results_site, svmRadial_model_results_site, NNET_model_results_site, bGLM_model_results_site, file = filename_5_site)
+
+all_model_results_list_site <- list(bGLM_model_results = bGLM_model_results_site,
+                               NNET_model_results = NNET_model_results_site,
+                               svmRadial_model_results = svmRadial_model_results_site,
+                               XGB_model_results = XGB_model_results_site,
+                               RF_model_results = RF_model_results_site)
+
+# make data frames for plotting
+# Initialize empty lists to store merged data
+auroc_auprc_merged <- data.frame()
+roc_data_merged <- data.frame()
+pr_data_merged <- data.frame()
+
+# Define model names
+model_names <- c("bGLM", "NNET", "svmRadial", "XGB", "RF")
+
+# Iterate through each model and combine the data
+for (model in model_names) {
+  # Extract the model results
+  model_results <- all_model_results_list_site[[paste0(model, "_model_results")]]
+  
+  # Combine auroc_itr_all and auprc_itr_all with model information
+  auroc_auprc_df <- data.frame(
+    AUROC = model_results$auroc_itr_all,
+    AUPRC = model_results$auprc_itr_all,
+    iteration = 1:length(model_results$auroc_itr_all),
+    Model = model
+  )
+  
+  # Append to the merged data frame
+  auroc_auprc_merged <- rbind(auroc_auprc_merged, auroc_auprc_df)
+  
+  # Combine roc_data_itr_all with model information
+  roc_df <- model_results$roc_data_itr_all
+  roc_df$Model <- model
+  
+  # Append to the merged data frame
+  roc_data_merged <- rbind(roc_data_merged, roc_df)
+  
+  # Combine pr_data_itr_all with model information
+  pr_df <- model_results$pr_data_itr_all
+  pr_df$Model <- model
+  
+  # Append to the merged data frame
+  pr_data_merged <- rbind(pr_data_merged, pr_df)
+}
+
+# Print the merged data frames
+View(auroc_auprc_merged)
+View(roc_data_merged)
+View(pr_data_merged)
+
+df_mean <- auroc_auprc_merged %>% 
+  group_by(Model) %>%
+  summarise(n = n(),
+            AUROC_mean = mean(AUROC),
+            AUROC_median = median(AUROC),
+            AUPRC_mean = mean(AUPRC),
+            AUPRC_median = median(AUPRC)) %>%
+  mutate(AUROC_mean_text = round(AUROC_mean, 3),
+         AUPRC_mean_text = round(AUPRC_mean, 3))
+
+
+
+paletteer::paletteer_d("calecopal::superbloom2")
+col_sel <- c("bGLM" = "#DE7424FF", "NNET" = "#496849FF", "RF" = "#F5CA37FF",
+             "svmRadial" = "#654783FF", "XGB" = "#AD8D26FF")
+
+# plotting AUROC and AUPRC as box plots
+AUROC_plot1 <- auroc_auprc_merged %>%
+  ggplot(aes(x = Model, y = AUROC)) +
+  geom_boxplot(aes(color = Model), alpha = 1, lwd = 1.2) +
+  geom_quasirandom(aes(color = Model), width = 0.2, alpha = 0.7, size = 1.5) +
+  geom_point(data = df_mean, aes(x = Model, y = AUROC_mean), color = "black", size = 5, alpha = 0.7) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, size = 14),
+        # axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        strip.text = element_text(size=14),
+        legend.title=element_blank(),
+        legend.text = element_text(size = 12)) +
+  # xlab("UMAP 1") +
+  # ylab("UMAP 2") +
+  scale_color_manual(values = col_sel) 
+
+
+AUPRC_plot1 <- auroc_auprc_merged %>%
+  ggplot(aes(x = Model, y = AUPRC)) +
+  geom_boxplot(aes(color = Model), alpha = 1, lwd = 1.2) +
+  geom_quasirandom(aes(color = Model), width = 0.2, alpha = 0.7, size = 1.5) +
+  geom_point(data = df_mean, aes(x = Model, y = AUPRC_mean), color = "black", size = 5, alpha = 0.7) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, size = 14),
+        # axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        strip.text = element_text(size=14),
+        legend.title=element_blank(),
+        legend.text = element_text(size = 12)) +
+  # xlab("UMAP 1") +
+  # ylab("UMAP 2") +
+  scale_color_manual(values = col_sel) 
+
+AUROC_AUPRC_plot1 <- cowplot::plot_grid(AUROC_plot1, AUPRC_plot1, ncol = 1, labels = NULL, rel_widths = c(1, 1))
+
+### Plotting ROC and PRC curves
+ROC_plot1 <- roc_data_merged %>%
+  mutate(iteration = factor(iteration)) %>%
+  ggplot(aes(x = 1-specificity, y = sensitivity)) +
+  geom_path(aes(color = iteration), linewidth = 0.8) + 
+  geom_text(data = df_mean, aes(x = 0.8, y = 0.2, label = AUROC_mean_text), size = 6) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, size = 14),
+        # axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        strip.text = element_text(size=14),
+        legend.title=element_blank(),
+        legend.text = element_text(size = 12)) +
+  xlab("1-Specificity") +
+  ylab("Sensitivity") +
+  # scale_color_manual(values = col_sel) +
+  geom_abline(slope = 1, intercept = 0, color = "black", linewidth = 1.5, linetype = "dashed") +
+  scale_y_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_x_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  facet_wrap(~Model, ncol = 5) +
+  theme(legend.position = "none")
+
+PRC_plot1 <- pr_data_merged %>%
+  mutate(iteration = factor(iteration)) %>%
+  ggplot(aes(x = recall, y = precision)) +
+  geom_path(aes(color = iteration), linewidth = 0.8) + 
+  geom_text(data = df_mean, aes(x = 0.8, y = 0.2, label = AUPRC_mean_text), size = 6) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, size = 14),
+        # axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        strip.text = element_text(size=14),
+        legend.title=element_blank(),
+        legend.text = element_text(size = 12)) +
+  xlab("Recall") +
+  ylab("Precision") +
+  # scale_color_manual(values = col_sel) +
+  # geom_abline(slope = 1, intercept = 0, color = "red", linewidth = 1.5, linetype = "dashed") +
+  scale_y_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_x_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  facet_wrap(~Model, ncol = 5) +
+  theme(legend.position = "none")
+
+ROC_PRC_plot1 <- cowplot::plot_grid(ROC_plot1, PRC_plot1, ncol = 1, labels = NULL, rel_widths = c(1, 1))
+
+
+### Plotting ROC and PRC curves
+ROC_plot1 <- roc_data_merged %>%
+  mutate(iteration = factor(iteration)) %>%
+  ggplot(aes(x = 1-specificity, y = sensitivity)) +
+  geom_path(aes(color = iteration), linewidth = 0.8) + 
+  geom_text(data = df_mean, aes(x = 0.8, y = 0.2, label = AUROC_mean_text), size = 6) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, size = 14),
+        # axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        strip.text = element_text(size=14),
+        legend.title=element_blank(),
+        legend.text = element_text(size = 12)) +
+  xlab("1-Specificity") +
+  ylab("Sensitivity") +
+  # scale_color_manual(values = col_sel) +
+  geom_abline(slope = 1, intercept = 0, color = "black", linewidth = 1.5, linetype = "dashed") +
+  scale_y_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_x_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  facet_wrap(~Model, ncol = 5) +
+  theme(legend.position = "none")
+
+PRC_plot1 <- pr_data_merged %>%
+  mutate(iteration = factor(iteration)) %>%
+  ggplot(aes(x = recall, y = precision)) +
+  geom_path(aes(color = iteration), linewidth = 0.8) + 
+  geom_text(data = df_mean, aes(x = 0.8, y = 0.2, label = AUPRC_mean_text), size = 6) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, size = 14),
+        # axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        strip.text = element_text(size=14),
+        legend.title=element_blank(),
+        legend.text = element_text(size = 12)) +
+  xlab("Recall") +
+  ylab("Precision") +
+  # scale_color_manual(values = col_sel) +
+  # geom_abline(slope = 1, intercept = 0, color = "red", linewidth = 1.5, linetype = "dashed") +
+  scale_y_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_x_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  facet_wrap(~Model, ncol = 5) +
+  theme(legend.position = "none")
+
+ROC_PRC_plot1 <- cowplot::plot_grid(ROC_plot1, PRC_plot1, ncol = 1, labels = NULL, rel_widths = c(1, 1))
+
+
+### Feature importance data
+# Initialize empty data frame to store feature importance data
+feature_importance_merged <- data.frame()
+
+# Define model names
+model_names <- c("bGLM", "NNET", "svmRadial", "XGB", "RF")
+
+# Iterate through each model and extract feature importance for each iteration
+for (model in model_names) {
+  # Extract the model list
+  model_results <- all_model_results_list_site[[paste0(model, "_model_results")]]
+  model_list <- model_results$model_list
+  
+  # Iterate over each model in the list
+  for (iteration in 1:length(model_list)) {
+    # Extract the fitted model for the current iteration
+    fitted_model <- model_list[[iteration]]
+    
+    # Extract feature importance
+    importance <- varImp(fitted_model, scale = TRUE)
+    importance_df <- as.data.frame(importance$importance)
+    
+    # for XGB and RF models varImp output is different so adjust to be consistent with other models
+    if(model == "XGB" | model == "RF"){
+      importance_df <- importance_df %>%
+        dplyr::rename(LongCOVID = Overall) %>%
+        mutate(Non_LongCOVID = LongCOVID)
+    }
+    
+    # Add model and iteration information
+    importance_df$Feature <- rownames(importance_df)
+    importance_df$Model <- model
+    importance_df$Iteration <- iteration
+    
+    # Append to the merged data frame
+    feature_importance_merged <- rbind(feature_importance_merged, importance_df)
+  }
+  
+  # Print the model
+  cat("Model finished", model, "\n")
+}
+
+# Print the merged feature importance data frame
+View(feature_importance_merged)
+
+feature_importance_mean <- feature_importance_merged %>%
+  group_by(Model, Feature) %>%
+  summarise(count = n(),
+            mean_imp = mean(LongCOVID),
+            median_imp = median(LongCOVID))
+
+feature_importance_mean_NNET <- feature_importance_mean %>%
+  filter(Model == "NNET") %>%
+  dplyr::filter(count > 4 & median_imp > 0) %>%
+  arrange(desc(median_imp))
+
+# Convert Feature column to factor with levels in the order of descending median_imp
+feature_importance_mean <- feature_importance_mean %>% mutate(Feature = factor(Feature, levels = rev(feature_importance_mean_NNET$Feature)))
+
+
+# variable importance plot
+feature_imp_dotplot_all_models <- feature_importance_mean %>%
+  dplyr::filter(Model %in% c("XGB", "RF", "svmRadial", "bGLM", "NNET")) %>%
+  dplyr::filter(count > 4) %>%
+  dplyr::filter(Feature %in% feature_importance_mean_NNET$Feature) %>%
+  ggplot(aes(x = Model, y = Feature)) +
+  geom_point(aes(color = median_imp, size = median_imp)) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 14),
+        axis.text.y = element_text(size = 14),
+        text = element_text(size = 14),
+        plot.title = element_text(size = 14, face = "bold")) +
+  scale_color_continuous(type = "viridis", name = "Score") +
+  guides(size = "none") +
+  xlab("") + 
+  ylab("")
+
+feature_imp_dotplot_all_models
+
+
+```
+
+
+
+
