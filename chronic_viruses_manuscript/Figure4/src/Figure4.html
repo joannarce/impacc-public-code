@@ -1,0 +1,2006 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.555">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Figure4</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Figure4_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Figure4_files/libs/quarto-html/quarto.js"></script>
+<script src="Figure4_files/libs/quarto-html/popper.min.js"></script>
+<script src="Figure4_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Figure4_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Figure4_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Figure4_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Figure4_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Figure4_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Figure4_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Figure4</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="figure-4-serum-olink-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="figure-4-serum-olink-analysis">Figure 4: Serum OLINK Analysis</h2>
+</section>
+<section id="boot-up-key-data" class="level2">
+<h2 class="anchored" data-anchor-id="boot-up-key-data">Boot up Key Data</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.2     ✔ readr     2.1.5
+✔ forcats   1.0.0     ✔ stringr   1.5.0
+✔ ggplot2   3.4.2     ✔ tibble    3.2.1
+✔ lubridate 1.9.3     ✔ tidyr     1.3.1
+✔ purrr     1.0.2     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'data.table'
+
+The following objects are masked from 'package:lubridate':
+
+    hour, isoweek, mday, minute, month, quarter, second, wday, week,
+    yday, year
+
+The following objects are masked from 'package:dplyr':
+
+    between, first, last
+
+The following object is masked from 'package:purrr':
+
+    transpose</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(viridis)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: viridisLite</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(scales)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'scales'
+
+The following object is masked from 'package:viridis':
+
+    viridis_pal
+
+The following object is masked from 'package:purrr':
+
+    discard
+
+The following object is masked from 'package:readr':
+
+    col_factor</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>comb_data <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/full_comb_data.csv"</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human betaherpesvirus 6"</span>),</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human gammaherpesvirus 8"</span>),</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human betaherpesvirus 7"</span>),</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Respiratory syncytial virus"</span>),</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human immunodeficiency virus 1"</span>),</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"SARS-CoV-2.pbmc"</span>),</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Enterovirus.pbmc"</span>),</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Enterovirus.ea"</span>),</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Anelloviridae.ea"</span>),</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Anelloviridae.nasal"</span>),</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">ends_with</span>(<span class="st">".ea"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"Betacoronavirus.nasal"</span> <span class="ot">=</span> <span class="st">"SARS-CoV-2.nasal"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>New names:
+Rows: 4654 Columns: 31
+── Column specification
+──────────────────────────────────────────────────────── Delimiter: "," chr
+(1): event_id dbl (30): ...1, Human gammaherpesvirus 4 (EBV).pbmc, Human
+betaherpesvirus 5...
+ℹ Use `spec()` to retrieve the full column specification for this data. ℹ
+Specify the column types or set `show_col_types = FALSE` to quiet this message.
+• `` -&gt; `...1`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>data_env <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS"</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>clinical_data <span class="ot">&lt;-</span> data_env<span class="sc">$</span>clinical_data</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>out_dir <span class="ot">&lt;-</span> <span class="st">"../output/"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="gamm-modeling-function" class="level2">
+<h2 class="anchored" data-anchor-id="gamm-modeling-function">Gamm modeling function</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(nlme)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'nlme'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:dplyr':
+
+    collapse</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>gamm_modeling <span class="ot">&lt;-</span> <span class="cf">function</span>(counts, viral_load_control, <span class="at">binary =</span> <span class="cn">TRUE</span>, event_date_cutoff){</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="do">## Requires a data_env be made and in the environment</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="do">## using the load_IMPACC_dataset function from the codebase</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  model.out <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  plot_list <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  residual_list <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  max_part <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(data_env<span class="sc">$</span>clinical_data <span class="sc">%&gt;%</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>                <span class="fu">distinct</span>(event_id, participant_id, event_date)) <span class="sc">%&gt;%</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_date <span class="sc">&gt;=</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_date <span class="sc">&lt;=</span> event_date_cutoff) <span class="sc">%&gt;%</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(participant_id, name) <span class="sc">%&gt;%</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(name <span class="sc">!=</span> <span class="st">"Betacoronavirus.nasal"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">value =</span> <span class="fu">max</span>(value, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(value <span class="sc">!=</span> <span class="sc">-</span><span class="cn">Inf</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> name, <span class="at">values_from =</span> value) <span class="sc">%&gt;%</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Betacoronavirus"</span>))</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>  <span class="do">## Filter for participants that we have both a nasal and pbmc sample for</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>  <span class="do">## Really not that big of deal because we control for nasal viral load</span></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>  max_part <span class="ot">&lt;-</span> max_part[<span class="fu">complete.cases</span>(max_part),]</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>  ctl_part <span class="ot">&lt;-</span> max_part<span class="sc">$</span>participant_id[<span class="fu">rowSums</span>(max_part[,<span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>)]) <span class="sc">==</span> <span class="dv">0</span>]</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(active_vir <span class="cf">in</span> <span class="fu">colnames</span>(max_part)[<span class="sc">-</span><span class="dv">1</span>]){</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="fu">paste0</span>(<span class="st">"Starting "</span>, <span class="fu">match</span>(active_vir, <span class="fu">colnames</span>(max_part)[<span class="sc">-</span><span class="dv">1</span>]), <span class="st">" out of "</span>, <span class="fu">length</span>(<span class="fu">colnames</span>(max_part)[<span class="sc">-</span><span class="dv">1</span>])))</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>    tmp.data <span class="ot">&lt;-</span> counts <span class="sc">%&gt;%</span></span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>      <span class="fu">rownames_to_column</span>(<span class="st">"sample_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>      <span class="fu">inner_join</span>(data_env<span class="sc">$</span>clinical_data <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(sample_id, event_id,</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>                                                          participant_id,</span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>                                                          respiratory_status,</span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>                                                          trajectory_group,</span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>                                                          event_type,</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>                                                          event_date,</span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>                                                          enrollment_site,</span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>                                                          discretized_admit_age_quantile,</span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>                                                          sex)) <span class="sc">%&gt;%</span></span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>      <span class="fu">inner_join</span>(max_part <span class="sc">%&gt;%</span> <span class="fu">select</span>(participant_id, .data[[active_vir]]), <span class="at">by =</span> <span class="st">"participant_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a>      <span class="fu">inner_join</span>(comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>                   <span class="fu">select</span>(event_id, Betacoronavirus.nasal), <span class="at">by =</span> <span class="st">"event_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a>      <span class="fu">relocate</span>(sample_id, event_id, event_type, event_date,</span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>               participant_id,</span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>               respiratory_status, trajectory_group, enrollment_site,</span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a>               sex,discretized_admit_age_quantile, <span class="fu">all_of</span>(active_vir), Betacoronavirus.nasal) <span class="sc">%&gt;%</span></span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(.data[[active_vir]])) <span class="sc">%&gt;%</span></span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">sex =</span> <span class="fu">as.factor</span>(sex),</span>
+<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a>             <span class="at">participant_id =</span> <span class="fu">as.factor</span>(participant_id),</span>
+<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a>             <span class="at">event_date =</span> <span class="fu">as.numeric</span>(event_date),</span>
+<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a>             <span class="at">enrollment_site =</span> <span class="fu">as.factor</span>(enrollment_site),</span>
+<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a>             <span class="at">trajectory_group =</span> <span class="fu">ordered</span>(<span class="fu">as.factor</span>(trajectory_group)),</span>
+<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a>             <span class="at">respiratory_status =</span> <span class="fu">ordered</span>(<span class="fu">as.factor</span>(respiratory_status)),</span>
+<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a>             <span class="at">discretized_admit_age_quantile =</span> <span class="fu">ordered</span>(<span class="fu">as.factor</span>(discretized_admit_age_quantile))) <span class="sc">%&gt;%</span></span>
+<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a>     <span class="fu">filter</span>(.data[[active_vir]] <span class="sc">&gt;</span> <span class="dv">0</span> <span class="sc">|</span> participant_id <span class="sc">%in%</span> ctl_part)</span>
+<span id="cb15-57"><a href="#cb15-57" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-58"><a href="#cb15-58" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(viral_load_control){</span>
+<span id="cb15-59"><a href="#cb15-59" aria-hidden="true" tabindex="-1"></a>      tmp.data <span class="ot">&lt;-</span> tmp.data <span class="sc">%&gt;%</span></span>
+<span id="cb15-60"><a href="#cb15-60" aria-hidden="true" tabindex="-1"></a>        <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(Betacoronavirus.nasal)) <span class="sc">%&gt;%</span></span>
+<span id="cb15-61"><a href="#cb15-61" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">Betacoronavirus.nasal =</span> <span class="fu">log2</span>(Betacoronavirus.nasal <span class="sc">+</span> <span class="dv">1</span>))</span>
+<span id="cb15-62"><a href="#cb15-62" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb15-63"><a href="#cb15-63" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-64"><a href="#cb15-64" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(binary){</span>
+<span id="cb15-65"><a href="#cb15-65" aria-hidden="true" tabindex="-1"></a>      <span class="do">## Convert to a binary approach</span></span>
+<span id="cb15-66"><a href="#cb15-66" aria-hidden="true" tabindex="-1"></a>      tmp.data[[active_vir]] <span class="ot">&lt;-</span> <span class="fu">ordered</span>(<span class="fu">as.factor</span>(<span class="fu">ifelse</span>(tmp.data[[active_vir]] <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>)))</span>
+<span id="cb15-67"><a href="#cb15-67" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb15-68"><a href="#cb15-68" aria-hidden="true" tabindex="-1"></a>      tmp.data[[active_vir]] <span class="ot">&lt;-</span> <span class="fu">log2</span>(tmp.data[[active_vir]] <span class="sc">+</span><span class="dv">1</span>)</span>
+<span id="cb15-69"><a href="#cb15-69" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb15-70"><a href="#cb15-70" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-71"><a href="#cb15-71" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-72"><a href="#cb15-72" aria-hidden="true" tabindex="-1"></a>    <span class="do">## Prepare colnames for formala/modeling</span></span>
+<span id="cb15-73"><a href="#cb15-73" aria-hidden="true" tabindex="-1"></a>    <span class="fu">colnames</span>(tmp.data) <span class="ot">&lt;-</span> <span class="fu">gsub</span>(<span class="st">" "</span>, <span class="st">"_"</span>,</span>
+<span id="cb15-74"><a href="#cb15-74" aria-hidden="true" tabindex="-1"></a>                               <span class="fu">gsub</span>(<span class="st">"-"</span>, <span class="st">"_"</span>,</span>
+<span id="cb15-75"><a href="#cb15-75" aria-hidden="true" tabindex="-1"></a>                                    <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">"_"</span>,<span class="fu">sub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">"_"</span>,  <span class="fu">colnames</span>(tmp.data)))))</span>
+<span id="cb15-76"><a href="#cb15-76" aria-hidden="true" tabindex="-1"></a>    cleaned_vir <span class="ot">&lt;-</span> <span class="fu">gsub</span>(<span class="st">" "</span>, <span class="st">"_"</span>,</span>
+<span id="cb15-77"><a href="#cb15-77" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">gsub</span>(<span class="st">"-"</span>, <span class="st">"_"</span>,</span>
+<span id="cb15-78"><a href="#cb15-78" aria-hidden="true" tabindex="-1"></a>                             <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">"_"</span>,<span class="fu">sub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">"_"</span>, active_vir))))</span>
+<span id="cb15-79"><a href="#cb15-79" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-80"><a href="#cb15-80" aria-hidden="true" tabindex="-1"></a>   </span>
+<span id="cb15-81"><a href="#cb15-81" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(active_feature <span class="cf">in</span> <span class="fu">colnames</span>(tmp.data)[<span class="dv">13</span><span class="sc">:</span><span class="fu">ncol</span>(tmp.data)]){</span>
+<span id="cb15-82"><a href="#cb15-82" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb15-83"><a href="#cb15-83" aria-hidden="true" tabindex="-1"></a>      <span class="do">## GAMM Modeling ####################</span></span>
+<span id="cb15-84"><a href="#cb15-84" aria-hidden="true" tabindex="-1"></a>      <span class="do">## Formula construction</span></span>
+<span id="cb15-85"><a href="#cb15-85" aria-hidden="true" tabindex="-1"></a>      active_formula <span class="ot">&lt;-</span> <span class="fu">formula</span>(<span class="fu">paste0</span>(active_feature, <span class="st">"~s(event_date, bs = 'cr') + s(event_date, bs = 'cr', by = "</span>, cleaned_vir, <span class="st">")+s(event_date, bs = 'cr', by = trajectory_group)+"</span>, cleaned_vir, <span class="st">"+sex+trajectory_group+discretized_admit_age_quantile"</span>))</span>
+<span id="cb15-86"><a href="#cb15-86" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb15-87"><a href="#cb15-87" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(viral_load_control){</span>
+<span id="cb15-88"><a href="#cb15-88" aria-hidden="true" tabindex="-1"></a>        active_formula <span class="ot">&lt;-</span> <span class="fu">formula</span>(<span class="fu">paste0</span>(active_feature, <span class="st">"~s(event_date, bs = 'cr') + s(event_date, bs = 'cr', by = "</span>, cleaned_vir, <span class="st">")+s(event_date, bs = 'cr', by = trajectory_group)+"</span>, cleaned_vir, <span class="st">"+sex+trajectory_group+discretized_admit_age_quantile+Betacoronavirus.nasal"</span>))</span>
+<span id="cb15-89"><a href="#cb15-89" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb15-90"><a href="#cb15-90" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb15-91"><a href="#cb15-91" aria-hidden="true" tabindex="-1"></a>      tmp.data.tmp <span class="ot">&lt;-</span> tmp.data <span class="sc">%&gt;%</span></span>
+<span id="cb15-92"><a href="#cb15-92" aria-hidden="true" tabindex="-1"></a>        dplyr<span class="sc">::</span><span class="fu">select</span>(event_date, enrollment_site, participant_id,</span>
+<span id="cb15-93"><a href="#cb15-93" aria-hidden="true" tabindex="-1"></a>                      trajectory_group, sex, discretized_admit_age_quantile,</span>
+<span id="cb15-94"><a href="#cb15-94" aria-hidden="true" tabindex="-1"></a>                      <span class="fu">any_of</span>(active_feature), <span class="fu">any_of</span>(cleaned_vir),</span>
+<span id="cb15-95"><a href="#cb15-95" aria-hidden="true" tabindex="-1"></a>                      Betacoronavirus.nasal )</span>
+<span id="cb15-96"><a href="#cb15-96" aria-hidden="true" tabindex="-1"></a>      tmp.data.tmp <span class="ot">&lt;-</span> tmp.data.tmp[<span class="fu">complete.cases</span>(tmp.data.tmp),]</span>
+<span id="cb15-97"><a href="#cb15-97" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb15-98"><a href="#cb15-98" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb15-99"><a href="#cb15-99" aria-hidden="true" tabindex="-1"></a>      tmp.data.tmp <span class="ot">&lt;-</span> tmp.data.tmp <span class="sc">%&gt;%</span></span>
+<span id="cb15-100"><a href="#cb15-100" aria-hidden="true" tabindex="-1"></a>        <span class="fu">filter</span>(event_date <span class="sc">&gt;=</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-101"><a href="#cb15-101" aria-hidden="true" tabindex="-1"></a>        <span class="fu">filter</span>(event_date <span class="sc">&lt;=</span> event_date_cutoff) <span class="sc">%&gt;%</span></span>
+<span id="cb15-102"><a href="#cb15-102" aria-hidden="true" tabindex="-1"></a>        <span class="fu">as.data.frame</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb15-103"><a href="#cb15-103" aria-hidden="true" tabindex="-1"></a>        <span class="fu">distinct</span>()</span>
+<span id="cb15-104"><a href="#cb15-104" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-105"><a href="#cb15-105" aria-hidden="true" tabindex="-1"></a>      fit <span class="ot">&lt;-</span> <span class="fu">try</span>(gamm4<span class="sc">::</span><span class="fu">gamm4</span>(active_formula, <span class="at">random =</span> <span class="sc">~</span>(<span class="dv">1</span><span class="sc">|</span>enrollment_site<span class="sc">/</span>participant_id), <span class="at">data =</span> <span class="fu">as.data.frame</span>(tmp.data.tmp)))</span>
+<span id="cb15-106"><a href="#cb15-106" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb15-107"><a href="#cb15-107" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(<span class="fu">class</span>(fit) <span class="sc">==</span> <span class="st">"try-error"</span>){</span>
+<span id="cb15-108"><a href="#cb15-108" aria-hidden="true" tabindex="-1"></a>        <span class="cf">next</span></span>
+<span id="cb15-109"><a href="#cb15-109" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb15-110"><a href="#cb15-110" aria-hidden="true" tabindex="-1"></a>      a1 <span class="ot">=</span><span class="fu">anova</span>(fit<span class="sc">$</span>gam)</span>
+<span id="cb15-111"><a href="#cb15-111" aria-hidden="true" tabindex="-1"></a>      <span class="do">## Think about what to do here</span></span>
+<span id="cb15-112"><a href="#cb15-112" aria-hidden="true" tabindex="-1"></a>      aa1 <span class="ot">=</span> <span class="fu">sum</span>(a1<span class="sc">$</span>s.table[<span class="sc">-</span><span class="fu">c</span>(<span class="dv">1</span>), <span class="dv">3</span>]<span class="sc">*</span>a1<span class="sc">$</span>s.table[<span class="sc">-</span><span class="fu">c</span>(<span class="dv">1</span>), <span class="dv">2</span>])</span>
+<span id="cb15-113"><a href="#cb15-113" aria-hidden="true" tabindex="-1"></a>      aa2 <span class="ot">=</span> <span class="fu">sum</span>(a1<span class="sc">$</span>s.table[<span class="sc">-</span><span class="fu">c</span>(<span class="dv">1</span>), <span class="dv">2</span>])</span>
+<span id="cb15-114"><a href="#cb15-114" aria-hidden="true" tabindex="-1"></a>      slopep<span class="ot">=</span><span class="fu">pchisq</span>(aa1,aa2, <span class="at">lower.tail =</span> F)</span>
+<span id="cb15-115"><a href="#cb15-115" aria-hidden="true" tabindex="-1"></a>      slopep <span class="ot">=</span> a1[[<span class="st">"s.pv"</span>]][<span class="dv">2</span>]</span>
+<span id="cb15-116"><a href="#cb15-116" aria-hidden="true" tabindex="-1"></a>      interceptp <span class="ot">=</span>a1<span class="sc">$</span>pTerms.pv[<span class="dv">1</span>]</span>
+<span id="cb15-117"><a href="#cb15-117" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb15-118"><a href="#cb15-118" aria-hidden="true" tabindex="-1"></a>      virus_n <span class="ot">&lt;-</span> <span class="fu">length</span>(<span class="fu">unique</span>(tmp.data.tmp<span class="sc">$</span>participant_id[tmp.data.tmp[[cleaned_vir]] <span class="sc">&gt;</span> <span class="dv">0</span>]))</span>
+<span id="cb15-119"><a href="#cb15-119" aria-hidden="true" tabindex="-1"></a>      control_n <span class="ot">&lt;-</span> <span class="fu">length</span>(<span class="fu">unique</span>(tmp.data.tmp<span class="sc">$</span>participant_id[tmp.data.tmp[[cleaned_vir]] <span class="sc">==</span> <span class="dv">0</span>]))</span>
+<span id="cb15-120"><a href="#cb15-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-121"><a href="#cb15-121" aria-hidden="true" tabindex="-1"></a>      model.out <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(model.out, <span class="fu">c</span>(active_vir, active_feature, slopep, <span class="fu">unname</span>(interceptp),</span>
+<span id="cb15-122"><a href="#cb15-122" aria-hidden="true" tabindex="-1"></a>                                 <span class="fu">sum</span>(fit<span class="sc">$</span>gam<span class="sc">$</span>coefficients[<span class="fu">grepl</span>(<span class="fu">paste0</span>(<span class="st">":"</span>, cleaned_vir), <span class="fu">names</span>(fit<span class="sc">$</span>gam<span class="sc">$</span>coefficients))]),</span>
+<span id="cb15-123"><a href="#cb15-123" aria-hidden="true" tabindex="-1"></a>                                 <span class="fu">mean</span>(fit<span class="sc">$</span>gam<span class="sc">$</span>coefficients[<span class="fu">grepl</span>(<span class="fu">paste0</span>(<span class="st">":"</span>, cleaned_vir), <span class="fu">names</span>(fit<span class="sc">$</span>gam<span class="sc">$</span>coefficients))]),</span>
+<span id="cb15-124"><a href="#cb15-124" aria-hidden="true" tabindex="-1"></a>                                 fit<span class="sc">$</span>gam<span class="sc">$</span>coefficients[<span class="dv">2</span>], virus_n, control_n))</span>
+<span id="cb15-125"><a href="#cb15-125" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb15-126"><a href="#cb15-126" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(slopep <span class="sc">&lt;=</span> <span class="fl">0.025</span> <span class="sc">|</span> interceptp <span class="sc">&lt;=</span> <span class="fl">0.025</span>){</span>
+<span id="cb15-127"><a href="#cb15-127" aria-hidden="true" tabindex="-1"></a>        pred <span class="ot">&lt;-</span> <span class="fu">ggpredict</span>(fit, <span class="fu">c</span>(<span class="st">"event_date"</span>, cleaned_vir), <span class="at">type =</span> <span class="st">"fixed"</span>,</span>
+<span id="cb15-128"><a href="#cb15-128" aria-hidden="true" tabindex="-1"></a>                          <span class="at">ci.lvl =</span> <span class="fl">0.95</span>)</span>
+<span id="cb15-129"><a href="#cb15-129" aria-hidden="true" tabindex="-1"></a>        <span class="fu">colnames</span>(pred) <span class="ot">&lt;-</span> <span class="fu">gsub</span>(<span class="st">"x"</span>, <span class="st">"event_date"</span>, <span class="fu">gsub</span>(<span class="st">"group"</span>, <span class="st">"virus"</span>, <span class="fu">colnames</span>(pred)))</span>
+<span id="cb15-130"><a href="#cb15-130" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-131"><a href="#cb15-131" aria-hidden="true" tabindex="-1"></a>        pred <span class="ot">&lt;-</span> pred <span class="sc">%&gt;%</span></span>
+<span id="cb15-132"><a href="#cb15-132" aria-hidden="true" tabindex="-1"></a>          <span class="fu">mutate</span>(<span class="at">virus =</span> <span class="fu">as.character</span>(virus)) <span class="sc">%&gt;%</span></span>
+<span id="cb15-133"><a href="#cb15-133" aria-hidden="true" tabindex="-1"></a>          <span class="fu">left_join</span>(tmp.data.tmp <span class="sc">%&gt;%</span></span>
+<span id="cb15-134"><a href="#cb15-134" aria-hidden="true" tabindex="-1"></a>                      dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"virus"</span> <span class="ot">=</span> <span class="dv">8</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-135"><a href="#cb15-135" aria-hidden="true" tabindex="-1"></a>                      <span class="fu">mutate</span>(<span class="at">virus =</span> <span class="fu">as.character</span>(virus)) <span class="sc">%&gt;%</span></span>
+<span id="cb15-136"><a href="#cb15-136" aria-hidden="true" tabindex="-1"></a>                      <span class="fu">group_by</span>(virus) <span class="sc">%&gt;%</span></span>
+<span id="cb15-137"><a href="#cb15-137" aria-hidden="true" tabindex="-1"></a>                      dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">max =</span> <span class="fu">max</span>(event_date)), <span class="at">by =</span> <span class="st">"virus"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-138"><a href="#cb15-138" aria-hidden="true" tabindex="-1"></a>          <span class="fu">filter</span>(event_date <span class="sc">&lt;=</span> max)</span>
+<span id="cb15-139"><a href="#cb15-139" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-140"><a href="#cb15-140" aria-hidden="true" tabindex="-1"></a>        p1 <span class="ot">&lt;-</span>pred <span class="sc">%&gt;%</span></span>
+<span id="cb15-141"><a href="#cb15-141" aria-hidden="true" tabindex="-1"></a>          <span class="fu">ggplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> event_date, <span class="at">y =</span> predicted)) <span class="sc">+</span></span>
+<span id="cb15-142"><a href="#cb15-142" aria-hidden="true" tabindex="-1"></a>          <span class="fu">geom_line</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">group =</span> virus, <span class="at">y =</span> predicted, <span class="at">x=</span>event_date,</span>
+<span id="cb15-143"><a href="#cb15-143" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">color =</span> virus), <span class="at">size =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
+<span id="cb15-144"><a href="#cb15-144" aria-hidden="true" tabindex="-1"></a>          <span class="fu">geom_ribbon</span>(<span class="fu">aes</span>(<span class="at">x=</span>event_date, <span class="at">ymin =</span> conf.low, <span class="at">ymax =</span> conf.high, <span class="at">fill =</span> virus),</span>
+<span id="cb15-145"><a href="#cb15-145" aria-hidden="true" tabindex="-1"></a>                      <span class="at">alpha =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb15-146"><a href="#cb15-146" aria-hidden="true" tabindex="-1"></a>          </span>
+<span id="cb15-147"><a href="#cb15-147" aria-hidden="true" tabindex="-1"></a>          <span class="fu">theme_classic</span>(<span class="at">base_size  =</span> <span class="dv">18</span>) <span class="sc">+</span></span>
+<span id="cb15-148"><a href="#cb15-148" aria-hidden="true" tabindex="-1"></a>          <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"lightgray"</span>, <span class="st">"#BF5700"</span>))<span class="sc">+</span></span>
+<span id="cb15-149"><a href="#cb15-149" aria-hidden="true" tabindex="-1"></a>          <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"lightgray"</span>, <span class="st">"#BF5700"</span>)) <span class="sc">+</span></span>
+<span id="cb15-150"><a href="#cb15-150" aria-hidden="true" tabindex="-1"></a>          <span class="fu">ylab</span>(active_feature) <span class="sc">+</span></span>
+<span id="cb15-151"><a href="#cb15-151" aria-hidden="true" tabindex="-1"></a>          <span class="fu">xlab</span>(<span class="st">"Days from Hospitalization"</span>) <span class="sc">+</span></span>
+<span id="cb15-152"><a href="#cb15-152" aria-hidden="true" tabindex="-1"></a>          <span class="fu">ggtitle</span>(<span class="fu">paste0</span>(active_vir, <span class="st">"</span><span class="sc">\n</span><span class="st">Shape = "</span>,<span class="fu">signif</span>(slopep, <span class="at">digits =</span> <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">Average = "</span>, <span class="fu">signif</span>(interceptp, <span class="at">digits =</span> <span class="dv">3</span>)))</span>
+<span id="cb15-153"><a href="#cb15-153" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-154"><a href="#cb15-154" aria-hidden="true" tabindex="-1"></a>        plot_list <span class="ot">&lt;-</span> <span class="fu">c</span>(plot_list, <span class="fu">list</span>(p1))</span>
+<span id="cb15-155"><a href="#cb15-155" aria-hidden="true" tabindex="-1"></a>        <span class="fu">names</span>(plot_list)[<span class="fu">length</span>(plot_list)] <span class="ot">&lt;-</span> <span class="fu">paste0</span>(active_feature,<span class="st">"___"</span>, active_vir)</span>
+<span id="cb15-156"><a href="#cb15-156" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-157"><a href="#cb15-157" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb15-158"><a href="#cb15-158" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb15-159"><a href="#cb15-159" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(active_vir <span class="sc">==</span> <span class="fu">colnames</span>(max_part)[<span class="dv">2</span>]){</span>
+<span id="cb15-160"><a href="#cb15-160" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-161"><a href="#cb15-161" aria-hidden="true" tabindex="-1"></a>        <span class="do">## This next section is to calculate the residuals for a model WITHOUT</span></span>
+<span id="cb15-162"><a href="#cb15-162" aria-hidden="true" tabindex="-1"></a>        <span class="do">## Viral reactivation as a feature. For this reason, it only needs to be</span></span>
+<span id="cb15-163"><a href="#cb15-163" aria-hidden="true" tabindex="-1"></a>        <span class="do">## ran once, which we do during the first loop. (PS This is for the boxplot component of Figure 4)</span></span>
+<span id="cb15-164"><a href="#cb15-164" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-165"><a href="#cb15-165" aria-hidden="true" tabindex="-1"></a>        tmp.data2 <span class="ot">&lt;-</span> counts <span class="sc">%&gt;%</span></span>
+<span id="cb15-166"><a href="#cb15-166" aria-hidden="true" tabindex="-1"></a>          <span class="fu">rownames_to_column</span>(<span class="st">"sample_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-167"><a href="#cb15-167" aria-hidden="true" tabindex="-1"></a>          <span class="fu">inner_join</span>(data_env<span class="sc">$</span>clinical_data <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(sample_id, event_id,</span>
+<span id="cb15-168"><a href="#cb15-168" aria-hidden="true" tabindex="-1"></a>                                                              participant_id,</span>
+<span id="cb15-169"><a href="#cb15-169" aria-hidden="true" tabindex="-1"></a>                                                              respiratory_status,</span>
+<span id="cb15-170"><a href="#cb15-170" aria-hidden="true" tabindex="-1"></a>                                                              trajectory_group,</span>
+<span id="cb15-171"><a href="#cb15-171" aria-hidden="true" tabindex="-1"></a>                                                              event_type,</span>
+<span id="cb15-172"><a href="#cb15-172" aria-hidden="true" tabindex="-1"></a>                                                              event_date,</span>
+<span id="cb15-173"><a href="#cb15-173" aria-hidden="true" tabindex="-1"></a>                                                              enrollment_site,</span>
+<span id="cb15-174"><a href="#cb15-174" aria-hidden="true" tabindex="-1"></a>                                                              discretized_admit_age_quantile,</span>
+<span id="cb15-175"><a href="#cb15-175" aria-hidden="true" tabindex="-1"></a>                                                              sex)) <span class="sc">%&gt;%</span></span>
+<span id="cb15-176"><a href="#cb15-176" aria-hidden="true" tabindex="-1"></a>          <span class="fu">inner_join</span>(max_part <span class="sc">%&gt;%</span> <span class="fu">select</span>(participant_id), <span class="at">by =</span> <span class="st">"participant_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-177"><a href="#cb15-177" aria-hidden="true" tabindex="-1"></a>          <span class="fu">inner_join</span>(comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb15-178"><a href="#cb15-178" aria-hidden="true" tabindex="-1"></a>                       <span class="fu">select</span>(event_id, Betacoronavirus.nasal), <span class="at">by =</span> <span class="st">"event_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-179"><a href="#cb15-179" aria-hidden="true" tabindex="-1"></a>          <span class="fu">relocate</span>(sample_id, event_id, event_type, event_date,</span>
+<span id="cb15-180"><a href="#cb15-180" aria-hidden="true" tabindex="-1"></a>                   participant_id,</span>
+<span id="cb15-181"><a href="#cb15-181" aria-hidden="true" tabindex="-1"></a>                   respiratory_status, trajectory_group, enrollment_site,</span>
+<span id="cb15-182"><a href="#cb15-182" aria-hidden="true" tabindex="-1"></a>                   sex,discretized_admit_age_quantile, Betacoronavirus.nasal) <span class="sc">%&gt;%</span></span>
+<span id="cb15-183"><a href="#cb15-183" aria-hidden="true" tabindex="-1"></a>          <span class="fu">mutate</span>(<span class="at">sex =</span> <span class="fu">as.factor</span>(sex),</span>
+<span id="cb15-184"><a href="#cb15-184" aria-hidden="true" tabindex="-1"></a>                 <span class="at">participant_id =</span> <span class="fu">as.factor</span>(participant_id),</span>
+<span id="cb15-185"><a href="#cb15-185" aria-hidden="true" tabindex="-1"></a>                 <span class="at">event_date =</span> <span class="fu">as.numeric</span>(event_date),</span>
+<span id="cb15-186"><a href="#cb15-186" aria-hidden="true" tabindex="-1"></a>                 <span class="at">enrollment_site =</span> <span class="fu">as.factor</span>(enrollment_site),</span>
+<span id="cb15-187"><a href="#cb15-187" aria-hidden="true" tabindex="-1"></a>                 <span class="at">trajectory_group =</span> <span class="fu">ordered</span>(<span class="fu">as.factor</span>(trajectory_group)),</span>
+<span id="cb15-188"><a href="#cb15-188" aria-hidden="true" tabindex="-1"></a>                 <span class="at">respiratory_status =</span> <span class="fu">ordered</span>(<span class="fu">as.factor</span>(respiratory_status)),</span>
+<span id="cb15-189"><a href="#cb15-189" aria-hidden="true" tabindex="-1"></a>                 <span class="at">discretized_admit_age_quantile =</span> <span class="fu">ordered</span>(<span class="fu">as.factor</span>(discretized_admit_age_quantile)))</span>
+<span id="cb15-190"><a href="#cb15-190" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-191"><a href="#cb15-191" aria-hidden="true" tabindex="-1"></a>        tmp.data.tmp2 <span class="ot">&lt;-</span> tmp.data2 <span class="sc">%&gt;%</span></span>
+<span id="cb15-192"><a href="#cb15-192" aria-hidden="true" tabindex="-1"></a>        dplyr<span class="sc">::</span><span class="fu">select</span>(event_date, enrollment_site, participant_id,</span>
+<span id="cb15-193"><a href="#cb15-193" aria-hidden="true" tabindex="-1"></a>                      trajectory_group, sex, discretized_admit_age_quantile,</span>
+<span id="cb15-194"><a href="#cb15-194" aria-hidden="true" tabindex="-1"></a>                      <span class="fu">any_of</span>(active_feature),</span>
+<span id="cb15-195"><a href="#cb15-195" aria-hidden="true" tabindex="-1"></a>                      Betacoronavirus.nasal )</span>
+<span id="cb15-196"><a href="#cb15-196" aria-hidden="true" tabindex="-1"></a>        tmp.data.tmp2 <span class="ot">&lt;-</span> tmp.data.tmp2[<span class="fu">complete.cases</span>(tmp.data.tmp2),]</span>
+<span id="cb15-197"><a href="#cb15-197" aria-hidden="true" tabindex="-1"></a>        tmp.data.tmp2 <span class="ot">&lt;-</span> tmp.data.tmp2 <span class="sc">%&gt;%</span></span>
+<span id="cb15-198"><a href="#cb15-198" aria-hidden="true" tabindex="-1"></a>          <span class="fu">filter</span>(event_date <span class="sc">&gt;=</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-199"><a href="#cb15-199" aria-hidden="true" tabindex="-1"></a>          <span class="fu">filter</span>(event_date <span class="sc">&lt;=</span> event_date_cutoff) <span class="sc">%&gt;%</span></span>
+<span id="cb15-200"><a href="#cb15-200" aria-hidden="true" tabindex="-1"></a>          <span class="fu">as.data.frame</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb15-201"><a href="#cb15-201" aria-hidden="true" tabindex="-1"></a>          <span class="fu">distinct</span>()</span>
+<span id="cb15-202"><a href="#cb15-202" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-203"><a href="#cb15-203" aria-hidden="true" tabindex="-1"></a>        <span class="do">## Construct model without viral reactivation and show residuals</span></span>
+<span id="cb15-204"><a href="#cb15-204" aria-hidden="true" tabindex="-1"></a>        active_formula2 <span class="ot">&lt;-</span> <span class="fu">formula</span>(<span class="fu">paste0</span>(active_feature, <span class="st">"~s(event_date, bs = 'cr') +s(event_date, bs = 'cr', by = trajectory_group) + sex+trajectory_group+discretized_admit_age_quantile"</span>))</span>
+<span id="cb15-205"><a href="#cb15-205" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span>(viral_load_control){</span>
+<span id="cb15-206"><a href="#cb15-206" aria-hidden="true" tabindex="-1"></a>          active_formula2 <span class="ot">&lt;-</span> <span class="fu">formula</span>(<span class="fu">paste0</span>(active_feature, <span class="st">"~s(event_date, bs = 'cr') +s(event_date, bs = 'cr', by = trajectory_group) + sex+trajectory_group+discretized_admit_age_quantile+Betacoronavirus.nasal"</span>))</span>
+<span id="cb15-207"><a href="#cb15-207" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb15-208"><a href="#cb15-208" aria-hidden="true" tabindex="-1"></a>        fit2 <span class="ot">&lt;-</span> <span class="fu">try</span>(gamm4<span class="sc">::</span><span class="fu">gamm4</span>(active_formula2, <span class="at">random =</span> <span class="sc">~</span>(<span class="dv">1</span><span class="sc">|</span>enrollment_site<span class="sc">/</span>participant_id), <span class="at">data =</span> <span class="fu">as.data.frame</span>(tmp.data.tmp2)))</span>
+<span id="cb15-209"><a href="#cb15-209" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-210"><a href="#cb15-210" aria-hidden="true" tabindex="-1"></a>        residuals_df <span class="ot">&lt;-</span> <span class="fu">cbind.data.frame</span>(fit2<span class="sc">$</span>gam<span class="sc">$</span>model, <span class="fu">as.data.frame</span>(fit2<span class="sc">$</span>gam<span class="sc">$</span>residuals)) <span class="sc">%&gt;%</span></span>
+<span id="cb15-211"><a href="#cb15-211" aria-hidden="true" tabindex="-1"></a>          <span class="fu">left_join</span>(max_part, <span class="at">by =</span> <span class="st">"participant_id"</span>)</span>
+<span id="cb15-212"><a href="#cb15-212" aria-hidden="true" tabindex="-1"></a>        residual_list <span class="ot">&lt;-</span> <span class="fu">c</span>(residual_list, <span class="fu">list</span>(residuals_df))</span>
+<span id="cb15-213"><a href="#cb15-213" aria-hidden="true" tabindex="-1"></a>        <span class="fu">names</span>(residual_list)[<span class="fu">length</span>(residual_list)] <span class="ot">&lt;-</span> <span class="fu">paste0</span>(active_feature)</span>
+<span id="cb15-214"><a href="#cb15-214" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb15-215"><a href="#cb15-215" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb15-216"><a href="#cb15-216" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-217"><a href="#cb15-217" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb15-218"><a href="#cb15-218" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">c</span>(<span class="fu">list</span>(model.out), <span class="fu">list</span>(plot_list), <span class="fu">list</span>(residual_list), <span class="fu">list</span>(ctl_part)))</span>
+<span id="cb15-219"><a href="#cb15-219" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="do">## This only needs to be run once, and is very slow.</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gamm4)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggeffects)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> data_env<span class="sc">$</span>serum_olink_counts</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>test <span class="ot">&lt;-</span> <span class="fu">gamm_modeling</span>(counts, <span class="at">viral_load_control =</span> <span class="cn">TRUE</span>, <span class="at">binary =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>                      <span class="at">event_date_cutoff =</span> <span class="dv">40</span>)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(test[[<span class="dv">1</span>]])</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(results) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"virus_compartment"</span>, <span class="st">"feature"</span>, <span class="st">"shape"</span>, <span class="st">"average"</span>, <span class="st">"summed_virus_smooth_coefficients"</span>, <span class="st">"average_virus_smooth_coefficients"</span>, <span class="st">"average_coefficient"</span>, <span class="st">"virus_n"</span>, <span class="st">"control_n"</span>)</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>results2 <span class="ot">&lt;-</span> results <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(virus_compartment) <span class="sc">%&gt;%</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">shape.adj =</span> <span class="fu">p.adjust</span>(shape, <span class="st">"fdr"</span>), <span class="at">average.adj =</span> <span class="fu">p.adjust</span>(average, <span class="st">"fdr"</span>))</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(results2, <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_3_part1.csv"</span>))</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(test, <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_3.RDS"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="figure-4a" class="level2">
+<h2 class="anchored" data-anchor-id="figure-4a">Figure 4A</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ComplexHeatmap)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: grid</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>========================================
+ComplexHeatmap version 2.15.1
+Bioconductor page: http://bioconductor.org/packages/ComplexHeatmap/
+Github page: https://github.com/jokergoo/ComplexHeatmap
+Documentation: http://jokergoo.github.io/ComplexHeatmap-reference
+
+If you use it in published research, please cite either one:
+- Gu, Z. Complex Heatmap Visualization. iMeta 2022.
+- Gu, Z. Complex heatmaps reveal patterns and correlations in multidimensional 
+    genomic data. Bioinformatics 2016.
+
+
+The new InteractiveComplexHeatmap package can directly export static 
+complex heatmaps into an interactive Shiny app with zero effort. Have a try!
+
+This message can be suppressed by:
+  suppressPackageStartupMessages(library(ComplexHeatmap))
+========================================</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(circlize)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>========================================
+circlize version 0.4.16
+CRAN page: https://cran.r-project.org/package=circlize
+Github page: https://github.com/jokergoo/circlize
+Documentation: https://jokergoo.github.io/circlize_book/book/
+
+If you use it in published research, please cite:
+Gu, Z. circlize implements and enhances circular visualization
+  in R. Bioinformatics 2014.
+
+This message can be suppressed by:
+  suppressPackageStartupMessages(library(circlize))
+========================================</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>col_fun <span class="ot">=</span> <span class="fu">colorRamp2</span>(<span class="at">breaks =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">5</span>, <span class="dv">0</span>, <span class="dv">5</span>), <span class="fu">c</span>(<span class="st">"darkblue"</span>, <span class="st">"white"</span>, <span class="st">"darkred"</span>))</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>so <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_3_part1.csv"</span>))</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>remove <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).nasal"</span>, <span class="st">"Enterovirus.nasal"</span>)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>heat_df <span class="ot">&lt;-</span> plyr<span class="sc">::</span><span class="fu">rbind.fill</span>(so <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">omic =</span> <span class="st">"serum olink"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span>virus_compartment <span class="sc">%in%</span> remove) <span class="sc">%&gt;%</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(shape.adj, average.adj)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">as.numeric</span>(value),</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>         <span class="at">average_coefficient =</span> <span class="fu">as.numeric</span>(average_coefficient),</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>         <span class="at">summed_virus_smooth_coefficients =</span> <span class="fu">as.numeric</span>(summed_virus_smooth_coefficients)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">==</span> <span class="dv">0</span>, <span class="fl">2e-16</span>, value)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log10p =</span> <span class="fu">ifelse</span>(name <span class="sc">==</span> <span class="st">"shape.adj"</span>, <span class="sc">-</span><span class="fu">log10</span>(value) <span class="sc">*</span> (summed_virus_smooth_coefficients<span class="sc">/</span><span class="fu">abs</span>(summed_virus_smooth_coefficients)),</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>                         <span class="sc">-</span><span class="fu">log10</span>(value) <span class="sc">*</span> (average_coefficient<span class="sc">/</span><span class="fu">abs</span>(average_coefficient)))) <span class="sc">%&gt;%</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(value <span class="sc">&lt;=</span> <span class="fl">0.01</span>)</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>heat_df2 <span class="ot">&lt;-</span> heat_df <span class="sc">%&gt;%</span></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(virus_compartment, feature, omic) <span class="sc">%&gt;%</span></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(<span class="fu">abs</span>(log10p)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> <span class="fu">c</span>(virus_compartment), <span class="at">values_from =</span> log10p,</span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>              <span class="at">id_cols =</span> <span class="fu">c</span>(omic, feature))</span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>heat_df3 <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(heat_df2[,<span class="sc">-</span><span class="dv">1</span><span class="sc">:-</span><span class="dv">2</span>])</span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(heat_df3) <span class="ot">&lt;-</span> heat_df2<span class="sc">$</span>feature</span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a>heat_df3 <span class="ot">&lt;-</span> heat_df3[,<span class="fu">order</span>(<span class="fu">colnames</span>(heat_df3))]</span>
+<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a>heat_df3 <span class="ot">&lt;-</span> heat_df3[,<span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">4</span>,<span class="dv">6</span>,<span class="dv">5</span>,<span class="dv">2</span>,<span class="dv">3</span>)]</span>
+<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(heat_df3) <span class="ot">&lt;-</span> <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, <span class="fu">colnames</span>(heat_df3)))</span>
+<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a>heat_df3[<span class="fu">is.na</span>(heat_df3)] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a><span class="fu">pdf</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure4.pdf"</span>))</span>
+<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a><span class="fu">Heatmap</span>(heat_df3, <span class="at">border =</span> <span class="cn">TRUE</span>, <span class="at">cluster_column_slices =</span> F,</span>
+<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a>        <span class="at">col =</span> col_fun, <span class="at">show_row_dend =</span> F, <span class="at">show_column_dend =</span> F,<span class="at">column_title =</span> <span class="st">"Virus"</span>,</span>
+<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a>        <span class="at">column_split =</span> <span class="fu">factor</span>(<span class="fu">gsub</span>(<span class="st">"_.*"</span>, <span class="st">""</span>, <span class="fu">colnames</span>(heat_df3)),</span>
+<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a>                    <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Anelloviridae.pbmc"</span>,</span>
+<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a>                               <span class="st">"CMV.pbmc"</span>, <span class="st">"EBV.pbmc"</span>, <span class="st">"EBV.nasal"</span>,</span>
+<span id="cb22-39"><a href="#cb22-39" aria-hidden="true" tabindex="-1"></a>                               <span class="st">"HSV1.nasal"</span>, <span class="st">"HSV2.nasal"</span>)),</span>
+<span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a>        <span class="at">cluster_rows =</span> T,</span>
+<span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a>        <span class="at">column_names_rot =</span> <span class="dv">45</span>, <span class="at">column_names_side =</span> <span class="st">"top"</span>,<span class="at">column_title_side =</span> <span class="st">"bottom"</span>,</span>
+<span id="cb22-42"><a href="#cb22-42" aria-hidden="true" tabindex="-1"></a>        <span class="at">name =</span> <span class="st">"Signed</span><span class="sc">\n</span><span class="st">-log10 transformed</span><span class="sc">\n</span><span class="st">adjusted p.values"</span>, <span class="at">cluster_columns =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The input is a data frame-like object, convert it to a matrix.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dev.off</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>png 
+  2 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(heat_df3, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_Figure4A.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="figure-4b-g" class="level2">
+<h2 class="anchored" data-anchor-id="figure-4b-g">Figure 4B-G</h2>
+<div class="cell" width="25" height="3">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>modeling_results <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_3.RDS"</span>))</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>traj_plot <span class="ot">&lt;-</span> <span class="cf">function</span>(feature, viruses, results_obj, colors, <span class="at">log_residuals =</span> F,</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">variable_width =</span> <span class="fl">0.6</span>, <span class="at">base_size =</span> <span class="dv">12</span>, better_name){</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">library</span>(ggpubr)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="fu">missing</span>(better_name)){</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>    feature_name <span class="ot">&lt;-</span> feature</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>    feature_name <span class="ot">&lt;-</span> better_name</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>  plot_list <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(active_virus <span class="cf">in</span> viruses){</span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>      plots <span class="ot">&lt;-</span> results_obj[[<span class="dv">2</span>]][[<span class="fu">paste0</span>(feature, <span class="st">"___"</span>, active_virus)]]</span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>      plots<span class="sc">$</span>data <span class="ot">&lt;-</span> plots<span class="sc">$</span>data <span class="sc">%&gt;%</span></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">virus =</span> <span class="fu">ifelse</span>(virus <span class="sc">==</span> <span class="dv">0</span>, <span class="st">"Control"</span>,</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>                              <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, active_virus))))</span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a>      plots <span class="ot">&lt;-</span> plots <span class="sc">+</span> <span class="fu">scale_color_manual</span>(<span class="at">values =</span> colors, <span class="at">name =</span> <span class="st">"Group"</span>)<span class="sc">+</span></span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> colors, <span class="at">name =</span> <span class="st">"Group"</span>) <span class="sc">+</span></span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>          <span class="fu">theme_classic</span>(<span class="at">base_size  =</span> base_size) <span class="sc">+</span></span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a>        <span class="fu">ggtitle</span>(<span class="st">" "</span>) <span class="sc">+</span></span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a>          <span class="fu">ylab</span>(<span class="fu">paste0</span>(<span class="st">"Normalized "</span>, feature_name)) <span class="sc">+</span></span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a>          <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>,</span>
+<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a>                <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a>                <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>))</span>
+<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a>      plot_list <span class="ot">&lt;-</span> <span class="fu">c</span>(plot_list, <span class="fu">list</span>(plots))</span>
+<span id="cb27-26"><a href="#cb27-26" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb27-27"><a href="#cb27-27" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb27-28"><a href="#cb27-28" aria-hidden="true" tabindex="-1"></a>  gg2 <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(results_obj[[<span class="dv">3</span>]][[feature]]) <span class="sc">%&gt;%</span></span>
+<span id="cb27-29"><a href="#cb27-29" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"residuals"</span> <span class="ot">=</span> <span class="dv">16</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb27-30"><a href="#cb27-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="dv">17</span><span class="sc">:</span><span class="dv">24</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb27-31"><a href="#cb27-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb27-32"><a href="#cb27-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(participant_id, name, value) <span class="sc">%&gt;%</span></span>
+<span id="cb27-33"><a href="#cb27-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>(participant_id, name, value, residuals) <span class="sc">%&gt;%</span></span>
+<span id="cb27-34"><a href="#cb27-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">slice_max</span>(<span class="fu">abs</span>(residuals)) <span class="sc">%&gt;%</span></span>
+<span id="cb27-35"><a href="#cb27-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">name =</span> <span class="fu">ifelse</span>(participant_id <span class="sc">%in%</span>results_obj[[<span class="dv">4</span>]], <span class="st">"Control"</span>, name)) <span class="sc">%&gt;%</span></span>
+<span id="cb27-36"><a href="#cb27-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(value<span class="sc">!=</span><span class="dv">0</span><span class="sc">|</span>name<span class="sc">==</span><span class="st">"Control"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb27-37"><a href="#cb27-37" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">name =</span> <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, name))) <span class="sc">%&gt;%</span></span>
+<span id="cb27-38"><a href="#cb27-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(name <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Control"</span>, <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, viruses)))) <span class="sc">%&gt;%</span></span>
+<span id="cb27-39"><a href="#cb27-39" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb27-40"><a href="#cb27-40" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">name =</span> <span class="fu">fct_relevel</span>(name, <span class="st">"Control"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb27-41"><a href="#cb27-41" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>name, <span class="at">y=</span><span class="fu">abs</span>(residuals), <span class="at">color =</span> name)) <span class="sc">+</span></span>
+<span id="cb27-42"><a href="#cb27-42" aria-hidden="true" tabindex="-1"></a>    <span class="co">#geom_violin(draw_quantiles = T) +</span></span>
+<span id="cb27-43"><a href="#cb27-43" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_boxplot</span>(<span class="at">outlier.shape =</span> <span class="cn">NA</span>, <span class="at">alpha =</span> <span class="dv">1</span>, <span class="at">width =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
+<span id="cb27-44"><a href="#cb27-44" aria-hidden="true" tabindex="-1"></a>    ggbeeswarm<span class="sc">::</span><span class="fu">geom_quasirandom</span>(<span class="at">size =</span> <span class="fl">0.01</span>, <span class="at">alpha =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb27-45"><a href="#cb27-45" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_classic</span>(<span class="at">base_size  =</span> base_size) <span class="sc">+</span></span>
+<span id="cb27-46"><a href="#cb27-46" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggtitle</span>(feature_name) <span class="sc">+</span></span>
+<span id="cb27-47"><a href="#cb27-47" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_color_manual</span>(<span class="at">values =</span> colors) <span class="sc">+</span></span>
+<span id="cb27-48"><a href="#cb27-48" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb27-49"><a href="#cb27-49" aria-hidden="true" tabindex="-1"></a>          <span class="at">legend.position =</span> <span class="st">"none"</span>,</span>
+<span id="cb27-50"><a href="#cb27-50" aria-hidden="true" tabindex="-1"></a>          <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb27-51"><a href="#cb27-51" aria-hidden="true" tabindex="-1"></a>            <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb27-52"><a href="#cb27-52" aria-hidden="true" tabindex="-1"></a>          <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>)) <span class="sc">+</span></span>
+<span id="cb27-53"><a href="#cb27-53" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ylab</span>(<span class="st">"Largest Magnitude Residual"</span>) <span class="sc">+</span></span>
+<span id="cb27-54"><a href="#cb27-54" aria-hidden="true" tabindex="-1"></a>    <span class="fu">xlab</span>(<span class="st">" "</span>)</span>
+<span id="cb27-55"><a href="#cb27-55" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(log_residuals){</span>
+<span id="cb27-56"><a href="#cb27-56" aria-hidden="true" tabindex="-1"></a>    gg2 <span class="ot">&lt;-</span> gg2 <span class="sc">+</span> <span class="fu">scale_y_continuous</span>(<span class="at">trans=</span><span class="st">'log10'</span>, <span class="at">labels =</span> <span class="fu">label_comma</span>())</span>
+<span id="cb27-57"><a href="#cb27-57" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb27-58"><a href="#cb27-58" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="fu">ggarrange</span>(<span class="at">plotlist =</span> <span class="fu">c</span>(<span class="fu">list</span>(gg2), plot_list), <span class="at">widths =</span> <span class="fu">c</span>(variable_width,<span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">length</span>(plot_list))),</span>
+<span id="cb27-59"><a href="#cb27-59" aria-hidden="true" tabindex="-1"></a>                       <span class="at">nrow =</span> <span class="dv">1</span>, <span class="at">align =</span> <span class="st">"hv"</span>))</span>
+<span id="cb27-60"><a href="#cb27-60" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb27-61"><a href="#cb27-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-62"><a href="#cb27-62" aria-hidden="true" tabindex="-1"></a>viral_colors <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Control"</span><span class="ot">=</span><span class="st">"#757575"</span>, <span class="st">"EBV.pbmc"</span><span class="ot">=</span><span class="st">"#BF5700"</span>, <span class="st">"EBV.nasal"</span><span class="ot">=</span><span class="st">"#008080"</span>,</span>
+<span id="cb27-63"><a href="#cb27-63" aria-hidden="true" tabindex="-1"></a>                  <span class="st">"CMV.pbmc"</span><span class="ot">=</span><span class="st">"#005F86"</span>, <span class="st">"Anelloviridae.pbmc"</span> <span class="ot">=</span> <span class="st">"#86005F"</span>,</span>
+<span id="cb27-64"><a href="#cb27-64" aria-hidden="true" tabindex="-1"></a>                  <span class="st">"HSV1.nasal"</span> <span class="ot">=</span> <span class="st">"#1b820d"</span>, <span class="st">"HSV2.nasal"</span> <span class="ot">=</span> <span class="st">"#cba90a"</span>)</span>
+<span id="cb27-65"><a href="#cb27-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-66"><a href="#cb27-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-67"><a href="#cb27-67" aria-hidden="true" tabindex="-1"></a>ggb <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"CXCL10"</span>, <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,</span>
+<span id="cb27-68"><a href="#cb27-68" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>,</span>
+<span id="cb27-69"><a href="#cb27-69" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 1 (HSV1).nasal"</span>,</span>
+<span id="cb27-70"><a href="#cb27-70" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 2 (HSV2).nasal"</span>),</span>
+<span id="cb27-71"><a href="#cb27-71" aria-hidden="true" tabindex="-1"></a>          modeling_results, viral_colors, <span class="at">base_size =</span> <span class="dv">12</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 460 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "EBV.pbmc"`, `value = 1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 459 remaining warnings.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>ggb</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure4_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure4B.pdf"</span>), <span class="at">width =</span> <span class="fl">12.32142</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>ggc <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"CXCL11"</span>, <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"Human gammaherpesvirus 4 (EBV).nasal"</span>,</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 1 (HSV1).nasal"</span>,</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 2 (HSV2).nasal"</span>,</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors,</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>          <span class="at">base_size =</span> <span class="dv">12</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 439 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 2: `participant_id = "001-0002"`, `name = "Anelloviridae.pbmc"`,
+  `value = 1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 438 remaining warnings.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>ggc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure4_files/figure-html/unnamed-chunk-5-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure4C.pdf"</span>), <span class="at">width =</span> <span class="dv">15</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>ggd <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"IL18"</span>, <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 1 (HSV1).nasal"</span>,</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 2 (HSV2).nasal"</span>,</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors,</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>          <span class="at">base_size =</span> <span class="dv">12</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 364 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 2: `participant_id = "001-0002"`, `name = "Anelloviridae.pbmc"`,
+  `value = 1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 363 remaining warnings.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>ggd</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure4_files/figure-html/unnamed-chunk-5-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure4D.pdf"</span>), <span class="at">width =</span> <span class="fl">12.32142</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>gge <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"IL6"</span>, <span class="fu">c</span>(<span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>), modeling_results,</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>          viral_colors, <span class="at">base_size =</span> <span class="dv">12</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 266 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "EBV.pbmc"`, `value = 1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 265 remaining warnings.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>gge</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure4_files/figure-html/unnamed-chunk-5-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure4E.pdf"</span>), <span class="at">width =</span> <span class="fl">4.285714</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>ggf <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"IL10"</span>, <span class="fu">c</span>(<span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>, <span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>),</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>          modeling_results, viral_colors, <span class="at">base_size =</span> <span class="dv">12</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 302 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "EBV.pbmc"`, `value = 1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 301 remaining warnings.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>ggf</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure4_files/figure-html/unnamed-chunk-5-5.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure4F.pdf"</span>), <span class="at">width =</span> <span class="fl">6.964285</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>ggg <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"IFNG"</span>, <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>), modeling_results,</span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>          viral_colors, <span class="at">base_size =</span> <span class="dv">12</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 36 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 133: `participant_id = "004-0053"`, `name = "CMV.pbmc"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 35 remaining warnings.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>ggg</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure4_files/figure-html/unnamed-chunk-5-6.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure4G.pdf"</span>), <span class="at">width =</span> <span class="fl">4.285714</span>, <span class="at">height =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="supplemental-figure-4" class="level1">
+<h1>Supplemental Figure 4</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>traj_plot <span class="ot">&lt;-</span> <span class="cf">function</span>(feature, viruses, results_obj, colors, <span class="at">log_residuals =</span> F,</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">variable_width =</span> <span class="fl">0.6</span>, <span class="at">base_size =</span> <span class="dv">12</span>, better_name){</span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">library</span>(ggpubr)</span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="fu">missing</span>(better_name)){</span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>    feature_name <span class="ot">&lt;-</span> feature</span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a>    feature_name <span class="ot">&lt;-</span> better_name</span>
+<span id="cb52-8"><a href="#cb52-8" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb52-9"><a href="#cb52-9" aria-hidden="true" tabindex="-1"></a>  plot_list <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb52-10"><a href="#cb52-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(active_virus <span class="cf">in</span> viruses){</span>
+<span id="cb52-11"><a href="#cb52-11" aria-hidden="true" tabindex="-1"></a>      plots <span class="ot">&lt;-</span> results_obj[[<span class="dv">2</span>]][[<span class="fu">paste0</span>(feature, <span class="st">"___"</span>, active_virus)]]</span>
+<span id="cb52-12"><a href="#cb52-12" aria-hidden="true" tabindex="-1"></a>      plots<span class="sc">$</span>data <span class="ot">&lt;-</span> plots<span class="sc">$</span>data <span class="sc">%&gt;%</span></span>
+<span id="cb52-13"><a href="#cb52-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">virus =</span> <span class="fu">ifelse</span>(virus <span class="sc">==</span> <span class="dv">0</span>, <span class="st">"Control"</span>,</span>
+<span id="cb52-14"><a href="#cb52-14" aria-hidden="true" tabindex="-1"></a>                              <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, active_virus))))</span>
+<span id="cb52-15"><a href="#cb52-15" aria-hidden="true" tabindex="-1"></a>      plots <span class="ot">&lt;-</span> plots <span class="sc">+</span> <span class="fu">scale_color_manual</span>(<span class="at">values =</span> colors, <span class="at">name =</span> <span class="st">"Group"</span>)<span class="sc">+</span></span>
+<span id="cb52-16"><a href="#cb52-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> colors, <span class="at">name =</span> <span class="st">"Group"</span>) <span class="sc">+</span></span>
+<span id="cb52-17"><a href="#cb52-17" aria-hidden="true" tabindex="-1"></a>          <span class="fu">theme_classic</span>(<span class="at">base_size  =</span> base_size) <span class="sc">+</span></span>
+<span id="cb52-18"><a href="#cb52-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">ggtitle</span>(<span class="st">" "</span>) <span class="sc">+</span></span>
+<span id="cb52-19"><a href="#cb52-19" aria-hidden="true" tabindex="-1"></a>          <span class="fu">ylab</span>(<span class="fu">paste0</span>(<span class="st">"Normalized "</span>, feature_name)) <span class="sc">+</span></span>
+<span id="cb52-20"><a href="#cb52-20" aria-hidden="true" tabindex="-1"></a>          <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>,</span>
+<span id="cb52-21"><a href="#cb52-21" aria-hidden="true" tabindex="-1"></a>                <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb52-22"><a href="#cb52-22" aria-hidden="true" tabindex="-1"></a>                <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>))</span>
+<span id="cb52-23"><a href="#cb52-23" aria-hidden="true" tabindex="-1"></a>      plot_list <span class="ot">&lt;-</span> <span class="fu">c</span>(plot_list, <span class="fu">list</span>(plots))</span>
+<span id="cb52-24"><a href="#cb52-24" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb52-25"><a href="#cb52-25" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb52-26"><a href="#cb52-26" aria-hidden="true" tabindex="-1"></a>  gg2 <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(results_obj[[<span class="dv">3</span>]][[feature]]) <span class="sc">%&gt;%</span></span>
+<span id="cb52-27"><a href="#cb52-27" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"residuals"</span> <span class="ot">=</span> <span class="dv">16</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb52-28"><a href="#cb52-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="dv">17</span><span class="sc">:</span><span class="dv">24</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb52-29"><a href="#cb52-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb52-30"><a href="#cb52-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(participant_id, name, value) <span class="sc">%&gt;%</span></span>
+<span id="cb52-31"><a href="#cb52-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>(participant_id, name, value, residuals) <span class="sc">%&gt;%</span></span>
+<span id="cb52-32"><a href="#cb52-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">slice_max</span>(<span class="fu">abs</span>(residuals)) <span class="sc">%&gt;%</span></span>
+<span id="cb52-33"><a href="#cb52-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">name =</span> <span class="fu">ifelse</span>(participant_id <span class="sc">%in%</span>results_obj[[<span class="dv">4</span>]], <span class="st">"Control"</span>, name)) <span class="sc">%&gt;%</span></span>
+<span id="cb52-34"><a href="#cb52-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(value<span class="sc">!=</span><span class="dv">0</span><span class="sc">|</span>name<span class="sc">==</span><span class="st">"Control"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb52-35"><a href="#cb52-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">name =</span> <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, name))) <span class="sc">%&gt;%</span></span>
+<span id="cb52-36"><a href="#cb52-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(name <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Control"</span>, <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, viruses)))) <span class="sc">%&gt;%</span></span>
+<span id="cb52-37"><a href="#cb52-37" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb52-38"><a href="#cb52-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">name =</span> <span class="fu">fct_relevel</span>(name, <span class="st">"Control"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb52-39"><a href="#cb52-39" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>name, <span class="at">y=</span><span class="fu">abs</span>(residuals), <span class="at">color =</span> name)) <span class="sc">+</span></span>
+<span id="cb52-40"><a href="#cb52-40" aria-hidden="true" tabindex="-1"></a>    <span class="co">#geom_violin(draw_quantiles = T) +</span></span>
+<span id="cb52-41"><a href="#cb52-41" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_boxplot</span>(<span class="at">outlier.shape =</span> <span class="cn">NA</span>, <span class="at">alpha =</span> <span class="dv">1</span>, <span class="at">width =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
+<span id="cb52-42"><a href="#cb52-42" aria-hidden="true" tabindex="-1"></a>    ggbeeswarm<span class="sc">::</span><span class="fu">geom_quasirandom</span>(<span class="at">size =</span> <span class="fl">0.01</span>, <span class="at">alpha =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb52-43"><a href="#cb52-43" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_classic</span>(<span class="at">base_size  =</span> base_size) <span class="sc">+</span></span>
+<span id="cb52-44"><a href="#cb52-44" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggtitle</span>(feature_name) <span class="sc">+</span></span>
+<span id="cb52-45"><a href="#cb52-45" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_color_manual</span>(<span class="at">values =</span> colors) <span class="sc">+</span></span>
+<span id="cb52-46"><a href="#cb52-46" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb52-47"><a href="#cb52-47" aria-hidden="true" tabindex="-1"></a>          <span class="at">legend.position =</span> <span class="st">"none"</span>,</span>
+<span id="cb52-48"><a href="#cb52-48" aria-hidden="true" tabindex="-1"></a>          <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb52-49"><a href="#cb52-49" aria-hidden="true" tabindex="-1"></a>            <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb52-50"><a href="#cb52-50" aria-hidden="true" tabindex="-1"></a>          <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>)) <span class="sc">+</span></span>
+<span id="cb52-51"><a href="#cb52-51" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ylab</span>(<span class="st">"Largest Magnitude</span><span class="sc">\n</span><span class="st">Residual"</span>) <span class="sc">+</span></span>
+<span id="cb52-52"><a href="#cb52-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">xlab</span>(<span class="st">" "</span>)</span>
+<span id="cb52-53"><a href="#cb52-53" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(log_residuals){</span>
+<span id="cb52-54"><a href="#cb52-54" aria-hidden="true" tabindex="-1"></a>    gg2 <span class="ot">&lt;-</span> gg2 <span class="sc">+</span> <span class="fu">scale_y_continuous</span>(<span class="at">trans=</span><span class="st">'log10'</span>, <span class="at">labels =</span> <span class="fu">label_comma</span>())</span>
+<span id="cb52-55"><a href="#cb52-55" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb52-56"><a href="#cb52-56" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="fu">ggarrange</span>(<span class="at">plotlist =</span> <span class="fu">c</span>(<span class="fu">list</span>(gg2), plot_list), <span class="at">widths =</span> <span class="fu">c</span>(variable_width,<span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">length</span>(plot_list))),</span>
+<span id="cb52-57"><a href="#cb52-57" aria-hidden="true" tabindex="-1"></a>                       <span class="at">nrow =</span> <span class="dv">1</span>, <span class="at">align =</span> <span class="st">"hv"</span>))</span>
+<span id="cb52-58"><a href="#cb52-58" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb52-59"><a href="#cb52-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-60"><a href="#cb52-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-61"><a href="#cb52-61" aria-hidden="true" tabindex="-1"></a>viral_colors <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Control"</span><span class="ot">=</span><span class="st">"#757575"</span>, <span class="st">"EBV.pbmc"</span><span class="ot">=</span><span class="st">"#BF5700"</span>, <span class="st">"EBV.nasal"</span><span class="ot">=</span><span class="st">"#008080"</span>,</span>
+<span id="cb52-62"><a href="#cb52-62" aria-hidden="true" tabindex="-1"></a>                  <span class="st">"CMV.pbmc"</span><span class="ot">=</span><span class="st">"#005F86"</span>, <span class="st">"Anelloviridae.pbmc"</span> <span class="ot">=</span> <span class="st">"#86005F"</span>,</span>
+<span id="cb52-63"><a href="#cb52-63" aria-hidden="true" tabindex="-1"></a>                  <span class="st">"HSV1.nasal"</span> <span class="ot">=</span> <span class="st">"#1b820d"</span>, <span class="st">"HSV2.nasal"</span> <span class="ot">=</span> <span class="st">"#cba90a"</span>)</span>
+<span id="cb52-64"><a href="#cb52-64" aria-hidden="true" tabindex="-1"></a>ggout <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb52-65"><a href="#cb52-65" aria-hidden="true" tabindex="-1"></a>heat_df <span class="ot">&lt;-</span> heat_df <span class="sc">%&gt;%</span></span>
+<span id="cb52-66"><a href="#cb52-66" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(virus_compartment <span class="sc">!=</span> <span class="st">"Human gammaherpesvirus 4 (EBV).nasal"</span>)</span>
+<span id="cb52-67"><a href="#cb52-67" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="fu">unique</span>(heat_df<span class="sc">$</span>feature)){</span>
+<span id="cb52-68"><a href="#cb52-68" aria-hidden="true" tabindex="-1"></a>  active_viruses <span class="ot">&lt;-</span> <span class="fu">unique</span>(heat_df<span class="sc">$</span>virus_compartment[heat_df<span class="sc">$</span>feature <span class="sc">==</span> i])</span>
+<span id="cb52-69"><a href="#cb52-69" aria-hidden="true" tabindex="-1"></a>  active_viruses <span class="ot">&lt;-</span> active_viruses[active_viruses <span class="sc">!=</span> <span class="st">"Human gammaherpesvirus 4 (EBV).nasal"</span>]</span>
+<span id="cb52-70"><a href="#cb52-70" aria-hidden="true" tabindex="-1"></a>  ggtmp <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(i, active_viruses, modeling_results, viral_colors, <span class="at">variable_width =</span> <span class="dv">1</span>, <span class="at">base_size =</span> <span class="dv">9</span>)</span>
+<span id="cb52-71"><a href="#cb52-71" aria-hidden="true" tabindex="-1"></a>  ggout <span class="ot">&lt;-</span> <span class="fu">c</span>(ggout, <span class="fu">list</span>(ggtmp))</span>
+<span id="cb52-72"><a href="#cb52-72" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(ggout)[<span class="fu">length</span>(ggout)] <span class="ot">&lt;-</span> <span class="fu">paste0</span>(i, <span class="st">'_'</span>, <span class="fu">length</span>(active_viruses))</span>
+<span id="cb52-73"><a href="#cb52-73" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 364 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 2: `participant_id = "001-0002"`, `name = "Anelloviridae.pbmc"`,
+  `value = 1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 363 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 364 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 2: `participant_id = "001-0002"`, `name = "Anelloviridae.pbmc"`,
+  `value = 1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 363 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 170 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 2: `participant_id = "001-0002"`, `name = "Anelloviridae.pbmc"`,
+  `value = 1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 169 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 164 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "HSV1.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 163 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 164 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "HSV1.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 163 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 128 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "HSV1.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 127 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 164 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "HSV1.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 163 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 164 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "HSV1.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 163 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 128 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "HSV1.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 127 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 164 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "HSV1.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 163 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 194 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "HSV1.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 193 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 128 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "HSV1.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 127 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 194 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "HSV1.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 193 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 128 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "HSV1.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 127 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 460 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "EBV.pbmc"`, `value = 1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 459 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 164 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "HSV1.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 163 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 128 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "HSV1.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 127 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 128 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "HSV1.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 127 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 128 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "HSV1.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 127 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 30 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 96: `participant_id = "003-0080"`, `name = "HSV2.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 29 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 30 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 96: `participant_id = "003-0080"`, `name = "HSV2.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 29 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 66 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 96: `participant_id = "003-0080"`, `name = "HSV2.nasal"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 65 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 36 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 133: `participant_id = "004-0053"`, `name = "CMV.pbmc"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 35 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 302 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "EBV.pbmc"`, `value = 1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 301 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 36 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 133: `participant_id = "004-0053"`, `name = "CMV.pbmc"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 35 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 36 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 133: `participant_id = "004-0053"`, `name = "CMV.pbmc"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 35 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 36 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 133: `participant_id = "004-0053"`, `name = "CMV.pbmc"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 35 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 36 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 133: `participant_id = "004-0053"`, `name = "CMV.pbmc"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 35 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.
+Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 302 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "EBV.pbmc"`, `value = 1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 301 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 36 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 133: `participant_id = "004-0053"`, `name = "CMV.pbmc"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 35 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 36 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 133: `participant_id = "004-0053"`, `name = "CMV.pbmc"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 35 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 36 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 133: `participant_id = "004-0053"`, `name = "CMV.pbmc"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 35 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 36 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 133: `participant_id = "004-0053"`, `name = "CMV.pbmc"`, `value =
+  1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 35 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 266 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "EBV.pbmc"`, `value = 1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 265 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Scale for colour is already present.
+Adding another scale for colour, which will replace the existing scale.
+Scale for fill is already present.
+Adding another scale for fill, which will replace the existing scale.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 266 warnings in `mutate()`.
+The first warning was:
+ℹ In argument: `name = fct_relevel(name, "Control")`.
+ℹ In group 14: `participant_id = "001-0029"`, `name = "EBV.pbmc"`, `value = 1`.
+Caused by warning:
+! 1 unknown level in `f`: Control
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 265 remaining warnings.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb123"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb123-1"><a href="#cb123-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Arranging these is the NP-Hard problem</span></span>
+<span id="cb123-2"><a href="#cb123-2" aria-hidden="true" tabindex="-1"></a>max_row_length <span class="ot">&lt;-</span> <span class="dv">6</span></span>
+<span id="cb123-3"><a href="#cb123-3" aria-hidden="true" tabindex="-1"></a>ggout <span class="ot">&lt;-</span> ggout[<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"^IL6|^IL10|^CXCL10|^CXCL11|^IL18"</span>,<span class="fu">names</span>(ggout))]</span>
+<span id="cb123-4"><a href="#cb123-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="fu">names</span>(ggout)){</span>
+<span id="cb123-5"><a href="#cb123-5" aria-hidden="true" tabindex="-1"></a>  value <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">gsub</span>(<span class="st">".*_"</span>, <span class="st">""</span>, i))</span>
+<span id="cb123-6"><a href="#cb123-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(i<span class="sc">==</span><span class="fu">names</span>(ggout)[<span class="dv">1</span>]){</span>
+<span id="cb123-7"><a href="#cb123-7" aria-hidden="true" tabindex="-1"></a>    bins <span class="ot">&lt;-</span> <span class="fu">list</span>(i) } <span class="cf">else</span> {</span>
+<span id="cb123-8"><a href="#cb123-8" aria-hidden="true" tabindex="-1"></a>      <span class="cf">for</span>(j <span class="cf">in</span> <span class="fu">length</span>(bins)){</span>
+<span id="cb123-9"><a href="#cb123-9" aria-hidden="true" tabindex="-1"></a>         current_bin_length <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">as.numeric</span>(<span class="fu">gsub</span>(<span class="st">".*_"</span>, <span class="st">""</span>, bins[[j]]))) </span>
+<span id="cb123-10"><a href="#cb123-10" aria-hidden="true" tabindex="-1"></a>         <span class="cf">if</span>((current_bin_length <span class="sc">+</span> value) <span class="sc">&gt;</span> max_row_length){</span>
+<span id="cb123-11"><a href="#cb123-11" aria-hidden="true" tabindex="-1"></a>           bins <span class="ot">&lt;-</span> <span class="fu">c</span>(bins, <span class="fu">list</span>(i))</span>
+<span id="cb123-12"><a href="#cb123-12" aria-hidden="true" tabindex="-1"></a>         } <span class="cf">else</span> {</span>
+<span id="cb123-13"><a href="#cb123-13" aria-hidden="true" tabindex="-1"></a>           bins[[j]] <span class="ot">&lt;-</span> <span class="fu">c</span>(bins[[j]], i)</span>
+<span id="cb123-14"><a href="#cb123-14" aria-hidden="true" tabindex="-1"></a>         }</span>
+<span id="cb123-15"><a href="#cb123-15" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb123-16"><a href="#cb123-16" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb123-17"><a href="#cb123-17" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb123-18"><a href="#cb123-18" aria-hidden="true" tabindex="-1"></a>ggempty <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">theme_void</span>()</span>
+<span id="cb123-19"><a href="#cb123-19" aria-hidden="true" tabindex="-1"></a>ggout2 <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb123-20"><a href="#cb123-20" aria-hidden="true" tabindex="-1"></a>counter <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb123-21"><a href="#cb123-21" aria-hidden="true" tabindex="-1"></a>LETTERS_long <span class="ot">&lt;-</span> <span class="fu">c</span>(LETTERS, <span class="st">"AA"</span>, <span class="st">"AB"</span>, <span class="st">"AC"</span>)</span>
+<span id="cb123-22"><a href="#cb123-22" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(bins)){</span>
+<span id="cb123-23"><a href="#cb123-23" aria-hidden="true" tabindex="-1"></a>  tmp_plots <span class="ot">&lt;-</span> ggout[bins[[k]]]</span>
+<span id="cb123-24"><a href="#cb123-24" aria-hidden="true" tabindex="-1"></a>  true_length <span class="ot">&lt;-</span> <span class="fu">length</span>(tmp_plots)</span>
+<span id="cb123-25"><a href="#cb123-25" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="fu">sum</span>(<span class="fu">as.numeric</span>(<span class="fu">gsub</span>(<span class="st">".*_"</span>, <span class="st">""</span>, bins[[k]]))) <span class="sc">&lt;</span> <span class="dv">6</span>){</span>
+<span id="cb123-26"><a href="#cb123-26" aria-hidden="true" tabindex="-1"></a>    tmp_plots <span class="ot">&lt;-</span> <span class="fu">c</span>(tmp_plots, <span class="fu">list</span>(ggempty))</span>
+<span id="cb123-27"><a href="#cb123-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">names</span>(tmp_plots)[<span class="fu">length</span>(tmp_plots)] <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"Empty_"</span>, max_row_length <span class="sc">-</span> <span class="fu">sum</span>(<span class="fu">as.numeric</span>(<span class="fu">gsub</span>(<span class="st">".*_"</span>, <span class="st">""</span>, bins[[k]]))))</span>
+<span id="cb123-28"><a href="#cb123-28" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb123-29"><a href="#cb123-29" aria-hidden="true" tabindex="-1"></a>  values_final <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">gsub</span>(<span class="st">".*_"</span>, <span class="st">""</span>, <span class="fu">names</span>(tmp_plots)))</span>
+<span id="cb123-30"><a href="#cb123-30" aria-hidden="true" tabindex="-1"></a>  ggout2 <span class="ot">&lt;-</span> <span class="fu">c</span>(ggout2, <span class="fu">list</span>(<span class="fu">ggarrange</span>(<span class="at">plotlist =</span> tmp_plots, <span class="at">nrow =</span> <span class="dv">1</span>, <span class="at">label.y =</span> <span class="dv">1</span>,</span>
+<span id="cb123-31"><a href="#cb123-31" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">labels =</span> LETTERS_long[counter<span class="sc">:</span>(counter<span class="sc">+</span>true_length<span class="dv">-1</span>)],</span>
+<span id="cb123-32"><a href="#cb123-32" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">widths =</span> values_final <span class="sc">+</span> <span class="fl">0.5</span>)))</span>
+<span id="cb123-33"><a href="#cb123-33" aria-hidden="true" tabindex="-1"></a>  counter <span class="ot">&lt;-</span> counter <span class="sc">+</span> true_length</span>
+<span id="cb123-34"><a href="#cb123-34" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb123-35"><a href="#cb123-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb123-36"><a href="#cb123-36" aria-hidden="true" tabindex="-1"></a><span class="fu">ggarrange</span>(<span class="at">plotlist =</span> ggout2, <span class="at">ncol =</span> <span class="dv">1</span>, <span class="at">nrow =</span> <span class="fu">length</span>(ggout2), <span class="at">heights =</span> <span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">length</span>(ggout2)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure4_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="1440"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb124"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb124-1"><a href="#cb124-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS4.pdf"</span>), <span class="at">width =</span> <span class="dv">15</span>, <span class="at">height =</span> <span class="dv">15</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

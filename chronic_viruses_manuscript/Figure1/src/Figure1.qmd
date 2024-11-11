@@ -1,0 +1,764 @@
+---
+title: "Figure1"
+format: html
+editor: visual
+---
+
+## Figure 1
+
+### PBMC Load
+
+```{r}
+library(tidyverse)
+library(data.table)
+library(viridis)
+library(rstatix)
+library(ggpubr)
+library(corrplot)
+library(ComplexHeatmap) 
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+out_dir <- "../output/"
+
+viruses_of_interest <- c("Human gammaherpesvirus 4 (EBV)",
+                         "Human betaherpesvirus 5 (CMV)",
+                         "Anelloviridae",
+                         "Enterovirus",
+                         "Human alphaherpesvirus 2 (HSV2)",
+                         "Human alphaherpesvirus 1 (HSV1)",
+                         "Human gammaherpesvirus 8", 
+                           "Respiratory syncytial virus",
+                         "Human immunodeficiency virus 1", "Human betaherpesvirus 7",
+                         "Human betaherpesvirus 6",
+                               "Betacoronavirus")
+
+Anelloviridae_genera <- c("Alphatorquevirus", "Betatorquevirus",
+                         "Gammatorquevirus", "non-genus-specific reads in family Anelloviridae")
+
+clinical_data_sample <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-sample-locked.csv")
+fastq_metadata <- read.csv("/scratch/metagenomics/viral_reactivation/pbmc_fastq_metadata.csv")
+
+pbmc_reports <- fread("/scratch/metagenomics/viral_reactivation/data/phase1_4_pbmc_transcriptomics_v2.csv.gz") %>%
+  filter(category == "viruses" & is_phage == FALSE) %>%
+  filter(nr_rpm > 0) %>%
+  pivot_wider(id_cols = full_czid_id, names_from = name, values_from = nt_rpm) %>%
+  full_join(fastq_metadata %>% distinct(core_specific_ID_filename, sample_id), by = c("full_czid_id" = "core_specific_ID_filename")) %>%
+  relocate(sample_id) %>% select(-full_czid_id) %>%
+  distinct()
+
+pbmc_reports_subset <- pbmc_reports %>%
+  inner_join(clinical_data_sample %>%
+               select(sample_id, participant_id, event_id) %>%
+               distinct(), by = "sample_id") %>%
+  filter(!grepl("C", participant_id)) %>%
+  relocate(sample_id, event_id, participant_id) %>%
+  rowwise() %>% 
+  mutate(Anelloviridae = sum(!!!syms(Anelloviridae_genera),na.rm = T)) %>%
+  ungroup()
+
+colnames(pbmc_reports_subset) <- gsub("Cytomegalovirus",
+                                      "Human betaherpesvirus 5 (CMV)",
+                         gsub("Lymphocryptovirus",
+                              "Human gammaherpesvirus 4 (EBV)",
+                                   colnames(pbmc_reports_subset)))
+
+pbmc_reports_subset <- pbmc_reports_subset %>%
+  select(c(sample_id, event_id, participant_id,  any_of(viruses_of_interest))) %>%
+  group_by(event_id) %>%
+  select(-sample_id, -participant_id) %>%
+  replace(is.na(.), 0) %>%
+  summarise_all("mean")
+
+```
+
+### Nasal Load
+
+```{r}
+nasal_metagenomics_metadata <- read_csv("/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv")
+nasal_metagenomics_rowfeature <- read_csv("/data/nasal-metagenomics/current/nasal-metagenomics-AllGenera-RowFeatures.csv", skip = 1)
+nasal_viral_samples <- fread("/scratch/metagenomics/viral_reactivation/data/nasal_virus_samples_analyzed.csv.gz")
+
+nasal_reports <- fread("/scratch/metagenomics/viral_reactivation/data/nasal_virus_transcriptomic_v1.csv.gz") %>%
+  filter(category == "viruses" & is_phage == FALSE) %>%
+  filter(nr_rpm > 0) %>%
+  pivot_wider(id_cols = full_czid_id, names_from = name, values_from = nt_rpm) %>%
+  inner_join(nasal_metagenomics_metadata %>%
+              filter(core_specific_ID %in% nasal_viral_samples$samples) %>%
+              filter(sample_status == "IMPACC sample assayed and passed QC") %>%
+              filter(internal_control != "yes") %>%
+              distinct(core_specific_ID, sample_id),
+            by = c("full_czid_id" = "core_specific_ID")) %>%
+  relocate(sample_id) %>% select(-full_czid_id) %>%
+  distinct()
+
+nasal_reports_subset <- nasal_reports %>%
+  inner_join(clinical_data_sample %>%
+               select(sample_id, participant_id, event_id) %>%
+               distinct(), by = "sample_id") %>%
+  filter(!grepl("C", participant_id)) %>%
+  relocate(sample_id, event_id, participant_id) %>%
+  rowwise() %>% 
+  mutate(Anelloviridae = sum(!!!syms(Anelloviridae_genera),na.rm = T)) %>%
+  ungroup()
+
+colnames(nasal_reports_subset) <- gsub("Human betaherpesvirus 5",
+                                      "Human betaherpesvirus 5 (CMV)",
+                         gsub("Human gammaherpesvirus 4",
+                              "Human gammaherpesvirus 4 (EBV)",
+                        gsub("Human alphaherpesvirus 1",
+                             "Human alphaherpesvirus 1 (HSV1)",
+                             gsub("Human alphaherpesvirus 2",
+                                  "Human alphaherpesvirus 2 (HSV2)",
+                                  colnames(nasal_reports_subset)))))
+
+nasal_reports_subset <- nasal_reports_subset %>%
+  select(c(sample_id, event_id, participant_id,  any_of(viruses_of_interest))) %>%
+  group_by(event_id) %>%
+  select(-sample_id, -participant_id) %>%
+  replace(is.na(.), 0) %>%
+  summarise_all("mean")
+
+
+###################### ADD IN THE CONVALESCENT
+### Run once to generate file (rawfiles no longer on server)
+# files <- c("/impacc-study/BRI/nasal-transcriptomics/rawfiles/phase4a/nasal-transcriptomics-phase4a-rawfiles-Metadata_2021-08-21.tsv",
+#            "/impacc-study/BRI/nasal-transcriptomics/rawfiles/phase4b/nasal-transcriptomics-phase4b-rawfiles-Metadata_2021-08-21.tsv")
+# fastq_metadata_nasal <- data.frame()
+# for(i in files){
+#     fastq_metadata_nasal <- plyr::rbind.fill(fastq_metadata_nasal, read_tsv(i) %>% mutate(site = "BRI"))
+# }
+#write.csv(fastq_metadata_nasal, "/scratch/metagenomics/viral_reactivation/nasal_transcriptomic_metadata_phase4_v2.csv")
+
+
+fastq_metadata_nasal <- read_csv("/scratch/metagenomics/viral_reactivation/nasal_transcriptomic_metadata_phase4_v2.csv")
+
+fastq_metadata_nasal <- fastq_metadata_nasal %>%
+  dplyr::select(filename, sample_id) %>%
+  mutate(filename = gsub("_R.*", "", filename)) %>%
+  distinct()
+
+nasal_long_convalescent <- fread("/scratch/metagenomics/viral_reactivation/data/phase4_nasal_transcriptomics.csv.gz", nThread = 6) %>%
+  filter(category == "viruses" & is_phage == FALSE) %>%
+  filter(nr_rpm > 0) %>%
+  #filter(!grepl("CTR", czid_id)) %>%
+  pivot_wider(id_cols = full_czid_id, names_from = name, values_from = nt_rpm) %>%
+  full_join(fastq_metadata_nasal, by = c("full_czid_id" = "filename")) %>%
+  relocate(sample_id) %>% dplyr::select(-full_czid_id) %>%
+  filter(sample_id != "0865-00H4YJ00-001") %>%
+  rowwise() %>% 
+  mutate(Anelloviridae = sum(!!!syms(Anelloviridae_genera[-2:-3]), na.rm = T)) %>%
+  ungroup()
+
+nasal_conv_reports <- nasal_long_convalescent %>%
+  left_join(clinical_data_sample %>% dplyr::select(sample_id, event_id, participant_id) %>% distinct()) %>%
+  relocate(sample_id, event_id, participant_id) %>%
+  select(-sample_id, participant_id) %>%
+  filter(!is.na(event_id)) %>%
+  replace(is.na(.), 0)
+
+colnames(nasal_conv_reports) <- gsub("Human betaherpesvirus 5",
+                                      "Human betaherpesvirus 5 (CMV)",
+                         gsub("Human gammaherpesvirus 4",
+                              "Human gammaherpesvirus 4 (EBV)",
+                        gsub("Human alphaherpesvirus 1",
+                             "Human alphaherpesvirus 1 (HSV1)",
+                             gsub("Human alphaherpesvirus 2",
+                                  "Human alphaherpesvirus 2 (HSV2)",
+                                  colnames(nasal_conv_reports)))))
+
+nasal_reports_subset2 <- nasal_conv_reports %>%
+  select(c(event_id,  any_of(viruses_of_interest)))
+nasal_reports_subset <- plyr::rbind.fill(nasal_reports_subset, nasal_reports_subset2)
+
+```
+
+### EA Load
+
+```{r}
+ea_metagenomics_metadata <- read_csv("/data/ea-metagenomics/current/ea-metagenomics-Metadata.csv")
+ea_metagenomics_rowfeature <- read_csv("/data/ea-metagenomics/current/ea-metagenomics-AllGenera-RowFeatures.csv", skip = 1)
+ea_viral_samples <- fread("/scratch/metagenomics/viral_reactivation/data/ea_virus_samples_analyzed.csv.gz")
+
+ea_reports <- fread("/scratch/metagenomics/viral_reactivation/data/ea_virus_transcriptomic_v1.csv.gz") %>%
+  filter(category == "viruses" & is_phage == FALSE) %>%
+  filter(nr_rpm > 0) %>%
+  pivot_wider(id_cols = full_czid_id, names_from = name, values_from = nt_rpm) %>%
+  inner_join(ea_metagenomics_metadata %>%
+              filter(core_specific_ID %in% ea_viral_samples$samples) %>%
+              filter(sample_status == "IMPACC sample assayed and passed QC") %>%
+              filter(internal_control != "yes") %>%
+              distinct(core_specific_ID, sample_id),
+            by = c("full_czid_id" = "core_specific_ID")) %>%
+  relocate(sample_id) %>% select(-full_czid_id) %>%
+  distinct()
+
+ea_reports_subset <- ea_reports %>%
+  inner_join(clinical_data_sample %>%
+               select(sample_id, participant_id, event_id) %>%
+               distinct(), by = "sample_id") %>%
+  filter(!grepl("C", participant_id)) %>%
+  relocate(sample_id, event_id, participant_id) %>%
+  rowwise() %>% 
+  mutate(Anelloviridae = sum(!!!syms(Anelloviridae_genera[-2:-3]),na.rm = T)) %>%
+  ungroup()
+
+colnames(ea_reports_subset) <- gsub("Human betaherpesvirus 5",
+                                      "Human betaherpesvirus 5 (CMV)",
+                         gsub("Human gammaherpesvirus 4",
+                              "Human gammaherpesvirus 4 (EBV)",
+                        gsub("Human alphaherpesvirus 1",
+                             "Human alphaherpesvirus 1 (HSV1)",
+                             gsub("Human alphaherpesvirus 2",
+                                  "Human alphaherpesvirus 2 (HSV2)",
+                                  colnames(ea_reports_subset)))))
+
+ea_reports_subset <- ea_reports_subset %>%
+  select(c(sample_id, event_id, participant_id,  any_of(viruses_of_interest))) %>%
+  group_by(event_id) %>%
+  select(-sample_id, -participant_id) %>%
+  replace(is.na(.), 0) %>%
+  summarise_all("mean")
+
+
+```
+
+Stitch together a simplified file of the viral loads across their respective omics.
+
+```{r}
+## Using event_ids as the identifier
+full_comb_data <- pbmc_reports_subset %>%
+  rename_with(~paste0(., ".pbmc"), -event_id) %>%
+  full_join(nasal_reports_subset %>%
+    rename_with(~paste0(., ".nasal"), -event_id),
+  by = c("event_id")) %>%
+  left_join(ea_reports_subset %>%
+    rename_with(~paste0(., ".ea"), -event_id),
+  by = c("event_id")) 
+
+colnames(full_comb_data) <- gsub("Betacoronavirus", "SARS-CoV-2", colnames(full_comb_data))
+write.csv(full_comb_data, "/scratch/metagenomics/viral_reactivation/full_comb_data.csv")
+## This is the key file used for all subsequent figures reporting the viral load on a event_id basis
+
+```
+
+Do one final load of the key dataframes (this will be the quicker boot up used for other Figure's code)
+
+```{r}
+library(tidyverse)
+library(data.table)
+library(viridis)
+library(rstatix)
+library(ggpubr)
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+
+comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.csv") %>% select(-1)
+data_env <- readRDS("/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS")
+clinical_data <- data_env$clinical_data
+nasal_viralload_counts <- data_env$nasal_viralload_counts %>%
+  rownames_to_column("sample_id") %>%
+  inner_join(clinical_data %>% distinct(sample_id, event_id)) %>%
+  dplyr::select(-sample_id) %>%
+  column_to_rownames("event_id")
+rm(data_env)
+clinical_data_ext <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-supp-locked.csv")
+
+out_dir <- "../output/"
+```
+
+## Figure 1B: Biospecimens across visits and omics
+
+```{r, fig.width = 5, fig.height = 2.5}
+
+## From the combined_data file (comb_data), NAs indicate they weren't collected.
+## So we can recapitulate the number of specimens
+comb_data_tmp <- comb_data %>%
+  select(-starts_with("Human betaherpesvirus 6"),
+         -starts_with("Human gammaherpesvirus 8"),
+         -starts_with("Human betaherpesvirus 7"),
+         -starts_with("Respiratory syncytial virus"),
+         -starts_with("Human immunodeficiency virus 1"),
+         -starts_with("SARS-CoV-2.pbmc"),
+         -starts_with("Enterovirus.pbmc"),
+         -starts_with("Enterovirus.ea"),
+         -starts_with("Anelloviridae.ea"),
+         -starts_with("Anelloviridae.nasal"))
+
+count_data <- comb_data_tmp %>%
+  mutate(nasal_total = rowSums(select(., ends_with('.nasal'))))%>%
+  mutate(pbmc_total = rowSums(select(., ends_with('.pbmc'))))%>%
+  mutate(ea_total = rowSums(select(., ends_with('.ea')))) %>%
+  select(event_id, nasal_total, pbmc_total, ea_total) %>%
+  left_join(clinical_data %>% distinct(event_id, participant_id, event_type)) %>%
+  mutate(nasal_total = ifelse(!is.na(nasal_total), 1, 0))%>%
+  mutate(pbmc_total = ifelse(!is.na(pbmc_total), 1, 0))%>%
+  mutate(ea_total = ifelse(!is.na(ea_total), 1, 0)) %>%
+  filter(!is.na(participant_id)) %>%
+  group_by(event_type) %>%
+  dplyr::summarize(Nasal = sum(nasal_total),
+                   PBMC = sum(pbmc_total),
+                   EA = sum(ea_total)) %>%
+  pivot_longer(cols = -event_type) %>%
+  filter(!event_type %in% c("Escalation 1", "Escalation 2")) %>%
+  mutate(event_type = factor(event_type, levels = paste0('Visit ', 1:10))) %>%
+  mutate(name = factor(name, c("EA", "Nasal", "PBMC"))) %>%
+  mutate(percent = value / 1154 * 100)
+
+gg1 <- count_data %>%
+  mutate(xmin = match(event_type, levels(count_data$event_type)) - 0.5,
+         xmax = match(event_type, levels(count_data$event_type)) + ((percent/100)-0.5) ,
+         ymin = match(name, levels(count_data$name)) - 0.5,
+         ymax = match(name, levels(count_data$name)) + 0.5) %>%
+  ggplot(aes(x=event_type, y=name)) +
+  geom_tile(fill = NA, color = "black") +
+   geom_rect(aes(xmin=xmin, xmax = xmax,
+                ymin = ymin, ymax = ymax), fill = "lightgray",
+             color = NA) +
+  geom_tile(fill = NA, color = "black") +
+  theme_classic() +
+  theme(legend.position = "none") +
+    geom_text(aes(label=value)) +
+  scale_fill_viridis(option = "C") +
+ # xlab("Event Type") +
+  ylab("Transcriptomic Assay") +
+  theme(#axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank())
+gg1
+
+visit_annotation <- data.frame(event_type = levels(count_data$event_type),
+                               location = c(rep("Inpatient",3),"Inpatient & Outpatient",
+                                            "Inpatient", "Inpatient & Outpatient", rep("Outpatient", 4)))
+gg2 <- visit_annotation %>%
+  mutate(event_type = gsub("Escalation", "Esc.", event_type)) %>%
+  mutate(event_type = factor(event_type, c(paste0("Visit ", 1:10)))) %>%
+  ggplot(aes(x=event_type, y= 1)) +
+  geom_tile(aes(fill = location), color = "black") +
+  theme_void() +
+  scale_fill_manual(values = c("#0E7A1B", "#35D34F", "#C7EFCD")) +
+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+      axis.title.x = element_text()) +
+  xlab("Event Type")
+
+## 5x2.5
+ggpubr::ggarrange(gg1, gg2, nrow = 2, ncol = 1,common.legend = T,
+                  align = "v", heights = c(6,3), legend = "bottom")
+ggsave(paste0(out_dir, "Figure1B.pdf"), width = 5, height = 2.5)
+```
+
+## Figure 1C: Heatmap
+
+```{r, fig.width =18, fig.height =7}
+
+cutoff = 0
+
+pbmc_percents <- pbmc_reports_subset %>%
+  pivot_longer(cols = -event_id) %>%
+  inner_join(clinical_data %>% distinct(participant_id, event_id, event_type)) %>%
+  mutate(value = ifelse(is.na(value), 0, value)) %>%
+  mutate(value = ifelse(value > cutoff, 1, 0)) %>%
+  group_by(event_type, name) %>%
+  dplyr::summarize(percent_positive = mean(value) * 100,
+                   total = n(),
+                   label = paste0(total*percent_positive/100, "/",total)) %>%
+  mutate(assay = "PBMC")
+
+nasal_percents <- nasal_reports_subset %>%
+  pivot_longer(cols = -event_id) %>%
+  inner_join(clinical_data %>% distinct(participant_id, event_id, event_type)) %>%
+  mutate(value = ifelse(is.na(value), 0, value)) %>%
+  mutate(value = ifelse(value > cutoff, 1, 0)) %>%
+  group_by(event_type, name) %>%
+  dplyr::summarize(percent_positive = mean(value) * 100,
+                   total = n(),
+                   label = paste0(total*percent_positive/100, "/",total)) %>%
+  mutate(assay = "Nasal")
+
+ea_percents <- ea_reports_subset %>%
+  pivot_longer(cols = -event_id) %>%
+  inner_join(clinical_data %>% distinct(participant_id, event_id, event_type)) %>%
+  mutate(value = ifelse(is.na(value), 0, value)) %>%
+  mutate(value = ifelse(value > cutoff, 1, 0)) %>%
+  group_by(event_type, name) %>%
+  dplyr::summarize(percent_positive = mean(value) * 100,
+                   total = n(),
+                   label = paste0(total*percent_positive/100, "/",total)) %>%
+  mutate(assay = "EA")
+
+
+omic_summary <- rbind.data.frame(pbmc_percents, nasal_percents,
+                                 #nasal_conv_percents,
+                                 ea_percents) %>%
+  as.data.frame() %>%
+  mutate(event_type = factor(event_type, levels = c(paste0('Visit ', 1:10)))) %>%
+  filter(!is.na(event_type)) %>%
+  arrange(assay, event_type)
+
+heatdf <- omic_summary %>%
+    pivot_wider(names_from = c(event_type, assay),
+                values_from = percent_positive,
+                id_cols = name)
+heatdf <- heatdf[heatdf$name %in% viruses_of_interest, ]
+heatdf <- heatdf %>% column_to_rownames("name")
+heatdf <- heatdf[order(rownames(heatdf)), ]
+rownames(heatdf) <- gsub("Betacoronavirus", "SARS-CoV-2", rownames(heatdf))
+## Manual reording of rows in heatmap
+heatdf <- heatdf[c(2, 4,5,9,6, 7,8, 10,1, 11, 12,3),]
+
+
+col_ano = columnAnnotation(Assay = gsub(".*_", "", colnames(heatdf)),
+                            col = list(Assay = c("EA" = "#FE91AD",
+                                      "Nasal" = "#E291FE", "PBMC" = "#91E3FE")))
+
+colors_heat <- c("#045375", "#089099", "#7CCBA2", "#FCDE9C", "#F0746E", "#DC3977")
+heatdf_annot <- heatdf
+heatdf_annot <- apply(heatdf_annot, 2, function(x){
+  ifelse(is.na(x), " ", ifelse(x == 0, " ", paste0(round(x, 1), ""))) ## Took % sign out of paste
+})
+heatdf[is.na(heatdf)] <- 0
+heatdf_f <- heatdf
+colnames(heatdf_f) <- gsub("_.*", "", colnames(heatdf_f))
+
+new_labels <- c("Baseline", "Day 4", "Day 7", "Day 14", "Day 21", "Day 28",
+                "Baseline", "Day 4", "Day 7", "Day 14", "Day 21", "Day 28",
+                "3 Months", "6 Months", "9 Months", "12 Months",
+                "Baseline", "Day 4", "Day 7", "Day 14", "Day 21", "Day 28",
+                "3 Months", "6 Months", "9 Months", "12 Months")
+colnames(heatdf_f) <- new_labels
+## Scaling of color palette
+heatdf_s <- as.data.frame(apply(heatdf_f, 2, function(x){qqnorm(x, plot.it = F)$x}))
+
+pdf(paste0(out_dir, "Figure1C.pdf"), width = 14.5, height = 5)
+Heatmap(as.matrix(heatdf_f), name = "Percent of\nSamples", cluster_rows = F,
+        cluster_columns = F, col = colors_heat, top_annotation = col_ano,
+        row_names_side = "left",
+        show_heatmap_legend = T, column_names_rot = 45,
+        border = TRUE, column_split = factor(gsub(".*_", "", colnames(heatdf)),
+                                             levels = c("PBMC", "Nasal", "EA")),
+    cell_fun = function(j, i, x, y, width, height, fill) {
+        grid.text(sprintf("%s", heatdf_annot[i, j]), x, y, gp = gpar(fontsize = 11))
+})  
+## 14.5 x 5in
+dev.off()
+```
+
+## Figure 1D: Viral Reactivation Curves
+
+```{r}
+kernel_size = 5 ## days
+
+kernel_smoothed_values <- data.frame()
+for(days in 1:40){
+  event_range = (days-((kernel_size-1) / 2)):(days+((kernel_size-1) / 2))
+  tmp <- comb_data %>%
+    left_join(clinical_data %>% distinct(event_id, event_date)) %>%
+    #select(-ends_with(".ea")) %>%
+    pivot_longer(cols = c(-event_id, -event_date)) %>%
+    mutate(value = ifelse(value > 0, 1, 0)) %>%
+    filter(!is.na(value)) %>%
+    filter(event_date %in% event_range) %>%
+    group_by(name) %>%
+    dplyr::summarize(percent = mean(value) * 100) %>%
+    mutate(day = days)
+  
+  kernel_smoothed_values <- rbind.data.frame(kernel_smoothed_values, tmp)
+}
+
+smooth_traj <- kernel_smoothed_values %>%
+  ungroup() %>%
+  mutate(compartment = gsub(".*\\.", "", name),
+         virus = gsub("\\..*", "", name)) %>% 
+  filter(compartment != "ea") %>%
+  filter(!grepl("SARS-CoV-2", virus)) %>%
+  filter(!name %in% c("Simplexvirus.pbmc", "Enterovirus.pbmc")) %>%
+  filter(!grepl("7|6|8|immuno", name)) %>%
+  ggplot(aes(x=day, y=percent, color = virus, linetype = compartment)) +
+  geom_smooth(se = F) +
+  theme_classic() +
+  xlab("Days from Hospitalization") +
+  ylab("Percent of Samples") +
+  scale_color_manual(values = c("#86005F", "#01a8a0", "#1b820d", "#cba90a",
+                                "#005F86", "#BF5700"),
+                     name = "Virus") +
+  scale_linetype_manual(values = c("22", "solid"),
+                        name = "Compartment") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+smooth_traj +
+  coord_cartesian(ylim =c(0,25)) # 6x3.5 in
+ggsave(paste0(out_dir, "Figure1D.pdf"), width = 6, height = 3.5)
+
+write.csv(smooth_traj$data, paste0(out_dir, "source_data_Figure1D.csv"))
+```
+
+## Figure 1E: Viral Load Correlation
+
+```{r}
+## Manually installed an older version of Hmisc for R v4.0.3 just for the rcorr function
+# packageurl <- "https://cran.r-project.org/src/contrib/Archive/Hmisc/Hmisc_4.8-0.tar.gz"
+# install.packages(packageurl, repos=NULL, type="source")
+
+library(Hmisc)
+library(corrplot)
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+    )
+}
+for_cor_data <- as.matrix(comb_data[,c(2:4, 10:15, 22, 23, 24, 25, 26 )])
+for_cor_data <- for_cor_data[,!grepl("Beta", colnames(for_cor_data))]
+colnames(for_cor_data) <- gsub("\\)", "", gsub(".* \\(", "", colnames(for_cor_data)))
+res <- rcorr(for_cor_data,type = "spearman")
+resdf <- flattenCorrMatrix(res$r, res$P)
+write.csv(resdf, paste0(out_dir, "source_data_Figure1E.csv"))
+tmpP <- res$P
+tmpP[is.na(tmpP)] <- 1
+pdf(paste0(out_dir, "Figure1E.pdf"), width = 8, height = 8)
+corrplot(res$r, type = "upper", order = "hclust", 
+         tl.col = "black",outline = TRUE, tl.srt = 45,
+         col=colorRampPalette(c("darkblue","white","darkred"))(100),
+          p.mat = tmpP, sig.level = 0.05, insig = "blank")
+dev.off()
+## 8 x8
+```
+
+## Supplemental Figure 1
+
+### Figure S1A-B: RT-qPCR and Metagenomics Correlation for SARS-CoV-2
+
+```{r}
+library(ggpubr)
+corr_data <- comb_data %>%
+  dplyr::select(event_id, `SARS-CoV-2.nasal`) %>%
+  left_join(nasal_viralload_counts %>%
+  rownames_to_column("event_id") %>%
+    select(event_id, N1_CT, N2_CT))
+corr_data <- corr_data[complete.cases(corr_data), ]
+
+gga <- corr_data %>%
+  mutate(`SARS-CoV-2.nasal` = log10(`SARS-CoV-2.nasal` + 1)) %>%
+  ggplot(aes(x=`SARS-CoV-2.nasal`, y=N1_CT)) +
+  geom_point() +
+  geom_smooth(method='lm', formula= y~x, color = "red",se = F) +
+  stat_cor() +
+  theme_classic() +
+  scale_y_reverse() +
+  scale_x_continuous(labels = c(0, 100,1E4,1E6),breaks = c(0,2,4,6)) +
+  ylab("Nucleocapsid 1 Cycle Threshold") +
+  xlab("Betacoronavirus RPM")
+
+ggb <- corr_data %>%
+  mutate(`SARS-CoV-2.nasal` = log10(`SARS-CoV-2.nasal` + 1)) %>%
+  ggplot(aes(x=`SARS-CoV-2.nasal`, y=N2_CT)) +
+  geom_point() +
+  geom_smooth(method='lm', formula= y~x, color = "red",se = F) +
+  stat_cor() +
+  theme_classic() +
+  scale_y_reverse() +
+  scale_x_continuous(labels = c(0, 100,1E4,1E6),breaks = c(0,2,4,6)) +
+  ylab("Nucleocapsid 2 Cycle Threshold") +
+  xlab("Betacoronavirus RPM")
+
+write_csv(gga$data, paste0(out_dir, "source_data_FigureS1A.csv"))
+write_csv(ggb$data, paste0(out_dir, "source_data_FigureS1B.csv"))
+```
+
+### Figure S1C: Taxnonomy of Anelloviridae
+
+```{r}
+anneloviridae_reports <- plyr::rbind.fill(fread("/scratch/metagenomics/viral_reactivation/data/phase1_4_pbmc_transcriptomics_v2.csv.gz"),
+                                          fread("/scratch/metagenomics/viral_reactivation/data/phase4_nasal_transcriptomics.csv.gz"),
+                                          fread("/scratch/metagenomics/viral_reactivation/data/nasal_virus_transcriptomic_v1.csv.gz"),
+                                          fread("/scratch/metagenomics/viral_reactivation/data/ea_virus_transcriptomic_v1.csv.gz")) %>%
+  filter(category == "viruses" & is_phage == FALSE) %>%
+  filter(nr_rpm > 0) %>%
+  filter(genus_tax_id %in% c("200687329", "687333", "687331", "687332")) %>%
+  filter(nt_rpm > 0)
+  
+cat(paste(unique(anneloviridae_reports$tax_id), collapse = "\n"))
+## Paste these into https://www.ncbi.nlm.nih.gov/Taxonomy/CommonTree/wwwcmt.cgi
+
+
+```
+
+```{r, fig.width=2, fig.height =4}
+library(ggtree)
+tree <- read.tree("Anelloviridae_phyliptree_ncbi_taxonomy_2024-08-23.phy")
+
+ggf <- ggtree(tree) +  geom_tiplab(align=TRUE, linesize=.5) + 
+  geom_hilight(node=37, fill="gold") + 
+  geom_hilight(node=36, fill="purple")+ 
+  geom_hilight(node=38, fill="blue") + ggplot2::xlim(0, 60)
+ggf
+ggsave(paste0(out_dir, "FigureS1C.pdf"), width = 5.9, height = 5.9)
+## 5.9x5.9
+```
+
+### Figure S1D: Taxnonomy of Enteroviruses
+
+```{r}
+enterovirus_reports <- plyr::rbind.fill(fread("/scratch/metagenomics/viral_reactivation/data/phase1_4_pbmc_transcriptomics_v2.csv.gz"),
+                                          fread("/scratch/metagenomics/viral_reactivation/data/phase4_nasal_transcriptomics.csv.gz"),
+                                          fread("/scratch/metagenomics/viral_reactivation/data/nasal_virus_transcriptomic_v1.csv.gz"),
+                                          fread("/scratch/metagenomics/viral_reactivation/data/ea_virus_transcriptomic_v1.csv.gz")) %>%
+  filter(category == "viruses" & is_phage == FALSE) %>%
+  filter(nr_rpm > 0) %>%
+  filter(genus_tax_id %in% c("12059")) %>%
+  filter(nt_rpm > 0)
+  
+cat(paste(unique(enterovirus_reports$tax_id), collapse = "\n"))
+## Paste these into https://www.ncbi.nlm.nih.gov/Taxonomy/CommonTree/wwwcmt.cgi
+
+
+```
+
+```{r, fig.width=5, fig.height =4}
+library(ggtree)
+tree <- read.tree("enterovirus_2024-08-25_ncbi_taxonomy.phy")
+
+ggg <- ggtree(tree) +  geom_tiplab(align=TRUE, linesize=.5) +
+  ggplot2::xlim(0, 60)
+ggg
+ggsave(paste0(out_dir, "FiguresS1D.pdf"), width = 5, height = 4)
+## 5x4
+```
+
+### Figure S1E-H: Expanded Smoothed Reactivation Curves
+
+```{r}
+kernel_size = 5 ## days
+
+kernel_smoothed_values <- data.frame()
+for(days in 1:40){
+  event_range = (days-((kernel_size-1) / 2)):(days+((kernel_size-1) / 2))
+  tmp <- comb_data %>%
+    left_join(clinical_data %>% distinct(event_id, event_date)) %>%
+    #select(-ends_with(".ea")) %>%
+    pivot_longer(cols = c(-event_id, -event_date)) %>%
+    mutate(value = ifelse(value > 0, 1, 0)) %>%
+    filter(!is.na(value)) %>%
+    filter(event_date %in% event_range) %>%
+    group_by(name) %>%
+    dplyr::summarize(percent = mean(value) * 100) %>%
+    mutate(day = days)
+  
+  kernel_smoothed_values <- rbind.data.frame(kernel_smoothed_values, tmp)
+}
+
+smooth_traj <- kernel_smoothed_values %>%
+  ungroup() %>%
+  mutate(compartment = gsub(".*\\.", "", name),
+         virus = gsub("\\..*", "", name)) %>% 
+  filter(!name %in% c("Simplexvirus.pbmc", "Enterovirus.pbmc")) %>%
+  filter(!grepl("7|6|8|immuno", name)) %>%
+  ggplot(aes(x=day, y=percent, color = virus, linetype = compartment)) +
+  geom_smooth(se = F) +
+  theme_classic() +
+  xlab("Days from Hospitalization") +
+  ylab("Percent of Samples") +
+  scale_color_manual(values = c("Anelloviridae" ="#86005F",
+                                "Enterovirus" ="#01a8a0",
+                                "Human alphaherpesvirus 1 (HSV1)" ="#1b820d",
+                                "Human alphaherpesvirus 2 (HSV2)" ="#cba90a",
+                                "Human betaherpesvirus 5 (CMV)" = "#005F86",
+                                "Human gammaherpesvirus 4 (EBV)" ="#BF5700",
+                                "SARS-CoV-2" ="black"),
+                     name = "Virus") +
+  scale_linetype_manual(values = c("ea"= "dotted","nasal" = "22","pbmc" =  "solid"),
+                        name = "Compartment") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+gge <- smooth_traj
+
+
+ggzoom <- smooth_traj
+ggh <- ggg <- ggf <- ggzoom
+ggf$data <- ggzoom$data %>% filter(grepl(".ea$", name))
+ggg$data <- ggzoom$data %>% filter(grepl(".nasal$", name))
+ggg <- ggg +
+  coord_cartesian(ylim = c(0, 20))
+ggh$data <- ggzoom$data %>% filter(grepl(".pbmc$", name))
+
+write_csv(gge$data, paste0(out_dir, "source_data_FigureS1E.csv"))
+write_csv(ggf$data, paste0(out_dir, "source_data_FigureS1F.csv"))
+write_csv(ggg$data, paste0(out_dir, "source_data_FigureS1G.csv"))
+write_csv(ggh$data, paste0(out_dir, "source_data_FigureS1H.csv"))
+```
+
+```{r, fig.width = 8, fig.height = 9}
+top <- ggarrange(gga, ggb, nrow =1, ncol =2, labels = c("A", "B"))
+bottom <- ggarrange(gge, ggf + ylab("Percent of EA Samples (%)"),
+                    nrow =1, ncol =2, labels = c("E", "F"), common.legend = TRUE,legend = "right")
+bottom2 <- ggarrange(ggg + ylab("Percent of Nasal Samples (%)"),
+                     ggh + ylab("Percent of PBMC Samples (%)"), nrow =1, ncol =2, labels = c("G", "H"), common.legend = TRUE,legend = "right")
+ggarrange(top, bottom, bottom2, nrow = 3, ncol =1)
+ggsave(paste0(out_dir, "FigureS1A-B_E-H.pdf"), width = 8, height = 9)
+```
+
+### Figure S1I: Conditional Probability of Latent Viral Transcript
+
+```{r}
+conincidence_func <- function(matrix){
+  out <- data.frame()
+  for(i in colnames(matrix)){
+    test_tmp <- matrix %>%
+      rownames_to_column("sample_id") %>%
+      pivot_longer(cols=-sample_id) %>%
+      filter(!is.na(value)) 
+    
+    live <- test_tmp %>%
+      filter(name == i) %>%
+      filter(value == 1)
+    
+    test <- test_tmp %>%
+      filter(sample_id %in% live$sample_id) %>%
+      filter(value == 1) %>%
+      group_by(name) %>%
+      dplyr::summarize(count = n()) %>%
+      mutate(freq = count / nrow(live) * 100) %>%
+      dplyr::select(name, freq)
+    colnames(test)[2] <- i 
+     if(nrow(out) == 0){
+       out <- test
+     } else {
+       out <- out %>%
+        full_join(test)
+     }
+  }
+  return(out)
+}
+
+conincendence_data <- comb_data[,-1]
+conincendence_data <- conincendence_data[,!grepl("8|6|7|immuno|Respir", colnames(conincendence_data))]
+colnames(conincendence_data) <- gsub("\\)", "", gsub(".* \\(", "", colnames(conincendence_data)))
+conincendence_data[conincendence_data>0] <- 1
+conincendence_data <- as.data.frame(conincendence_data)
+rownames(conincendence_data) <- comb_data$event_id
+pilot <- conincidence_func(conincendence_data)
+pilot[is.na(pilot)] <- 0
+
+pilot_2 <-as.data.frame(pilot[,-1])
+rownames(pilot_2) <- pilot$name
+pilot_2 <- pilot_2[,order(colnames(pilot_2))]
+pilot_2 <- pilot_2[order(rownames(pilot_2)),]
+
+pdf(paste0(out_dir, "FigureS1I.pdf"), width = 5.5, height = 5.5)
+corrplot(t(as.matrix(pilot_2)), is.corr = F,
+         #method = "number",
+         tl.col = "black",outline = TRUE, tl.srt = 45,
+         col=colorRampPalette(c("white","darkred"))(100),)
+dev.off()
+### 5.5 x 5.5
+
+write_csv(as.data.frame(t(as.matrix(pilot_2))), paste0(out_dir, "source_data_FigureS1I.csv"))
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```

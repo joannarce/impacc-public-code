@@ -1,0 +1,5 @@
+value,CMV serostatus,count,freq
+CMV-,CMV Seronegative,210,0.23917995444191345
+CMV-,CMV Seropositive,668,0.7608200455580866
+CMV+,CMV Seronegative,1,0.027777777777777776
+CMV+,CMV Seropositive,35,0.9722222222222222
