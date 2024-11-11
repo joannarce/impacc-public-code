@@ -524,7 +524,7 @@ write_csv(ggpbmc$data, paste0(out_dir, "source_data_Figure6A.csv"))
 
 ## Figure 6B: Nasal Enrichment
 
-```{r, fig.width=7.5, fig.height =7}
+```{r, fig.width=8, fig.height =7}
 
 nasal_enrichment_df <- read_csv(paste0(out_dir, "Supplemental_Data_5_part4.csv"))
 
@@ -583,7 +583,7 @@ ggb <- nasal.plot.data %>%
                                     fill = NA, 
                                     size = 1))
 ggb
-ggsave(paste0(out_dir, "Figure6B.pdf"), width = 7.5, height = 7)
+ggsave(paste0(out_dir, "Figure6B.pdf"), width = 8, height = 7)
 write_csv(ggb$data, paste0(out_dir, "source_data_Figure6B.csv"))
 ```
 
