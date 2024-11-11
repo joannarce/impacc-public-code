@@ -670,7 +670,9 @@ Joining with `by = join_by(participant_id)`
 <span id="cb50-22"><a href="#cb50-22" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="fu">data.frame</span>(<span class="at">test =</span> <span class="st">"Chi-square test"</span>,</span>
 <span id="cb50-23"><a href="#cb50-23" aria-hidden="true" tabindex="-1"></a>                     <span class="at">p_value =</span> chi_res<span class="sc">$</span>p.value,</span>
 <span id="cb50-24"><a href="#cb50-24" aria-hidden="true" tabindex="-1"></a>                     <span class="at">compairosn =</span> <span class="st">"HSV1 proteins for transcript positive or negative"</span>),</span>
-<span id="cb50-25"><a href="#cb50-25" aria-hidden="true" tabindex="-1"></a>          <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_2_part3.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb50-25"><a href="#cb50-25" aria-hidden="true" tabindex="-1"></a>          <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_2_part3.csv"</span>))</span>
+<span id="cb50-26"><a href="#cb50-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-27"><a href="#cb50-27" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(gg3C<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_Figure3C.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <section id="figure-3d-cytof" class="level3">
 <h3 class="anchored" data-anchor-id="figure-3d-cytof">Figure 3D: Cytof</h3>
@@ -832,7 +834,7 @@ argument is not numeric or logical: returning NA</code></pre>
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure3D.pdf"</span>), <span class="at">height =</span> <span class="dv">12</span>, <span class="at">width =</span> <span class="fl">4.5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure3D.pdf"</span>), <span class="at">height =</span> <span class="dv">7</span>, <span class="at">width =</span> <span class="dv">7</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
 argument is not numeric or logical: returning NA

@@ -382,6 +382,8 @@ write.csv(data.frame(test = "Chi-square test",
                      p_value = chi_res$p.value,
                      compairosn = "HSV1 proteins for transcript positive or negative"),
           paste0(out_dir, "Supplemental_Data_2_part3.csv"))
+
+write_csv(gg3C$data, paste0(out_dir, "source_data_Figure3C.csv"))
 ```
 
 ### Figure 3D: Cytof
@@ -474,7 +476,7 @@ model.out.adj %>%
   guides(size=guide_legend("-log10 Transformed\np-values"))  +
     scale_x_discrete(limits=rev) +
   coord_flip() 
-ggsave(paste0(out_dir, "Figure3D.pdf"), height = 12, width = 4.5)
+ggsave(paste0(out_dir, "Figure3D.pdf"), height = 7, width = 7)
 ```
 
 # Supplemental Figure 3
