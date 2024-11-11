@@ -1,0 +1,618 @@
+---
+title: "Figure5"
+format: html
+editor: visual
+---
+
+## Figure 5: Plasma Metabolomics
+
+## Boot up Key Data
+
+```{r}
+library(tidyverse)
+library(data.table)
+library(viridis)
+library(scales)
+library(aplot)
+
+comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.csv") %>% select(-1) %>%
+  select(-starts_with("Human betaherpesvirus 6"),
+         -starts_with("Human gammaherpesvirus 8"),
+         -starts_with("Human betaherpesvirus 7"),
+         -starts_with("Respiratory syncytial virus"),
+         -starts_with("Human immunodeficiency virus 1"),
+         -starts_with("SARS-CoV-2.pbmc"),
+         -starts_with("Enterovirus.pbmc"),
+         -starts_with("Enterovirus.ea"),
+         -starts_with("Anelloviridae.ea"),
+         -starts_with("Anelloviridae.nasal"),
+         -ends_with(".ea")) %>%
+  dplyr::rename("Betacoronavirus.nasal" = "SARS-CoV-2.nasal")
+data_env <- readRDS("/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS")
+clinical_data <- data_env$clinical_data
+
+out_dir <- "../output/"
+```
+
+## Gamm modeling function
+
+```{r}
+library(nlme)
+library(gamm4)
+library(mgcv)
+gamm_modeling <- function(counts, viral_load_control, binary = TRUE, event_date_cutoff){
+  ## Requires a data_env be made and in the environment
+  ## using the load_IMPACC_dataset function from the codebase
+  model.out <- data.frame()
+  plot_list <- list()
+  residual_list <- list()
+  max_part <- comb_data %>%
+    pivot_longer(cols = -event_id) %>%
+    left_join(data_env$clinical_data %>%
+                distinct(event_id, participant_id, event_date)) %>%
+    filter(event_date >= 0) %>%
+    filter(event_date <= event_date_cutoff) %>%
+    group_by(participant_id, name) %>%
+    filter(name != "Betacoronavirus.nasal") %>%
+    dplyr::summarize(value = max(value, na.rm = TRUE)) %>%
+    filter(value != -Inf) %>%
+    distinct() %>%
+    pivot_wider(names_from = name, values_from = value) %>%
+    ungroup() %>%
+    select(-starts_with("Betacoronavirus"))
+  
+  ## Filter for participants that we have both a nasal and pbmc sample for
+  ## Really not that big of deal because we control for nasal viral load
+  max_part <- max_part[complete.cases(max_part),]
+  ctl_part <- max_part$participant_id[rowSums(max_part[,c(-1)]) == 0]
+  
+  for(active_vir in colnames(max_part)[-1]){
+    print(paste0("Starting ", match(active_vir, colnames(max_part)[-1]), " out of ", length(colnames(max_part)[-1])))
+    
+    tmp.data <- counts %>%
+      rownames_to_column("sample_id") %>%
+      inner_join(data_env$clinical_data %>% dplyr::select(sample_id, event_id,
+                                                          participant_id,
+                                                          respiratory_status,
+                                                          trajectory_group,
+                                                          event_type,
+                                                          event_date,
+                                                          enrollment_site,
+                                                          discretized_admit_age_quantile,
+                                                          sex)) %>%
+      inner_join(max_part %>% select(participant_id, .data[[active_vir]]), by = "participant_id") %>%
+      inner_join(comb_data %>%
+                   select(event_id, Betacoronavirus.nasal), by = "event_id") %>%
+      relocate(sample_id, event_id, event_type, event_date,
+               participant_id,
+               respiratory_status, trajectory_group, enrollment_site,
+               sex,discretized_admit_age_quantile, all_of(active_vir), Betacoronavirus.nasal) %>%
+      filter(!is.na(.data[[active_vir]])) %>%
+      mutate(sex = as.factor(sex),
+             participant_id = as.factor(participant_id),
+             event_date = as.numeric(event_date),
+             enrollment_site = as.factor(enrollment_site),
+             trajectory_group = ordered(as.factor(trajectory_group)),
+             respiratory_status = ordered(as.factor(respiratory_status)),
+             discretized_admit_age_quantile = ordered(as.factor(discretized_admit_age_quantile))) %>%
+     filter(.data[[active_vir]] > 0 | participant_id %in% ctl_part)
+    
+    if(viral_load_control){
+      tmp.data <- tmp.data %>%
+        filter(!is.na(Betacoronavirus.nasal)) %>%
+        mutate(Betacoronavirus.nasal = log2(Betacoronavirus.nasal + 1))
+    }
+    
+    if(binary){
+      ## Convert to a binary approach
+      tmp.data[[active_vir]] <- ordered(as.factor(ifelse(tmp.data[[active_vir]] > 0, 1, 0)))
+    } else {
+      tmp.data[[active_vir]] <- log2(tmp.data[[active_vir]] +1)
+    }
+    
+    
+    ## Prepare colnames for formala/modeling
+    colnames(tmp.data) <- gsub(" ", "_",
+                               gsub("-", "_",
+                                    gsub("\\(", "_",sub("\\)", "_",  colnames(tmp.data)))))
+    cleaned_vir <- gsub(" ", "_",
+                        gsub("-", "_",
+                             gsub("\\(", "_",sub("\\)", "_", active_vir))))
+    
+   
+    for(active_feature in colnames(tmp.data)[13:ncol(tmp.data)]){
+      
+      ## GAMM Modeling ####################
+      ## Formula construction
+      active_formula <- formula(paste0(active_feature, "~s(event_date, bs = 'cr') + s(event_date, bs = 'cr', by = ", cleaned_vir, ")+s(event_date, bs = 'cr', by = trajectory_group)+", cleaned_vir, "+sex+trajectory_group+discretized_admit_age_quantile"))
+      
+      if(viral_load_control){
+        active_formula <- formula(paste0(active_feature, "~s(event_date, bs = 'cr') + s(event_date, bs = 'cr', by = ", cleaned_vir, ")+s(event_date, bs = 'cr', by = trajectory_group)+", cleaned_vir, "+sex+trajectory_group+discretized_admit_age_quantile+Betacoronavirus.nasal"))
+      }
+      
+      tmp.data.tmp <- tmp.data %>%
+        dplyr::select(event_date, enrollment_site, participant_id,
+                      trajectory_group, sex, discretized_admit_age_quantile,
+                      any_of(active_feature), any_of(cleaned_vir),
+                      Betacoronavirus.nasal )
+      tmp.data.tmp <- tmp.data.tmp[complete.cases(tmp.data.tmp),]
+      
+      
+      tmp.data.tmp <- tmp.data.tmp %>%
+        filter(event_date >= 0) %>%
+        filter(event_date <= event_date_cutoff) %>%
+        as.data.frame() %>%
+        distinct()
+    
+      fit <- try(gamm4::gamm4(active_formula, random = ~(1|enrollment_site/participant_id), data = as.data.frame(tmp.data.tmp)))
+      
+      if(class(fit) == "try-error"){
+        next
+      }
+      a1 =anova(fit$gam)
+      ## Think about what to do here
+      aa1 = sum(a1$s.table[-c(1), 3]*a1$s.table[-c(1), 2])
+      aa2 = sum(a1$s.table[-c(1), 2])
+      slopep=pchisq(aa1,aa2, lower.tail = F)
+      slopep = a1[["s.pv"]][2]
+      interceptp =a1$pTerms.pv[1]
+      
+      virus_n <- length(unique(tmp.data.tmp$participant_id[tmp.data.tmp[[cleaned_vir]] > 0]))
+      control_n <- length(unique(tmp.data.tmp$participant_id[tmp.data.tmp[[cleaned_vir]] == 0]))
+
+      model.out <- rbind.data.frame(model.out, c(active_vir, active_feature, slopep, unname(interceptp),
+                                 sum(fit$gam$coefficients[grepl(paste0(":", cleaned_vir), names(fit$gam$coefficients))]),
+                                 mean(fit$gam$coefficients[grepl(paste0(":", cleaned_vir), names(fit$gam$coefficients))]),
+                                 fit$gam$coefficients[2], virus_n, control_n))
+      
+      if(slopep <= 0.025 | interceptp <= 0.025){
+        pred <- ggpredict(fit, c("event_date", cleaned_vir), type = "fixed",
+                          ci.lvl = 0.95)
+        colnames(pred) <- gsub("x", "event_date", gsub("group", "virus", colnames(pred)))
+        
+        pred <- pred %>%
+          mutate(virus = as.character(virus)) %>%
+          left_join(tmp.data.tmp %>%
+                      dplyr::rename("virus" = 8) %>%
+                      mutate(virus = as.character(virus)) %>%
+                      group_by(virus) %>%
+                      dplyr::summarize(max = max(event_date)), by = "virus") %>%
+          filter(event_date <= max)
+        
+        p1 <-pred %>%
+          ggplot(mapping = aes(x = event_date, y = predicted)) +
+          geom_line(mapping = aes(group = virus, y = predicted, x=event_date,
+                                  color = virus), size = 0.8) +
+          geom_ribbon(aes(x=event_date, ymin = conf.low, ymax = conf.high, fill = virus),
+                      alpha = 0.3) +
+          
+          theme_classic(base_size  = 18) +
+          scale_color_manual(values = c("lightgray", "#BF5700"))+
+          scale_fill_manual(values = c("lightgray", "#BF5700")) +
+          ylab(active_feature) +
+          xlab("Days from Hospitalization") +
+          ggtitle(paste0(active_vir, "\nShape = ",signif(slopep, digits = 3), "\nAverage = ", signif(interceptp, digits = 3)))
+        
+        plot_list <- c(plot_list, list(p1))
+        names(plot_list)[length(plot_list)] <- paste0(active_feature,"___", active_vir)
+        
+      }
+      
+      if(active_vir == colnames(max_part)[2]){
+        
+        ## This next section is to calculate the residuals for a model WITHOUT
+        ## Viral reactivation as a feature. For this reason, it only needs to be
+        ## ran once, which we do during the first loop. (PS This is for the boxplot component of Figure 4)
+        
+        tmp.data2 <- counts %>%
+          rownames_to_column("sample_id") %>%
+          inner_join(data_env$clinical_data %>% dplyr::select(sample_id, event_id,
+                                                              participant_id,
+                                                              respiratory_status,
+                                                              trajectory_group,
+                                                              event_type,
+                                                              event_date,
+                                                              enrollment_site,
+                                                              discretized_admit_age_quantile,
+                                                              sex)) %>%
+          inner_join(max_part %>% select(participant_id), by = "participant_id") %>%
+          inner_join(comb_data %>%
+                       select(event_id, Betacoronavirus.nasal), by = "event_id") %>%
+          relocate(sample_id, event_id, event_type, event_date,
+                   participant_id,
+                   respiratory_status, trajectory_group, enrollment_site,
+                   sex,discretized_admit_age_quantile, Betacoronavirus.nasal) %>%
+          mutate(sex = as.factor(sex),
+                 participant_id = as.factor(participant_id),
+                 event_date = as.numeric(event_date),
+                 enrollment_site = as.factor(enrollment_site),
+                 trajectory_group = ordered(as.factor(trajectory_group)),
+                 respiratory_status = ordered(as.factor(respiratory_status)),
+                 discretized_admit_age_quantile = ordered(as.factor(discretized_admit_age_quantile)))
+        
+        tmp.data.tmp2 <- tmp.data2 %>%
+        dplyr::select(event_date, enrollment_site, participant_id,
+                      trajectory_group, sex, discretized_admit_age_quantile,
+                      any_of(active_feature),
+                      Betacoronavirus.nasal )
+        tmp.data.tmp2 <- tmp.data.tmp2[complete.cases(tmp.data.tmp2),]
+        tmp.data.tmp2 <- tmp.data.tmp2 %>%
+          filter(event_date >= 0) %>%
+          filter(event_date <= event_date_cutoff) %>%
+          as.data.frame() %>%
+          distinct()
+        
+        ## Construct model without viral reactivation and show residuals
+        active_formula2 <- formula(paste0(active_feature, "~s(event_date, bs = 'cr') +s(event_date, bs = 'cr', by = trajectory_group) + sex+trajectory_group+discretized_admit_age_quantile"))
+        if(viral_load_control){
+          active_formula2 <- formula(paste0(active_feature, "~s(event_date, bs = 'cr') +s(event_date, bs = 'cr', by = trajectory_group) + sex+trajectory_group+discretized_admit_age_quantile+Betacoronavirus.nasal"))
+        }
+        fit2 <- try(gamm4::gamm4(active_formula2, random = ~(1|enrollment_site/participant_id), data = as.data.frame(tmp.data.tmp2)))
+        
+        residuals_df <- cbind.data.frame(fit2$gam$model, as.data.frame(fit2$gam$residuals)) %>%
+          left_join(max_part, by = "participant_id")
+        residual_list <- c(residual_list, list(residuals_df))
+        names(residual_list)[length(residual_list)] <- paste0(active_feature)
+      }
+    }
+    
+  }
+  return(c(list(model.out), list(plot_list), list(residual_list), list(ctl_part)))
+}
+```
+
+```{r}
+#| eval: false
+## This only needs to be run once, and is very slow. 
+library(gamm4)
+library(ggeffects)
+counts <- data_env$plasma_metabolomics_global_counts
+
+test <- gamm_modeling(counts, viral_load_control = TRUE, binary = TRUE,
+                      event_date_cutoff = 40)
+results <- as.data.frame(test[[1]])
+colnames(results) <- c("virus_compartment", "feature", "shape", "average", "summed_virus_smooth_coefficients", "average_virus_smooth_coefficients", "average_coefficient", "virus_n", "control_n")
+results2 <- results %>% group_by(virus_compartment) %>%
+  mutate(shape.adj = p.adjust(shape, "fdr"), average.adj = p.adjust(average, "fdr"))
+write.csv(results2, paste0(out_dir, "Supplemental_Data_4_part1.csv"))
+saveRDS(test, paste0(out_dir, "Supplemental_Data_4.RDS"))
+```
+
+## Figure 5A: Metabolites by Major Pathway and Virus
+
+```{r, fig.width = 8, fig.height = 2}
+pmg <- read.csv(paste0(out_dir, "Supplemental_Data_4_part1.csv"))
+remove <- c("Human betaherpesvirus 5 (CMV).nasal", "Enterovirus.nasal")
+
+start_df <- plyr::rbind.fill(pmg %>% mutate(omic = "Plasma Metabolomics")) %>%
+  filter(!virus_compartment %in% remove) %>%
+  pivot_longer(cols = c(shape.adj, average.adj)) %>%
+  mutate(value = as.numeric(value),
+         average_coefficient = as.numeric(average_coefficient),
+         summed_virus_smooth_coefficients = as.numeric(summed_virus_smooth_coefficients)) %>%
+  mutate(value = ifelse(value == 0, 2e-16, value)) %>%
+  mutate(log10p = ifelse(name == "shape.adj", -log10(value) * (summed_virus_smooth_coefficients/abs(summed_virus_smooth_coefficients)),
+                         -log10(value) * (average_coefficient/abs(average_coefficient)))) %>%
+  filter(value <= 0.01) %>%
+  left_join(data_env$plasma_metabolomics_global_rowfeature %>% rownames_to_column("feature") %>%
+              select(feature, CHEMICAL_NAME, SUPER_PATHWAY)) %>%
+  mutate(feature = ifelse(omic == "plasma metabolomics" & !is.na(CHEMICAL_NAME), CHEMICAL_NAME, feature)) %>%
+  filter(!grepl("X-", CHEMICAL_NAME)) %>%
+  mutate(virus_compartment = gsub("\\)", "", gsub(".*\\(", "", virus_compartment))) %>%
+  mutate(virus_compartment = gsub("Simplexvirus", "HSV", virus_compartment))
+
+gga <- start_df %>%
+  group_by(virus_compartment, SUPER_PATHWAY) %>%
+  dplyr::summarize(count = n()) %>%
+  mutate(freq = count / sum(count)) %>%
+  ggplot(aes(x=freq, y=virus_compartment, fill = SUPER_PATHWAY)) +
+  geom_bar(stat = "identity", position = "stack") +
+  xlab("Percent of\nSignificant Metabolites") +
+  theme_classic() +
+    scale_fill_manual(values = c("Amino Acid" = "#972367",
+                                 "Carbohydrate" = "#ba1d27",
+                                 "Cofactors and Vitamins" = "orange",#58801d
+                                 "Energy" = "#ffd932",
+                                   "Lipid" = "#58801d", 
+                                 "Nucleotide" = "#b6e0f5",
+                                 "Partially Characterized Molecules" = "#76a4f8",
+                                   "Peptide" = "purple", "Xenobiotics" = "#36332f")) +
+  scale_x_continuous(labels = scales::percent) +
+  ylab("Virus & Compartment") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+ggb <- start_df %>%
+  mutate(direction = ifelse(log10p > 0, "Up", "Down")) %>%
+  group_by(virus_compartment, direction) %>%
+  dplyr::summarize(count = n()) %>%
+  ggplot(aes(x=count, y=fct_reorder(virus_compartment, count), fill = direction)) +
+  geom_bar(stat = "identity", position = "stack") +
+  xlab("Number of\nSignificant Metabolites") +
+  theme_classic() +
+    scale_fill_manual(values = c("Up" = muted("red"), "Down" = muted("blue")),
+                      name = "Direction") +
+  theme(axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+ggb %>% insert_left(gga)
+ggsave(paste0(out_dir, "Figure5A.pdf"), width = 8, height = 2)
+write_csv(gga$data, paste0(out_dir, "source_data_Figure5A_part1.csv"))
+write_csv(ggb$data, paste0(out_dir, "source_data_Figure5A_part2.csv"))
+```
+
+## Figure 5B: Pathway Enrichment
+
+```{r}
+meta_df <- read.csv(paste0(out_dir, "Supplemental_Data_4_part1.csv")) %>%
+  filter(!virus_compartment %in% c("Human betaherpesvirus 5 (CMV).nasal", "Enterovirus.nasal"))
+pmg_rowfeatures <- read.csv("/data/metabolomics/plasma-metabolomics-global/current/GlobalPlasmaMetabolomics-RowFeature.csv",row.names = 1)
+
+summary_metab_data <- meta_df %>%
+  left_join(pmg_rowfeatures %>% rownames_to_column("feature") %>%
+              select(feature, SUPER_PATHWAY, SUB_PATHWAY,CHEMICAL_NAME)) %>%
+  rowwise() %>%
+  mutate(low_p = min(average.adj, shape.adj)) %>%
+  mutate(low_p = ifelse(low_p == 0, 2.2e-16, low_p)) %>%
+  filter(low_p <= 0.01) %>%
+  mutate(low_p = -log10(low_p)) %>%
+  ungroup() %>%
+  mutate(significant = low_p >= -log10(0.01)) %>%
+  group_by(virus_compartment, SUPER_PATHWAY, SUB_PATHWAY) %>%
+  dplyr::summarize(mean_p = mean(low_p, na.rm = TRUE),
+                   features = sum(significant)) %>%
+  left_join(pmg_rowfeatures %>% group_by(SUPER_PATHWAY, SUB_PATHWAY) %>% dplyr::summarize(total = n())) %>%
+  rowwise() %>%
+  mutate(impact_ratio = features / total) %>%
+  mutate(virus_compartment = gsub("\\)", "", gsub(".*\\(", "", virus_compartment)))
+
+
+
+gg1 <- summary_metab_data %>%
+  filter(mean_p >= -log10(0.01)) %>%
+  arrange(SUPER_PATHWAY, SUB_PATHWAY) %>%
+  filter(!is.na(SUPER_PATHWAY)) %>%
+   mutate(virus_compartment = factor(virus_compartment, c("Anelloviridae.pbmc", "CMV.pbmc",
+                                                         "EBV.pbmc", "EBV.nasal", "HSV1.nasal",
+                                                         "HSV2.nasal"))) %>%
+  ggplot(aes(y=virus_compartment, x=fct_reorder(SUB_PATHWAY, SUPER_PATHWAY))) +
+  geom_point(aes(size = impact_ratio, color = mean_p)) +
+  geom_point(data = . %>% filter(impact_ratio >= 0.5), aes(size = impact_ratio), shape = 21, color = "black") +
+  ylab("Virus and Compartment") +
+  xlab("Metabolic Sub-pathway") + 
+  theme_light() +
+  theme(axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, color = "black"),
+        panel.border = element_rect(color="black", size = 1),
+        axis.ticks = element_line(color = "black"),
+        axis.title.x = element_blank()) +
+   scale_colour_gradientn(colours = rev(c("darkred", "red", "orange")), name = "-log10 Transformed\nAdjusted p-values") +
+  coord_flip() 
+gg1
+
+tmp.data <- summary_metab_data %>%
+  filter(mean_p >= -log10(0.01)) %>%
+  distinct(SUB_PATHWAY, SUPER_PATHWAY) %>%
+  arrange(SUPER_PATHWAY, SUB_PATHWAY) %>%
+  filter(!is.na(SUPER_PATHWAY)) %>%
+  #mutate(SUB_PATHWAY = gsub(" \\(PC)", "", SUB_PATHWAY)) %>%
+  mutate(SUB_PATHWAY = as.factor(SUB_PATHWAY)) 
+
+tmp.data$SUB_PATHWAY <- as.factor(tmp.data$SUB_PATHWAY)
+
+gg2 <- tmp.data %>%
+  ggplot(aes(x=1, y= SUB_PATHWAY)) +
+  geom_tile(aes(fill = SUPER_PATHWAY)) +
+  theme_classic() +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank()) +
+    scale_fill_manual(values = c("Amino Acid" = "#972367",
+                                 "Carbohydrate" = "#ba1d27",
+                                 "Cofactors and Vitamins" = "orange",#58801d
+                                 "Energy" = "#ffd932",
+                                   "Lipid" = "#58801d", 
+                                 "Nucleotide" = "#b6e0f5",
+                                 "Partially Characterized Molecules" = "#76a4f8",
+                                   "Peptide" = "purple", "Xenobiotics" = "#36332f"))+
+    scale_y_discrete(limits=rev)
+gg2 
+
+library(aplot)
+gg2 %>% insert_left(gg1, width = 4)
+ggsave(paste0(out_dir, "Figure5B.pdf"), height = 10, width = 8)
+
+write_csv(gg1$data, paste0(out_dir, "source_data_Figure5B.csv"))
+## Also will be reported in Supplemental_Data 4
+```
+
+## Figure 5C-E: Trajectory Plots
+
+```{r}
+
+modeling_results <- readRDS(paste0(out_dir, "Supplemental_Data_4.RDS"))
+
+traj_plot <- function(feature, viruses, results_obj, colors,
+                      variable_width = 0.6, base_size = 12, better_name){
+  library(ggpubr)
+  if(missing(better_name)){
+    feature_name <- feature
+  } else {
+    feature_name <- better_name
+  }
+  plot_list <- list()
+  for(active_virus in viruses){
+      plots <- results_obj[[2]][[paste0(feature, "___", active_virus)]]
+      plots$data <- plots$data %>%
+        mutate(virus = ifelse(virus == 0, "Control",
+                              gsub("\\)", "", gsub(".*\\(", "", active_virus))))
+      plots <- plots + scale_color_manual(values = colors, name = "Group")+
+        scale_fill_manual(values = colors, name = "Group") +
+          theme_classic(base_size  = base_size) +
+        ggtitle(" ") +
+          ylab(paste0("Normalized ", feature_name)) +
+          theme(legend.position = "none",
+                axis.text = element_text(color = "black"),
+                axis.ticks = element_line(color = "black"),
+          axis.title.y = element_text(margin=margin(0,0,0,0)) )
+      plot_list <- c(plot_list, list(plots))
+  }
+  
+  gg2 <- as.data.frame(results_obj[[3]][[feature]]) %>%
+    dplyr::rename("residuals" = 16) %>%
+    pivot_longer(cols = 17:22) %>%
+    mutate(value = ifelse(value > 0, 1, 0)) %>%
+    group_by(participant_id, name, value) %>%
+    distinct(participant_id, name, value, residuals) %>%
+    slice_max(abs(residuals)) %>%
+    mutate(name = ifelse(participant_id %in%results_obj[[4]], "Control", name)) %>%
+    filter(value!=0|name=="Control") %>%
+    mutate(name = gsub("\\)", "", gsub(".*\\(", "", name))) %>%
+    filter(name %in% c("Control", gsub("\\)", "", gsub(".*\\(", "", viruses)))) %>%
+    distinct() %>%
+    as.data.frame() %>%
+    mutate(name = fct_relevel(name, "Control")) %>%
+    ggplot(aes(x=name, y=abs(residuals), color = name)) +
+    #geom_violin(draw_quantiles = T) +
+    geom_boxplot(outlier.shape = NA, alpha = 1, width = 0.8) +
+    ggbeeswarm::geom_quasirandom(size = 0.01, alpha = 0.3) +
+    theme_classic(base_size  = base_size) +
+    ggtitle(feature_name) +
+    scale_color_manual(values = colors) +
+    theme(axis.text.x = element_blank(),
+          legend.position = "none",
+          axis.text = element_text(color = "black"),
+            axis.ticks = element_line(color = "black"),
+          axis.text.y = element_text(color = "black"),
+          axis.title.y = element_text(margin=margin(0,-10,0,0)) ) +
+    ylab("Largest Magnitude Residual") +
+    xlab(" ")
+    
+      return(ggarrange(plotlist = c(list(gg2), plot_list), widths = c(variable_width,rep(1, length(plot_list))),
+                       nrow = 1, align = "hv"))
+}
+
+viral_colors <- c("Control"="#757575", "EBV.pbmc"="#BF5700", "EBV.nasal"="#008080",
+                  "CMV.pbmc"="#005F86", "Anelloviridae.pbmc" = "#86005F",
+                  "HSV1.nasal" = "#1b820d", "HSV2.nasal" = "#cba90a")
+
+```
+
+```{r}
+
+
+## Markers of Kidney Damage
+ggc <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "urea"],
+                 better_name = "\nUrea",base_size = 12,
+                 c("Human betaherpesvirus 5 (CMV).pbmc", "Anelloviridae.pbmc"), modeling_results, viral_colors)
+ggc
+ggsave(paste0(out_dir, "Figure5C.pdf"), width = 8, height = 3)
+
+## LCFAs
+ggd <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "erucate (22:1n9)"], better_name = "\nErucate (22:1n9)",base_size = 12,
+          c("Human betaherpesvirus 5 (CMV).pbmc","Anelloviridae.pbmc"), modeling_results, viral_colors)
+ggd
+ggsave(paste0(out_dir, "Figure5D.pdf"), width = 8, height = 3)
+
+## Protectors against Oxidative Stress
+gge <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "6-bromotryptophan"], better_name = "\n6-bromotryptophan", base_size = 12,
+          c("Human betaherpesvirus 5 (CMV).pbmc","Human gammaherpesvirus 4 (EBV).pbmc",
+                     "Human alphaherpesvirus 1 (HSV1).nasal", "Anelloviridae.pbmc"), modeling_results, viral_colors)
+gge
+ggsave(paste0(out_dir, "Figure5E.pdf"), width = 14.16, height = 3)
+
+```
+
+## Supplemental Figure 5
+
+### Figure S5A
+
+```{r, fig.width = 6, fig.height = 26}
+library(ComplexHeatmap)
+library(circlize)
+library(tidyverse)
+col_fun = colorRamp2(c(-5, 0, 5), c("darkblue", "white", "darkred"))
+pmg <- read.csv(paste0(out_dir, "Supplemental_Data_4_part1.csv"))
+remove <- c("Human betaherpesvirus 5 (CMV).nasal", "Enterovirus.nasal")
+
+heat_df <- plyr::rbind.fill(pmg %>% mutate(omic = "Plasma Metabolomics")) %>%
+  filter(!virus_compartment %in% remove) %>%
+  pivot_longer(cols = c(shape.adj, average.adj)) %>%
+  mutate(value = as.numeric(value),
+         average_coefficient = as.numeric(average_coefficient),
+         summed_virus_smooth_coefficients = as.numeric(summed_virus_smooth_coefficients)) %>%
+  mutate(value = ifelse(value == 0, 2e-16, value)) %>%
+  mutate(log10p = ifelse(name == "shape.adj", -log10(value) * (summed_virus_smooth_coefficients/abs(summed_virus_smooth_coefficients)),
+                         -log10(value) * (average_coefficient/abs(average_coefficient)))) %>%
+  filter(value <= 0.01) %>%
+  left_join(data_env$plasma_metabolomics_global_rowfeature %>% rownames_to_column("feature") %>%
+              select(feature, CHEMICAL_NAME)) %>%
+  mutate(feature = ifelse(omic == "plasma metabolomics" & !is.na(CHEMICAL_NAME), CHEMICAL_NAME, feature)) %>%
+  filter(!grepl("X-", CHEMICAL_NAME))
+
+
+heat_df2 <- heat_df %>%
+  group_by(virus_compartment, feature, omic) %>%
+  slice_max(abs(log10p)) %>%
+  distinct() %>%
+  pivot_wider(names_from = c(virus_compartment), values_from = log10p,
+              id_cols = c(omic, feature))
+
+heat_df3 <- as.data.frame(heat_df2[,-1:-2])
+rownames(heat_df3) <- heat_df2$feature
+heat_df3 <- heat_df3[,order(colnames(heat_df3))]
+colnames(heat_df3) <- gsub("\\)", "", gsub(".*\\(", "", colnames(heat_df3)))
+heat_df3[is.na(heat_df3)] <- 0
+rownames(heat_df3) <- data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME[match(rownames(heat_df3), rownames(data_env$plasma_metabolomics_global_rowfeature))]
+
+pdf(paste0(out_dir, "FigureS5A.pdf"), width = 6, height = 26)
+Heatmap(heat_df3, border = TRUE, row_split = data_env$plasma_metabolomics_global_rowfeature$SUPER_PATHWAY[match(rownames(heat_df3), data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME)],
+        col = col_fun, show_row_dend = F, show_column_dend = F,column_title = "Virus",
+        column_split = gsub("_.*", "", colnames(heat_df3)), cluster_rows = T,
+        column_names_rot = 45, column_names_side = "top",column_title_side = "bottom",
+        name = "Signed\n-log10 transformed\nadjusted p.values", cluster_columns = TRUE)
+dev.off()
+```
+
+### Figure S5B-F
+
+```{r}
+
+ggb <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "N,N,N-trimethyl-alanylproline betaine (TMAP)"], better_name = "\nTMAP",base_size = 12,
+          c("Human betaherpesvirus 5 (CMV).pbmc"), modeling_results, viral_colors)
+ggb
+ggsave(paste0(out_dir, "FigureS5B.pdf"), width = 4.92, height = 3)
+
+ggc <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "arachidate (20:0)"], better_name = "\nArachidate (20:0)",base_size = 12,
+          c("Human betaherpesvirus 5 (CMV).pbmc","Anelloviridae.pbmc"), modeling_results, viral_colors)
+ggc
+ggsave(paste0(out_dir, "FigureS5C.pdf"), width = 8, height = 3)
+
+ggd <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "docosadienoate (22:2n6)"], better_name = "\nDocosadienoate (22:2n6)",base_size = 12,
+          c("Human betaherpesvirus 5 (CMV).pbmc","Anelloviridae.pbmc"), modeling_results, viral_colors)
+ggd
+ggsave(paste0(out_dir, "FigureS5D.pdf"), width = 8, height = 3)
+
+## Dimethylarginine
+gge <- traj_plot("X100001810", better_name = "\nDimethylarginine", base_size = 12,
+          c("Human betaherpesvirus 5 (CMV).pbmc", "Anelloviridae.pbmc"), modeling_results, viral_colors)
+gge
+ggsave(paste0(out_dir, "FigureS5E.pdf"), width = 8, height = 3)
+
+
+ggf <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "S-methylcysteine sulfoxide"], better_name = "\nS-methylcysteine sulfoxide",base_size = 12,
+          c("Human betaherpesvirus 5 (CMV).pbmc","Human gammaherpesvirus 4 (EBV).pbmc",
+                     "Human alphaherpesvirus 1 (HSV1).nasal", "Anelloviridae.pbmc"), modeling_results, viral_colors)
+ggf
+ggsave(paste0(out_dir, "FigureS5F.pdf"), width = 14.16, height = 3)
+```
+
+## Session Info
+```{r}
+sessionInfo()
+```
