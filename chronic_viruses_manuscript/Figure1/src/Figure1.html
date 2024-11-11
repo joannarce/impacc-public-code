@@ -1,0 +1,1768 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.555">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Figure1</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Figure1_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Figure1_files/libs/quarto-html/quarto.js"></script>
+<script src="Figure1_files/libs/quarto-html/popper.min.js"></script>
+<script src="Figure1_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Figure1_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Figure1_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Figure1_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Figure1_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Figure1_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Figure1_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Figure1</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="figure-1" class="level2">
+<h2 class="anchored" data-anchor-id="figure-1">Figure 1</h2>
+<section id="pbmc-load" class="level3">
+<h3 class="anchored" data-anchor-id="pbmc-load">PBMC Load</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.2     ✔ readr     2.1.5
+✔ forcats   1.0.0     ✔ stringr   1.5.0
+✔ ggplot2   3.4.2     ✔ tibble    3.2.1
+✔ lubridate 1.9.3     ✔ tidyr     1.3.1
+✔ purrr     1.0.2     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'data.table'
+
+The following objects are masked from 'package:lubridate':
+
+    hour, isoweek, mday, minute, month, quarter, second, wday, week,
+    yday, year
+
+The following objects are masked from 'package:dplyr':
+
+    between, first, last
+
+The following object is masked from 'package:purrr':
+
+    transpose</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(viridis)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: viridisLite</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rstatix)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'rstatix'
+
+The following object is masked from 'package:stats':
+
+    filter</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggpubr)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(corrplot)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>corrplot 0.92 loaded</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ComplexHeatmap) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: grid
+========================================
+ComplexHeatmap version 2.15.1
+Bioconductor page: http://bioconductor.org/packages/ComplexHeatmap/
+Github page: https://github.com/jokergoo/ComplexHeatmap
+Documentation: http://jokergoo.github.io/ComplexHeatmap-reference
+
+If you use it in published research, please cite either one:
+- Gu, Z. Complex Heatmap Visualization. iMeta 2022.
+- Gu, Z. Complex heatmaps reveal patterns and correlations in multidimensional 
+    genomic data. Bioinformatics 2016.
+
+
+The new InteractiveComplexHeatmap package can directly export static 
+complex heatmaps into an interactive Shiny app with zero effort. Have a try!
+
+This message can be suppressed by:
+  suppressPackageStartupMessages(library(ComplexHeatmap))
+========================================</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>TrajGrpCol <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"1"</span> <span class="ot">=</span> <span class="st">"#639A21"</span>, <span class="st">"2"</span> <span class="ot">=</span> <span class="st">"#39828C"</span>, <span class="st">"3"</span> <span class="ot">=</span> <span class="st">"#6371AD"</span>, <span class="st">"4"</span> <span class="ot">=</span> <span class="st">"#BD7D31"</span>, <span class="st">"5"</span> <span class="ot">=</span> <span class="st">"#9C3418"</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>out_dir <span class="ot">&lt;-</span> <span class="st">"../output/"</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>viruses_of_interest <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Human gammaherpesvirus 4 (EBV)"</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                         <span class="st">"Human betaherpesvirus 5 (CMV)"</span>,</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                         <span class="st">"Anelloviridae"</span>,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>                         <span class="st">"Enterovirus"</span>,</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>                         <span class="st">"Human alphaherpesvirus 2 (HSV2)"</span>,</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>                         <span class="st">"Human alphaherpesvirus 1 (HSV1)"</span>,</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>                         <span class="st">"Human gammaherpesvirus 8"</span>, </span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>                           <span class="st">"Respiratory syncytial virus"</span>,</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>                         <span class="st">"Human immunodeficiency virus 1"</span>, <span class="st">"Human betaherpesvirus 7"</span>,</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>                         <span class="st">"Human betaherpesvirus 6"</span>,</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>                               <span class="st">"Betacoronavirus"</span>)</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>Anelloviridae_genera <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Alphatorquevirus"</span>, <span class="st">"Betatorquevirus"</span>,</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>                         <span class="st">"Gammatorquevirus"</span>, <span class="st">"non-genus-specific reads in family Anelloviridae"</span>)</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>clinical_data_sample <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-sample-locked.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 62335 Columns: 5
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (4): sample_id, participant_id, sample_type, event_id
+dbl (1): phase
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>fastq_metadata <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/pbmc_fastq_metadata.csv"</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>pbmc_reports <span class="ot">&lt;-</span> <span class="fu">fread</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/phase1_4_pbmc_transcriptomics_v2.csv.gz"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(category <span class="sc">==</span> <span class="st">"viruses"</span> <span class="sc">&amp;</span> is_phage <span class="sc">==</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(nr_rpm <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">id_cols =</span> full_czid_id, <span class="at">names_from =</span> name, <span class="at">values_from =</span> nt_rpm) <span class="sc">%&gt;%</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(fastq_metadata <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(core_specific_ID_filename, sample_id), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"full_czid_id"</span> <span class="ot">=</span> <span class="st">"core_specific_ID_filename"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(sample_id) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>full_czid_id) <span class="sc">%&gt;%</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>()</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>pbmc_reports_subset <span class="ot">&lt;-</span> pbmc_reports <span class="sc">%&gt;%</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(clinical_data_sample <span class="sc">%&gt;%</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>               <span class="fu">select</span>(sample_id, participant_id, event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>               <span class="fu">distinct</span>(), <span class="at">by =</span> <span class="st">"sample_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"C"</span>, participant_id)) <span class="sc">%&gt;%</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(sample_id, event_id, participant_id) <span class="sc">%&gt;%</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Anelloviridae =</span> <span class="fu">sum</span>(<span class="sc">!!!</span><span class="fu">syms</span>(Anelloviridae_genera),<span class="at">na.rm =</span> T)) <span class="sc">%&gt;%</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(pbmc_reports_subset) <span class="ot">&lt;-</span> <span class="fu">gsub</span>(<span class="st">"Cytomegalovirus"</span>,</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>                                      <span class="st">"Human betaherpesvirus 5 (CMV)"</span>,</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>                         <span class="fu">gsub</span>(<span class="st">"Lymphocryptovirus"</span>,</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>                              <span class="st">"Human gammaherpesvirus 4 (EBV)"</span>,</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>                                   <span class="fu">colnames</span>(pbmc_reports_subset)))</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>pbmc_reports_subset <span class="ot">&lt;-</span> pbmc_reports_subset <span class="sc">%&gt;%</span></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">c</span>(sample_id, event_id, participant_id,  <span class="fu">any_of</span>(viruses_of_interest))) <span class="sc">%&gt;%</span></span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>sample_id, <span class="sc">-</span>participant_id) <span class="sc">%&gt;%</span></span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">replace</span>(<span class="fu">is.na</span>(.), <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise_all</span>(<span class="st">"mean"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="nasal-load" class="level3">
+<h3 class="anchored" data-anchor-id="nasal-load">Nasal Load</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>nasal_metagenomics_metadata <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 2855 Columns: 25
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (12): sample_id, participant_id, visit_num, core_specific_ID, phase, sa...
+dbl  (11): plate, QA_PC1_5.5122%_log2(metax+1), QA_PC2_4.2047%_log2(metax+1)...
+date  (2): Date_Submitted_By_Core, Date_QA_Finalized
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>nasal_metagenomics_rowfeature <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/data/nasal-metagenomics/current/nasal-metagenomics-AllGenera-RowFeatures.csv"</span>, <span class="at">skip =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 4877 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (2): name, category
+dbl (2): tax_id, tax_level
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>nasal_viral_samples <span class="ot">&lt;-</span> <span class="fu">fread</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/nasal_virus_samples_analyzed.csv.gz"</span>)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>nasal_reports <span class="ot">&lt;-</span> <span class="fu">fread</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/nasal_virus_transcriptomic_v1.csv.gz"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(category <span class="sc">==</span> <span class="st">"viruses"</span> <span class="sc">&amp;</span> is_phage <span class="sc">==</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(nr_rpm <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">id_cols =</span> full_czid_id, <span class="at">names_from =</span> name, <span class="at">values_from =</span> nt_rpm) <span class="sc">%&gt;%</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(nasal_metagenomics_metadata <span class="sc">%&gt;%</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>              <span class="fu">filter</span>(core_specific_ID <span class="sc">%in%</span> nasal_viral_samples<span class="sc">$</span>samples) <span class="sc">%&gt;%</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>              <span class="fu">filter</span>(sample_status <span class="sc">==</span> <span class="st">"IMPACC sample assayed and passed QC"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>              <span class="fu">filter</span>(internal_control <span class="sc">!=</span> <span class="st">"yes"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>              <span class="fu">distinct</span>(core_specific_ID, sample_id),</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"full_czid_id"</span> <span class="ot">=</span> <span class="st">"core_specific_ID"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(sample_id) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>full_czid_id) <span class="sc">%&gt;%</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>()</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>nasal_reports_subset <span class="ot">&lt;-</span> nasal_reports <span class="sc">%&gt;%</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(clinical_data_sample <span class="sc">%&gt;%</span></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>               <span class="fu">select</span>(sample_id, participant_id, event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>               <span class="fu">distinct</span>(), <span class="at">by =</span> <span class="st">"sample_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"C"</span>, participant_id)) <span class="sc">%&gt;%</span></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(sample_id, event_id, participant_id) <span class="sc">%&gt;%</span></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Anelloviridae =</span> <span class="fu">sum</span>(<span class="sc">!!!</span><span class="fu">syms</span>(Anelloviridae_genera),<span class="at">na.rm =</span> T)) <span class="sc">%&gt;%</span></span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(nasal_reports_subset) <span class="ot">&lt;-</span> <span class="fu">gsub</span>(<span class="st">"Human betaherpesvirus 5"</span>,</span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>                                      <span class="st">"Human betaherpesvirus 5 (CMV)"</span>,</span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>                         <span class="fu">gsub</span>(<span class="st">"Human gammaherpesvirus 4"</span>,</span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>                              <span class="st">"Human gammaherpesvirus 4 (EBV)"</span>,</span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">gsub</span>(<span class="st">"Human alphaherpesvirus 1"</span>,</span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>                             <span class="st">"Human alphaherpesvirus 1 (HSV1)"</span>,</span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>                             <span class="fu">gsub</span>(<span class="st">"Human alphaherpesvirus 2"</span>,</span>
+<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">"Human alphaherpesvirus 2 (HSV2)"</span>,</span>
+<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a>                                  <span class="fu">colnames</span>(nasal_reports_subset)))))</span>
+<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>nasal_reports_subset <span class="ot">&lt;-</span> nasal_reports_subset <span class="sc">%&gt;%</span></span>
+<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">c</span>(sample_id, event_id, participant_id,  <span class="fu">any_of</span>(viruses_of_interest))) <span class="sc">%&gt;%</span></span>
+<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>sample_id, <span class="sc">-</span>participant_id) <span class="sc">%&gt;%</span></span>
+<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">replace</span>(<span class="fu">is.na</span>(.), <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise_all</span>(<span class="st">"mean"</span>)</span>
+<span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a><span class="do">###################### ADD IN THE CONVALESCENT</span></span>
+<span id="cb20-45"><a href="#cb20-45" aria-hidden="true" tabindex="-1"></a><span class="do">### Run once to generate file (rawfiles no longer on server)</span></span>
+<span id="cb20-46"><a href="#cb20-46" aria-hidden="true" tabindex="-1"></a><span class="co"># files &lt;- c("/impacc-study/BRI/nasal-transcriptomics/rawfiles/phase4a/nasal-transcriptomics-phase4a-rawfiles-Metadata_2021-08-21.tsv",</span></span>
+<span id="cb20-47"><a href="#cb20-47" aria-hidden="true" tabindex="-1"></a><span class="co">#            "/impacc-study/BRI/nasal-transcriptomics/rawfiles/phase4b/nasal-transcriptomics-phase4b-rawfiles-Metadata_2021-08-21.tsv")</span></span>
+<span id="cb20-48"><a href="#cb20-48" aria-hidden="true" tabindex="-1"></a><span class="co"># fastq_metadata_nasal &lt;- data.frame()</span></span>
+<span id="cb20-49"><a href="#cb20-49" aria-hidden="true" tabindex="-1"></a><span class="co"># for(i in files){</span></span>
+<span id="cb20-50"><a href="#cb20-50" aria-hidden="true" tabindex="-1"></a><span class="co">#     fastq_metadata_nasal &lt;- plyr::rbind.fill(fastq_metadata_nasal, read_tsv(i) %&gt;% mutate(site = "BRI"))</span></span>
+<span id="cb20-51"><a href="#cb20-51" aria-hidden="true" tabindex="-1"></a><span class="co"># }</span></span>
+<span id="cb20-52"><a href="#cb20-52" aria-hidden="true" tabindex="-1"></a><span class="co">#write.csv(fastq_metadata_nasal, "/scratch/metagenomics/viral_reactivation/nasal_transcriptomic_metadata_phase4_v2.csv")</span></span>
+<span id="cb20-53"><a href="#cb20-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-54"><a href="#cb20-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-55"><a href="#cb20-55" aria-hidden="true" tabindex="-1"></a>fastq_metadata_nasal <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/nasal_transcriptomic_metadata_phase4_v2.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>New names:
+Rows: 2962 Columns: 8
+── Column specification
+──────────────────────────────────────────────────────── Delimiter: "," chr
+(7): filename, core_specific_ID, lane#, sample_id, sample_status, MD5SUM... dbl
+(1): ...1
+ℹ Use `spec()` to retrieve the full column specification for this data. ℹ
+Specify the column types or set `show_col_types = FALSE` to quiet this message.
+• `` -&gt; `...1`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>fastq_metadata_nasal <span class="ot">&lt;-</span> fastq_metadata_nasal <span class="sc">%&gt;%</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(filename, sample_id) <span class="sc">%&gt;%</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">filename =</span> <span class="fu">gsub</span>(<span class="st">"_R.*"</span>, <span class="st">""</span>, filename)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>()</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>nasal_long_convalescent <span class="ot">&lt;-</span> <span class="fu">fread</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/phase4_nasal_transcriptomics.csv.gz"</span>, <span class="at">nThread =</span> <span class="dv">6</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(category <span class="sc">==</span> <span class="st">"viruses"</span> <span class="sc">&amp;</span> is_phage <span class="sc">==</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(nr_rpm <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  <span class="co">#filter(!grepl("CTR", czid_id)) %&gt;%</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">id_cols =</span> full_czid_id, <span class="at">names_from =</span> name, <span class="at">values_from =</span> nt_rpm) <span class="sc">%&gt;%</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(fastq_metadata_nasal, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"full_czid_id"</span> <span class="ot">=</span> <span class="st">"filename"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(sample_id) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="sc">-</span>full_czid_id) <span class="sc">%&gt;%</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(sample_id <span class="sc">!=</span> <span class="st">"0865-00H4YJ00-001"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Anelloviridae =</span> <span class="fu">sum</span>(<span class="sc">!!!</span><span class="fu">syms</span>(Anelloviridae_genera[<span class="sc">-</span><span class="dv">2</span><span class="sc">:-</span><span class="dv">3</span>]), <span class="at">na.rm =</span> T)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>nasal_conv_reports <span class="ot">&lt;-</span> nasal_long_convalescent <span class="sc">%&gt;%</span></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(clinical_data_sample <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(sample_id, event_id, participant_id) <span class="sc">%&gt;%</span> <span class="fu">distinct</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(sample_id, event_id, participant_id) <span class="sc">%&gt;%</span></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>sample_id, participant_id) <span class="sc">%&gt;%</span></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(event_id)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">replace</span>(<span class="fu">is.na</span>(.), <span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(sample_id)`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(nasal_conv_reports) <span class="ot">&lt;-</span> <span class="fu">gsub</span>(<span class="st">"Human betaherpesvirus 5"</span>,</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>                                      <span class="st">"Human betaherpesvirus 5 (CMV)"</span>,</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>                         <span class="fu">gsub</span>(<span class="st">"Human gammaherpesvirus 4"</span>,</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>                              <span class="st">"Human gammaherpesvirus 4 (EBV)"</span>,</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">gsub</span>(<span class="st">"Human alphaherpesvirus 1"</span>,</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>                             <span class="st">"Human alphaherpesvirus 1 (HSV1)"</span>,</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>                             <span class="fu">gsub</span>(<span class="st">"Human alphaherpesvirus 2"</span>,</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">"Human alphaherpesvirus 2 (HSV2)"</span>,</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>                                  <span class="fu">colnames</span>(nasal_conv_reports)))))</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>nasal_reports_subset2 <span class="ot">&lt;-</span> nasal_conv_reports <span class="sc">%&gt;%</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">c</span>(event_id,  <span class="fu">any_of</span>(viruses_of_interest)))</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>nasal_reports_subset <span class="ot">&lt;-</span> plyr<span class="sc">::</span><span class="fu">rbind.fill</span>(nasal_reports_subset, nasal_reports_subset2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="ea-load" class="level3">
+<h3 class="anchored" data-anchor-id="ea-load">EA Load</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>ea_metagenomics_metadata <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/data/ea-metagenomics/current/ea-metagenomics-Metadata.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 423 Columns: 24
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (11): sample_id, sample_id from batchlayout, participant_id, core_speci...
+dbl  (11): phase, plate_num, QA_PC1_7.3573%_log2(metax+1), QA_PC2_4.8122%_lo...
+date  (2): Date_Submitted_By_Core, Date_QA_Finalized
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>ea_metagenomics_rowfeature <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/data/ea-metagenomics/current/ea-metagenomics-AllGenera-RowFeatures.csv"</span>, <span class="at">skip =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 4877 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (2): name, category
+dbl (2): tax_id, tax_level
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>ea_viral_samples <span class="ot">&lt;-</span> <span class="fu">fread</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/ea_virus_samples_analyzed.csv.gz"</span>)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>ea_reports <span class="ot">&lt;-</span> <span class="fu">fread</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/ea_virus_transcriptomic_v1.csv.gz"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(category <span class="sc">==</span> <span class="st">"viruses"</span> <span class="sc">&amp;</span> is_phage <span class="sc">==</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(nr_rpm <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">id_cols =</span> full_czid_id, <span class="at">names_from =</span> name, <span class="at">values_from =</span> nt_rpm) <span class="sc">%&gt;%</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(ea_metagenomics_metadata <span class="sc">%&gt;%</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>              <span class="fu">filter</span>(core_specific_ID <span class="sc">%in%</span> ea_viral_samples<span class="sc">$</span>samples) <span class="sc">%&gt;%</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>              <span class="fu">filter</span>(sample_status <span class="sc">==</span> <span class="st">"IMPACC sample assayed and passed QC"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>              <span class="fu">filter</span>(internal_control <span class="sc">!=</span> <span class="st">"yes"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>              <span class="fu">distinct</span>(core_specific_ID, sample_id),</span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"full_czid_id"</span> <span class="ot">=</span> <span class="st">"core_specific_ID"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(sample_id) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>full_czid_id) <span class="sc">%&gt;%</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>()</span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a>ea_reports_subset <span class="ot">&lt;-</span> ea_reports <span class="sc">%&gt;%</span></span>
+<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(clinical_data_sample <span class="sc">%&gt;%</span></span>
+<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a>               <span class="fu">select</span>(sample_id, participant_id, event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb29-19"><a href="#cb29-19" aria-hidden="true" tabindex="-1"></a>               <span class="fu">distinct</span>(), <span class="at">by =</span> <span class="st">"sample_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb29-20"><a href="#cb29-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"C"</span>, participant_id)) <span class="sc">%&gt;%</span></span>
+<span id="cb29-21"><a href="#cb29-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(sample_id, event_id, participant_id) <span class="sc">%&gt;%</span></span>
+<span id="cb29-22"><a href="#cb29-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rowwise</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb29-23"><a href="#cb29-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Anelloviridae =</span> <span class="fu">sum</span>(<span class="sc">!!!</span><span class="fu">syms</span>(Anelloviridae_genera[<span class="sc">-</span><span class="dv">2</span><span class="sc">:-</span><span class="dv">3</span>]),<span class="at">na.rm =</span> T)) <span class="sc">%&gt;%</span></span>
+<span id="cb29-24"><a href="#cb29-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb29-25"><a href="#cb29-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-26"><a href="#cb29-26" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(ea_reports_subset) <span class="ot">&lt;-</span> <span class="fu">gsub</span>(<span class="st">"Human betaherpesvirus 5"</span>,</span>
+<span id="cb29-27"><a href="#cb29-27" aria-hidden="true" tabindex="-1"></a>                                      <span class="st">"Human betaherpesvirus 5 (CMV)"</span>,</span>
+<span id="cb29-28"><a href="#cb29-28" aria-hidden="true" tabindex="-1"></a>                         <span class="fu">gsub</span>(<span class="st">"Human gammaherpesvirus 4"</span>,</span>
+<span id="cb29-29"><a href="#cb29-29" aria-hidden="true" tabindex="-1"></a>                              <span class="st">"Human gammaherpesvirus 4 (EBV)"</span>,</span>
+<span id="cb29-30"><a href="#cb29-30" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">gsub</span>(<span class="st">"Human alphaherpesvirus 1"</span>,</span>
+<span id="cb29-31"><a href="#cb29-31" aria-hidden="true" tabindex="-1"></a>                             <span class="st">"Human alphaherpesvirus 1 (HSV1)"</span>,</span>
+<span id="cb29-32"><a href="#cb29-32" aria-hidden="true" tabindex="-1"></a>                             <span class="fu">gsub</span>(<span class="st">"Human alphaherpesvirus 2"</span>,</span>
+<span id="cb29-33"><a href="#cb29-33" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">"Human alphaherpesvirus 2 (HSV2)"</span>,</span>
+<span id="cb29-34"><a href="#cb29-34" aria-hidden="true" tabindex="-1"></a>                                  <span class="fu">colnames</span>(ea_reports_subset)))))</span>
+<span id="cb29-35"><a href="#cb29-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-36"><a href="#cb29-36" aria-hidden="true" tabindex="-1"></a>ea_reports_subset <span class="ot">&lt;-</span> ea_reports_subset <span class="sc">%&gt;%</span></span>
+<span id="cb29-37"><a href="#cb29-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">c</span>(sample_id, event_id, participant_id,  <span class="fu">any_of</span>(viruses_of_interest))) <span class="sc">%&gt;%</span></span>
+<span id="cb29-38"><a href="#cb29-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb29-39"><a href="#cb29-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>sample_id, <span class="sc">-</span>participant_id) <span class="sc">%&gt;%</span></span>
+<span id="cb29-40"><a href="#cb29-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">replace</span>(<span class="fu">is.na</span>(.), <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb29-41"><a href="#cb29-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise_all</span>(<span class="st">"mean"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Stitch together a simplified file of the viral loads across their respective omics.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Using event_ids as the identifier</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>full_comb_data <span class="ot">&lt;-</span> pbmc_reports_subset <span class="sc">%&gt;%</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename_with</span>(<span class="sc">~</span><span class="fu">paste0</span>(., <span class="st">".pbmc"</span>), <span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(nasal_reports_subset <span class="sc">%&gt;%</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rename_with</span>(<span class="sc">~</span><span class="fu">paste0</span>(., <span class="st">".nasal"</span>), <span class="sc">-</span>event_id),</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"event_id"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(ea_reports_subset <span class="sc">%&gt;%</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rename_with</span>(<span class="sc">~</span><span class="fu">paste0</span>(., <span class="st">".ea"</span>), <span class="sc">-</span>event_id),</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"event_id"</span>)) </span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(full_comb_data) <span class="ot">&lt;-</span> <span class="fu">gsub</span>(<span class="st">"Betacoronavirus"</span>, <span class="st">"SARS-CoV-2"</span>, <span class="fu">colnames</span>(full_comb_data))</span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(full_comb_data, <span class="st">"/scratch/metagenomics/viral_reactivation/full_comb_data.csv"</span>)</span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a><span class="do">## This is the key file used for all subsequent figures reporting the viral load on a event_id basis</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Do one final load of the key dataframes (this will be the quicker boot up used for other Figure’s code)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(viridis)</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rstatix)</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggpubr)</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>TrajGrpCol <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"1"</span> <span class="ot">=</span> <span class="st">"#639A21"</span>, <span class="st">"2"</span> <span class="ot">=</span> <span class="st">"#39828C"</span>, <span class="st">"3"</span> <span class="ot">=</span> <span class="st">"#6371AD"</span>, <span class="st">"4"</span> <span class="ot">=</span> <span class="st">"#BD7D31"</span>, <span class="st">"5"</span> <span class="ot">=</span> <span class="st">"#9C3418"</span>)</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>comb_data <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/full_comb_data.csv"</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>New names:
+Rows: 4654 Columns: 31
+── Column specification
+──────────────────────────────────────────────────────── Delimiter: "," chr
+(1): event_id dbl (30): ...1, Human gammaherpesvirus 4 (EBV).pbmc, Human
+betaherpesvirus 5...
+ℹ Use `spec()` to retrieve the full column specification for this data. ℹ
+Specify the column types or set `show_col_types = FALSE` to quiet this message.
+• `` -&gt; `...1`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>data_env <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS"</span>)</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>clinical_data <span class="ot">&lt;-</span> data_env<span class="sc">$</span>clinical_data</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>nasal_viralload_counts <span class="ot">&lt;-</span> data_env<span class="sc">$</span>nasal_viralload_counts <span class="sc">%&gt;%</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">"sample_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(sample_id, event_id)) <span class="sc">%&gt;%</span></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="sc">-</span>sample_id) <span class="sc">%&gt;%</span></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_to_rownames</span>(<span class="st">"event_id"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(sample_id)`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(data_env)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>clinical_data_ext <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-supp-locked.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 1164 Columns: 151
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr   (1): participant_id
+dbl (150): comorb_htn, comorb_isaric_dm, comorb_anyresp_noasthma, comorb_isa...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>out_dir <span class="ot">&lt;-</span> <span class="st">"../output/"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="figure-1b-biospecimens-across-visits-and-omics" class="level2">
+<h2 class="anchored" data-anchor-id="figure-1b-biospecimens-across-visits-and-omics">Figure 1B: Biospecimens across visits and omics</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="do">## From the combined_data file (comb_data), NAs indicate they weren't collected.</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="do">## So we can recapitulate the number of specimens</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>comb_data_tmp <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human betaherpesvirus 6"</span>),</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human gammaherpesvirus 8"</span>),</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human betaherpesvirus 7"</span>),</span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Respiratory syncytial virus"</span>),</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human immunodeficiency virus 1"</span>),</span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"SARS-CoV-2.pbmc"</span>),</span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Enterovirus.pbmc"</span>),</span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Enterovirus.ea"</span>),</span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Anelloviridae.ea"</span>),</span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Anelloviridae.nasal"</span>))</span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>count_data <span class="ot">&lt;-</span> comb_data_tmp <span class="sc">%&gt;%</span></span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">nasal_total =</span> <span class="fu">rowSums</span>(<span class="fu">select</span>(., <span class="fu">ends_with</span>(<span class="st">'.nasal'</span>))))<span class="sc">%&gt;%</span></span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pbmc_total =</span> <span class="fu">rowSums</span>(<span class="fu">select</span>(., <span class="fu">ends_with</span>(<span class="st">'.pbmc'</span>))))<span class="sc">%&gt;%</span></span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ea_total =</span> <span class="fu">rowSums</span>(<span class="fu">select</span>(., <span class="fu">ends_with</span>(<span class="st">'.ea'</span>)))) <span class="sc">%&gt;%</span></span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(event_id, nasal_total, pbmc_total, ea_total) <span class="sc">%&gt;%</span></span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(event_id, participant_id, event_type)) <span class="sc">%&gt;%</span></span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">nasal_total =</span> <span class="fu">ifelse</span>(<span class="sc">!</span><span class="fu">is.na</span>(nasal_total), <span class="dv">1</span>, <span class="dv">0</span>))<span class="sc">%&gt;%</span></span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pbmc_total =</span> <span class="fu">ifelse</span>(<span class="sc">!</span><span class="fu">is.na</span>(pbmc_total), <span class="dv">1</span>, <span class="dv">0</span>))<span class="sc">%&gt;%</span></span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ea_total =</span> <span class="fu">ifelse</span>(<span class="sc">!</span><span class="fu">is.na</span>(ea_total), <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(participant_id)) <span class="sc">%&gt;%</span></span>
+<span id="cb38-25"><a href="#cb38-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(event_type) <span class="sc">%&gt;%</span></span>
+<span id="cb38-26"><a href="#cb38-26" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">Nasal =</span> <span class="fu">sum</span>(nasal_total),</span>
+<span id="cb38-27"><a href="#cb38-27" aria-hidden="true" tabindex="-1"></a>                   <span class="at">PBMC =</span> <span class="fu">sum</span>(pbmc_total),</span>
+<span id="cb38-28"><a href="#cb38-28" aria-hidden="true" tabindex="-1"></a>                   <span class="at">EA =</span> <span class="fu">sum</span>(ea_total)) <span class="sc">%&gt;%</span></span>
+<span id="cb38-29"><a href="#cb38-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>event_type) <span class="sc">%&gt;%</span></span>
+<span id="cb38-30"><a href="#cb38-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span>event_type <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Escalation 1"</span>, <span class="st">"Escalation 2"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb38-31"><a href="#cb38-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">event_type =</span> <span class="fu">factor</span>(event_type, <span class="at">levels =</span> <span class="fu">paste0</span>(<span class="st">'Visit '</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb38-32"><a href="#cb38-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">name =</span> <span class="fu">factor</span>(name, <span class="fu">c</span>(<span class="st">"EA"</span>, <span class="st">"Nasal"</span>, <span class="st">"PBMC"</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb38-33"><a href="#cb38-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">percent =</span> value <span class="sc">/</span> <span class="dv">1154</span> <span class="sc">*</span> <span class="dv">100</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(event_id)`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>gg1 <span class="ot">&lt;-</span> count_data <span class="sc">%&gt;%</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">xmin =</span> <span class="fu">match</span>(event_type, <span class="fu">levels</span>(count_data<span class="sc">$</span>event_type)) <span class="sc">-</span> <span class="fl">0.5</span>,</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>         <span class="at">xmax =</span> <span class="fu">match</span>(event_type, <span class="fu">levels</span>(count_data<span class="sc">$</span>event_type)) <span class="sc">+</span> ((percent<span class="sc">/</span><span class="dv">100</span>)<span class="sc">-</span><span class="fl">0.5</span>) ,</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">ymin =</span> <span class="fu">match</span>(name, <span class="fu">levels</span>(count_data<span class="sc">$</span>name)) <span class="sc">-</span> <span class="fl">0.5</span>,</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">ymax =</span> <span class="fu">match</span>(name, <span class="fu">levels</span>(count_data<span class="sc">$</span>name)) <span class="sc">+</span> <span class="fl">0.5</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>event_type, <span class="at">y=</span>name)) <span class="sc">+</span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="at">fill =</span> <span class="cn">NA</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>   <span class="fu">geom_rect</span>(<span class="fu">aes</span>(<span class="at">xmin=</span>xmin, <span class="at">xmax =</span> xmax,</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>                <span class="at">ymin =</span> ymin, <span class="at">ymax =</span> ymax), <span class="at">fill =</span> <span class="st">"lightgray"</span>,</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>             <span class="at">color =</span> <span class="cn">NA</span>) <span class="sc">+</span></span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="at">fill =</span> <span class="cn">NA</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>) <span class="sc">+</span></span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label=</span>value)) <span class="sc">+</span></span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis</span>(<span class="at">option =</span> <span class="st">"C"</span>) <span class="sc">+</span></span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a> <span class="co"># xlab("Event Type") +</span></span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Transcriptomic Assay"</span>) <span class="sc">+</span></span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="co">#axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),</span></span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.x =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.x =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.ticks.x =</span> <span class="fu">element_blank</span>())</span>
+<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a>gg1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure1_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="480"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>visit_annotation <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">event_type =</span> <span class="fu">levels</span>(count_data<span class="sc">$</span>event_type),</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>                               <span class="at">location =</span> <span class="fu">c</span>(<span class="fu">rep</span>(<span class="st">"Inpatient"</span>,<span class="dv">3</span>),<span class="st">"Inpatient &amp; Outpatient"</span>,</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>                                            <span class="st">"Inpatient"</span>, <span class="st">"Inpatient &amp; Outpatient"</span>, <span class="fu">rep</span>(<span class="st">"Outpatient"</span>, <span class="dv">4</span>)))</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>gg2 <span class="ot">&lt;-</span> visit_annotation <span class="sc">%&gt;%</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">event_type =</span> <span class="fu">gsub</span>(<span class="st">"Escalation"</span>, <span class="st">"Esc."</span>, event_type)) <span class="sc">%&gt;%</span></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">event_type =</span> <span class="fu">factor</span>(event_type, <span class="fu">c</span>(<span class="fu">paste0</span>(<span class="st">"Visit "</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>)))) <span class="sc">%&gt;%</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>event_type, <span class="at">y=</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="fu">aes</span>(<span class="at">fill =</span> location), <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_void</span>() <span class="sc">+</span></span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#0E7A1B"</span>, <span class="st">"#35D34F"</span>, <span class="st">"#C7EFCD"</span>)) <span class="sc">+</span></span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a><span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">vjust =</span> <span class="dv">1</span>, <span class="at">hjust=</span><span class="dv">1</span>),</span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>      <span class="at">axis.title.x =</span> <span class="fu">element_text</span>()) <span class="sc">+</span></span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Event Type"</span>)</span>
+<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a><span class="do">## 5x2.5</span></span>
+<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a>ggpubr<span class="sc">::</span><span class="fu">ggarrange</span>(gg1, gg2, <span class="at">nrow =</span> <span class="dv">2</span>, <span class="at">ncol =</span> <span class="dv">1</span>,<span class="at">common.legend =</span> T,</span>
+<span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a>                  <span class="at">align =</span> <span class="st">"v"</span>, <span class="at">heights =</span> <span class="fu">c</span>(<span class="dv">6</span>,<span class="dv">3</span>), <span class="at">legend =</span> <span class="st">"bottom"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure1_files/figure-html/unnamed-chunk-6-2.png" class="img-fluid figure-img" width="480"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure1B.pdf"</span>), <span class="at">width =</span> <span class="dv">5</span>, <span class="at">height =</span> <span class="fl">2.5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="figure-1c-heatmap" class="level2">
+<h2 class="anchored" data-anchor-id="figure-1c-heatmap">Figure 1C: Heatmap</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>cutoff <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>pbmc_percents <span class="ot">&lt;-</span> pbmc_reports_subset <span class="sc">%&gt;%</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(participant_id, event_id, event_type)) <span class="sc">%&gt;%</span></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(value), <span class="dv">0</span>, value)) <span class="sc">%&gt;%</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">&gt;</span> cutoff, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(event_type, name) <span class="sc">%&gt;%</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">percent_positive =</span> <span class="fu">mean</span>(value) <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>                   <span class="at">total =</span> <span class="fu">n</span>(),</span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>                   <span class="at">label =</span> <span class="fu">paste0</span>(total<span class="sc">*</span>percent_positive<span class="sc">/</span><span class="dv">100</span>, <span class="st">"/"</span>,total)) <span class="sc">%&gt;%</span></span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">assay =</span> <span class="st">"PBMC"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(event_id)`
+`summarise()` has grouped output by 'event_type'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>nasal_percents <span class="ot">&lt;-</span> nasal_reports_subset <span class="sc">%&gt;%</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(participant_id, event_id, event_type)) <span class="sc">%&gt;%</span></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(value), <span class="dv">0</span>, value)) <span class="sc">%&gt;%</span></span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">&gt;</span> cutoff, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(event_type, name) <span class="sc">%&gt;%</span></span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">percent_positive =</span> <span class="fu">mean</span>(value) <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>                   <span class="at">total =</span> <span class="fu">n</span>(),</span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a>                   <span class="at">label =</span> <span class="fu">paste0</span>(total<span class="sc">*</span>percent_positive<span class="sc">/</span><span class="dv">100</span>, <span class="st">"/"</span>,total)) <span class="sc">%&gt;%</span></span>
+<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">assay =</span> <span class="st">"Nasal"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(event_id)`
+`summarise()` has grouped output by 'event_type'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>ea_percents <span class="ot">&lt;-</span> ea_reports_subset <span class="sc">%&gt;%</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(participant_id, event_id, event_type)) <span class="sc">%&gt;%</span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(value), <span class="dv">0</span>, value)) <span class="sc">%&gt;%</span></span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">&gt;</span> cutoff, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(event_type, name) <span class="sc">%&gt;%</span></span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">percent_positive =</span> <span class="fu">mean</span>(value) <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a>                   <span class="at">total =</span> <span class="fu">n</span>(),</span>
+<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a>                   <span class="at">label =</span> <span class="fu">paste0</span>(total<span class="sc">*</span>percent_positive<span class="sc">/</span><span class="dv">100</span>, <span class="st">"/"</span>,total)) <span class="sc">%&gt;%</span></span>
+<span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">assay =</span> <span class="st">"EA"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(event_id)`
+`summarise()` has grouped output by 'event_type'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>omic_summary <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(pbmc_percents, nasal_percents,</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>                                 <span class="co">#nasal_conv_percents,</span></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>                                 ea_percents) <span class="sc">%&gt;%</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">event_type =</span> <span class="fu">factor</span>(event_type, <span class="at">levels =</span> <span class="fu">c</span>(<span class="fu">paste0</span>(<span class="st">'Visit '</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>)))) <span class="sc">%&gt;%</span></span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(event_type)) <span class="sc">%&gt;%</span></span>
+<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(assay, event_type)</span>
+<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-9"><a href="#cb49-9" aria-hidden="true" tabindex="-1"></a>heatdf <span class="ot">&lt;-</span> omic_summary <span class="sc">%&gt;%</span></span>
+<span id="cb49-10"><a href="#cb49-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> <span class="fu">c</span>(event_type, assay),</span>
+<span id="cb49-11"><a href="#cb49-11" aria-hidden="true" tabindex="-1"></a>                <span class="at">values_from =</span> percent_positive,</span>
+<span id="cb49-12"><a href="#cb49-12" aria-hidden="true" tabindex="-1"></a>                <span class="at">id_cols =</span> name)</span>
+<span id="cb49-13"><a href="#cb49-13" aria-hidden="true" tabindex="-1"></a>heatdf <span class="ot">&lt;-</span> heatdf[heatdf<span class="sc">$</span>name <span class="sc">%in%</span> viruses_of_interest, ]</span>
+<span id="cb49-14"><a href="#cb49-14" aria-hidden="true" tabindex="-1"></a>heatdf <span class="ot">&lt;-</span> heatdf <span class="sc">%&gt;%</span> <span class="fu">column_to_rownames</span>(<span class="st">"name"</span>)</span>
+<span id="cb49-15"><a href="#cb49-15" aria-hidden="true" tabindex="-1"></a>heatdf <span class="ot">&lt;-</span> heatdf[<span class="fu">order</span>(<span class="fu">rownames</span>(heatdf)), ]</span>
+<span id="cb49-16"><a href="#cb49-16" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(heatdf) <span class="ot">&lt;-</span> <span class="fu">gsub</span>(<span class="st">"Betacoronavirus"</span>, <span class="st">"SARS-CoV-2"</span>, <span class="fu">rownames</span>(heatdf))</span>
+<span id="cb49-17"><a href="#cb49-17" aria-hidden="true" tabindex="-1"></a><span class="do">## Manual reording of rows in heatmap</span></span>
+<span id="cb49-18"><a href="#cb49-18" aria-hidden="true" tabindex="-1"></a>heatdf <span class="ot">&lt;-</span> heatdf[<span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">4</span>,<span class="dv">5</span>,<span class="dv">9</span>,<span class="dv">6</span>, <span class="dv">7</span>,<span class="dv">8</span>, <span class="dv">10</span>,<span class="dv">1</span>, <span class="dv">11</span>, <span class="dv">12</span>,<span class="dv">3</span>),]</span>
+<span id="cb49-19"><a href="#cb49-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-20"><a href="#cb49-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-21"><a href="#cb49-21" aria-hidden="true" tabindex="-1"></a>col_ano <span class="ot">=</span> <span class="fu">columnAnnotation</span>(<span class="at">Assay =</span> <span class="fu">gsub</span>(<span class="st">".*_"</span>, <span class="st">""</span>, <span class="fu">colnames</span>(heatdf)),</span>
+<span id="cb49-22"><a href="#cb49-22" aria-hidden="true" tabindex="-1"></a>                            <span class="at">col =</span> <span class="fu">list</span>(<span class="at">Assay =</span> <span class="fu">c</span>(<span class="st">"EA"</span> <span class="ot">=</span> <span class="st">"#FE91AD"</span>,</span>
+<span id="cb49-23"><a href="#cb49-23" aria-hidden="true" tabindex="-1"></a>                                      <span class="st">"Nasal"</span> <span class="ot">=</span> <span class="st">"#E291FE"</span>, <span class="st">"PBMC"</span> <span class="ot">=</span> <span class="st">"#91E3FE"</span>)))</span>
+<span id="cb49-24"><a href="#cb49-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-25"><a href="#cb49-25" aria-hidden="true" tabindex="-1"></a>colors_heat <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"#045375"</span>, <span class="st">"#089099"</span>, <span class="st">"#7CCBA2"</span>, <span class="st">"#FCDE9C"</span>, <span class="st">"#F0746E"</span>, <span class="st">"#DC3977"</span>)</span>
+<span id="cb49-26"><a href="#cb49-26" aria-hidden="true" tabindex="-1"></a>heatdf_annot <span class="ot">&lt;-</span> heatdf</span>
+<span id="cb49-27"><a href="#cb49-27" aria-hidden="true" tabindex="-1"></a>heatdf_annot <span class="ot">&lt;-</span> <span class="fu">apply</span>(heatdf_annot, <span class="dv">2</span>, <span class="cf">function</span>(x){</span>
+<span id="cb49-28"><a href="#cb49-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ifelse</span>(<span class="fu">is.na</span>(x), <span class="st">" "</span>, <span class="fu">ifelse</span>(x <span class="sc">==</span> <span class="dv">0</span>, <span class="st">" "</span>, <span class="fu">paste0</span>(<span class="fu">round</span>(x, <span class="dv">1</span>), <span class="st">""</span>))) <span class="do">## Took % sign out of paste</span></span>
+<span id="cb49-29"><a href="#cb49-29" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb49-30"><a href="#cb49-30" aria-hidden="true" tabindex="-1"></a>heatdf[<span class="fu">is.na</span>(heatdf)] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb49-31"><a href="#cb49-31" aria-hidden="true" tabindex="-1"></a>heatdf_f <span class="ot">&lt;-</span> heatdf</span>
+<span id="cb49-32"><a href="#cb49-32" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(heatdf_f) <span class="ot">&lt;-</span> <span class="fu">gsub</span>(<span class="st">"_.*"</span>, <span class="st">""</span>, <span class="fu">colnames</span>(heatdf_f))</span>
+<span id="cb49-33"><a href="#cb49-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-34"><a href="#cb49-34" aria-hidden="true" tabindex="-1"></a>new_labels <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Baseline"</span>, <span class="st">"Day 4"</span>, <span class="st">"Day 7"</span>, <span class="st">"Day 14"</span>, <span class="st">"Day 21"</span>, <span class="st">"Day 28"</span>,</span>
+<span id="cb49-35"><a href="#cb49-35" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Baseline"</span>, <span class="st">"Day 4"</span>, <span class="st">"Day 7"</span>, <span class="st">"Day 14"</span>, <span class="st">"Day 21"</span>, <span class="st">"Day 28"</span>,</span>
+<span id="cb49-36"><a href="#cb49-36" aria-hidden="true" tabindex="-1"></a>                <span class="st">"3 Months"</span>, <span class="st">"6 Months"</span>, <span class="st">"9 Months"</span>, <span class="st">"12 Months"</span>,</span>
+<span id="cb49-37"><a href="#cb49-37" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Baseline"</span>, <span class="st">"Day 4"</span>, <span class="st">"Day 7"</span>, <span class="st">"Day 14"</span>, <span class="st">"Day 21"</span>, <span class="st">"Day 28"</span>,</span>
+<span id="cb49-38"><a href="#cb49-38" aria-hidden="true" tabindex="-1"></a>                <span class="st">"3 Months"</span>, <span class="st">"6 Months"</span>, <span class="st">"9 Months"</span>, <span class="st">"12 Months"</span>)</span>
+<span id="cb49-39"><a href="#cb49-39" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(heatdf_f) <span class="ot">&lt;-</span> new_labels</span>
+<span id="cb49-40"><a href="#cb49-40" aria-hidden="true" tabindex="-1"></a><span class="do">## Scaling of color palette</span></span>
+<span id="cb49-41"><a href="#cb49-41" aria-hidden="true" tabindex="-1"></a>heatdf_s <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">apply</span>(heatdf_f, <span class="dv">2</span>, <span class="cf">function</span>(x){<span class="fu">qqnorm</span>(x, <span class="at">plot.it =</span> F)<span class="sc">$</span>x}))</span>
+<span id="cb49-42"><a href="#cb49-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-43"><a href="#cb49-43" aria-hidden="true" tabindex="-1"></a><span class="fu">pdf</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure1C.pdf"</span>), <span class="at">width =</span> <span class="fl">14.5</span>, <span class="at">height =</span> <span class="dv">5</span>)</span>
+<span id="cb49-44"><a href="#cb49-44" aria-hidden="true" tabindex="-1"></a><span class="fu">Heatmap</span>(<span class="fu">as.matrix</span>(heatdf_f), <span class="at">name =</span> <span class="st">"Percent of</span><span class="sc">\n</span><span class="st">Samples"</span>, <span class="at">cluster_rows =</span> F,</span>
+<span id="cb49-45"><a href="#cb49-45" aria-hidden="true" tabindex="-1"></a>        <span class="at">cluster_columns =</span> F, <span class="at">col =</span> colors_heat, <span class="at">top_annotation =</span> col_ano,</span>
+<span id="cb49-46"><a href="#cb49-46" aria-hidden="true" tabindex="-1"></a>        <span class="at">row_names_side =</span> <span class="st">"left"</span>,</span>
+<span id="cb49-47"><a href="#cb49-47" aria-hidden="true" tabindex="-1"></a>        <span class="at">show_heatmap_legend =</span> T, <span class="at">column_names_rot =</span> <span class="dv">45</span>,</span>
+<span id="cb49-48"><a href="#cb49-48" aria-hidden="true" tabindex="-1"></a>        <span class="at">border =</span> <span class="cn">TRUE</span>, <span class="at">column_split =</span> <span class="fu">factor</span>(<span class="fu">gsub</span>(<span class="st">".*_"</span>, <span class="st">""</span>, <span class="fu">colnames</span>(heatdf)),</span>
+<span id="cb49-49"><a href="#cb49-49" aria-hidden="true" tabindex="-1"></a>                                             <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"PBMC"</span>, <span class="st">"Nasal"</span>, <span class="st">"EA"</span>)),</span>
+<span id="cb49-50"><a href="#cb49-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">cell_fun =</span> <span class="cf">function</span>(j, i, x, y, width, height, fill) {</span>
+<span id="cb49-51"><a href="#cb49-51" aria-hidden="true" tabindex="-1"></a>        <span class="fu">grid.text</span>(<span class="fu">sprintf</span>(<span class="st">"%s"</span>, heatdf_annot[i, j]), x, y, <span class="at">gp =</span> <span class="fu">gpar</span>(<span class="at">fontsize =</span> <span class="dv">11</span>))</span>
+<span id="cb49-52"><a href="#cb49-52" aria-hidden="true" tabindex="-1"></a>})  </span>
+<span id="cb49-53"><a href="#cb49-53" aria-hidden="true" tabindex="-1"></a><span class="do">## 14.5 x 5in</span></span>
+<span id="cb49-54"><a href="#cb49-54" aria-hidden="true" tabindex="-1"></a><span class="fu">dev.off</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>png 
+  2 </code></pre>
+</div>
+</div>
+</section>
+<section id="figure-1d-viral-reactivation-curves" class="level2">
+<h2 class="anchored" data-anchor-id="figure-1d-viral-reactivation-curves">Figure 1D: Viral Reactivation Curves</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>kernel_size <span class="ot">=</span> <span class="dv">5</span> <span class="do">## days</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>kernel_smoothed_values <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(days <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">40</span>){</span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>  event_range <span class="ot">=</span> (days<span class="sc">-</span>((kernel_size<span class="dv">-1</span>) <span class="sc">/</span> <span class="dv">2</span>))<span class="sc">:</span>(days<span class="sc">+</span>((kernel_size<span class="dv">-1</span>) <span class="sc">/</span> <span class="dv">2</span>))</span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>  tmp <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(event_id, event_date)) <span class="sc">%&gt;%</span></span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">#select(-ends_with(".ea")) %&gt;%</span></span>
+<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(<span class="sc">-</span>event_id, <span class="sc">-</span>event_date)) <span class="sc">%&gt;%</span></span>
+<span id="cb51-10"><a href="#cb51-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb51-11"><a href="#cb51-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(value)) <span class="sc">%&gt;%</span></span>
+<span id="cb51-12"><a href="#cb51-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_date <span class="sc">%in%</span> event_range) <span class="sc">%&gt;%</span></span>
+<span id="cb51-13"><a href="#cb51-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(name) <span class="sc">%&gt;%</span></span>
+<span id="cb51-14"><a href="#cb51-14" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">percent =</span> <span class="fu">mean</span>(value) <span class="sc">*</span> <span class="dv">100</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb51-15"><a href="#cb51-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">day =</span> days)</span>
+<span id="cb51-16"><a href="#cb51-16" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb51-17"><a href="#cb51-17" aria-hidden="true" tabindex="-1"></a>  kernel_smoothed_values <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(kernel_smoothed_values, tmp)</span>
+<span id="cb51-18"><a href="#cb51-18" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>smooth_traj <span class="ot">&lt;-</span> kernel_smoothed_values <span class="sc">%&gt;%</span></span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">compartment =</span> <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">."</span>, <span class="st">""</span>, name),</span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">virus =</span> <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">..*"</span>, <span class="st">""</span>, name)) <span class="sc">%&gt;%</span> </span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(compartment <span class="sc">!=</span> <span class="st">"ea"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"SARS-CoV-2"</span>, virus)) <span class="sc">%&gt;%</span></span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span>name <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Simplexvirus.pbmc"</span>, <span class="st">"Enterovirus.pbmc"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"7|6|8|immuno"</span>, name)) <span class="sc">%&gt;%</span></span>
+<span id="cb53-9"><a href="#cb53-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>day, <span class="at">y=</span>percent, <span class="at">color =</span> virus, <span class="at">linetype =</span> compartment)) <span class="sc">+</span></span>
+<span id="cb53-10"><a href="#cb53-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">se =</span> F) <span class="sc">+</span></span>
+<span id="cb53-11"><a href="#cb53-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb53-12"><a href="#cb53-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Days from Hospitalization"</span>) <span class="sc">+</span></span>
+<span id="cb53-13"><a href="#cb53-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Percent of Samples"</span>) <span class="sc">+</span></span>
+<span id="cb53-14"><a href="#cb53-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#86005F"</span>, <span class="st">"#01a8a0"</span>, <span class="st">"#1b820d"</span>, <span class="st">"#cba90a"</span>,</span>
+<span id="cb53-15"><a href="#cb53-15" aria-hidden="true" tabindex="-1"></a>                                <span class="st">"#005F86"</span>, <span class="st">"#BF5700"</span>),</span>
+<span id="cb53-16"><a href="#cb53-16" aria-hidden="true" tabindex="-1"></a>                     <span class="at">name =</span> <span class="st">"Virus"</span>) <span class="sc">+</span></span>
+<span id="cb53-17"><a href="#cb53-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_linetype_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"22"</span>, <span class="st">"solid"</span>),</span>
+<span id="cb53-18"><a href="#cb53-18" aria-hidden="true" tabindex="-1"></a>                        <span class="at">name =</span> <span class="st">"Compartment"</span>) <span class="sc">+</span></span>
+<span id="cb53-19"><a href="#cb53-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb53-20"><a href="#cb53-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>))</span>
+<span id="cb53-21"><a href="#cb53-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-22"><a href="#cb53-22" aria-hidden="true" tabindex="-1"></a>smooth_traj <span class="sc">+</span></span>
+<span id="cb53-23"><a href="#cb53-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_cartesian</span>(<span class="at">ylim =</span><span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">25</span>)) <span class="co"># 6x3.5 in</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using method = 'loess' and formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure1_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure1D.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="fl">3.5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using method = 'loess' and formula = 'y ~ x'</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(smooth_traj<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_Figure1D.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="figure-1e-viral-load-correlation" class="level2">
+<h2 class="anchored" data-anchor-id="figure-1e-viral-load-correlation">Figure 1E: Viral Load Correlation</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Manually installed an older version of Hmisc for R v4.0.3 just for the rcorr function</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="co"># packageurl &lt;- "https://cran.r-project.org/src/contrib/Archive/Hmisc/Hmisc_4.8-0.tar.gz"</span></span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a><span class="co"># install.packages(packageurl, repos=NULL, type="source")</span></span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Hmisc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: lattice</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: survival</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: Formula</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'Hmisc'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:dplyr':
+
+    src, summarize</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    format.pval, units</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(corrplot)</span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>flattenCorrMatrix <span class="ot">&lt;-</span> <span class="cf">function</span>(cormat, pmat) {</span>
+<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a>  ut <span class="ot">&lt;-</span> <span class="fu">upper.tri</span>(cormat)</span>
+<span id="cb65-4"><a href="#cb65-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
+<span id="cb65-5"><a href="#cb65-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">row =</span> <span class="fu">rownames</span>(cormat)[<span class="fu">row</span>(cormat)[ut]],</span>
+<span id="cb65-6"><a href="#cb65-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">column =</span> <span class="fu">rownames</span>(cormat)[<span class="fu">col</span>(cormat)[ut]],</span>
+<span id="cb65-7"><a href="#cb65-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">cor  =</span>(cormat)[ut],</span>
+<span id="cb65-8"><a href="#cb65-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">p =</span> pmat[ut]</span>
+<span id="cb65-9"><a href="#cb65-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb65-10"><a href="#cb65-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb65-11"><a href="#cb65-11" aria-hidden="true" tabindex="-1"></a>for_cor_data <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(comb_data[,<span class="fu">c</span>(<span class="dv">2</span><span class="sc">:</span><span class="dv">4</span>, <span class="dv">10</span><span class="sc">:</span><span class="dv">15</span>, <span class="dv">22</span>, <span class="dv">23</span>, <span class="dv">24</span>, <span class="dv">25</span>, <span class="dv">26</span> )])</span>
+<span id="cb65-12"><a href="#cb65-12" aria-hidden="true" tabindex="-1"></a>for_cor_data <span class="ot">&lt;-</span> for_cor_data[,<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"Beta"</span>, <span class="fu">colnames</span>(for_cor_data))]</span>
+<span id="cb65-13"><a href="#cb65-13" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(for_cor_data) <span class="ot">&lt;-</span> <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">".* </span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, <span class="fu">colnames</span>(for_cor_data)))</span>
+<span id="cb65-14"><a href="#cb65-14" aria-hidden="true" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">rcorr</span>(for_cor_data,<span class="at">type =</span> <span class="st">"spearman"</span>)</span>
+<span id="cb65-15"><a href="#cb65-15" aria-hidden="true" tabindex="-1"></a>resdf <span class="ot">&lt;-</span> <span class="fu">flattenCorrMatrix</span>(res<span class="sc">$</span>r, res<span class="sc">$</span>P)</span>
+<span id="cb65-16"><a href="#cb65-16" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(resdf, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_Figure1E.csv"</span>))</span>
+<span id="cb65-17"><a href="#cb65-17" aria-hidden="true" tabindex="-1"></a>tmpP <span class="ot">&lt;-</span> res<span class="sc">$</span>P</span>
+<span id="cb65-18"><a href="#cb65-18" aria-hidden="true" tabindex="-1"></a>tmpP[<span class="fu">is.na</span>(tmpP)] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb65-19"><a href="#cb65-19" aria-hidden="true" tabindex="-1"></a><span class="fu">pdf</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure1E.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">8</span>)</span>
+<span id="cb65-20"><a href="#cb65-20" aria-hidden="true" tabindex="-1"></a><span class="fu">corrplot</span>(res<span class="sc">$</span>r, <span class="at">type =</span> <span class="st">"upper"</span>, <span class="at">order =</span> <span class="st">"hclust"</span>, </span>
+<span id="cb65-21"><a href="#cb65-21" aria-hidden="true" tabindex="-1"></a>         <span class="at">tl.col =</span> <span class="st">"black"</span>,<span class="at">outline =</span> <span class="cn">TRUE</span>, <span class="at">tl.srt =</span> <span class="dv">45</span>,</span>
+<span id="cb65-22"><a href="#cb65-22" aria-hidden="true" tabindex="-1"></a>         <span class="at">col=</span><span class="fu">colorRampPalette</span>(<span class="fu">c</span>(<span class="st">"darkblue"</span>,<span class="st">"white"</span>,<span class="st">"darkred"</span>))(<span class="dv">100</span>),</span>
+<span id="cb65-23"><a href="#cb65-23" aria-hidden="true" tabindex="-1"></a>          <span class="at">p.mat =</span> tmpP, <span class="at">sig.level =</span> <span class="fl">0.05</span>, <span class="at">insig =</span> <span class="st">"blank"</span>)</span>
+<span id="cb65-24"><a href="#cb65-24" aria-hidden="true" tabindex="-1"></a><span class="fu">dev.off</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>png 
+  2 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="do">## 8 x8</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="supplemental-figure-1" class="level2">
+<h2 class="anchored" data-anchor-id="supplemental-figure-1">Supplemental Figure 1</h2>
+<section id="figure-s1a-b-rt-qpcr-and-metagenomics-correlation-for-sars-cov-2" class="level3">
+<h3 class="anchored" data-anchor-id="figure-s1a-b-rt-qpcr-and-metagenomics-correlation-for-sars-cov-2">Figure S1A-B: RT-qPCR and Metagenomics Correlation for SARS-CoV-2</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggpubr)</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a>corr_data <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(event_id, <span class="st">`</span><span class="at">SARS-CoV-2.nasal</span><span class="st">`</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(nasal_viralload_counts <span class="sc">%&gt;%</span></span>
+<span id="cb68-5"><a href="#cb68-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">"event_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb68-6"><a href="#cb68-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(event_id, N1_CT, N2_CT))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(event_id)`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a>corr_data <span class="ot">&lt;-</span> corr_data[<span class="fu">complete.cases</span>(corr_data), ]</span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a>gga <span class="ot">&lt;-</span> corr_data <span class="sc">%&gt;%</span></span>
+<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">SARS-CoV-2.nasal</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">log10</span>(<span class="st">`</span><span class="at">SARS-CoV-2.nasal</span><span class="st">`</span> <span class="sc">+</span> <span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span><span class="st">`</span><span class="at">SARS-CoV-2.nasal</span><span class="st">`</span>, <span class="at">y=</span>N1_CT)) <span class="sc">+</span></span>
+<span id="cb70-6"><a href="#cb70-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb70-7"><a href="#cb70-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method=</span><span class="st">'lm'</span>, <span class="at">formula=</span> y<span class="sc">~</span>x, <span class="at">color =</span> <span class="st">"red"</span>,<span class="at">se =</span> F) <span class="sc">+</span></span>
+<span id="cb70-8"><a href="#cb70-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_cor</span>() <span class="sc">+</span></span>
+<span id="cb70-9"><a href="#cb70-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb70-10"><a href="#cb70-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_reverse</span>() <span class="sc">+</span></span>
+<span id="cb70-11"><a href="#cb70-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">labels =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">100</span>,<span class="fl">1E4</span>,<span class="fl">1E6</span>),<span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">2</span>,<span class="dv">4</span>,<span class="dv">6</span>)) <span class="sc">+</span></span>
+<span id="cb70-12"><a href="#cb70-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Nucleocapsid 1 Cycle Threshold"</span>) <span class="sc">+</span></span>
+<span id="cb70-13"><a href="#cb70-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Betacoronavirus RPM"</span>)</span>
+<span id="cb70-14"><a href="#cb70-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb70-15"><a href="#cb70-15" aria-hidden="true" tabindex="-1"></a>ggb <span class="ot">&lt;-</span> corr_data <span class="sc">%&gt;%</span></span>
+<span id="cb70-16"><a href="#cb70-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">SARS-CoV-2.nasal</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">log10</span>(<span class="st">`</span><span class="at">SARS-CoV-2.nasal</span><span class="st">`</span> <span class="sc">+</span> <span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb70-17"><a href="#cb70-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span><span class="st">`</span><span class="at">SARS-CoV-2.nasal</span><span class="st">`</span>, <span class="at">y=</span>N2_CT)) <span class="sc">+</span></span>
+<span id="cb70-18"><a href="#cb70-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb70-19"><a href="#cb70-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method=</span><span class="st">'lm'</span>, <span class="at">formula=</span> y<span class="sc">~</span>x, <span class="at">color =</span> <span class="st">"red"</span>,<span class="at">se =</span> F) <span class="sc">+</span></span>
+<span id="cb70-20"><a href="#cb70-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_cor</span>() <span class="sc">+</span></span>
+<span id="cb70-21"><a href="#cb70-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb70-22"><a href="#cb70-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_reverse</span>() <span class="sc">+</span></span>
+<span id="cb70-23"><a href="#cb70-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">labels =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">100</span>,<span class="fl">1E4</span>,<span class="fl">1E6</span>),<span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">2</span>,<span class="dv">4</span>,<span class="dv">6</span>)) <span class="sc">+</span></span>
+<span id="cb70-24"><a href="#cb70-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Nucleocapsid 2 Cycle Threshold"</span>) <span class="sc">+</span></span>
+<span id="cb70-25"><a href="#cb70-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Betacoronavirus RPM"</span>)</span>
+<span id="cb70-26"><a href="#cb70-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb70-27"><a href="#cb70-27" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(gga<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS1A.csv"</span>))</span>
+<span id="cb70-28"><a href="#cb70-28" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(ggb<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS1B.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="figure-s1c-taxnonomy-of-anelloviridae" class="level3">
+<h3 class="anchored" data-anchor-id="figure-s1c-taxnonomy-of-anelloviridae">Figure S1C: Taxnonomy of Anelloviridae</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a>anneloviridae_reports <span class="ot">&lt;-</span> plyr<span class="sc">::</span><span class="fu">rbind.fill</span>(<span class="fu">fread</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/phase1_4_pbmc_transcriptomics_v2.csv.gz"</span>),</span>
+<span id="cb71-2"><a href="#cb71-2" aria-hidden="true" tabindex="-1"></a>                                          <span class="fu">fread</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/phase4_nasal_transcriptomics.csv.gz"</span>),</span>
+<span id="cb71-3"><a href="#cb71-3" aria-hidden="true" tabindex="-1"></a>                                          <span class="fu">fread</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/nasal_virus_transcriptomic_v1.csv.gz"</span>),</span>
+<span id="cb71-4"><a href="#cb71-4" aria-hidden="true" tabindex="-1"></a>                                          <span class="fu">fread</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/ea_virus_transcriptomic_v1.csv.gz"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb71-5"><a href="#cb71-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(category <span class="sc">==</span> <span class="st">"viruses"</span> <span class="sc">&amp;</span> is_phage <span class="sc">==</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb71-6"><a href="#cb71-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(nr_rpm <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb71-7"><a href="#cb71-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(genus_tax_id <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"200687329"</span>, <span class="st">"687333"</span>, <span class="st">"687331"</span>, <span class="st">"687332"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb71-8"><a href="#cb71-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(nt_rpm <span class="sc">&gt;</span> <span class="dv">0</span>)</span>
+<span id="cb71-9"><a href="#cb71-9" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb71-10"><a href="#cb71-10" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">paste</span>(<span class="fu">unique</span>(anneloviridae_reports<span class="sc">$</span>tax_id), <span class="at">collapse =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>687331
+687352
+687351
+687368
+687340
+687363
+687366
+687367
+687359
+687349
+687350
+687332
+93678
+687333
+2065052
+687370
+2065047
+687342
+687347
+687346
+687355
+2065044
+2065053
+687354
+687360
+687345
+2065054
+2065056
+687344
+2065055
+2065048
+2065036
+687379
+2065049
+2065051
+2057933
+2065037</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Paste these into https://www.ncbi.nlm.nih.gov/Taxonomy/CommonTree/wwwcmt.cgi</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggtree)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ggtree v3.9.0.001 For help: https://yulab-smu.top/treedata-book/
+
+If you use the ggtree package suite in published research, please cite
+the appropriate paper(s):
+
+Guangchuang Yu, David Smith, Huachen Zhu, Yi Guan, Tommy Tsan-Yuk Lam.
+ggtree: an R package for visualization and annotation of phylogenetic
+trees with their covariates and other associated data. Methods in
+Ecology and Evolution. 2017, 8(1):28-36. doi:10.1111/2041-210X.12628
+
+Guangchuang Yu.  Data Integration, Manipulation and Visualization of
+Phylogenetic Trees (1st edition). Chapman and Hall/CRC. 2022,
+doi:10.1201/9781003279242
+
+Shuangbin Xu, Lin Li, Xiao Luo, Meijun Chen, Wenli Tang, Li Zhan, Zehan
+Dai, Tommy T. Lam, Yi Guan, Guangchuang Yu. Ggtree: A serialized data
+object for visualization of a phylogenetic tree and annotation data.
+iMeta 2022, 1(4):e56. doi:10.1002/imt2.56</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'ggtree'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:ggpubr':
+
+    rotate</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:tidyr':
+
+    expand</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a>tree <span class="ot">&lt;-</span> <span class="fu">read.tree</span>(<span class="st">"Anelloviridae_phyliptree_ncbi_taxonomy_2024-08-23.phy"</span>)</span>
+<span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb79-3"><a href="#cb79-3" aria-hidden="true" tabindex="-1"></a>ggf <span class="ot">&lt;-</span> <span class="fu">ggtree</span>(tree) <span class="sc">+</span>  <span class="fu">geom_tiplab</span>(<span class="at">align=</span><span class="cn">TRUE</span>, <span class="at">linesize=</span>.<span class="dv">5</span>) <span class="sc">+</span> </span>
+<span id="cb79-4"><a href="#cb79-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hilight</span>(<span class="at">node=</span><span class="dv">37</span>, <span class="at">fill=</span><span class="st">"gold"</span>) <span class="sc">+</span> </span>
+<span id="cb79-5"><a href="#cb79-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hilight</span>(<span class="at">node=</span><span class="dv">36</span>, <span class="at">fill=</span><span class="st">"purple"</span>)<span class="sc">+</span> </span>
+<span id="cb79-6"><a href="#cb79-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hilight</span>(<span class="at">node=</span><span class="dv">38</span>, <span class="at">fill=</span><span class="st">"blue"</span>) <span class="sc">+</span> ggplot2<span class="sc">::</span><span class="fu">xlim</span>(<span class="dv">0</span>, <span class="dv">60</span>)</span>
+<span id="cb79-7"><a href="#cb79-7" aria-hidden="true" tabindex="-1"></a>ggf</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure1_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="192"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS1C.pdf"</span>), <span class="at">width =</span> <span class="fl">5.9</span>, <span class="at">height =</span> <span class="fl">5.9</span>)</span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a><span class="do">## 5.9x5.9</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="figure-s1d-taxnonomy-of-enteroviruses" class="level3">
+<h3 class="anchored" data-anchor-id="figure-s1d-taxnonomy-of-enteroviruses">Figure S1D: Taxnonomy of Enteroviruses</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a>enterovirus_reports <span class="ot">&lt;-</span> plyr<span class="sc">::</span><span class="fu">rbind.fill</span>(<span class="fu">fread</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/phase1_4_pbmc_transcriptomics_v2.csv.gz"</span>),</span>
+<span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a>                                          <span class="fu">fread</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/phase4_nasal_transcriptomics.csv.gz"</span>),</span>
+<span id="cb81-3"><a href="#cb81-3" aria-hidden="true" tabindex="-1"></a>                                          <span class="fu">fread</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/nasal_virus_transcriptomic_v1.csv.gz"</span>),</span>
+<span id="cb81-4"><a href="#cb81-4" aria-hidden="true" tabindex="-1"></a>                                          <span class="fu">fread</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/ea_virus_transcriptomic_v1.csv.gz"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb81-5"><a href="#cb81-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(category <span class="sc">==</span> <span class="st">"viruses"</span> <span class="sc">&amp;</span> is_phage <span class="sc">==</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb81-6"><a href="#cb81-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(nr_rpm <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb81-7"><a href="#cb81-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(genus_tax_id <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"12059"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb81-8"><a href="#cb81-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(nt_rpm <span class="sc">&gt;</span> <span class="dv">0</span>)</span>
+<span id="cb81-9"><a href="#cb81-9" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb81-10"><a href="#cb81-10" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">paste</span>(<span class="fu">unique</span>(enterovirus_reports<span class="sc">$</span>tax_id), <span class="at">collapse =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>12059
+463676
+147712
+147711
+169066
+138951
+47681
+138949
+167323
+433730
+138950</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Paste these into https://www.ncbi.nlm.nih.gov/Taxonomy/CommonTree/wwwcmt.cgi</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggtree)</span>
+<span id="cb84-2"><a href="#cb84-2" aria-hidden="true" tabindex="-1"></a>tree <span class="ot">&lt;-</span> <span class="fu">read.tree</span>(<span class="st">"enterovirus_2024-08-25_ncbi_taxonomy.phy"</span>)</span>
+<span id="cb84-3"><a href="#cb84-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb84-4"><a href="#cb84-4" aria-hidden="true" tabindex="-1"></a>ggg <span class="ot">&lt;-</span> <span class="fu">ggtree</span>(tree) <span class="sc">+</span>  <span class="fu">geom_tiplab</span>(<span class="at">align=</span><span class="cn">TRUE</span>, <span class="at">linesize=</span>.<span class="dv">5</span>) <span class="sc">+</span></span>
+<span id="cb84-5"><a href="#cb84-5" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">xlim</span>(<span class="dv">0</span>, <span class="dv">60</span>)</span>
+<span id="cb84-6"><a href="#cb84-6" aria-hidden="true" tabindex="-1"></a>ggg</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure1_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="480"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FiguresS1D.pdf"</span>), <span class="at">width =</span> <span class="dv">5</span>, <span class="at">height =</span> <span class="dv">4</span>)</span>
+<span id="cb85-2"><a href="#cb85-2" aria-hidden="true" tabindex="-1"></a><span class="do">## 5x4</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="figure-s1e-h-expanded-smoothed-reactivation-curves" class="level3">
+<h3 class="anchored" data-anchor-id="figure-s1e-h-expanded-smoothed-reactivation-curves">Figure S1E-H: Expanded Smoothed Reactivation Curves</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb86"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a>kernel_size <span class="ot">=</span> <span class="dv">5</span> <span class="do">## days</span></span>
+<span id="cb86-2"><a href="#cb86-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb86-3"><a href="#cb86-3" aria-hidden="true" tabindex="-1"></a>kernel_smoothed_values <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb86-4"><a href="#cb86-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(days <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">40</span>){</span>
+<span id="cb86-5"><a href="#cb86-5" aria-hidden="true" tabindex="-1"></a>  event_range <span class="ot">=</span> (days<span class="sc">-</span>((kernel_size<span class="dv">-1</span>) <span class="sc">/</span> <span class="dv">2</span>))<span class="sc">:</span>(days<span class="sc">+</span>((kernel_size<span class="dv">-1</span>) <span class="sc">/</span> <span class="dv">2</span>))</span>
+<span id="cb86-6"><a href="#cb86-6" aria-hidden="true" tabindex="-1"></a>  tmp <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb86-7"><a href="#cb86-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(event_id, event_date)) <span class="sc">%&gt;%</span></span>
+<span id="cb86-8"><a href="#cb86-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">#select(-ends_with(".ea")) %&gt;%</span></span>
+<span id="cb86-9"><a href="#cb86-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(<span class="sc">-</span>event_id, <span class="sc">-</span>event_date)) <span class="sc">%&gt;%</span></span>
+<span id="cb86-10"><a href="#cb86-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb86-11"><a href="#cb86-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(value)) <span class="sc">%&gt;%</span></span>
+<span id="cb86-12"><a href="#cb86-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_date <span class="sc">%in%</span> event_range) <span class="sc">%&gt;%</span></span>
+<span id="cb86-13"><a href="#cb86-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(name) <span class="sc">%&gt;%</span></span>
+<span id="cb86-14"><a href="#cb86-14" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">percent =</span> <span class="fu">mean</span>(value) <span class="sc">*</span> <span class="dv">100</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb86-15"><a href="#cb86-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">day =</span> days)</span>
+<span id="cb86-16"><a href="#cb86-16" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb86-17"><a href="#cb86-17" aria-hidden="true" tabindex="-1"></a>  kernel_smoothed_values <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(kernel_smoothed_values, tmp)</span>
+<span id="cb86-18"><a href="#cb86-18" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`
+Joining with `by = join_by(event_id)`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a>smooth_traj <span class="ot">&lt;-</span> kernel_smoothed_values <span class="sc">%&gt;%</span></span>
+<span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb88-3"><a href="#cb88-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">compartment =</span> <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">."</span>, <span class="st">""</span>, name),</span>
+<span id="cb88-4"><a href="#cb88-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">virus =</span> <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">..*"</span>, <span class="st">""</span>, name)) <span class="sc">%&gt;%</span> </span>
+<span id="cb88-5"><a href="#cb88-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span>name <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Simplexvirus.pbmc"</span>, <span class="st">"Enterovirus.pbmc"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb88-6"><a href="#cb88-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"7|6|8|immuno"</span>, name)) <span class="sc">%&gt;%</span></span>
+<span id="cb88-7"><a href="#cb88-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>day, <span class="at">y=</span>percent, <span class="at">color =</span> virus, <span class="at">linetype =</span> compartment)) <span class="sc">+</span></span>
+<span id="cb88-8"><a href="#cb88-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">se =</span> F) <span class="sc">+</span></span>
+<span id="cb88-9"><a href="#cb88-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb88-10"><a href="#cb88-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Days from Hospitalization"</span>) <span class="sc">+</span></span>
+<span id="cb88-11"><a href="#cb88-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Percent of Samples"</span>) <span class="sc">+</span></span>
+<span id="cb88-12"><a href="#cb88-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"Anelloviridae"</span> <span class="ot">=</span><span class="st">"#86005F"</span>,</span>
+<span id="cb88-13"><a href="#cb88-13" aria-hidden="true" tabindex="-1"></a>                                <span class="st">"Enterovirus"</span> <span class="ot">=</span><span class="st">"#01a8a0"</span>,</span>
+<span id="cb88-14"><a href="#cb88-14" aria-hidden="true" tabindex="-1"></a>                                <span class="st">"Human alphaherpesvirus 1 (HSV1)"</span> <span class="ot">=</span><span class="st">"#1b820d"</span>,</span>
+<span id="cb88-15"><a href="#cb88-15" aria-hidden="true" tabindex="-1"></a>                                <span class="st">"Human alphaherpesvirus 2 (HSV2)"</span> <span class="ot">=</span><span class="st">"#cba90a"</span>,</span>
+<span id="cb88-16"><a href="#cb88-16" aria-hidden="true" tabindex="-1"></a>                                <span class="st">"Human betaherpesvirus 5 (CMV)"</span> <span class="ot">=</span> <span class="st">"#005F86"</span>,</span>
+<span id="cb88-17"><a href="#cb88-17" aria-hidden="true" tabindex="-1"></a>                                <span class="st">"Human gammaherpesvirus 4 (EBV)"</span> <span class="ot">=</span><span class="st">"#BF5700"</span>,</span>
+<span id="cb88-18"><a href="#cb88-18" aria-hidden="true" tabindex="-1"></a>                                <span class="st">"SARS-CoV-2"</span> <span class="ot">=</span><span class="st">"black"</span>),</span>
+<span id="cb88-19"><a href="#cb88-19" aria-hidden="true" tabindex="-1"></a>                     <span class="at">name =</span> <span class="st">"Virus"</span>) <span class="sc">+</span></span>
+<span id="cb88-20"><a href="#cb88-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_linetype_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"ea"</span><span class="ot">=</span> <span class="st">"dotted"</span>,<span class="st">"nasal"</span> <span class="ot">=</span> <span class="st">"22"</span>,<span class="st">"pbmc"</span> <span class="ot">=</span>  <span class="st">"solid"</span>),</span>
+<span id="cb88-21"><a href="#cb88-21" aria-hidden="true" tabindex="-1"></a>                        <span class="at">name =</span> <span class="st">"Compartment"</span>) <span class="sc">+</span></span>
+<span id="cb88-22"><a href="#cb88-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb88-23"><a href="#cb88-23" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>))</span>
+<span id="cb88-24"><a href="#cb88-24" aria-hidden="true" tabindex="-1"></a>gge <span class="ot">&lt;-</span> smooth_traj</span>
+<span id="cb88-25"><a href="#cb88-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb88-26"><a href="#cb88-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb88-27"><a href="#cb88-27" aria-hidden="true" tabindex="-1"></a>ggzoom <span class="ot">&lt;-</span> smooth_traj</span>
+<span id="cb88-28"><a href="#cb88-28" aria-hidden="true" tabindex="-1"></a>ggh <span class="ot">&lt;-</span> ggg <span class="ot">&lt;-</span> ggf <span class="ot">&lt;-</span> ggzoom</span>
+<span id="cb88-29"><a href="#cb88-29" aria-hidden="true" tabindex="-1"></a>ggf<span class="sc">$</span>data <span class="ot">&lt;-</span> ggzoom<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="fu">grepl</span>(<span class="st">".ea$"</span>, name))</span>
+<span id="cb88-30"><a href="#cb88-30" aria-hidden="true" tabindex="-1"></a>ggg<span class="sc">$</span>data <span class="ot">&lt;-</span> ggzoom<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="fu">grepl</span>(<span class="st">".nasal$"</span>, name))</span>
+<span id="cb88-31"><a href="#cb88-31" aria-hidden="true" tabindex="-1"></a>ggg <span class="ot">&lt;-</span> ggg <span class="sc">+</span></span>
+<span id="cb88-32"><a href="#cb88-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_cartesian</span>(<span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">20</span>))</span>
+<span id="cb88-33"><a href="#cb88-33" aria-hidden="true" tabindex="-1"></a>ggh<span class="sc">$</span>data <span class="ot">&lt;-</span> ggzoom<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="fu">grepl</span>(<span class="st">".pbmc$"</span>, name))</span>
+<span id="cb88-34"><a href="#cb88-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb88-35"><a href="#cb88-35" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(gge<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS1E.csv"</span>))</span>
+<span id="cb88-36"><a href="#cb88-36" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(ggf<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS1F.csv"</span>))</span>
+<span id="cb88-37"><a href="#cb88-37" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(ggg<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS1G.csv"</span>))</span>
+<span id="cb88-38"><a href="#cb88-38" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(ggh<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS1H.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a>top <span class="ot">&lt;-</span> <span class="fu">ggarrange</span>(gga, ggb, <span class="at">nrow =</span><span class="dv">1</span>, <span class="at">ncol =</span><span class="dv">2</span>, <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"A"</span>, <span class="st">"B"</span>))</span>
+<span id="cb89-2"><a href="#cb89-2" aria-hidden="true" tabindex="-1"></a>bottom <span class="ot">&lt;-</span> <span class="fu">ggarrange</span>(gge, ggf <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">"Percent of EA Samples (%)"</span>),</span>
+<span id="cb89-3"><a href="#cb89-3" aria-hidden="true" tabindex="-1"></a>                    <span class="at">nrow =</span><span class="dv">1</span>, <span class="at">ncol =</span><span class="dv">2</span>, <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"E"</span>, <span class="st">"F"</span>), <span class="at">common.legend =</span> <span class="cn">TRUE</span>,<span class="at">legend =</span> <span class="st">"right"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+`geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+`geom_smooth()` using method = 'loess' and formula = 'y ~ x'</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a>bottom2 <span class="ot">&lt;-</span> <span class="fu">ggarrange</span>(ggg <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">"Percent of Nasal Samples (%)"</span>),</span>
+<span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a>                     ggh <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">"Percent of PBMC Samples (%)"</span>), <span class="at">nrow =</span><span class="dv">1</span>, <span class="at">ncol =</span><span class="dv">2</span>, <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"G"</span>, <span class="st">"H"</span>), <span class="at">common.legend =</span> <span class="cn">TRUE</span>,<span class="at">legend =</span> <span class="st">"right"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+`geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+`geom_smooth()` using method = 'loess' and formula = 'y ~ x'</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb93"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggarrange</span>(top, bottom, bottom2, <span class="at">nrow =</span> <span class="dv">3</span>, <span class="at">ncol =</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure1_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb94"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS1A-B_E-H.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">9</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="figure-s1i-conditional-probability-of-latent-viral-transcript" class="level3">
+<h3 class="anchored" data-anchor-id="figure-s1i-conditional-probability-of-latent-viral-transcript">Figure S1I: Conditional Probability of Latent Viral Transcript</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb95"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a>conincidence_func <span class="ot">&lt;-</span> <span class="cf">function</span>(matrix){</span>
+<span id="cb95-2"><a href="#cb95-2" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb95-3"><a href="#cb95-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(i <span class="cf">in</span> <span class="fu">colnames</span>(matrix)){</span>
+<span id="cb95-4"><a href="#cb95-4" aria-hidden="true" tabindex="-1"></a>    test_tmp <span class="ot">&lt;-</span> matrix <span class="sc">%&gt;%</span></span>
+<span id="cb95-5"><a href="#cb95-5" aria-hidden="true" tabindex="-1"></a>      <span class="fu">rownames_to_column</span>(<span class="st">"sample_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb95-6"><a href="#cb95-6" aria-hidden="true" tabindex="-1"></a>      <span class="fu">pivot_longer</span>(<span class="at">cols=</span><span class="sc">-</span>sample_id) <span class="sc">%&gt;%</span></span>
+<span id="cb95-7"><a href="#cb95-7" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(value)) </span>
+<span id="cb95-8"><a href="#cb95-8" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb95-9"><a href="#cb95-9" aria-hidden="true" tabindex="-1"></a>    live <span class="ot">&lt;-</span> test_tmp <span class="sc">%&gt;%</span></span>
+<span id="cb95-10"><a href="#cb95-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(name <span class="sc">==</span> i) <span class="sc">%&gt;%</span></span>
+<span id="cb95-11"><a href="#cb95-11" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(value <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb95-12"><a href="#cb95-12" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb95-13"><a href="#cb95-13" aria-hidden="true" tabindex="-1"></a>    test <span class="ot">&lt;-</span> test_tmp <span class="sc">%&gt;%</span></span>
+<span id="cb95-14"><a href="#cb95-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(sample_id <span class="sc">%in%</span> live<span class="sc">$</span>sample_id) <span class="sc">%&gt;%</span></span>
+<span id="cb95-15"><a href="#cb95-15" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(value <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb95-16"><a href="#cb95-16" aria-hidden="true" tabindex="-1"></a>      <span class="fu">group_by</span>(name) <span class="sc">%&gt;%</span></span>
+<span id="cb95-17"><a href="#cb95-17" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">count =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb95-18"><a href="#cb95-18" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">freq =</span> count <span class="sc">/</span> <span class="fu">nrow</span>(live) <span class="sc">*</span> <span class="dv">100</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb95-19"><a href="#cb95-19" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">select</span>(name, freq)</span>
+<span id="cb95-20"><a href="#cb95-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">colnames</span>(test)[<span class="dv">2</span>] <span class="ot">&lt;-</span> i </span>
+<span id="cb95-21"><a href="#cb95-21" aria-hidden="true" tabindex="-1"></a>     <span class="cf">if</span>(<span class="fu">nrow</span>(out) <span class="sc">==</span> <span class="dv">0</span>){</span>
+<span id="cb95-22"><a href="#cb95-22" aria-hidden="true" tabindex="-1"></a>       out <span class="ot">&lt;-</span> test</span>
+<span id="cb95-23"><a href="#cb95-23" aria-hidden="true" tabindex="-1"></a>     } <span class="cf">else</span> {</span>
+<span id="cb95-24"><a href="#cb95-24" aria-hidden="true" tabindex="-1"></a>       out <span class="ot">&lt;-</span> out <span class="sc">%&gt;%</span></span>
+<span id="cb95-25"><a href="#cb95-25" aria-hidden="true" tabindex="-1"></a>        <span class="fu">full_join</span>(test)</span>
+<span id="cb95-26"><a href="#cb95-26" aria-hidden="true" tabindex="-1"></a>     }</span>
+<span id="cb95-27"><a href="#cb95-27" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb95-28"><a href="#cb95-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(out)</span>
+<span id="cb95-29"><a href="#cb95-29" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb95-30"><a href="#cb95-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb95-31"><a href="#cb95-31" aria-hidden="true" tabindex="-1"></a>conincendence_data <span class="ot">&lt;-</span> comb_data[,<span class="sc">-</span><span class="dv">1</span>]</span>
+<span id="cb95-32"><a href="#cb95-32" aria-hidden="true" tabindex="-1"></a>conincendence_data <span class="ot">&lt;-</span> conincendence_data[,<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"8|6|7|immuno|Respir"</span>, <span class="fu">colnames</span>(conincendence_data))]</span>
+<span id="cb95-33"><a href="#cb95-33" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(conincendence_data) <span class="ot">&lt;-</span> <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">".* </span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, <span class="fu">colnames</span>(conincendence_data)))</span>
+<span id="cb95-34"><a href="#cb95-34" aria-hidden="true" tabindex="-1"></a>conincendence_data[conincendence_data<span class="sc">&gt;</span><span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb95-35"><a href="#cb95-35" aria-hidden="true" tabindex="-1"></a>conincendence_data <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(conincendence_data)</span>
+<span id="cb95-36"><a href="#cb95-36" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(conincendence_data) <span class="ot">&lt;-</span> comb_data<span class="sc">$</span>event_id</span>
+<span id="cb95-37"><a href="#cb95-37" aria-hidden="true" tabindex="-1"></a>pilot <span class="ot">&lt;-</span> <span class="fu">conincidence_func</span>(conincendence_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`
+Joining with `by = join_by(name)`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb97"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a>pilot[<span class="fu">is.na</span>(pilot)] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb97-2"><a href="#cb97-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb97-3"><a href="#cb97-3" aria-hidden="true" tabindex="-1"></a>pilot_2 <span class="ot">&lt;-</span><span class="fu">as.data.frame</span>(pilot[,<span class="sc">-</span><span class="dv">1</span>])</span>
+<span id="cb97-4"><a href="#cb97-4" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(pilot_2) <span class="ot">&lt;-</span> pilot<span class="sc">$</span>name</span>
+<span id="cb97-5"><a href="#cb97-5" aria-hidden="true" tabindex="-1"></a>pilot_2 <span class="ot">&lt;-</span> pilot_2[,<span class="fu">order</span>(<span class="fu">colnames</span>(pilot_2))]</span>
+<span id="cb97-6"><a href="#cb97-6" aria-hidden="true" tabindex="-1"></a>pilot_2 <span class="ot">&lt;-</span> pilot_2[<span class="fu">order</span>(<span class="fu">rownames</span>(pilot_2)),]</span>
+<span id="cb97-7"><a href="#cb97-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb97-8"><a href="#cb97-8" aria-hidden="true" tabindex="-1"></a><span class="fu">pdf</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS1I.pdf"</span>), <span class="at">width =</span> <span class="fl">5.5</span>, <span class="at">height =</span> <span class="fl">5.5</span>)</span>
+<span id="cb97-9"><a href="#cb97-9" aria-hidden="true" tabindex="-1"></a><span class="fu">corrplot</span>(<span class="fu">t</span>(<span class="fu">as.matrix</span>(pilot_2)), <span class="at">is.corr =</span> F,</span>
+<span id="cb97-10"><a href="#cb97-10" aria-hidden="true" tabindex="-1"></a>         <span class="co">#method = "number",</span></span>
+<span id="cb97-11"><a href="#cb97-11" aria-hidden="true" tabindex="-1"></a>         <span class="at">tl.col =</span> <span class="st">"black"</span>,<span class="at">outline =</span> <span class="cn">TRUE</span>, <span class="at">tl.srt =</span> <span class="dv">45</span>,</span>
+<span id="cb97-12"><a href="#cb97-12" aria-hidden="true" tabindex="-1"></a>         <span class="at">col=</span><span class="fu">colorRampPalette</span>(<span class="fu">c</span>(<span class="st">"white"</span>,<span class="st">"darkred"</span>))(<span class="dv">100</span>),)</span>
+<span id="cb97-13"><a href="#cb97-13" aria-hidden="true" tabindex="-1"></a><span class="fu">dev.off</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>png 
+  2 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb99"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a><span class="do">### 5.5 x 5.5</span></span>
+<span id="cb99-2"><a href="#cb99-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb99-3"><a href="#cb99-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(<span class="fu">as.data.frame</span>(<span class="fu">t</span>(<span class="fu">as.matrix</span>(pilot_2))), <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS1I.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="session-info" class="level1">
+<h1>Session Info</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb100"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb100-1"><a href="#cb100-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>R version 4.0.3 (2020-10-10)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 24.04.1 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
+LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+attached base packages:
+[1] grid      stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] ggtree_3.9.0.001      Hmisc_4.8-0           Formula_1.2-4        
+ [4] survival_3.2-7        lattice_0.20-41       ComplexHeatmap_2.15.1
+ [7] corrplot_0.92         ggpubr_0.4.0          rstatix_0.7.2        
+[10] viridis_0.6.2         viridisLite_0.4.0     data.table_1.16.2    
+[13] lubridate_1.9.3       forcats_1.0.0         stringr_1.5.0        
+[16] dplyr_1.1.2           purrr_1.0.2           readr_2.1.5          
+[19] tidyr_1.3.1           tibble_3.2.1          ggplot2_3.4.2        
+[22] tidyverse_2.0.0      
+
+loaded via a namespace (and not attached):
+ [1] colorspace_2.0-3    ggsignif_0.6.3      rjson_0.2.21       
+ [4] circlize_0.4.16     htmlTable_2.4.0     GlobalOptions_0.1.2
+ [7] base64enc_0.1-3     aplot_0.1.9         clue_0.3-60        
+[10] rstudioapi_0.17.1   farver_2.1.0        bit64_4.0.5        
+[13] fansi_1.0.6         codetools_0.2-16    splines_4.0.3      
+[16] R.methodsS3_1.8.2   doParallel_1.0.17   knitr_1.49         
+[19] jsonlite_1.8.9      Cairo_1.5-14        broom_1.0.7        
+[22] cluster_2.1.0       png_0.1-7           R.oo_1.27.0        
+[25] compiler_4.0.3      backports_1.5.0     lazyeval_0.2.2     
+[28] Matrix_1.4-1        fastmap_1.1.0       cli_3.6.3          
+[31] htmltools_0.5.3     tools_4.0.3         gtable_0.3.0       
+[34] glue_1.6.2          Rcpp_1.0.8          carData_3.0-5      
+[37] vctrs_0.6.5         ape_5.6-2           nlme_3.1-149       
+[40] iterators_1.0.14    xfun_0.49           timechange_0.3.0   
+[43] lifecycle_1.0.4     scales_1.2.1        vroom_1.6.5        
+[46] ragg_1.3.3          hms_1.1.3           parallel_4.0.3     
+[49] RColorBrewer_1.1-2  yaml_2.3.10         gridExtra_2.3      
+[52] ggfun_0.0.9         yulab.utils_0.0.4   rpart_4.1-15       
+[55] latticeExtra_0.6-29 stringi_1.8.4       S4Vectors_0.28.1   
+[58] foreach_1.5.2       tidytree_0.4.4.001  checkmate_2.0.0    
+[61] BiocGenerics_0.36.1 shape_1.4.6         rlang_1.1.4        
+[64] pkgconfig_2.0.3     systemfonts_1.1.0   matrixStats_0.61.0 
+[67] evaluate_1.0.1      treeio_1.14.4       patchwork_1.1.1    
+[70] htmlwidgets_1.5.4   labeling_0.4.2      cowplot_1.1.1      
+[73] bit_4.0.4           tidyselect_1.2.1    plyr_1.8.6         
+[76] magrittr_2.0.3      R6_2.5.1            IRanges_2.24.1     
+[79] generics_0.1.2      pillar_1.9.0        foreign_0.8-80     
+[82] withr_2.5.0         mgcv_1.8-33         abind_1.4-5        
+[85] nnet_7.3-14         crayon_1.5.0        car_3.0-12         
+[88] utf8_1.2.4          tzdb_0.4.0          rmarkdown_2.29     
+[91] jpeg_0.1-9          GetoptLong_1.0.5    digest_0.6.29      
+[94] gridGraphics_0.5-1  R.utils_2.12.3      textshaping_0.4.0  
+[97] stats4_4.0.3        munsell_0.5.0       ggplotify_0.1.1    </code></pre>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
