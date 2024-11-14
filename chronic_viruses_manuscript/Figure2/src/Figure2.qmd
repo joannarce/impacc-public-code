@@ -504,7 +504,7 @@ tmp <- out_model %>%
   ungroup() %>%
   filter(!grepl("Beta", virus))
 
-tmp %>%
+gg2C <- tmp %>%
   ggplot(aes(x=interaction(Label), y=virus)) +
   geom_point(aes(size = log10p, color = signedlog10p), shape = 21, fill = NA) +
   geom_point(data = . %>% filter(`Pr(Chi)` <= 0.05),
@@ -528,7 +528,10 @@ tmp %>%
         axis.ticks = element_line(color = "black"),
         axis.text = element_text(color = "black")) +
   guides(size = guide_legend(title = "-Log10 adjusted\np-value")) 
+gg2C
 ggsave(paste0(out_dir, "Figure2C.pdf"), width = 8.5, height = 5)
+
+write_csv(gg2C$data, paste0(out_dir, "source_data_Figure2C.csv"))
 ```
 
 ## Supplemental Figure 2
