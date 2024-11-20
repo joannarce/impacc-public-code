@@ -1,0 +1,13 @@
+"","n","statistic","p","df","method","p.signif","name","p.adj","p.adj.signif","xpos","group1","group2","y.position"
+"1",1061,0.232969634300201,0.629,1,"Chi-square test","ns","Anelloviridae.pbmc",0.876,"ns",12,"filler_text","variable",40
+"2",149,5.71870165930394e-31,1,1,"Chi-square test","ns","CMV.ea",1,"ns",11,"filler_text","variable",40
+"3",993,7.04153399426567,0.00796,1,"Chi-square test","**","CMV.nasal",0.03,"*",10,"filler_text","variable",40
+"4",1061,7.82802550416977,0.00514,1,"Chi-square test","**","CMV.pbmc",0.03,"*",9,"filler_text","variable",40
+"5",149,5.71870165930394e-31,1,1,"Chi-square test","ns","EBV.ea",1,"ns",8,"filler_text","variable",40
+"6",993,6.62662150775806,0.01,1,"Chi-square test","**","EBV.nasal",0.03,"*",7,"filler_text","variable",40
+"7",1061,9.3898260194138,0.00218,1,"Chi-square test","**","EBV.pbmc",0.02616,"*",6,"filler_text","variable",40
+"8",993,0.270448621201856,0.603,1,"Chi-square test","ns","Enterovirus.nasal",0.876,"ns",5,"filler_text","variable",40
+"9",149,0.197736083161011,0.657,1,"Chi-square test","ns","HSV1.ea",0.876,"ns",4,"filler_text","variable",40
+"10",993,3.96527708658825,0.0464,1,"Chi-square test","*","HSV1.nasal",0.11136,"ns",3,"filler_text","variable",40
+"11",149,3.19361446958289e-31,1,1,"Chi-square test","ns","HSV2.ea",1,"ns",2,"filler_text","variable",40
+"12",993,2.76328595495155,0.0964,1,"Chi-square test","ns","HSV2.nasal",0.1928,"ns",1,"filler_text","variable",40

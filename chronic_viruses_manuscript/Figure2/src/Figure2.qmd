@@ -1,0 +1,815 @@
+---
+title: "Figure2"
+format: html
+editor: visual
+---
+
+## Figure 2
+
+### Boot-up
+
+```{r}
+library(tidyverse)
+library(data.table)
+library(viridis)
+library(rstatix)
+library(ggpubr)
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+
+comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.csv") %>% select(-1) %>%
+  select(-starts_with("Human betaherpesvirus 6"),
+         -starts_with("Human gammaherpesvirus 8"),
+         -starts_with("Human betaherpesvirus 7"),
+         -starts_with("Respiratory syncytial virus"),
+         -starts_with("Human immunodeficiency virus 1"),
+         -starts_with("SARS-CoV-2"),
+         -starts_with("Enterovirus.pbmc"),
+         -starts_with("Enterovirus.ea"),
+         -starts_with("Anelloviridae.ea"),
+         -starts_with("Anelloviridae.nasal"))
+data_env <- readRDS("/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS")
+clinical_data <- data_env$clinical_data
+rm(data_env)
+
+clinical_data_ext <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-supp-locked.csv")
+out_dir <- "../output/"
+```
+
+### Figure 2A: Severity (and Figure S2A)
+
+```{r}
+library(aplot)
+library(rstatix)
+library(ordinal)
+
+ever_reactivate <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% select(event_id, participant_id)) %>%
+  group_by(participant_id, name) %>%
+  dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
+  filter(max != -Inf) %>%
+  mutate(binary = ifelse(max > 0, 1, 0))
+
+
+graph_data <- ever_reactivate %>%
+  left_join(clinical_data %>% distinct(participant_id, trajectory_group)) %>%
+  group_by(trajectory_group, name) %>%
+  dplyr::summarize(freq = mean(binary) * 100,
+                   count = n()) %>%
+  filter(count > 10) %>%
+  mutate(trajectory_group = factor(trajectory_group)) %>%
+   mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+  ungroup() %>%
+  complete(trajectory_group, name) %>%
+  mutate(freq = ifelse(is.na(freq), 0, freq),
+         count = ifelse(is.na(count), 0, count)) %>%
+  mutate(positive = freq * count / 100) %>%
+  group_by(name) %>%
+  mutate(pos_freq = positive / sum(positive) *100)
+
+
+clm_data <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type, sex)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  group_by(participant_id, name) %>%
+  dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
+  filter(max != -Inf) %>%
+  mutate(binary = ifelse(max > 0, 1, 0)) %>%
+  left_join(clinical_data %>% dplyr::select(participant_id, discretized_admit_age_quantile, enrollment_site, trajectory_group)) %>%
+  ungroup() %>%
+  filter(!is.na(discretized_admit_age_quantile)) %>%
+  filter(!is.na(enrollment_site)) %>%
+  filter(!is.na(trajectory_group)) %>%
+  distinct() %>%
+   mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) 
+
+## TG Association Testing
+stat.df <- data.frame()
+for(active_virus in unique(graph_data$name)){
+  tmp.chi <- graph_data %>%
+    filter(name == active_virus) %>%
+    ungroup() %>%
+    mutate(negative = count - positive) %>%
+    select(trajectory_group, positive, negative) %>%
+    column_to_rownames("trajectory_group")
+  
+  clm_data_tmp <- clm_data %>%
+    filter(name == active_virus) %>%
+    mutate(trajectory_group = ordered(factor(trajectory_group))) %>%
+    mutate(enrollment_site = factor(enrollment_site))
+  clmm_res <- clmm2(trajectory_group~binary, data = clm_data_tmp, random = enrollment_site,
+                    Hess = TRUE)
+  
+  stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>%
+                                mutate(name = active_virus,
+                 clm.p = summary(clmm_res)[["coefficients"]][5,4]))
+}
+
+stat.df <- stat.df %>%
+  mutate(p.value = ifelse(grepl("\\.ea", name), p, clm.p)) %>%
+  mutate(p.adj = p.adjust(p.value, "fdr")) %>%
+  add_significance("p.adj") %>%
+  mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+  arrange(name) %>%
+  mutate(xpos = 12:1) %>%
+  mutate(group1 = "filler_text", group2 = "variable") %>%
+  mutate(y.position = 40)
+write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part1.csv"))
+
+ggS2A <- graph_data %>%
+  ggplot(aes(y=name, x=pos_freq)) +
+  geom_bar(stat = "identity", position = "stack", aes(fill = trajectory_group)) +
+  theme_classic() + scale_y_discrete(limits = rev(unique(graph_data$name))) +
+  scale_fill_manual(values = TrajGrpCol, name = "Trajectory Group") +
+  ylab("Virus and Compartment") +
+  xlab("Percent of Participants (%)") +
+  theme(axis.text = element_text(color="black"),
+        legend.position = "top",
+        legend.direction = "vertical",
+        axis.ticks = element_line(color = "black"))
+ggS2A
+
+
+gg1 <- graph_data %>%
+  mutate(trajectory_group = factor(trajectory_group, levels = 5:1)) %>%
+  ggplot(aes(x=name, y=freq)) +
+  geom_bar(stat = "identity", position = position_dodge(preserve = "single"), aes(fill = trajectory_group)) +
+  theme_classic() + scale_x_discrete(limits = rev(unique(graph_data$name))) +
+  scale_fill_manual(values = TrajGrpCol, name = "Trajectory Group") +
+  xlab("Virus and Compartment") +
+  ylab(" ") +
+  stat_pvalue_manual(stat.df %>%
+                       filter(!p.adj.signif %in% c("ns", "", " ")) %>%
+                       mutate(y.position = c(38, 11, 15, 19, 45, 28, 12)),
+                     x= "xpos", label = "p.adj.signif", vjust = 0.7) +
+    coord_flip() +
+  theme(#axis.text.y = element_blank(),
+        #axis.title.y = element_blank(),
+        axis.text = element_text(color="black"),
+        axis.ticks = element_line(color = "black"))
+gg1
+
+```
+
+### Figure 2A: Post-acute Mortality in TG4
+
+```{r, fig.width = 7.5, fig.height = 5.5}
+library(rstatix)
+library(ggpattern)
+## The ggpattern began to gave issues due to a server update that prevent installation of the sf package
+## Thus, this code generates the exact same plots, just without the stripes on the bar for the right
+## panel of Figure 2A
+
+ever_reactivate <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, trajectory_group, event_type)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  group_by(participant_id, trajectory_group, name) %>%
+  dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
+  filter(max != -Inf) %>%
+  mutate(binary = ifelse(max > 0, 1, 0)) %>%
+  left_join(clinical_data_ext %>% dplyr::select(participant_id, diedever)) %>%
+  ungroup() %>%
+  filter(!is.na(trajectory_group)) %>%
+  group_by(trajectory_group, name, diedever) %>%
+  dplyr::summarize(mean = mean(binary) * 100,
+                   count = n(),
+                   positive = mean * count /100)
+
+model_df <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, trajectory_group, event_type)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  group_by(participant_id, trajectory_group, name) %>%
+  dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
+  filter(max != -Inf) %>%
+  mutate(binary = ifelse(max > 0, 1, 0)) %>%
+  left_join(clinical_data_ext %>% dplyr::select(participant_id, diedever, ever_steroids, ever_remdes)) %>%
+  ungroup() %>%
+  filter(!is.na(trajectory_group)) 
+
+## TG4 Chi.square survival testing
+stat.df <- data.frame()
+for(active_virus in unique(ever_reactivate$name)){
+  if(active_virus == "Simplexvirus.pbmc"){next}
+  tmp.chi <- ever_reactivate %>%
+    filter(trajectory_group == 4) %>%
+    filter(name == active_virus) %>%
+    ungroup() %>%
+    mutate(negative = count - positive) %>%
+    select(diedever, positive, negative) %>%
+    column_to_rownames("diedever")
+  
+  ## Correction for steroids and remdesivir
+  tmp_model_df <- model_df %>%
+    filter(trajectory_group == 4) %>%
+    filter(name == active_virus) %>%
+    mutate(diedever = factor(diedever),
+           ever_steroids = factor(ever_steroids),
+           ever_remdes = factor(ever_remdes),
+           binary = factor(binary))
+  
+  fit <- glm(formula(diedever~ever_steroids+ever_remdes+binary), data = tmp_model_df, family = "binomial")
+  
+  stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>%
+                                mutate(name = active_virus,
+                           med.adj.p = summary(fit)$coefficients[4,4]))
+}
+
+stat.df <- stat.df %>%
+  mutate(p.adj = p.adjust(p, "fdr")) %>%
+  mutate(p.adj.med = p.adjust(med.adj.p, "fdr")) %>%
+  add_significance("p.adj.med") %>%
+  mutate(group1 = "Died",
+         group2 = "Survived",
+         `.y.` = "diedever") %>%
+  mutate(y.position = 40) %>%
+  relocate(name, `.y.`, group1, group2) %>%
+  mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+  arrange(name) %>%
+  mutate(x=c(12:1), xmin = x-0.2, xmax =x+0.2)
+write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part2.csv"))
+
+gg2 <- ever_reactivate %>%
+  mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+  filter(trajectory_group == "4") %>%
+  mutate(diedever = ifelse(diedever == 1, "Died", "Survived")) %>%
+  mutate(diedever = factor(diedever, levels = c("Died", "Survived"))) %>%
+  ggplot(aes(x=name, y=mean)) +
+  geom_bar(aes(fill = diedever, color = diedever), stat = "identity",  width = 0.7,
+           position = position_dodge(width = 0.85)) +
+  # geom_bar_pattern(aes(pattern = diedever, fill = diedever, color = diedever), stat = "identity",
+  #                  pattern_spacing = 0.06, width = 0.7,
+  #                  pattern_density = 0.35, position = position_dodge(width = 0.85),
+  #                   pattern_fill = "white", pattern_color = "white") +
+  theme_classic() +
+  scale_x_discrete(limits = rev) +
+  scale_color_manual(values = c( "#9E5D10", "#9E5D10"), name = "TG4 >Day 28 \nOutcome") +
+  scale_fill_manual(values = c("#9E5D10", "#ffffff00"), name = "TG4 >Day 28 \nOutcome") +
+  scale_pattern_discrete(choices = c("stripe", "none"), name = "TG4 >Day 28 \nOutcome") +
+  xlab("Virus & Compartment") +
+  ylab("Percent of Patients (%)") + stat_pvalue_manual(
+  stat.df %>% filter(p.adj.med.signif != "ns") %>%
+    mutate(y.position = c(36, 28, 33, 38, 48, 25)),
+  label = "p.adj.med.signif", hjust = -1.1, vjust = 1.5, tip.length = 0.01
+  ) +
+    coord_flip() +
+  theme(axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text = element_text(color="black"),
+        axis.ticks = element_line(color = "black"))
+## 7.5 x 5.5
+gg1 %>% insert_right(gg2) 
+
+write_csv(gg1$data, paste0(out_dir, "source_data_Figure2A_part1.csv"))
+write_csv(gg2$data, paste0(out_dir, "source_data_Figure2A_part2.csv"))
+```
+
+### Figure 2B: Age
+
+```{r}
+library(viridis)
+library(rstatix)
+library(ggpubr)
+
+ever_reactivate <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type, sex)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  group_by(participant_id, name) %>%
+  dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
+  filter(max != -Inf) %>%
+  mutate(binary = ifelse(max > 0, 1, 0)) %>%
+  left_join(clinical_data %>% dplyr::select(participant_id, discretized_admit_age_quantile)) %>%
+  ungroup() %>%
+  filter(!is.na(discretized_admit_age_quantile)) %>%
+  group_by(name, discretized_admit_age_quantile) %>%
+  mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+  distinct() %>%
+  dplyr::summarize(mean = mean(binary) * 100,
+                   count = n(),
+                   positive = mean * count /100)
+
+clm_data <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type, sex)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  group_by(participant_id, name) %>%
+  dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
+  filter(max != -Inf) %>%
+  mutate(binary = ifelse(max > 0, 1, 0)) %>%
+  left_join(clinical_data %>% dplyr::select(participant_id, discretized_admit_age_quantile, enrollment_site, trajectory_group)) %>%
+  ungroup() %>%
+  filter(!is.na(discretized_admit_age_quantile)) %>%
+  filter(!is.na(enrollment_site)) %>%
+  filter(!is.na(trajectory_group)) %>%
+  distinct()
+
+## Age Association Testing
+stat.df <- data.frame()
+library(ordinal)
+for(active_virus in unique(clm_data$name)){
+  tmp.chi <- ever_reactivate %>%
+    filter(name == active_virus) %>%
+    ungroup() %>%
+    mutate(negative = count - positive) %>%
+    select(discretized_admit_age_quantile, positive, negative) %>%
+    column_to_rownames("discretized_admit_age_quantile")
+  
+  ## CLMM testing
+  clm_data_tmp <- clm_data %>%
+    filter(name == active_virus) %>%
+    mutate(discretized_admit_age_quantile = ordered(factor(discretized_admit_age_quantile))) %>%
+    mutate(trajectory_group = ordered(factor(trajectory_group))) %>%
+    mutate(enrollment_site = factor(enrollment_site))
+  clmm_base <- clmm2(discretized_admit_age_quantile~trajectory_group, data = clm_data_tmp, random = enrollment_site,
+                    Hess = TRUE)
+  clmm_res <- clmm2(discretized_admit_age_quantile~binary+trajectory_group, data = clm_data_tmp, random = enrollment_site,
+                    Hess = TRUE)
+  
+  stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>% mutate(name = active_virus) %>%
+                                mutate(ordinal.p = anova(clmm_res, clmm_base)$`Pr(Chi)`[2]))
+}
+
+stat.df <- stat.df %>%
+  mutate(p.adj = p.adjust(ordinal.p, "fdr")) %>%
+  add_significance("p.adj") %>%
+  mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+  arrange(name) %>%
+  mutate(xpos = 12:1) %>%
+  mutate(group1 = "filler_text", group2 = "variable") %>%
+  mutate(y.position = 40)
+write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part3.csv"))
+
+gg2B <- ever_reactivate %>%
+  mutate(discretized_admit_age_quantile = fct_rev(discretized_admit_age_quantile)) %>%
+  ggplot(aes(x=name, y=mean)) +
+  geom_bar(stat = "identity", position = position_dodge(preserve = "single"),
+           aes(fill = discretized_admit_age_quantile)) +
+  theme_classic() + scale_x_discrete(limits = rev(unique(ever_reactivate$name))) +
+  ylab("% of Patients") +
+  xlab("") +
+    coord_flip() +
+  viridis::scale_fill_viridis(discrete = TRUE, name = "Age Quantile") +
+  stat_pvalue_manual(stat.df %>%
+                       filter(!p.adj.signif %in% c("ns", "", " ")) %>%
+                       mutate(y.position = c(35)),
+                     x= "xpos", label = "p.adj.signif", vjust = 0.7) +
+  theme(axis.text = element_text(color="black"),
+        axis.ticks = element_line(color = "black"))
+
+gg2B
+write_csv(gg2B$data, paste0(out_dir, "source_data_Figure2B.csv"))
+```
+
+```{r, fig.width = 8, fig.height = 6}
+gg1 %>% insert_right(gg2) %>% insert_right(gg2B)
+ggsave(paste0(out_dir, "Figure2A_B.pdf"), width = 8, height = 6)
+##10x5
+```
+
+### Figure 2C: Demographics, Complications, and Comorbidites
+
+```{r}
+
+ever_reactivate <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% select(event_id, participant_id)) %>%
+  group_by(participant_id, name) %>%
+  dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
+  filter(max != -Inf) %>%
+  mutate(binary = ifelse(max > 0, 1, 0))
+
+```
+
+```{r}
+#| eval: false
+### This chunk is very slow, only run it once and the results are already present
+require(lme4)
+
+ordered_v <- c("comorb_count", "comorb_countcat", "ncomp")
+numeric <- c("")
+
+model_data <- ever_reactivate %>%
+  inner_join(clinical_data_ext) %>%
+  left_join(clinical_data %>% distinct(participant_id, sex, 
+                                       discretized_admit_age_quantile,
+                                       trajectory_group,
+                                       enrollment_site))
+
+out_model <- data.frame()
+for(active_virus in unique(model_data$name)){
+  print(paste0("Starting ", active_virus))
+  for(active_var in colnames(clinical_data_ext)[grepl("comorb|comp|symptom|ever", colnames(clinical_data_ext))]){
+    model_data.tmp <- model_data %>%
+      filter(name == active_virus) %>%
+      ungroup() %>%
+      mutate(binary = factor(binary)) %>%
+      mutate(sex = factor(sex),
+             discretized_admit_age_quantile = ordered(factor(discretized_admit_age_quantile)),
+             trajectory_group = ordered(factor(trajectory_group)))
+    model_data.tmp[[active_var]] = factor(model_data.tmp[[active_var]])
+    if(active_var %in% ordered_v){
+      model_data.tmp[[active_var]] = ordered(model_data.tmp[[active_var]])
+      }
+    
+    formula_use_cont <- formula(paste0(active_var, "~ binary + sex + discretized_admit_age_quantile + trajectory_group + (1 | enrollment_site)"))
+    
+    fit <- try(glmer(formula_use_cont, data = model_data.tmp,
+       family = binomial,
+      control = glmerControl(optimizer = "bobyqa"),
+      nAGQ = 10), silent = TRUE)
+    if(class(fit) == "try-error"){next}
+    drop1_ress <- try(drop1(fit, test="Chisq"), silent = TRUE)
+    if(class(drop1_ress) == "try-error"){next}
+    
+    out_model <- rbind.data.frame(out_model,
+                                drop1_ress %>%
+                                  rownames_to_column("term") %>%
+                                  mutate(virus = active_virus,
+                                         feature = active_var,
+                                         coef_virus = unique(coef(fit)$enrollment_site$binary1)))
+  }
+}
+
+write.csv(out_model %>% distinct(), paste0(out_dir, "Supplemental_Data_1_part4.csv"))
+## This is also reported in the source data (exact same)
+```
+
+```{r, width = 8.5, height = 5}
+library(scales)
+
+order_of_features <- c("CHF" = "comp_chf",
+                       "STEMI" = "comp_stemi",
+                       "Stroke" = "comp_stroke",
+                       "Shock" = "comp_shock",
+                       "Acute Venous Thromboembolism" = "comp_avthromb",
+                       "Bacteremia" = "comp_bac",
+                       "Other Infection" = "comp_othinf",
+                       "Pneumothorax" = "comp_pneumo",
+                       "Pulm Vascular Disease" = "comp_pulmvas",
+                       "Liver Dysfunction/Failure" = "comp_liver",
+                       "Liver Disease" = "comorb_isaric_liver",
+                       "Renal" = "comp_renal",
+                       "Organ/BM Transplant" = "comorb_hxtrans",
+                       "Substance Use" = "comorb_anysubstance",
+                       "Azithromycin" = "ever_azithro",
+                       "Immunosupressed" = "ever_immsupp",
+                       "Conv Plasma" =  "ever_conplas",
+                       "Steroids" = "ever_steroids",
+                       "Remdesivir" = "ever_remdes",
+                        "ICU" = "ever_icu",
+                       "Number of Complications" = "ncomp")
+
+viral_order <- gsub(".*\\(", "", gsub("\\)", "", colnames(comb_data)[-1][order(colnames(comb_data)[-1])]))
+out_model <- read_csv(paste0(out_dir, "Supplemental_Data_1_part4.csv")) %>% select(-1)
+library(scales)
+library(ggh4x)
+signif <- as.data.frame(out_model) %>%
+  mutate(`Pr(Chi)` = as.numeric(`Pr(Chi)`)) %>%
+  group_by(virus) %>%
+  mutate(`Pr(Chi)` = p.adjust(`Pr(Chi)`, 'fdr')) %>%
+  filter(`Pr(Chi)` <= 0.05) %>%
+  filter(term == "binary")
+  
+
+## 8.5 x 4
+tmp <- out_model %>%
+  mutate(`Pr(Chi)` = as.numeric(`Pr(Chi)`)) %>%
+  filter(feature %in% order_of_features) %>%
+   group_by(virus) %>%
+  mutate(`Pr(Chi)` = p.adjust(`Pr(Chi)`, 'fdr')) %>%
+  filter(term == "binary") %>%
+  mutate(direction = (coef_virus/abs(coef_virus)),
+         log10p = -log10(`Pr(Chi)`)) %>%
+  mutate(signedlog10p = log10p * direction) %>%
+  mutate(virus = gsub(".*\\(", "", gsub("\\)", "", virus))) %>%
+  filter(!feature %in% c("anycomp", "diedever")) %>%
+  left_join(as.data.frame(order_of_features) %>%
+              rownames_to_column("Label") %>%
+              dplyr::rename("feature" = 2)) %>%
+  mutate(Label = factor(Label, levels = names(order_of_features))) %>%
+  mutate(panel = gsub("_.*", "", feature)) %>%
+  mutate(panel = ifelse(panel == "ncomp",
+                        "Complications & Comorbidities", panel)) %>%
+  mutate(panel = ifelse(panel == "comp", "Complications & Comorbidities", panel))%>%
+  mutate(panel = ifelse(panel == "symptom", "Complications & Comorbidities", panel))%>%
+  mutate(panel = ifelse(panel == "comorb", "Complications & Comorbidities", panel)) %>%
+  mutate(panel = ifelse(feature %in% c("ever_ever_esc", "ever_icu", "ncomp"),
+                        "Clinical Event", panel)) %>%
+  filter(feature != "ever_ever_esc") %>%
+  mutate(panel = ifelse(panel == "ever", "Medication", panel)) %>%
+  ungroup() %>%
+  filter(!grepl("Beta", virus))
+
+gg2C <- tmp %>%
+  ggplot(aes(x=interaction(Label), y=virus)) +
+  geom_point(aes(size = log10p, color = signedlog10p), shape = 21, fill = NA) +
+  geom_point(data = . %>% filter(`Pr(Chi)` <= 0.05),
+             aes(size = log10p, fill = signedlog10p), shape = 21) +
+  theme_classic() +
+  ylab("Virus and Compartment") +
+  facet_grid(~panel,scales = "free_x", space = "free_x") +
+  scale_y_discrete(limits = rev(unique(tmp$virus)[order(unique(tmp$virus))])) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  scale_color_distiller(palette = "RdBu", limits = c(-4,4), oob=squish,
+                        breaks = c(-3, -2, -1, 0, 1, 2, 3),
+                        labels = c(-0.001, -0.01, -0.1, 1, 0.1, 0.01, 0.001),
+                        name = "Signed\nadjusted p-value",
+    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black"))+
+  scale_fill_distiller(palette = "RdBu", limits = c(-4,4), oob=squish,
+                        breaks = c(-3, -2, -1, 0, 1, 2, 3),
+                        labels = c(-0.001, -0.01, -0.1, 1, 0.1, 0.01, 0.001),
+                        name = "Signed\nadjusted p-value",
+    guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +
+  theme(axis.title.x = element_blank(),
+        axis.ticks = element_line(color = "black"),
+        axis.text = element_text(color = "black")) +
+  guides(size = guide_legend(title = "-Log10 adjusted\np-value")) 
+gg2C
+ggsave(paste0(out_dir, "Figure2C.pdf"), width = 8.5, height = 5)
+
+write_csv(gg2C$data, paste0(out_dir, "source_data_Figure2C.csv"))
+```
+
+## Supplemental Figure 2
+
+### Figure S2B: Ethnicity
+
+```{r}
+################ Ethinicity #########################
+ever_reactivate <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type, sex)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  group_by(participant_id, name) %>%
+  dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
+  filter(max != -Inf) %>%
+  mutate(binary = ifelse(max > 0, 1, 0)) %>%
+  left_join(clinical_data %>% dplyr::select(participant_id, ethnicity)) %>%
+  ungroup() %>%
+  filter(!is.na(ethnicity)) %>%
+  group_by(name, ethnicity) %>%
+  mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+  distinct() %>%
+  dplyr::summarize(mean = mean(binary) * 100,
+                   count = n(),
+                   positive = mean * count /100)
+
+## Ethnicity Association Testing
+stat.df <- data.frame()
+for(active_virus in unique(ever_reactivate$name)){
+  tmp.chi <- ever_reactivate %>%
+    filter(ethnicity != "Not Specified") %>%
+    filter(name == active_virus) %>%
+    ungroup() %>%
+    mutate(negative = count - positive) %>%
+    select(ethnicity, positive, negative) %>%
+    column_to_rownames("ethnicity")
+  
+  stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>% mutate(name = active_virus))
+}
+
+stat.df <- stat.df %>%
+  mutate(p.adj = p.adjust(p, "fdr")) %>%
+  add_significance("p.adj") %>%
+  mutate(xpos = 12:1) %>%
+  mutate(group1 = "filler_text", group2 = "variable") %>%
+  mutate(y.position = 40)
+
+write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part5.csv"))
+
+library(viridis)
+ggS2B <- ever_reactivate %>%
+  ggplot(aes(x=name, y=mean)) +
+  geom_bar(stat = "identity", position = position_dodge(preserve = "single"), aes(fill = ethnicity)) +
+  theme_classic() + scale_x_discrete(limits = rev(unique(ever_reactivate$name))) +
+  xlab("Virus & Compartment") +
+  ylab("Percent of Participants (%)") +
+    coord_flip() +
+  theme(axis.text = element_text(color = "black"),
+        #axis.text.y = element_blank(),
+        #axis.title.y = element_blank(),
+       legend.position = "top",
+        legend.direction = "vertical") +
+  scale_fill_manual(values = c("#22a6a8", "#a82277", "lightgray"), name = "Ethnicity") +
+  ## viridis::scale_fill_viridis(discrete = TRUE, name = "Ethnicity",direction = -1,) +
+  stat_pvalue_manual(stat.df %>%
+                       filter(!p.adj.signif %in% c("ns", "", " ")) %>%
+                       mutate(y.position = c(13,13, 15, 40)),
+                     x= "xpos", label = "p.adj.signif", vjust = 0.7)
+
+```
+
+### Figure S2C: Sex
+
+```{r, fig.width = 8, fig.height = 5}
+
+## S2A is from earlier in the markdown (in the severity chunk)
+
+ever_reactivate <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type, sex)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  group_by(participant_id, name) %>%
+  dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
+  filter(max != -Inf) %>%
+  mutate(binary = ifelse(max > 0, 1, 0)) %>%
+  left_join(clinical_data %>% dplyr::select(participant_id, sex)) %>%
+  ungroup() %>%
+  filter(!is.na(sex)) %>%
+  group_by(name, sex) %>%
+  mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+  distinct() %>%
+  dplyr::summarize(mean = mean(binary) * 100,
+                   count = n(),
+                   positive = mean * count /100)
+
+## Sex Association Testing
+stat.df <- data.frame()
+for(active_virus in unique(ever_reactivate$name)){
+  tmp.chi <- ever_reactivate %>%
+    filter(name == active_virus) %>%
+    ungroup() %>%
+    mutate(negative = count - positive) %>%
+    select(sex, positive, negative) %>%
+    column_to_rownames("sex")
+  
+  stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>% mutate(name = active_virus))
+}
+
+## Nothing significant even before corrections
+write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part6.csv"))
+
+library(viridis)
+ggS2C <- ever_reactivate %>%
+  ggplot(aes(x=name, y=mean)) +
+  geom_bar(stat = "identity", position = position_dodge(preserve = "single"), aes(fill = sex)) +
+  theme_classic() + scale_x_discrete(limits = rev(unique(ever_reactivate$name))) +
+  ylab("Percent of Participants (%)") +
+  xlab("Virus & Compartment") +
+    coord_flip() +
+  theme(axis.text = element_text(color = "black"),
+        legend.direction = "vertical",
+        legend.position = "top") +
+  scale_fill_manual(values = c("darkred", "darkblue"), name = "Sex")
+
+```
+
+### Figure S2D-E: Treatments
+
+```{r, fig.width = 5, fig.height = 5}
+library(rstatix)
+
+ever_reactivate <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, trajectory_group, event_type)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  group_by(participant_id, trajectory_group, name) %>%
+  dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
+  filter(max != -Inf) %>%
+  mutate(binary = ifelse(max > 0, 1, 0)) %>%
+  left_join(clinical_data_ext %>% dplyr::select(participant_id, ever_steroids)) %>%
+  ungroup() %>%
+  filter(!is.na(trajectory_group)) %>%
+  group_by(name, ever_steroids) %>%
+  dplyr::summarize(mean = mean(binary) * 100,
+                   count = n(),
+                   positive = mean * count /100)
+
+## Steroid Chi.square survival testing (not correcting for severity)
+stat.df <- data.frame()
+for(active_virus in unique(ever_reactivate$name)){
+  tmp.chi <- ever_reactivate %>%
+    filter(name == active_virus) %>%
+    ungroup() %>%
+    mutate(negative = count - positive) %>%
+    select(ever_steroids, positive, negative) %>%
+    column_to_rownames("ever_steroids")
+  
+  stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>% mutate(name = active_virus))
+}
+
+stat.df <- stat.df %>%
+  filter(name != "Simplexvirus.pbmc") %>%
+  mutate(p.adj = p.adjust(p, "fdr")) %>%
+  add_significance("p.adj") %>%
+  mutate(group1 = "Steroids",
+         group2 = "No Steroids",
+         `.y.` = "ever_steroids")
+write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part7.csv"))
+
+gg3_steroids <- ever_reactivate %>%
+  mutate(ever_steroids = factor(ever_steroids)) %>%
+ # filter(grepl("implex|EBV|CMV", name)) %>%
+  mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+  mutate(ever_steroids = ifelse(ever_steroids == 1, "Steroids", "No Steroids")) %>%
+  mutate(ever_steroids = factor(ever_steroids, levels = c("No Steroids", "Steroids"))) %>%
+  ggplot(aes(x=name, y=mean)) +
+  geom_bar(aes(fill = ever_steroids), stat = "identity", position = "dodge") +
+  theme_classic() +
+  scale_x_discrete(limits = rev) +
+  scale_fill_manual(values = c("#2F2D2E", "#E69A8DFF"), name = "Steroid Usage") +
+  xlab("Virus & Compartment") +
+  ylab("Percent of Participants (%)") +
+    coord_flip() +
+  theme(legend.position = "top",
+        legend.direction = "vertical",
+        axis.text = element_text(color="black"),
+        axis.ticks = element_line(color = "black"))
+
+gg3_steroids
+```
+
+```{r, fig.width = 5, fig.height = 5}
+library(rstatix)
+
+ever_reactivate <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, trajectory_group, event_type)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  group_by(participant_id, trajectory_group, name) %>%
+  dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
+  filter(max != -Inf) %>%
+  mutate(binary = ifelse(max > 0, 1, 0)) %>%
+  left_join(clinical_data_ext %>% dplyr::select(participant_id, ever_remdes)) %>%
+  ungroup() %>%
+  filter(!is.na(trajectory_group)) %>%
+  group_by(name, ever_remdes) %>%
+  dplyr::summarize(mean = mean(binary) * 100,
+                   count = n(),
+                   positive = mean * count /100)
+
+## Steroid Chi.square survival testing (not correcting for severity)
+stat.df <- data.frame()
+for(active_virus in unique(ever_reactivate$name)){
+  tmp.chi <- ever_reactivate %>%
+    filter(name == active_virus) %>%
+    ungroup() %>%
+    mutate(negative = count - positive) %>%
+    select(ever_remdes, positive, negative) %>%
+    column_to_rownames("ever_remdes")
+  
+  stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>% mutate(name = active_virus))
+}
+
+stat.df <- stat.df %>%
+  filter(name != "Simplexvirus.pbmc") %>%
+  mutate(p.adj = p.adjust(p, "fdr")) %>%
+  add_significance("p.adj") %>%
+  mutate(group1 = "Remdesivir",
+         group2 = "No Remdesivir",
+         `.y.` = "ever_remdes")
+write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part8.csv"))
+
+gg3_rem <- ever_reactivate %>%
+  mutate(ever_remdes = factor(ever_remdes)) %>%
+ # filter(grepl("implex|EBV|CMV", name)) %>%
+  mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+  mutate(ever_remdes = ifelse(ever_remdes == 1, "Remdesivir", "No Remdesivir")) %>%
+  mutate(ever_remdes = factor(ever_remdes, levels = c("No Remdesivir", "Remdesivir"))) %>%
+  ggplot(aes(x=name, y=mean)) +
+  geom_bar(aes(fill = ever_remdes), stat = "identity", position = "dodge") +
+  theme_classic() +
+  scale_x_discrete(limits = rev) +
+  scale_fill_manual(values = c("#2F2D2E", "#99C24D"), name = "Remdesivir Usage") +
+  xlab("Virus & Compartment") +
+  ylab("Percent of Participants (%)") +
+    coord_flip() +
+  theme(legend.position = "top",
+        legend.direction = "vertical",
+        axis.text = element_text(color="black"),
+        axis.ticks = element_line(color = "black"))
+
+gg3_rem
+```
+
+```{r, fig.width = 10, fig.height = 12}
+
+## 10 x 12
+ggarrange(ggS2A + theme(legend.position = "top",
+                        axis.title.y = element_blank()),
+          ggS2B + theme(legend.position = "top",
+                        axis.title.y = element_blank()),
+          ggS2C + theme(legend.position = "top",
+                        axis.title.y = element_blank()),
+          gg3_steroids + theme(legend.position = "top",
+                        axis.title.y = element_blank()) ,
+          gg3_rem + theme(legend.position = "top",
+                        axis.title.y = element_blank()),
+          align = "hv",nrow = 2, ncol = 3, labels = c("A", "B", "C", "D", "E"), font.label = list(size=18))
+ggsave(paste0(out_dir, "FigureS2.pdf"), width = 10, height = 12)
+write_csv(ggS2A$data, paste0(out_dir, "source_data_FigureS2A.csv"))
+write_csv(ggS2B$data, paste0(out_dir, "source_data_FigureS2B.csv"))
+write_csv(ggS2C$data, paste0(out_dir, "source_data_FigureS2C.csv"))
+write_csv(gg3_steroids$data, paste0(out_dir, "source_data_FigureS2D.csv"))
+write_csv(gg3_rem$data, paste0(out_dir, "source_data_FigureS2E.csv"))
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```

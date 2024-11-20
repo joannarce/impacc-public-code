@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.555">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Figure3</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Figure3_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Figure3_files/libs/quarto-html/quarto.js"></script>
+<script src="Figure3_files/libs/quarto-html/popper.min.js"></script>
+<script src="Figure3_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Figure3_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Figure3_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Figure3_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Figure3_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Figure3_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Figure3_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Figure3</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="figure-3" class="level2">
+<h2 class="anchored" data-anchor-id="figure-3">Figure 3</h2>
+<section id="boot-up" class="level3">
+<h3 class="anchored" data-anchor-id="boot-up">Boot-up</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.2     ✔ readr     2.1.5
+✔ forcats   1.0.0     ✔ stringr   1.5.0
+✔ ggplot2   3.4.2     ✔ tibble    3.2.1
+✔ lubridate 1.9.3     ✔ tidyr     1.3.1
+✔ purrr     1.0.2     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'data.table'
+
+The following objects are masked from 'package:lubridate':
+
+    hour, isoweek, mday, minute, month, quarter, second, wday, week,
+    yday, year
+
+The following objects are masked from 'package:dplyr':
+
+    between, first, last
+
+The following object is masked from 'package:purrr':
+
+    transpose</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(viridis)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: viridisLite</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggpubr)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>TrajGrpCol <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"1"</span> <span class="ot">=</span> <span class="st">"#639A21"</span>, <span class="st">"2"</span> <span class="ot">=</span> <span class="st">"#39828C"</span>, <span class="st">"3"</span> <span class="ot">=</span> <span class="st">"#6371AD"</span>, <span class="st">"4"</span> <span class="ot">=</span> <span class="st">"#BD7D31"</span>, <span class="st">"5"</span> <span class="ot">=</span> <span class="st">"#9C3418"</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>preprocess_bld_cytof_child_wo_granulo <span class="ot">&lt;-</span> <span class="cf">function</span>(counts) {</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  bld_cytof_child_nongran <span class="ot">&lt;-</span> counts <span class="sc">%&gt;%</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">"event_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="sc">-</span><span class="fu">contains</span>(<span class="at">match =</span> <span class="st">"Debris"</span>), </span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>                  <span class="sc">-</span><span class="fu">contains</span>(<span class="at">match =</span> <span class="st">"Multiplet"</span>),</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>                  <span class="sc">-</span><span class="st">`</span><span class="at">Platelets</span><span class="st">`</span>, </span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>                  <span class="sc">-</span><span class="st">`</span><span class="at">RBC</span><span class="st">`</span>, </span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>                  <span class="sc">-</span><span class="st">`</span><span class="at">Tier1_Undefined</span><span class="st">`</span>,</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>                  <span class="sc">-</span><span class="st">`</span><span class="at">Tier2_undefined_Undefined</span><span class="st">`</span>,</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>                  <span class="sc">-</span><span class="st">`</span><span class="at">Neutrophil (CD16low)</span><span class="st">`</span>,</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>                  <span class="sc">-</span><span class="st">`</span><span class="at">Neutrophil (CD16hi)</span><span class="st">`</span>,</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>                  <span class="sc">-</span><span class="st">`</span><span class="at">Eosinophil</span><span class="st">`</span>,</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>                  <span class="sc">-</span><span class="st">`</span><span class="at">Basophil</span><span class="st">`</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">"event_id"</span>)</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>  bld_cytof_child_nongran <span class="ot">&lt;-</span> bld_cytof_child_nongran<span class="sc">/</span><span class="fu">rowSums</span>(bld_cytof_child_nongran)</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  bld_cytof_child_nongran <span class="ot">&lt;-</span> <span class="fu">log1p</span>(bld_cytof_child_nongran)</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>  bld_cytof_child_nongran <span class="ot">&lt;-</span> bld_cytof_child_nongran <span class="sc">%&gt;%</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">apply</span>(<span class="dv">2</span>, scale) <span class="sc">%&gt;%</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">data.frame</span>(<span class="at">check.names =</span> F) <span class="sc">%&gt;%</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">rownames&lt;-</span><span class="st">`</span>(<span class="fu">row.names</span>(bld_cytof_child_nongran))</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="at">value =</span> bld_cytof_child_nongran)</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>preprocess_bld_cytof_child_seperate_granulo <span class="ot">&lt;-</span> <span class="cf">function</span>(counts){</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>  bld_cytof_child_counts_processed <span class="ot">&lt;-</span> <span class="fu">preprocess_bld_cytof_child_wo_granulo</span>(counts)</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>  bld_cytof_child_gran <span class="ot">&lt;-</span> counts <span class="sc">%&gt;%</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">"event_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="sc">-</span><span class="fu">contains</span>(<span class="at">match =</span> <span class="st">"Debris"</span>), </span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>                  <span class="sc">-</span><span class="fu">contains</span>(<span class="at">match =</span> <span class="st">"Multiplet"</span>),</span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>                  <span class="sc">-</span><span class="st">`</span><span class="at">Platelets</span><span class="st">`</span>, </span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>                  <span class="sc">-</span><span class="st">`</span><span class="at">RBC</span><span class="st">`</span>, </span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>                  <span class="sc">-</span><span class="st">`</span><span class="at">Tier1_Undefined</span><span class="st">`</span>,</span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>                  <span class="sc">-</span><span class="st">`</span><span class="at">Tier2_undefined_Undefined</span><span class="st">`</span></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span></span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>    <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">"event_id"</span>)</span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>  bld_cytof_child_gran <span class="ot">&lt;-</span> bld_cytof_child_gran<span class="sc">/</span><span class="fu">rowSums</span>(bld_cytof_child_gran)</span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>  bld_cytof_child_gran <span class="ot">&lt;-</span> <span class="fu">log1p</span>(bld_cytof_child_gran)</span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>  bld_cytof_child_gran <span class="ot">&lt;-</span> bld_cytof_child_gran <span class="sc">%&gt;%</span></span>
+<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>    <span class="fu">apply</span>(<span class="dv">2</span>, scale) <span class="sc">%&gt;%</span></span>
+<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a>    <span class="fu">data.frame</span>(<span class="at">check.names =</span> F) <span class="sc">%&gt;%</span></span>
+<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">rownames&lt;-</span><span class="st">`</span>(<span class="fu">row.names</span>(bld_cytof_child_gran))</span>
+<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a>  final <span class="ot">&lt;-</span> <span class="fu">cbind.data.frame</span>(bld_cytof_child_counts_processed,</span>
+<span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>                            bld_cytof_child_gran[,<span class="sc">!</span><span class="fu">colnames</span>(bld_cytof_child_gran) <span class="sc">%in%</span> <span class="fu">colnames</span>(bld_cytof_child_counts_processed)])</span>
+<span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(final)</span>
+<span id="cb7-52"><a href="#cb7-52" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-54"><a href="#cb7-54" aria-hidden="true" tabindex="-1"></a>comb_data <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/full_comb_data.csv"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-55"><a href="#cb7-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-56"><a href="#cb7-56" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human betaherpesvirus 6"</span>),</span>
+<span id="cb7-57"><a href="#cb7-57" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human gammaherpesvirus 8"</span>),</span>
+<span id="cb7-58"><a href="#cb7-58" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human betaherpesvirus 7"</span>),</span>
+<span id="cb7-59"><a href="#cb7-59" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Respiratory syncytial virus"</span>),</span>
+<span id="cb7-60"><a href="#cb7-60" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human immunodeficiency virus 1"</span>),</span>
+<span id="cb7-61"><a href="#cb7-61" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"SARS-CoV-2"</span>),</span>
+<span id="cb7-62"><a href="#cb7-62" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Enterovirus.pbmc"</span>),</span>
+<span id="cb7-63"><a href="#cb7-63" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Enterovirus.ea"</span>),</span>
+<span id="cb7-64"><a href="#cb7-64" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Anelloviridae.ea"</span>),</span>
+<span id="cb7-65"><a href="#cb7-65" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Anelloviridae.nasal"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>New names:
+Rows: 4654 Columns: 31
+── Column specification
+──────────────────────────────────────────────────────── Delimiter: "," chr
+(1): event_id dbl (30): ...1, Human gammaherpesvirus 4 (EBV).pbmc, Human
+betaherpesvirus 5...
+ℹ Use `spec()` to retrieve the full column specification for this data. ℹ
+Specify the column types or set `show_col_types = FALSE` to quiet this message.
+• `` -&gt; `...1`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>data_env <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS"</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>clinical_data <span class="ot">&lt;-</span> data_env<span class="sc">$</span>clinical_data</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>clinical_data_ext <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-supp-locked.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 1164 Columns: 151
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr   (1): participant_id
+dbl (150): comorb_htn, comorb_isaric_dm, comorb_anyresp_noasthma, comorb_isa...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>out_dir <span class="ot">&lt;-</span> <span class="st">"../output/"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="figure-3a-b-antibody-responses" class="level2">
+<h2 class="anchored" data-anchor-id="figure-3a-b-antibody-responses">Figure 3A-B: Antibody Responses</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>luminex_data <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/scratch/Luminex/Luminex-Counts.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 2133 Columns: 25
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (1): sample_id
+dbl (24): COV_2_S_M, Measles, H_COV_NL_63, COV_2_RBD, COV_2_NP, CMV, Inf_A, ...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>luminex_metadata <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/scratch/Luminex/Luminex-Metadata.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 2133 Columns: 11
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (7): sample_id, Core_id, Well, Isotype, guspec, visit_id, participant_id
+dbl (4): Sample, Batch, Plate, Batch_Plate
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>luminex_rowfeatures <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/scratch/Luminex/Luminex-RowFeature.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 2174 Columns: 32
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (4): Name, Well, Type, Isotype
+dbl (28): Sample, COV_2_S_M, Measles, H_COV_NL_63, COV_2_RBD, COV_2_NP, CMV,...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>cmv_seropositivity <span class="ot">&lt;-</span> <span class="fu">read_xlsx</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/CMV IgG in plasma IMPACC Study Olink leftovers 022224.xlsx"</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>luminex_cutoff_CMV <span class="ot">=</span> <span class="dv">886</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="nomalization-of-antibody-titers" class="level4">
+<h4 class="anchored" data-anchor-id="nomalization-of-antibody-titers">Nomalization of Antibody Titers</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="do">### Normalization method from Tyson</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="do">## I regressed the logarithm of IgG CMV MFI on age, sex, logarithm of CHEX4 beads' MFI, and batch/plate. Age and CHEX4 terms were each mean-centered. CHEX4 beads quantify nonspecific binding. I then added the residuals from this fit to the estimated intercept to obtain the detrended data. I used the lm function in the R stats package for this work. Please let me know if you have any questions about this.</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>long_luminex <span class="ot">&lt;-</span> luminex_data <span class="sc">%&gt;%</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>sample_id) <span class="sc">%&gt;%</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"CHEX"</span>, name)) <span class="sc">%&gt;%</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(luminex_metadata <span class="sc">%&gt;%</span> <span class="fu">select</span>(sample_id, Batch, Plate)) <span class="sc">%&gt;%</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(luminex_data <span class="sc">%&gt;%</span> <span class="fu">select</span>(sample_id, CHEX_1, CHEX_2, CHEX_3, CHEX_4)) <span class="sc">%&gt;%</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Batch =</span> <span class="fu">as.factor</span>(Batch),</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>         <span class="at">Plate =</span> <span class="fu">as.factor</span>(Plate)) <span class="sc">%&gt;%</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log_ab =</span> <span class="fu">log</span>(value),</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>         <span class="at">CHEX_1 =</span> <span class="fu">log</span>(CHEX_1),</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>         <span class="at">CHEX_2 =</span> <span class="fu">log</span>(CHEX_2),</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>         <span class="at">CHEX_3 =</span> <span class="fu">log</span>(CHEX_3),</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>         <span class="at">CHEX_4 =</span> <span class="fu">log</span>(CHEX_4))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Mean center features</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>long_luminex<span class="sc">$</span>CHEX_1 <span class="ot">&lt;-</span> long_luminex<span class="sc">$</span>CHEX_1 <span class="sc">-</span> <span class="fu">mean</span>(long_luminex<span class="sc">$</span>CHEX_1, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>long_luminex<span class="sc">$</span>CHEX_2 <span class="ot">&lt;-</span> long_luminex<span class="sc">$</span>CHEX_2 <span class="sc">-</span> <span class="fu">mean</span>(long_luminex<span class="sc">$</span>CHEX_2, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>long_luminex<span class="sc">$</span>CHEX_3 <span class="ot">&lt;-</span> long_luminex<span class="sc">$</span>CHEX_3 <span class="sc">-</span> <span class="fu">mean</span>(long_luminex<span class="sc">$</span>CHEX_3, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>long_luminex<span class="sc">$</span>CHEX_4 <span class="ot">&lt;-</span> long_luminex<span class="sc">$</span>CHEX_4 <span class="sc">-</span> <span class="fu">mean</span>(long_luminex<span class="sc">$</span>CHEX_4, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>normalized_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="st">"sample_id"</span> <span class="ot">=</span> <span class="fu">unique</span>(long_luminex<span class="sc">$</span>sample_id))</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(active_ab <span class="cf">in</span> <span class="fu">unique</span>(long_luminex<span class="sc">$</span>name)){</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  tmp.data <span class="ot">&lt;-</span> long_luminex <span class="sc">%&gt;%</span> <span class="fu">filter</span>(name <span class="sc">==</span> active_ab)</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>  fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(log_ab <span class="sc">~</span> CHEX_1<span class="sc">+</span>CHEX_2<span class="sc">+</span>CHEX_3<span class="sc">+</span>CHEX_4<span class="sc">+</span>Batch<span class="sc">+</span>Plate, <span class="at">data =</span> tmp.data)</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  normalized_data <span class="ot">&lt;-</span> normalized_data <span class="sc">%&gt;%</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">full_join</span>(<span class="fu">data.frame</span>(<span class="st">"sample_id"</span> <span class="ot">=</span> tmp.data<span class="sc">$</span>sample_id,</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>                         <span class="at">active_ab =</span> fit<span class="sc">$</span>residuals <span class="sc">+</span> fit<span class="sc">$</span>coefficients[<span class="dv">1</span>]))</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(normalized_data)[<span class="fu">ncol</span>(normalized_data)] <span class="ot">&lt;-</span> active_ab</span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`</code></pre>
+</div>
+</div>
+</section>
+<section id="panel-3a-ebv-antibody-titers-igg-and-iga" class="level3">
+<h3 class="anchored" data-anchor-id="panel-3a-ebv-antibody-titers-igg-and-iga">Panel 3A: EBV Antibody Titers (IgG and IgA)</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="do">## This is similar but allows for transcript positivity to come from any tissue</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>cutoff <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>viral_colors <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"EBV-"</span> <span class="ot">=</span> <span class="st">"darkgray"</span>, <span class="st">"EBV+"</span> <span class="ot">=</span> <span class="st">"#BF5700"</span>)</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>plot_list <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>first_positive <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>          <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>          <span class="fu">mutate</span>(<span class="at">name =</span> <span class="fu">ifelse</span>(<span class="fu">grepl</span>(<span class="st">"CMV"</span>, name), <span class="st">"CMV"</span>, <span class="fu">ifelse</span>(<span class="fu">grepl</span>(<span class="st">"EBV"</span>, name), <span class="st">"EBV"</span>, name))) <span class="sc">%&gt;%</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>          <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">select</span>(event_id, participant_id, event_date)) <span class="sc">%&gt;%</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>          <span class="fu">group_by</span>(participant_id, event_id, event_date, name) <span class="sc">%&gt;%</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>          dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">max =</span> <span class="fu">max</span>(value, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>          <span class="fu">filter</span>(max <span class="sc">!=</span> <span class="sc">-</span><span class="cn">Inf</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>          <span class="fu">mutate</span>(<span class="at">binary =</span> <span class="fu">ifelse</span>(max <span class="sc">&gt;</span> cutoff, <span class="fu">paste0</span>(name,<span class="st">"+"</span>), <span class="fu">paste0</span>(name,<span class="st">"-"</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>         <span class="fu">filter</span>(binary <span class="sc">==</span> <span class="fu">paste0</span>(name,<span class="st">"+"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>         <span class="fu">group_by</span>(participant_id, name) <span class="sc">%&gt;%</span></span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>         <span class="fu">slice_min</span>(event_date) <span class="sc">%&gt;%</span></span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>         <span class="fu">distinct</span>(participant_id, name, event_date)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(event_id)`</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in left_join(., clinical_data %&gt;% select(event_id, participant_id, : Detected an unexpected many-to-many relationship between `x` and `y`.
+ℹ Row 1 of `x` matches multiple rows in `y`.
+ℹ Row 794 of `y` matches multiple rows in `x`.
+ℹ If a many-to-many relationship is expected, set `relationship =
+  "many-to-many"` to silence this warning.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 10504 warnings in `dplyr::summarize()`.
+The first warning was:
+ℹ In argument: `max = max(value, na.rm = TRUE)`.
+ℹ In group 5: `participant_id = "001-0001"`, `event_id = "001-0001-1"`,
+  `event_date = 1`, `name = "Human alphaherpesvirus 1 (HSV1).ea"`.
+Caused by warning in `max()`:
+! no non-missing arguments to max; returning -Inf
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 10503 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'participant_id', 'event_id', 'event_date'.
+You can override using the `.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(j <span class="cf">in</span> <span class="fu">c</span>(<span class="st">"EBV"</span>)){</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>     my_comparisons <span class="ot">&lt;-</span> <span class="fu">list</span>( <span class="fu">c</span>(<span class="fu">paste0</span>(j,<span class="st">"+"</span>), <span class="fu">paste0</span>(j,<span class="st">"-"</span>)))</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>     </span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>     <span class="cf">if</span>(j<span class="sc">==</span><span class="st">"EBV"</span>){</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>       live_visits <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"VISIT "</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>)</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>     }</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>       viral_data <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>          <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>         <span class="fu">mutate</span>(<span class="at">name =</span> <span class="fu">ifelse</span>(<span class="fu">grepl</span>(<span class="st">"CMV"</span>, name), <span class="st">"CMV"</span>, <span class="fu">ifelse</span>(<span class="fu">grepl</span>(<span class="st">"EBV"</span>, name), <span class="st">"EBV"</span>, name))) <span class="sc">%&gt;%</span></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>          <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(event_id, participant_id, event_date)) <span class="sc">%&gt;%</span></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>          <span class="fu">left_join</span>(first_positive <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"first_pos"</span> <span class="ot">=</span> <span class="dv">3</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>          <span class="fu">mutate</span>(<span class="at">binary =</span> <span class="fu">ifelse</span>(event_date <span class="sc">&gt;=</span> first_pos, <span class="fu">paste0</span>(j,<span class="st">"+"</span>), <span class="fu">paste0</span>(j,<span class="st">"-"</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>         <span class="fu">filter</span>(name <span class="sc">==</span> j) <span class="sc">%&gt;%</span></span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>         <span class="fu">mutate</span>(<span class="at">binary =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(binary), <span class="fu">paste0</span>(j,<span class="st">"-"</span>), binary)) <span class="sc">%&gt;%</span></span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>         <span class="fu">distinct</span>(event_id, name, participant_id, event_date, binary)</span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>     </span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>       stat_df <span class="ot">&lt;-</span> viral_data <span class="sc">%&gt;%</span></span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>        <span class="fu">left_join</span>(normalized_data <span class="sc">%&gt;%</span></span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>sample_id, <span class="at">values_to =</span> <span class="st">"ab_value"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>        <span class="fu">left_join</span>(luminex_metadata) <span class="sc">%&gt;%</span></span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>          <span class="fu">mutate</span>(<span class="at">visit_number =</span> <span class="fu">gsub</span>(<span class="st">"VISIT "</span>, <span class="st">""</span>, visit_id)) <span class="sc">%&gt;%</span></span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>          <span class="fu">mutate</span>(<span class="at">visit_number =</span> <span class="fu">ifelse</span>(visit_number<span class="sc">==</span><span class="dv">7</span>, <span class="dv">9</span>, visit_number)) <span class="sc">%&gt;%</span></span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>          <span class="fu">mutate</span>(<span class="at">event_id =</span> <span class="fu">paste0</span>(participant_id, <span class="st">"-"</span>, visit_number)) <span class="sc">%&gt;%</span></span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a>          <span class="fu">select</span>(participant_id, event_id, name, ab_value, Isotype, visit_id), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"participant_id"</span>, <span class="st">"event_id"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a>        <span class="fu">filter</span>(name.y <span class="sc">==</span> j) <span class="sc">%&gt;%</span></span>
+<span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a>         <span class="fu">filter</span>(name.x <span class="sc">==</span> j) <span class="sc">%&gt;%</span></span>
+<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a>        <span class="fu">filter</span>(Isotype <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"IgA"</span>, <span class="st">"IgG"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a>         <span class="fu">mutate</span>(<span class="at">Isotype =</span> <span class="fu">factor</span>(Isotype, <span class="fu">c</span>(<span class="st">"IgG"</span>, <span class="st">"IgA"</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb28-31"><a href="#cb28-31" aria-hidden="true" tabindex="-1"></a>         <span class="fu">filter</span>(visit_id <span class="sc">%in%</span> live_visits) <span class="sc">%&gt;%</span></span>
+<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">binary =</span> <span class="fu">factor</span>(binary, <span class="fu">c</span>(<span class="fu">paste0</span>(j,<span class="st">"-"</span>),<span class="fu">paste0</span>(j,<span class="st">"+"</span>)))) <span class="sc">%&gt;%</span></span>
+<span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a>          ggpubr<span class="sc">::</span><span class="fu">compare_means</span>(<span class="at">data =</span> ., <span class="at">formula =</span> ab_value <span class="sc">~</span> binary, <span class="at">p.adjust.method =</span> <span class="st">"fdr"</span>,</span>
+<span id="cb28-34"><a href="#cb28-34" aria-hidden="true" tabindex="-1"></a>                        <span class="at">group.by=</span> <span class="fu">c</span>(<span class="st">"Isotype"</span>, <span class="st">"visit_id"</span>), <span class="at">comparisons =</span> my_comparisons) <span class="sc">%&gt;%</span></span>
+<span id="cb28-35"><a href="#cb28-35" aria-hidden="true" tabindex="-1"></a>         <span class="fu">mutate</span>(<span class="at">y.position =</span> <span class="dv">11</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb28-36"><a href="#cb28-36" aria-hidden="true" tabindex="-1"></a>         <span class="fu">mutate</span>(<span class="at">p.adj.format =</span> <span class="fu">format.pval</span>(p.adj, <span class="at">digits =</span> <span class="dv">2</span>))</span>
+<span id="cb28-37"><a href="#cb28-37" aria-hidden="true" tabindex="-1"></a>       </span>
+<span id="cb28-38"><a href="#cb28-38" aria-hidden="true" tabindex="-1"></a>       </span>
+<span id="cb28-39"><a href="#cb28-39" aria-hidden="true" tabindex="-1"></a>     gg3 <span class="ot">&lt;-</span> viral_data <span class="sc">%&gt;%</span></span>
+<span id="cb28-40"><a href="#cb28-40" aria-hidden="true" tabindex="-1"></a>      <span class="fu">left_join</span>(normalized_data <span class="sc">%&gt;%</span></span>
+<span id="cb28-41"><a href="#cb28-41" aria-hidden="true" tabindex="-1"></a>                  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>sample_id, <span class="at">values_to =</span> <span class="st">"ab_value"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb28-42"><a href="#cb28-42" aria-hidden="true" tabindex="-1"></a>      <span class="fu">left_join</span>(luminex_metadata) <span class="sc">%&gt;%</span></span>
+<span id="cb28-43"><a href="#cb28-43" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">visit_number =</span> <span class="fu">gsub</span>(<span class="st">"VISIT "</span>, <span class="st">""</span>, visit_id)) <span class="sc">%&gt;%</span></span>
+<span id="cb28-44"><a href="#cb28-44" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">visit_number =</span> <span class="fu">ifelse</span>(visit_number<span class="sc">==</span><span class="dv">7</span>, <span class="dv">9</span>, visit_number)) <span class="sc">%&gt;%</span></span>
+<span id="cb28-45"><a href="#cb28-45" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">event_id =</span> <span class="fu">paste0</span>(participant_id, <span class="st">"-"</span>, visit_number)) <span class="sc">%&gt;%</span></span>
+<span id="cb28-46"><a href="#cb28-46" aria-hidden="true" tabindex="-1"></a>        <span class="fu">select</span>(participant_id, event_id, name, ab_value, Isotype, visit_id), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"participant_id"</span>, <span class="st">"event_id"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb28-47"><a href="#cb28-47" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(name.y <span class="sc">==</span> j) <span class="sc">%&gt;%</span></span>
+<span id="cb28-48"><a href="#cb28-48" aria-hidden="true" tabindex="-1"></a>       <span class="fu">filter</span>(name.x <span class="sc">==</span> j) <span class="sc">%&gt;%</span></span>
+<span id="cb28-49"><a href="#cb28-49" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(Isotype <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"IgA"</span>, <span class="st">"IgG"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb28-50"><a href="#cb28-50" aria-hidden="true" tabindex="-1"></a>       <span class="fu">mutate</span>(<span class="at">Isotype =</span> <span class="fu">factor</span>(Isotype, <span class="fu">c</span>(<span class="st">"IgG"</span>, <span class="st">"IgA"</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb28-51"><a href="#cb28-51" aria-hidden="true" tabindex="-1"></a>       <span class="fu">filter</span>(visit_id <span class="sc">%in%</span> live_visits) <span class="sc">%&gt;%</span></span>
+<span id="cb28-52"><a href="#cb28-52" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">binary =</span> <span class="fu">factor</span>(binary, <span class="fu">c</span>(<span class="fu">paste0</span>(j,<span class="st">"-"</span>),<span class="fu">paste0</span>(j,<span class="st">"+"</span>)))) <span class="sc">%&gt;%</span></span>
+<span id="cb28-53"><a href="#cb28-53" aria-hidden="true" tabindex="-1"></a>      <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>binary, <span class="at">y=</span>ab_value, <span class="at">color =</span> binary)) <span class="sc">+</span></span>
+<span id="cb28-54"><a href="#cb28-54" aria-hidden="true" tabindex="-1"></a>      <span class="fu">geom_boxplot</span>(<span class="at">outlier.shape =</span> <span class="cn">NA</span>) <span class="sc">+</span></span>
+<span id="cb28-55"><a href="#cb28-55" aria-hidden="true" tabindex="-1"></a>      ggbeeswarm<span class="sc">::</span><span class="fu">geom_quasirandom</span>(<span class="at">size =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb28-56"><a href="#cb28-56" aria-hidden="true" tabindex="-1"></a>      <span class="fu">facet_grid</span>(Isotype<span class="sc">~</span>visit_id) <span class="sc">+</span></span>
+<span id="cb28-57"><a href="#cb28-57" aria-hidden="true" tabindex="-1"></a>      <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
+<span id="cb28-58"><a href="#cb28-58" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stat_pvalue_manual</span>(stat_df, <span class="at">label =</span> <span class="st">"p.adj.format"</span>) <span class="sc">+</span></span>
+<span id="cb28-59"><a href="#cb28-59" aria-hidden="true" tabindex="-1"></a>      <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">vjust =</span> <span class="dv">1</span>, <span class="at">hjust=</span><span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb28-60"><a href="#cb28-60" aria-hidden="true" tabindex="-1"></a>      <span class="fu">scale_color_manual</span>(<span class="at">values =</span> viral_colors, <span class="at">name =</span> <span class="st">"Transcripts"</span>) <span class="sc">+</span></span>
+<span id="cb28-61"><a href="#cb28-61" aria-hidden="true" tabindex="-1"></a>      <span class="fu">ylab</span>(<span class="fu">paste0</span>(j, <span class="st">" IgG Relative Antibody Titer"</span>)) <span class="sc">+</span></span>
+<span id="cb28-62"><a href="#cb28-62" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ggtitle</span>(j) <span class="sc">+</span></span>
+<span id="cb28-63"><a href="#cb28-63" aria-hidden="true" tabindex="-1"></a>       <span class="fu">theme</span>(<span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb28-64"><a href="#cb28-64" aria-hidden="true" tabindex="-1"></a>            <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>)) <span class="sc">+</span></span>
+<span id="cb28-65"><a href="#cb28-65" aria-hidden="true" tabindex="-1"></a>       <span class="fu">xlab</span>(<span class="st">"Virus Positivity"</span>)</span>
+<span id="cb28-66"><a href="#cb28-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-67"><a href="#cb28-67" aria-hidden="true" tabindex="-1"></a>     plot_list <span class="ot">&lt;-</span> <span class="fu">c</span>(plot_list, <span class="fu">list</span>(gg3))</span>
+<span id="cb28-68"><a href="#cb28-68" aria-hidden="true" tabindex="-1"></a>  }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(event_id)`
+Joining with `by = join_by(name, participant_id)`
+Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggpubr)</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="do">## 6x5</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>plot_list[[<span class="dv">1</span>]] <span class="sc">+</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_cartesian</span>(<span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">13</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure3_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure3A.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="dv">5</span>)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(plot_list[[<span class="dv">1</span>]]<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>event_date, <span class="sc">-</span>name.x, <span class="sc">-</span>name.y, <span class="sc">-</span>event_id, <span class="sc">-</span>participant_id), <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_Figure3A.csv"</span>))</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(stat_df, <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_2_part1.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="panel-3b-cmv-seropositivity-at-admission" class="level3">
+<h3 class="anchored" data-anchor-id="panel-3b-cmv-seropositivity-at-admission">Panel 3B: CMV Seropositivity at Admission</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>event_date_cutoff <span class="ot">=</span> <span class="dv">40</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>max_part <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>                <span class="fu">distinct</span>(event_id, participant_id, event_date)) <span class="sc">%&gt;%</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_date <span class="sc">&gt;=</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_date <span class="sc">&lt;=</span> event_date_cutoff) <span class="sc">%&gt;%</span></span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(participant_id, name) <span class="sc">%&gt;%</span></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(name <span class="sc">!=</span> <span class="st">"Betacoronavirus.nasal"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">value =</span> <span class="fu">max</span>(value, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(value <span class="sc">!=</span> <span class="sc">-</span><span class="cn">Inf</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> name, <span class="at">values_from =</span> value) <span class="sc">%&gt;%</span></span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">#select(-ends_with(".ea"), -starts_with("Betacorona"), -Simplexvirus.pbmc) %&gt;%</span></span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>participant_id) <span class="sc">%&gt;%</span></span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">grepl</span>(<span class="st">"CMV).pbmc"</span>, name)) <span class="sc">%&gt;%</span></span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(participant_id) <span class="sc">%&gt;%</span></span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">value =</span> <span class="fu">sum</span>(value, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(event_id)`</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 4676 warnings in `dplyr::summarize()`.
+The first warning was:
+ℹ In argument: `value = max(value, na.rm = TRUE)`.
+ℹ In group 3: `participant_id = "001-0001"` and `name = "Human alphaherpesvirus
+  1 (HSV1).ea"`.
+Caused by warning in `max()`:
+! no non-missing arguments to max; returning -Inf
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 4675 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'participant_id'. You can override using
+the `.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>UCLA_CMV <span class="ot">&lt;-</span> cmv_seropositivity <span class="sc">%&gt;%</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(visit_num <span class="sc">==</span> <span class="st">"VISIT 1"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">event_id =</span> <span class="fu">paste0</span>(txtpid, <span class="st">"-1"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"participant_id"</span> <span class="ot">=</span> <span class="dv">2</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(event_id, participant_id, <span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span>)</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>Stanford_CMV <span class="ot">&lt;-</span> luminex_data <span class="sc">%&gt;%</span></span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(luminex_metadata) <span class="sc">%&gt;%</span></span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Isotype <span class="sc">==</span> <span class="st">"IgG"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(visit_id <span class="sc">==</span> <span class="st">"VISIT 1"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">ifelse</span>(CMV <span class="sc">&gt;</span> luminex_cutoff_CMV, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">event_id =</span> <span class="fu">paste0</span>(participant_id, <span class="st">"-1"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(event_id, participant_id, <span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(sample_id)`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>gg3B <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(UCLA_CMV, Stanford_CMV) <span class="sc">%&gt;%</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(max_part) <span class="sc">%&gt;%</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(<span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(value, <span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">count =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">freq =</span> count <span class="sc">/</span> <span class="fu">sum</span>(count)) <span class="sc">%&gt;%</span></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span> <span class="sc">==</span> <span class="dv">1</span>, <span class="st">"CMV Seropositive"</span>, <span class="st">"CMV Seronegative"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">as.factor</span>(<span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">==</span><span class="dv">1</span>, <span class="st">'CMV+'</span>, <span class="st">"CMV-"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>value, <span class="at">y =</span> freq, <span class="at">fill =</span><span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span>)) <span class="sc">+</span></span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">position =</span> <span class="st">"fill"</span>, <span class="at">stat =</span> <span class="st">"identity"</span>) <span class="sc">+</span></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"CMV Detected"</span>) <span class="sc">+</span></span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Frequency"</span>) <span class="sc">+</span></span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Visit 1"</span>) <span class="sc">+</span></span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"darkgray"</span>, <span class="st">"#005F86"</span>))<span class="sc">+</span></span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"darkgray"</span>, <span class="st">"#005F86"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(participant_id)`
+`summarise()` has grouped output by 'value'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>gg3B</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure3_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="336"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure3B.pdf"</span>), <span class="at">width =</span> <span class="fl">3.5</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(gg3B<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>.group), <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_Figure3B.csv"</span>))</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>freq_table <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(UCLA_CMV, Stanford_CMV) <span class="sc">%&gt;%</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(max_part) <span class="sc">%&gt;%</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(<span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(value, <span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">count =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">freq =</span> count <span class="sc">/</span> <span class="fu">sum</span>(count)) <span class="sc">%&gt;%</span></span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">ifelse</span>(<span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span> <span class="sc">==</span> <span class="dv">1</span>, <span class="st">"CMV Seropositive"</span>, <span class="st">"CMV Seronegative"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">as.factor</span>(<span class="st">`</span><span class="at">CMV serostatus</span><span class="st">`</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">==</span><span class="dv">1</span>, <span class="st">'CMV+'</span>, <span class="st">"CMV-"</span>)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(participant_id)`
+`summarise()` has grouped output by 'value'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>stat_df <span class="ot">&lt;-</span> <span class="fu">fisher.test</span>(<span class="fu">data.frame</span>(<span class="at">CMVpos =</span> <span class="fu">unlist</span>(<span class="fu">c</span>(freq_table[<span class="dv">3</span>,<span class="dv">3</span>],</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>                                  freq_table[<span class="dv">4</span>,<span class="dv">3</span>])),</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>                       <span class="at">CMVneg =</span> <span class="fu">unlist</span>(<span class="fu">c</span>(freq_table[<span class="dv">1</span>,<span class="dv">3</span>],</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>                                  freq_table[<span class="dv">2</span>,<span class="dv">3</span>]))))</span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="fu">data.frame</span>(<span class="at">test =</span> <span class="st">"Chi-square"</span>,</span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>                     <span class="at">p_value =</span> stat_df<span class="sc">$</span>p.value,</span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>                     <span class="at">compairson =</span> <span class="st">"CMV Seropositivity"</span>), <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_2_part2.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="figure-3c-hsv1-viral-proteomeics" class="level2">
+<h2 class="anchored" data-anchor-id="figure-3c-hsv1-viral-proteomeics">Figure 3C: HSV1 Viral Proteomeics</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl)</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>hsv_proteomics <span class="ot">&lt;-</span> <span class="fu">read_xlsx</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/data/HSV.xlsx"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="dv">8</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"sample_id"</span> <span class="ot">=</span> <span class="dv">1</span>,</span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>                <span class="st">"HHV1_1"</span> <span class="ot">=</span> <span class="dv">2</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">select</span>(sample_id, participant_id, event_id))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>New names:
+Joining with `by = join_by(sample_id)`
+• `` -&gt; `...8`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>hsv_proteomics <span class="ot">&lt;-</span> hsv_proteomics[<span class="dv">1</span><span class="sc">:</span><span class="dv">63</span>, ]</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>event_date_cutoff <span class="ot">=</span> <span class="dv">40</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>max_part <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span></span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>                <span class="fu">distinct</span>(event_id, participant_id, event_date)) <span class="sc">%&gt;%</span></span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_date <span class="sc">&gt;=</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_date <span class="sc">&lt;=</span> event_date_cutoff) <span class="sc">%&gt;%</span></span>
+<span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(participant_id, name) <span class="sc">%&gt;%</span></span>
+<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(name <span class="sc">!=</span> <span class="st">"Betacoronavirus.nasal"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">value =</span> <span class="fu">max</span>(value, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(value <span class="sc">!=</span> <span class="sc">-</span><span class="cn">Inf</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb46-16"><a href="#cb46-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> name, <span class="at">values_from =</span> value) <span class="sc">%&gt;%</span></span>
+<span id="cb46-17"><a href="#cb46-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb46-18"><a href="#cb46-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">#select(-ends_with(".ea"), -starts_with("Betacorona"), -Simplexvirus.pbmc) %&gt;%</span></span>
+<span id="cb46-19"><a href="#cb46-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>participant_id) <span class="sc">%&gt;%</span></span>
+<span id="cb46-20"><a href="#cb46-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">grepl</span>(<span class="st">"HSV1).nasal"</span>, name)) <span class="sc">%&gt;%</span></span>
+<span id="cb46-21"><a href="#cb46-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(participant_id) <span class="sc">%&gt;%</span></span>
+<span id="cb46-22"><a href="#cb46-22" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">value =</span> <span class="fu">sum</span>(value, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb46-23"><a href="#cb46-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb46-24"><a href="#cb46-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(hsv_proteomics <span class="sc">%&gt;%</span></span>
+<span id="cb46-25"><a href="#cb46-25" aria-hidden="true" tabindex="-1"></a>              <span class="fu">group_by</span>(participant_id) <span class="sc">%&gt;%</span></span>
+<span id="cb46-26"><a href="#cb46-26" aria-hidden="true" tabindex="-1"></a>              dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">HHV1_1 =</span> <span class="fu">sum</span>(HHV1_1))) <span class="sc">%&gt;%</span></span>
+<span id="cb46-27"><a href="#cb46-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">HHV1_1 =</span> <span class="fu">ifelse</span>(HHV1_1 <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="cn">NA</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb46-28"><a href="#cb46-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(value)) <span class="sc">%&gt;%</span></span>
+<span id="cb46-29"><a href="#cb46-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(value, HHV1_1) <span class="sc">%&gt;%</span></span>
+<span id="cb46-30"><a href="#cb46-30" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">count =</span> <span class="fu">n</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(event_id)`</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 4676 warnings in `dplyr::summarize()`.
+The first warning was:
+ℹ In argument: `value = max(value, na.rm = TRUE)`.
+ℹ In group 3: `participant_id = "001-0001"` and `name = "Human alphaherpesvirus
+  1 (HSV1).ea"`.
+Caused by warning in `max()`:
+! no non-missing arguments to max; returning -Inf
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 4675 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'participant_id'. You can override using
+the `.groups` argument.
+Joining with `by = join_by(participant_id)`
+`summarise()` has grouped output by 'value'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>gg3C <span class="ot">&lt;-</span> max_part <span class="sc">%&gt;%</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">==</span> <span class="dv">0</span>, <span class="st">"HSV1-"</span>, <span class="st">"HSV1+"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">HHV1_1 =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(HHV1_1), <span class="st">"Not Detected"</span>, <span class="st">"Detected"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">HHV1_1 =</span> <span class="fu">factor</span>(HHV1_1, <span class="fu">c</span>(<span class="st">"Not Detected"</span>, <span class="st">"Detected"</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(value) <span class="sc">%&gt;%</span></span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">percent =</span> count <span class="sc">/</span> <span class="fu">sum</span>(count)) <span class="sc">%&gt;%</span></span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(HHV1_1 <span class="sc">==</span> <span class="st">"Detected"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>value, <span class="at">y=</span> percent<span class="sc">*</span><span class="dv">100</span>, <span class="at">fill =</span> HHV1_1)) <span class="sc">+</span></span>
+<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">position =</span> <span class="st">"stack"</span>) <span class="sc">+</span></span>
+<span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb50-11"><a href="#cb50-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Percent of Participants (%)"</span>) <span class="sc">+</span></span>
+<span id="cb50-12"><a href="#cb50-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#1b820d"</span>), <span class="at">name =</span> <span class="st">"HSV1 Proteins"</span>) <span class="sc">+</span></span>
+<span id="cb50-13"><a href="#cb50-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Nasal Transcripts Detected"</span>)</span>
+<span id="cb50-14"><a href="#cb50-14" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure3C.pdf"</span>), <span class="at">width =</span> <span class="fl">3.5</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<span id="cb50-15"><a href="#cb50-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-16"><a href="#cb50-16" aria-hidden="true" tabindex="-1"></a>tmp <span class="ot">&lt;-</span> max_part <span class="sc">%&gt;%</span></span>
+<span id="cb50-17"><a href="#cb50-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">==</span> <span class="dv">0</span>, <span class="st">"HSV.nasal -"</span>, <span class="st">"HSV.nasal +"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb50-18"><a href="#cb50-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">HHV1_1 =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(HHV1_1), <span class="dv">0</span>, <span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb50-19"><a href="#cb50-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">HHV1_1 =</span> <span class="fu">as.factor</span>(HHV1_1))</span>
+<span id="cb50-20"><a href="#cb50-20" aria-hidden="true" tabindex="-1"></a>chi.table <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">matrix</span>(<span class="fu">as.numeric</span>(<span class="fu">c</span>(tmp[<span class="dv">1</span>,<span class="dv">3</span>], tmp[<span class="dv">2</span>,<span class="dv">3</span>],tmp[<span class="dv">3</span>,<span class="dv">3</span>], tmp[<span class="dv">4</span>,<span class="dv">3</span>])), <span class="at">ncol =</span><span class="dv">2</span>, <span class="at">nrow =</span> <span class="dv">2</span>))</span>
+<span id="cb50-21"><a href="#cb50-21" aria-hidden="true" tabindex="-1"></a>chi_res <span class="ot">&lt;-</span> <span class="fu">chisq.test</span>(<span class="at">x =</span> chi.table)</span>
+<span id="cb50-22"><a href="#cb50-22" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="fu">data.frame</span>(<span class="at">test =</span> <span class="st">"Chi-square test"</span>,</span>
+<span id="cb50-23"><a href="#cb50-23" aria-hidden="true" tabindex="-1"></a>                     <span class="at">p_value =</span> chi_res<span class="sc">$</span>p.value,</span>
+<span id="cb50-24"><a href="#cb50-24" aria-hidden="true" tabindex="-1"></a>                     <span class="at">compairosn =</span> <span class="st">"HSV1 proteins for transcript positive or negative"</span>),</span>
+<span id="cb50-25"><a href="#cb50-25" aria-hidden="true" tabindex="-1"></a>          <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_2_part3.csv"</span>))</span>
+<span id="cb50-26"><a href="#cb50-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-27"><a href="#cb50-27" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(gg3C<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_Figure3C.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="figure-3d-cytof" class="level3">
+<h3 class="anchored" data-anchor-id="figure-3d-cytof">Figure 3D: Cytof</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>cytof_count <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/data/bld-cytof/current/bld-cytof-Counts.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 3471 Columns: 67
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (1): sample_id
+dbl (66): B Cell (CD11c+ CXCR5-), B Cell (CD27+ non-switched memory), B Cell...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>cytof_rowfeature <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/data/bld-cytof/current/bld-cytof-RowFeature.csv"</span>, <span class="at">skip =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 65 Columns: 2
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (2): B Cell (CD11c+ CXCR5-), B Cell
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Only run once, very slow</span></span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Precalculated results provided</span></span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lme4)</span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(nlme)</span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>cutoff <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>model.out <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="fu">unique</span>(<span class="fu">colnames</span>(comb_data)[<span class="sc">-</span><span class="dv">1</span>])){</span>
+<span id="cb55-9"><a href="#cb55-9" aria-hidden="true" tabindex="-1"></a>       virus <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a>           <span class="fu">pivot_longer</span>(<span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb55-11"><a href="#cb55-11" aria-hidden="true" tabindex="-1"></a>            <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(value), <span class="dv">0</span>, value)) <span class="sc">%&gt;%</span></span>
+<span id="cb55-12"><a href="#cb55-12" aria-hidden="true" tabindex="-1"></a>            <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">&gt;</span> cutoff, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb55-13"><a href="#cb55-13" aria-hidden="true" tabindex="-1"></a>            <span class="fu">filter</span>(name <span class="sc">==</span> i) <span class="sc">%&gt;%</span></span>
+<span id="cb55-14"><a href="#cb55-14" aria-hidden="true" tabindex="-1"></a>            <span class="fu">filter</span>()</span>
+<span id="cb55-15"><a href="#cb55-15" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb55-16"><a href="#cb55-16" aria-hidden="true" tabindex="-1"></a>  omic_live <span class="ot">&lt;-</span> <span class="fu">preprocess_bld_cytof_child_seperate_granulo</span>(cytof_count <span class="sc">%&gt;%</span> <span class="fu">column_to_rownames</span>(<span class="st">"sample_id"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb55-17"><a href="#cb55-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rownames_to_column</span>(<span class="st">"sample_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb55-18"><a href="#cb55-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(sample_id, participant_id, event_id, event_type, sex, trajectory_group, enrollment_site, discretized_admit_age_quantile)) <span class="sc">%&gt;%</span></span>
+<span id="cb55-19"><a href="#cb55-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_id <span class="sc">%in%</span> virus<span class="sc">$</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb55-20"><a href="#cb55-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(<span class="sc">-</span>sample_id, <span class="sc">-</span>participant_id, <span class="sc">-</span>event_id, <span class="sc">-</span>event_type, <span class="sc">-</span>sex, <span class="sc">-</span>trajectory_group, <span class="sc">-</span>enrollment_site, <span class="sc">-</span>discretized_admit_age_quantile)) <span class="sc">%&gt;%</span></span>
+<span id="cb55-21"><a href="#cb55-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">inner_join</span>(virus <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(name, event_id, value) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"virus"</span> <span class="ot">=</span> <span class="st">"name"</span>, <span class="st">"virus_positive"</span> <span class="ot">=</span> <span class="st">"value"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb55-22"><a href="#cb55-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(value))</span>
+<span id="cb55-23"><a href="#cb55-23" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb55-24"><a href="#cb55-24" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb55-25"><a href="#cb55-25" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(active_feature <span class="cf">in</span> <span class="fu">unique</span>(omic_live<span class="sc">$</span>name)){</span>
+<span id="cb55-26"><a href="#cb55-26" aria-hidden="true" tabindex="-1"></a>          fit <span class="ot">&lt;-</span> <span class="fu">lme</span>(value <span class="sc">~</span> trajectory_group <span class="sc">+</span> sex <span class="sc">+</span> discretized_admit_age_quantile <span class="sc">+</span> virus_positive <span class="sc">+</span> event_type, <span class="at">random =</span> <span class="sc">~</span><span class="dv">1</span><span class="sc">|</span>enrollment_site, <span class="at">data =</span> omic_live <span class="sc">%&gt;%</span></span>
+<span id="cb55-27"><a href="#cb55-27" aria-hidden="true" tabindex="-1"></a>                       <span class="fu">filter</span>(name <span class="sc">==</span> active_feature))</span>
+<span id="cb55-28"><a href="#cb55-28" aria-hidden="true" tabindex="-1"></a>          tmp <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">anova</span>(fit, <span class="at">type =</span> <span class="st">"marginal"</span>)) <span class="sc">%&gt;%</span> <span class="fu">rownames_to_column</span>(<span class="st">"variable"</span>)</span>
+<span id="cb55-29"><a href="#cb55-29" aria-hidden="true" tabindex="-1"></a>          tmp<span class="sc">$</span>feature <span class="ot">&lt;-</span> active_feature</span>
+<span id="cb55-30"><a href="#cb55-30" aria-hidden="true" tabindex="-1"></a>          tmp<span class="sc">$</span>omic <span class="ot">&lt;-</span> <span class="st">"CyTOF"</span></span>
+<span id="cb55-31"><a href="#cb55-31" aria-hidden="true" tabindex="-1"></a>          tmp<span class="sc">$</span>virus <span class="ot">&lt;-</span> i</span>
+<span id="cb55-32"><a href="#cb55-32" aria-hidden="true" tabindex="-1"></a>          tmp<span class="sc">$</span>level <span class="ot">&lt;-</span> <span class="st">"child"</span></span>
+<span id="cb55-33"><a href="#cb55-33" aria-hidden="true" tabindex="-1"></a>          tmp<span class="sc">$</span>coefficient <span class="ot">&lt;-</span> <span class="fu">fixef</span>(fit)[<span class="fu">match</span>(tmp<span class="sc">$</span>variable, <span class="fu">gsub</span>(<span class="st">"TRUE"</span>, <span class="st">""</span>, <span class="fu">names</span>(<span class="fu">fixef</span>(fit))))]</span>
+<span id="cb55-34"><a href="#cb55-34" aria-hidden="true" tabindex="-1"></a>          model.out <span class="ot">&lt;-</span> plyr<span class="sc">::</span><span class="fu">rbind.fill</span>(model.out, tmp)</span>
+<span id="cb55-35"><a href="#cb55-35" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb55-36"><a href="#cb55-36" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb55-37"><a href="#cb55-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-38"><a href="#cb55-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-39"><a href="#cb55-39" aria-hidden="true" tabindex="-1"></a>model.out.adj <span class="ot">&lt;-</span> model.out <span class="sc">%&gt;%</span></span>
+<span id="cb55-40"><a href="#cb55-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(variable, virus) <span class="sc">%&gt;%</span></span>
+<span id="cb55-41"><a href="#cb55-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">p.adj =</span> <span class="fu">p.adjust</span>(<span class="st">`</span><span class="at">p-value</span><span class="st">`</span>, <span class="st">"fdr"</span>))</span>
+<span id="cb55-42"><a href="#cb55-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-43"><a href="#cb55-43" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(model.out.adj, <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_2_part4.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(scales)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'scales'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:viridis':
+
+    viridis_pal</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:purrr':
+
+    discard</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:readr':
+
+    col_factor</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a>model.out.adj <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_2_part4.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>New names:
+• `` -&gt; `...1`</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 3672 Columns: 12
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (5): variable, feature, omic, virus, level
+dbl (7): ...1, numDF, denDF, F-value, p-value, coefficient, p.adj
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>model.out.adj <span class="sc">%&gt;%</span></span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">virus =</span> <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">""</span>, virus))) <span class="sc">%&gt;%</span></span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">compartment =</span> <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">."</span>, <span class="st">""</span>, virus)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="st">`</span><span class="at">p.adj</span><span class="st">`</span> <span class="sc">&lt;=</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"Undefined"</span>, feature)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(variable <span class="sc">==</span> <span class="st">"virus_positive"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb64-7"><a href="#cb64-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log10.p =</span> <span class="sc">-</span><span class="fu">log10</span>(<span class="st">`</span><span class="at">p.adj</span><span class="st">`</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-8"><a href="#cb64-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">direction =</span> coefficient <span class="sc">/</span> <span class="fu">abs</span>(coefficient),</span>
+<span id="cb64-9"><a href="#cb64-9" aria-hidden="true" tabindex="-1"></a>         <span class="at">dirlog10.p =</span> log10.p <span class="sc">*</span> direction) <span class="sc">%&gt;%</span></span>
+<span id="cb64-10"><a href="#cb64-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(level <span class="sc">==</span> <span class="st">"child"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb64-11"><a href="#cb64-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>feature, <span class="at">y=</span><span class="fu">fct_reorder</span>(virus, compartment))) <span class="sc">+</span></span>
+<span id="cb64-12"><a href="#cb64-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">size =</span> log10.p, <span class="at">fill =</span> dirlog10.p), <span class="at">color =</span> <span class="st">"black"</span>, <span class="at">shape =</span> <span class="dv">21</span>) <span class="sc">+</span></span>
+<span id="cb64-13"><a href="#cb64-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_light</span>() <span class="sc">+</span></span>
+<span id="cb64-14"><a href="#cb64-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Virus and Compartment"</span>) <span class="sc">+</span></span>
+<span id="cb64-15"><a href="#cb64-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Cell Type"</span>) <span class="sc">+</span></span>
+<span id="cb64-16"><a href="#cb64-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_discrete</span>(<span class="at">limits =</span> (<span class="fu">c</span>(<span class="st">"Anelloviridae.pbmc"</span>, </span>
+<span id="cb64-17"><a href="#cb64-17" aria-hidden="true" tabindex="-1"></a>                              <span class="st">"CMV.pbmc"</span>, <span class="st">"EBV.pbmc"</span>,</span>
+<span id="cb64-18"><a href="#cb64-18" aria-hidden="true" tabindex="-1"></a>                              <span class="st">"Enterovirus.nasal"</span>,</span>
+<span id="cb64-19"><a href="#cb64-19" aria-hidden="true" tabindex="-1"></a>                              <span class="st">"HSV1.nasal"</span>, <span class="st">"HSV2.nasal"</span>,</span>
+<span id="cb64-20"><a href="#cb64-20" aria-hidden="true" tabindex="-1"></a>                              <span class="st">"CMV.nasal"</span>, <span class="st">"EBV.nasal"</span>,</span>
+<span id="cb64-21"><a href="#cb64-21" aria-hidden="true" tabindex="-1"></a>                              <span class="st">"HSV1.ea"</span>, <span class="st">"HSV2.ea"</span>,</span>
+<span id="cb64-22"><a href="#cb64-22" aria-hidden="true" tabindex="-1"></a>                              <span class="st">"CMV.ea"</span>, <span class="st">"EBV.ea"</span>)), <span class="at">position =</span> <span class="st">"right"</span>) <span class="sc">+</span></span>
+<span id="cb64-23"><a href="#cb64-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">vjust =</span> <span class="dv">0</span>, <span class="at">hjust=</span><span class="dv">0</span>),</span>
+<span id="cb64-24"><a href="#cb64-24" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb64-25"><a href="#cb64-25" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.border =</span> <span class="fu">element_rect</span>(<span class="at">color=</span><span class="st">"black"</span>, <span class="at">size =</span> <span class="dv">1</span>),</span>
+<span id="cb64-26"><a href="#cb64-26" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>)) <span class="sc">+</span></span>
+<span id="cb64-27"><a href="#cb64-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_gradientn</span>(<span class="at">colours =</span> <span class="fu">c</span>(<span class="fu">muted</span>(<span class="st">"blue"</span>), <span class="st">"white"</span>, <span class="fu">muted</span>(<span class="st">"red"</span>)), <span class="at">oob =</span> scales<span class="sc">::</span>squish,</span>
+<span id="cb64-28"><a href="#cb64-28" aria-hidden="true" tabindex="-1"></a>                       <span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">9</span>, <span class="dv">9</span>),</span>
+<span id="cb64-29"><a href="#cb64-29" aria-hidden="true" tabindex="-1"></a>                       <span class="at">guide =</span> <span class="fu">guide_colorbar</span>(<span class="at">frame.colour =</span> <span class="st">"black"</span>, <span class="at">ticks.colour =</span> <span class="st">"black"</span>),</span>
+<span id="cb64-30"><a href="#cb64-30" aria-hidden="true" tabindex="-1"></a>                      <span class="at">name =</span> <span class="st">"Signed -log10 Transformed</span><span class="sc">\n</span><span class="st">p-values"</span>) <span class="sc">+</span></span>
+<span id="cb64-31"><a href="#cb64-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">guides</span>(<span class="at">size=</span><span class="fu">guide_legend</span>(<span class="st">"-log10 Transformed</span><span class="sc">\n</span><span class="st">p-values"</span>))  <span class="sc">+</span></span>
+<span id="cb64-32"><a href="#cb64-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_discrete</span>(<span class="at">limits=</span>rev) <span class="sc">+</span></span>
+<span id="cb64-33"><a href="#cb64-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_flip</span>() </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The `size` argument of `element_rect()` is deprecated as of ggplot2 3.4.0.
+ℹ Please use the `linewidth` argument instead.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
+argument is not numeric or logical: returning NA
+Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
+argument is not numeric or logical: returning NA
+Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
+argument is not numeric or logical: returning NA
+Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
+argument is not numeric or logical: returning NA</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure3_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure3D.pdf"</span>), <span class="at">height =</span> <span class="dv">7</span>, <span class="at">width =</span> <span class="dv">7</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
+argument is not numeric or logical: returning NA
+Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
+argument is not numeric or logical: returning NA
+Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
+argument is not numeric or logical: returning NA
+Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
+argument is not numeric or logical: returning NA</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="supplemental-figure-3" class="level1">
+<h1>Supplemental Figure 3</h1>
+<section id="panel-a-tg-correcting-for-cell-types-in-whole-blood" class="level3">
+<h3 class="anchored" data-anchor-id="panel-a-tg-correcting-for-cell-types-in-whole-blood">Panel A: TG correcting for cell types in Whole Blood</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(aplot)</span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rstatix)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'rstatix'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:stats':
+
+    filter</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ordinal)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'ordinal'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:dplyr':
+
+    slice</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a>ever_reactivate <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">select</span>(event_id, participant_id)) <span class="sc">%&gt;%</span></span>
+<span id="cb75-4"><a href="#cb75-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(participant_id, name) <span class="sc">%&gt;%</span></span>
+<span id="cb75-5"><a href="#cb75-5" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">max =</span> <span class="fu">max</span>(value, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb75-6"><a href="#cb75-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(max <span class="sc">!=</span> <span class="sc">-</span><span class="cn">Inf</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb75-7"><a href="#cb75-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">binary =</span> <span class="fu">ifelse</span>(max <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb75-8"><a href="#cb75-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">grepl</span>(<span class="st">".pbmc"</span>, name))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(event_id)`</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in left_join(., clinical_data %&gt;% select(event_id, participant_id)): Detected an unexpected many-to-many relationship between `x` and `y`.
+ℹ Row 1 of `x` matches multiple rows in `y`.
+ℹ Row 794 of `y` matches multiple rows in `x`.
+ℹ If a many-to-many relationship is expected, set `relationship =
+  "many-to-many"` to silence this warning.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 4423 warnings in `dplyr::summarize()`.
+The first warning was:
+ℹ In argument: `max = max(value, na.rm = TRUE)`.
+ℹ In group 3: `participant_id = "001-0001"` and `name = "Human alphaherpesvirus
+  1 (HSV1).ea"`.
+Caused by warning in `max()`:
+! no non-missing arguments to max; returning -Inf
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 4422 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'participant_id'. You can override using
+the `.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a>graph_data <span class="ot">&lt;-</span> ever_reactivate <span class="sc">%&gt;%</span></span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(participant_id, trajectory_group)) <span class="sc">%&gt;%</span></span>
+<span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(trajectory_group, name) <span class="sc">%&gt;%</span></span>
+<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">freq =</span> <span class="fu">mean</span>(binary) <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb80-5"><a href="#cb80-5" aria-hidden="true" tabindex="-1"></a>                   <span class="at">count =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb80-6"><a href="#cb80-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(count <span class="sc">&gt;</span> <span class="dv">10</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb80-7"><a href="#cb80-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">trajectory_group =</span> <span class="fu">factor</span>(trajectory_group)) <span class="sc">%&gt;%</span></span>
+<span id="cb80-8"><a href="#cb80-8" aria-hidden="true" tabindex="-1"></a>   <span class="fu">mutate</span>(<span class="at">name =</span> <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">""</span>, name))) <span class="sc">%&gt;%</span></span>
+<span id="cb80-9"><a href="#cb80-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb80-10"><a href="#cb80-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">complete</span>(trajectory_group, name) <span class="sc">%&gt;%</span></span>
+<span id="cb80-11"><a href="#cb80-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">freq =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(freq), <span class="dv">0</span>, freq),</span>
+<span id="cb80-12"><a href="#cb80-12" aria-hidden="true" tabindex="-1"></a>         <span class="at">count =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(count), <span class="dv">0</span>, count)) <span class="sc">%&gt;%</span></span>
+<span id="cb80-13"><a href="#cb80-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">positive =</span> freq <span class="sc">*</span> count <span class="sc">/</span> <span class="dv">100</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb80-14"><a href="#cb80-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(name) <span class="sc">%&gt;%</span></span>
+<span id="cb80-15"><a href="#cb80-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pos_freq =</span> positive <span class="sc">/</span> <span class="fu">sum</span>(positive) <span class="sc">*</span><span class="dv">100</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(participant_id)`</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'trajectory_group'. You can override using
+the `.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a>clm_data <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">select</span>(event_id, participant_id, event_type, sex)) <span class="sc">%&gt;%</span></span>
+<span id="cb83-4"><a href="#cb83-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(event_type <span class="sc">%in%</span> <span class="fu">paste0</span>(<span class="st">"Visit "</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb83-5"><a href="#cb83-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(participant_id, name) <span class="sc">%&gt;%</span></span>
+<span id="cb83-6"><a href="#cb83-6" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">max =</span> <span class="fu">max</span>(value, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb83-7"><a href="#cb83-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(max <span class="sc">!=</span> <span class="sc">-</span><span class="cn">Inf</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb83-8"><a href="#cb83-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">binary =</span> <span class="fu">ifelse</span>(max <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb83-9"><a href="#cb83-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(participant_id, discretized_admit_age_quantile, enrollment_site, trajectory_group)) <span class="sc">%&gt;%</span></span>
+<span id="cb83-10"><a href="#cb83-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb83-11"><a href="#cb83-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(discretized_admit_age_quantile)) <span class="sc">%&gt;%</span></span>
+<span id="cb83-12"><a href="#cb83-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(enrollment_site)) <span class="sc">%&gt;%</span></span>
+<span id="cb83-13"><a href="#cb83-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(trajectory_group)) <span class="sc">%&gt;%</span></span>
+<span id="cb83-14"><a href="#cb83-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb83-15"><a href="#cb83-15" aria-hidden="true" tabindex="-1"></a>   <span class="fu">mutate</span>(<span class="at">name =</span> <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">""</span>, name))) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(event_id)`</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in left_join(., clinical_data %&gt;% select(event_id, participant_id, : Detected an unexpected many-to-many relationship between `x` and `y`.
+ℹ Row 1 of `x` matches multiple rows in `y`.
+ℹ Row 794 of `y` matches multiple rows in `x`.
+ℹ If a many-to-many relationship is expected, set `relationship =
+  "many-to-many"` to silence this warning.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 4673 warnings in `dplyr::summarize()`.
+The first warning was:
+ℹ In argument: `max = max(value, na.rm = TRUE)`.
+ℹ In group 3: `participant_id = "001-0001"` and `name = "Human alphaherpesvirus
+  1 (HSV1).ea"`.
+Caused by warning in `max()`:
+! no non-missing arguments to max; returning -Inf
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 4672 remaining warnings.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'participant_id'. You can override using
+the `.groups` argument.
+Joining with `by = join_by(participant_id)`</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in left_join(., clinical_data %&gt;% dplyr::select(participant_id, : Detected an unexpected many-to-many relationship between `x` and `y`.
+ℹ Row 1 of `x` matches multiple rows in `y`.
+ℹ Row 794 of `y` matches multiple rows in `x`.
+ℹ If a many-to-many relationship is expected, set `relationship =
+  "many-to-many"` to silence this warning.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a>model.out.adj <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_2_part4.csv"</span>), <span class="at">row.names =</span> <span class="dv">1</span>)</span>
+<span id="cb89-2"><a href="#cb89-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb89-3"><a href="#cb89-3" aria-hidden="true" tabindex="-1"></a>cytof_child <span class="ot">&lt;-</span> <span class="fu">preprocess_bld_cytof_child_seperate_granulo</span>(cytof_count <span class="sc">%&gt;%</span> <span class="fu">column_to_rownames</span>(<span class="st">"sample_id"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb89-4"><a href="#cb89-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rownames_to_column</span>(<span class="st">"sample_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb89-5"><a href="#cb89-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(sample_id, participant_id, event_id, event_type, sex, trajectory_group, enrollment_site, discretized_admit_age_quantile)) <span class="sc">%&gt;%</span></span>
+<span id="cb89-6"><a href="#cb89-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_id <span class="sc">%in%</span> comb_data<span class="sc">$</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb89-7"><a href="#cb89-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(<span class="sc">-</span>sample_id, <span class="sc">-</span>participant_id, <span class="sc">-</span>event_id, <span class="sc">-</span>event_type, <span class="sc">-</span>sex, <span class="sc">-</span>trajectory_group, <span class="sc">-</span>enrollment_site, <span class="sc">-</span>discretized_admit_age_quantile)) <span class="sc">%&gt;%</span></span>
+<span id="cb89-8"><a href="#cb89-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(value))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(sample_id)`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a>cytof_child_means <span class="ot">&lt;-</span> cytof_child <span class="sc">%&gt;%</span></span>
+<span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(participant_id, name, value) <span class="sc">%&gt;%</span></span>
+<span id="cb91-3"><a href="#cb91-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(participant_id, name) <span class="sc">%&gt;%</span></span>
+<span id="cb91-4"><a href="#cb91-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">mean =</span> <span class="fu">mean</span>(value))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'participant_id'. You can override using
+the `.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb93"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a><span class="do">## TG Association Testing</span></span>
+<span id="cb93-2"><a href="#cb93-2" aria-hidden="true" tabindex="-1"></a>stat.df.cell <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb93-3"><a href="#cb93-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(active_virus <span class="cf">in</span> <span class="fu">unique</span>(graph_data<span class="sc">$</span>name)){</span>
+<span id="cb93-4"><a href="#cb93-4" aria-hidden="true" tabindex="-1"></a>  tmp.chi <span class="ot">&lt;-</span> graph_data <span class="sc">%&gt;%</span></span>
+<span id="cb93-5"><a href="#cb93-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(name <span class="sc">==</span> active_virus) <span class="sc">%&gt;%</span></span>
+<span id="cb93-6"><a href="#cb93-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb93-7"><a href="#cb93-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">negative =</span> count <span class="sc">-</span> positive) <span class="sc">%&gt;%</span></span>
+<span id="cb93-8"><a href="#cb93-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(trajectory_group, positive, negative) <span class="sc">%&gt;%</span></span>
+<span id="cb93-9"><a href="#cb93-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">column_to_rownames</span>(<span class="st">"trajectory_group"</span>)</span>
+<span id="cb93-10"><a href="#cb93-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb93-11"><a href="#cb93-11" aria-hidden="true" tabindex="-1"></a>  clm_data_tmp <span class="ot">&lt;-</span> clm_data <span class="sc">%&gt;%</span></span>
+<span id="cb93-12"><a href="#cb93-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(name <span class="sc">==</span> active_virus) <span class="sc">%&gt;%</span></span>
+<span id="cb93-13"><a href="#cb93-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">trajectory_group =</span> <span class="fu">ordered</span>(<span class="fu">factor</span>(trajectory_group))) <span class="sc">%&gt;%</span></span>
+<span id="cb93-14"><a href="#cb93-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">enrollment_site =</span> <span class="fu">factor</span>(enrollment_site)) <span class="sc">%&gt;%</span></span>
+<span id="cb93-15"><a href="#cb93-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">inner_join</span>(cytof_child_means <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"cell_type"</span> <span class="ot">=</span> <span class="dv">2</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb93-16"><a href="#cb93-16" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> cell_type, <span class="at">values_from =</span> mean), <span class="at">by =</span> <span class="st">"participant_id"</span>)</span>
+<span id="cb93-17"><a href="#cb93-17" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb93-18"><a href="#cb93-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(clm_data_tmp) <span class="ot">&lt;-</span> <span class="fu">gsub</span>(<span class="st">"[^[:alnum:]]"</span>, <span class="st">""</span>, <span class="fu">colnames</span>(clm_data_tmp))  </span>
+<span id="cb93-19"><a href="#cb93-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb93-20"><a href="#cb93-20" aria-hidden="true" tabindex="-1"></a>  <span class="do">## We are only going to correct for the cell populations that were significantly </span></span>
+<span id="cb93-21"><a href="#cb93-21" aria-hidden="true" tabindex="-1"></a>  <span class="do">## associated for any given virus</span></span>
+<span id="cb93-22"><a href="#cb93-22" aria-hidden="true" tabindex="-1"></a>  tmp.sig.features <span class="ot">&lt;-</span> model.out.adj <span class="sc">%&gt;%</span></span>
+<span id="cb93-23"><a href="#cb93-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">virus =</span> <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">)"</span>, <span class="st">""</span>, virus))) <span class="sc">%&gt;%</span></span>
+<span id="cb93-24"><a href="#cb93-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(virus <span class="sc">==</span> active_virus) <span class="sc">%&gt;%</span></span>
+<span id="cb93-25"><a href="#cb93-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(variable <span class="sc">==</span> <span class="st">"virus_positive"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb93-26"><a href="#cb93-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(p.adj <span class="sc">&lt;=</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb93-27"><a href="#cb93-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">feature =</span> <span class="fu">gsub</span>(<span class="st">"[^[:alnum:]]"</span>, <span class="st">""</span>, feature))</span>
+<span id="cb93-28"><a href="#cb93-28" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb93-29"><a href="#cb93-29" aria-hidden="true" tabindex="-1"></a>  formula_cell_type_cor <span class="ot">&lt;-</span> <span class="fu">formula</span>(<span class="fu">paste0</span>(<span class="st">"trajectorygroup~"</span>, <span class="fu">paste</span>(tmp.sig.features<span class="sc">$</span>feature, <span class="at">collapse =</span> <span class="st">"+"</span>), <span class="st">" + binary"</span>))</span>
+<span id="cb93-30"><a href="#cb93-30" aria-hidden="true" tabindex="-1"></a>  clmm_res <span class="ot">&lt;-</span> <span class="fu">clmm2</span>(formula_cell_type_cor, <span class="at">data =</span> clm_data_tmp, <span class="at">random =</span> enrollmentsite,</span>
+<span id="cb93-31"><a href="#cb93-31" aria-hidden="true" tabindex="-1"></a>                    <span class="at">Hess =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb93-32"><a href="#cb93-32" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb93-33"><a href="#cb93-33" aria-hidden="true" tabindex="-1"></a>  stat.df.cell <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(stat.df.cell, <span class="fu">chisq_test</span>(tmp.chi) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">name =</span> active_virus,</span>
+<span id="cb93-34"><a href="#cb93-34" aria-hidden="true" tabindex="-1"></a>                                                                      <span class="at">clm.p =</span> <span class="fu">summary</span>(clmm_res)[[<span class="st">"coefficients"</span>]][<span class="fu">nrow</span>(<span class="fu">summary</span>(clmm_res)[[<span class="st">"coefficients"</span>]]),<span class="dv">4</span>]))</span>
+<span id="cb93-35"><a href="#cb93-35" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: clmm2 may not have converged:
+  optimizer 'ucminf' terminated with max|gradient|: 5.33120003842803e-05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: clmm2 may not have converged:
+  optimizer 'ucminf' terminated with max|gradient|: 2.27121286366783e-05</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in stats::chisq.test(x, y, correct = correct, p = p, rescale.p =
+rescale.p, : Chi-squared approximation may be incorrect</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb97"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a>stat.df.cell <span class="ot">&lt;-</span> stat.df.cell <span class="sc">%&gt;%</span></span>
+<span id="cb97-2"><a href="#cb97-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">grepl</span>(<span class="st">".pbmc"</span>, name)) <span class="sc">%&gt;%</span></span>
+<span id="cb97-3"><a href="#cb97-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">p.value =</span> clm.p) <span class="sc">%&gt;%</span></span>
+<span id="cb97-4"><a href="#cb97-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">p.adj =</span> <span class="fu">p.adjust</span>(p.value, <span class="st">"fdr"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb97-5"><a href="#cb97-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_significance</span>(<span class="st">"p.adj"</span>) </span>
+<span id="cb97-6"><a href="#cb97-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb97-7"><a href="#cb97-7" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(stat.df.cell, <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_2_part5.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb98"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb98-1"><a href="#cb98-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggpubr)</span>
+<span id="cb98-2"><a href="#cb98-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(scales)</span>
+<span id="cb98-3"><a href="#cb98-3" aria-hidden="true" tabindex="-1"></a>stat.df <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">paste0</span>(<span class="st">"../../Figure2/output/Supplemental_Data_1_part1.csv"</span>))</span>
+<span id="cb98-4"><a href="#cb98-4" aria-hidden="true" tabindex="-1"></a>gg3 <span class="ot">&lt;-</span> stat.df.cell <span class="sc">%&gt;%</span></span>
+<span id="cb98-5"><a href="#cb98-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(stat.df <span class="sc">%&gt;%</span></span>
+<span id="cb98-6"><a href="#cb98-6" aria-hidden="true" tabindex="-1"></a>              <span class="fu">distinct</span>(name, p.adj) <span class="sc">%&gt;%</span></span>
+<span id="cb98-7"><a href="#cb98-7" aria-hidden="true" tabindex="-1"></a>              dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"p.adj_wo_cell"</span> <span class="ot">=</span> <span class="dv">2</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb98-8"><a href="#cb98-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">p.adj =</span> <span class="fu">ifelse</span>(name <span class="sc">==</span><span class="st">"Simplexvirus.pbmc"</span>, <span class="cn">NaN</span>, p.adj)) <span class="sc">%&gt;%</span></span>
+<span id="cb98-9"><a href="#cb98-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(p.adj, p.adj_wo_cell), <span class="at">names_to =</span> <span class="st">"modeling_approach"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb98-10"><a href="#cb98-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">mode =</span> <span class="fu">ifelse</span>(modeling_approach <span class="sc">==</span> <span class="st">"p.adj"</span>, <span class="st">"With Cell Type</span><span class="sc">\n</span><span class="st">Correction"</span>,</span>
+<span id="cb98-11"><a href="#cb98-11" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"Without Cell Type</span><span class="sc">\n</span><span class="st">Correction"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb98-12"><a href="#cb98-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">mode =</span> <span class="fu">factor</span>(mode, <span class="fu">c</span>(<span class="st">"Without Cell Type</span><span class="sc">\n</span><span class="st">Correction"</span>, <span class="st">"With Cell Type</span><span class="sc">\n</span><span class="st">Correction"</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb98-13"><a href="#cb98-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>mode, <span class="at">y=</span>name)) <span class="sc">+</span></span>
+<span id="cb98-14"><a href="#cb98-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="fu">aes</span>(<span class="at">fill =</span> <span class="sc">-</span><span class="fu">log10</span>(value))) <span class="sc">+</span></span>
+<span id="cb98-15"><a href="#cb98-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label =</span> <span class="fu">signif</span>(value, <span class="dv">2</span>))) <span class="sc">+</span> </span>
+<span id="cb98-16"><a href="#cb98-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb98-17"><a href="#cb98-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_gradientn</span>(<span class="at">colours =</span> <span class="fu">c</span>(<span class="st">"white"</span>, <span class="fu">muted</span>(<span class="st">"red"</span>)), </span>
+<span id="cb98-18"><a href="#cb98-18" aria-hidden="true" tabindex="-1"></a>                       <span class="at">guide =</span> <span class="fu">guide_colorbar</span>(<span class="at">frame.colour =</span> <span class="st">"black"</span>, <span class="at">ticks.colour =</span> <span class="st">"black"</span>),</span>
+<span id="cb98-19"><a href="#cb98-19" aria-hidden="true" tabindex="-1"></a>                      <span class="at">name =</span> <span class="st">"-log10 Transformed</span><span class="sc">\n</span><span class="st">p-values"</span>) <span class="sc">+</span></span>
+<span id="cb98-20"><a href="#cb98-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb98-21"><a href="#cb98-21" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text.y =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb98-22"><a href="#cb98-22" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.y =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb98-23"><a href="#cb98-23" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb98-24"><a href="#cb98-24" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">vjust =</span> <span class="dv">1</span>, <span class="at">hjust=</span><span class="dv">1</span>),</span>
+<span id="cb98-25"><a href="#cb98-25" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>)) <span class="sc">+</span></span>
+<span id="cb98-26"><a href="#cb98-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Mode"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(name)`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb100"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb100-1"><a href="#cb100-1" aria-hidden="true" tabindex="-1"></a>gg2 <span class="ot">&lt;-</span> graph_data <span class="sc">%&gt;%</span></span>
+<span id="cb100-2"><a href="#cb100-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">grepl</span>(<span class="st">".pbmc"</span>, name)) <span class="sc">%&gt;%</span></span>
+<span id="cb100-3"><a href="#cb100-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>name, <span class="at">y=</span>freq)) <span class="sc">+</span></span>
+<span id="cb100-4"><a href="#cb100-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">preserve =</span> <span class="st">"single"</span>), <span class="fu">aes</span>(<span class="at">fill =</span> trajectory_group)) <span class="sc">+</span></span>
+<span id="cb100-5"><a href="#cb100-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> </span>
+<span id="cb100-6"><a href="#cb100-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> TrajGrpCol, <span class="at">name =</span> <span class="st">"Trajectory Group"</span>) <span class="sc">+</span></span>
+<span id="cb100-7"><a href="#cb100-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Percent of TG (%)"</span>) <span class="sc">+</span></span>
+<span id="cb100-8"><a href="#cb100-8" aria-hidden="true" tabindex="-1"></a>  ggpubr<span class="sc">::</span><span class="fu">stat_pvalue_manual</span>(stat.df <span class="sc">%&gt;%</span></span>
+<span id="cb100-9"><a href="#cb100-9" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">filter</span>(<span class="fu">grepl</span>(<span class="st">".pbmc"</span>, name)) <span class="sc">%&gt;%</span></span>
+<span id="cb100-10"><a href="#cb100-10" aria-hidden="true" tabindex="-1"></a>                       <span class="fu">mutate</span>(<span class="at">xpos =</span> <span class="fu">c</span>(<span class="dv">3</span><span class="sc">:</span><span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb100-11"><a href="#cb100-11" aria-hidden="true" tabindex="-1"></a>                       <span class="fu">filter</span>(<span class="sc">!</span>p.adj.signif <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"ns"</span>, <span class="st">""</span>, <span class="st">" "</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb100-12"><a href="#cb100-12" aria-hidden="true" tabindex="-1"></a>                       <span class="fu">mutate</span>(<span class="at">y.position =</span> <span class="fu">c</span>(<span class="dv">42</span>, <span class="dv">17</span>, <span class="dv">35</span>)),</span>
+<span id="cb100-13"><a href="#cb100-13" aria-hidden="true" tabindex="-1"></a>                     <span class="at">x=</span> <span class="st">"xpos"</span>, <span class="at">label =</span> <span class="st">"p.adj.signif"</span>, <span class="at">vjust =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
+<span id="cb100-14"><a href="#cb100-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coord_flip</span>() <span class="sc">+</span></span>
+<span id="cb100-15"><a href="#cb100-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.title.y =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb100-16"><a href="#cb100-16" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color=</span><span class="st">"black"</span>),</span>
+<span id="cb100-17"><a href="#cb100-17" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>))</span>
+<span id="cb100-18"><a href="#cb100-18" aria-hidden="true" tabindex="-1"></a>gg2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure3_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb101"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb101-1"><a href="#cb101-1" aria-hidden="true" tabindex="-1"></a>gg2 <span class="sc">%&gt;%</span> <span class="fu">insert_right</span>(gg3)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure3_files/figure-html/unnamed-chunk-11-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb102"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb102-1"><a href="#cb102-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS3A.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="fl">3.5</span>)</span>
+<span id="cb102-2"><a href="#cb102-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(gg2<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS3A.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="panel-b-hsv1-proteins-by-tg" class="level3">
+<h3 class="anchored" data-anchor-id="panel-b-hsv1-proteins-by-tg">Panel B: HSV1 Proteins by TG</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb103"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb103-1"><a href="#cb103-1" aria-hidden="true" tabindex="-1"></a>tmp <span class="ot">&lt;-</span> data_env<span class="sc">$</span>plasma_proteomics_global_dda_metadata <span class="sc">%&gt;%</span></span>
+<span id="cb103-2"><a href="#cb103-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rownames_to_column</span>(<span class="st">"sample_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb103-3"><a href="#cb103-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(sample_id, participant_id, event_id, trajectory_group, event_type)) <span class="sc">%&gt;%</span></span>
+<span id="cb103-4"><a href="#cb103-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(hsv_proteomics <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(sample_id, HHV1_1)) <span class="sc">%&gt;%</span></span>
+<span id="cb103-5"><a href="#cb103-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">HHV1_1 =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(HHV1_1), <span class="dv">0</span>, <span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb103-6"><a href="#cb103-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(participant_id, trajectory_group) <span class="sc">%&gt;%</span></span>
+<span id="cb103-7"><a href="#cb103-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">slice_max</span>(HHV1_1) <span class="sc">%&gt;%</span></span>
+<span id="cb103-8"><a href="#cb103-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>(participant_id, trajectory_group, HHV1_1) <span class="sc">%&gt;%</span></span>
+<span id="cb103-9"><a href="#cb103-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(trajectory_group, HHV1_1) <span class="sc">%&gt;%</span></span>
+<span id="cb103-10"><a href="#cb103-10" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">count =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span> <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> HHV1_1, <span class="at">values_from =</span> count)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`
+`summarise()` has grouped output by 'trajectory_group'. You can override using
+the `.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb105"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb105-1"><a href="#cb105-1" aria-hidden="true" tabindex="-1"></a>chi_res <span class="ot">&lt;-</span> <span class="fu">chisq.test</span>(tmp[,<span class="sc">-</span><span class="dv">1</span>])</span>
+<span id="cb105-2"><a href="#cb105-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb105-3"><a href="#cb105-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(<span class="fu">data.frame</span>(<span class="at">test =</span> <span class="st">"Chi-square test"</span>,</span>
+<span id="cb105-4"><a href="#cb105-4" aria-hidden="true" tabindex="-1"></a>                     <span class="at">pvalue =</span> chi_res<span class="sc">$</span>p.value,</span>
+<span id="cb105-5"><a href="#cb105-5" aria-hidden="true" tabindex="-1"></a>                     <span class="at">compaison =</span> <span class="st">"HSV1 Plasma Proteins by TG"</span>),</span>
+<span id="cb105-6"><a href="#cb105-6" aria-hidden="true" tabindex="-1"></a>          <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_2_part6.csv"</span>))</span>
+<span id="cb105-7"><a href="#cb105-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb105-8"><a href="#cb105-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb105-9"><a href="#cb105-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">5</span>)){</span>
+<span id="cb105-10"><a href="#cb105-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">chisq.test</span>(tmp[<span class="fu">c</span>(i,<span class="dv">4</span>),<span class="sc">-</span><span class="dv">1</span>]))</span>
+<span id="cb105-11"><a href="#cb105-11" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+    Pearson's Chi-squared test with Yates' continuity correction
+
+data:  tmp[c(i, 4), -1]
+X-squared = 12.213, df = 1, p-value = 0.0004746
+
+
+    Pearson's Chi-squared test with Yates' continuity correction
+
+data:  tmp[c(i, 4), -1]
+X-squared = 2.8367, df = 1, p-value = 0.09213
+
+
+    Pearson's Chi-squared test with Yates' continuity correction
+
+data:  tmp[c(i, 4), -1]
+X-squared = 10.971, df = 1, p-value = 0.0009252
+
+
+    Pearson's Chi-squared test with Yates' continuity correction
+
+data:  tmp[c(i, 4), -1]
+X-squared = 3.4922, df = 1, p-value = 0.06166</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb107"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb107-1"><a href="#cb107-1" aria-hidden="true" tabindex="-1"></a>ggS2 <span class="ot">&lt;-</span> data_env<span class="sc">$</span>plasma_proteomics_global_dda_metadata <span class="sc">%&gt;%</span></span>
+<span id="cb107-2"><a href="#cb107-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">"sample_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb107-3"><a href="#cb107-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(sample_id, participant_id, event_id, trajectory_group, event_type)) <span class="sc">%&gt;%</span></span>
+<span id="cb107-4"><a href="#cb107-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(hsv_proteomics <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(sample_id, HHV1_1)) <span class="sc">%&gt;%</span></span>
+<span id="cb107-5"><a href="#cb107-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">HHV1_1 =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(HHV1_1), <span class="dv">0</span>, <span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb107-6"><a href="#cb107-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(participant_id, trajectory_group) <span class="sc">%&gt;%</span></span>
+<span id="cb107-7"><a href="#cb107-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(HHV1_1) <span class="sc">%&gt;%</span></span>
+<span id="cb107-8"><a href="#cb107-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(participant_id, trajectory_group, HHV1_1) <span class="sc">%&gt;%</span></span>
+<span id="cb107-9"><a href="#cb107-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(trajectory_group) <span class="sc">%&gt;%</span></span>
+<span id="cb107-10"><a href="#cb107-10" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">mean =</span> <span class="fu">mean</span>(HHV1_1) <span class="sc">*</span> <span class="dv">100</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb107-11"><a href="#cb107-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">label =</span> <span class="fu">paste0</span>(<span class="fu">round</span>(mean, <span class="dv">1</span>), <span class="st">"%"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb107-12"><a href="#cb107-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">trajectory_group =</span> <span class="fu">factor</span>(trajectory_group)) <span class="sc">%&gt;%</span></span>
+<span id="cb107-13"><a href="#cb107-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>trajectory_group, <span class="at">y=</span> mean, <span class="at">fill =</span> trajectory_group)) <span class="sc">+</span></span>
+<span id="cb107-14"><a href="#cb107-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb107-15"><a href="#cb107-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label =</span> label), <span class="at">size =</span> <span class="dv">3</span>, <span class="at">vjust=</span><span class="sc">-</span><span class="fl">0.25</span>) <span class="sc">+</span></span>
+<span id="cb107-16"><a href="#cb107-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> TrajGrpCol) <span class="sc">+</span></span>
+<span id="cb107-17"><a href="#cb107-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb107-18"><a href="#cb107-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>) <span class="sc">+</span></span>
+<span id="cb107-19"><a href="#cb107-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Percent of TG Positive</span><span class="sc">\n</span><span class="st">for HHV1 Proteins(%)"</span>) <span class="sc">+</span></span>
+<span id="cb107-20"><a href="#cb107-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Trajectory Group"</span>) <span class="sc">+</span></span>
+<span id="cb107-21"><a href="#cb107-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_cartesian</span>(<span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">12</span>)) <span class="sc">+</span></span>
+<span id="cb107-22"><a href="#cb107-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb107-23"><a href="#cb107-23" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(sample_id)`
+Joining with `by = join_by(sample_id)`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb109"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb109-1"><a href="#cb109-1" aria-hidden="true" tabindex="-1"></a>ggS2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure3_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="216"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb110"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb110-1"><a href="#cb110-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS3B.pdf"</span>), <span class="at">width =</span> <span class="fl">2.25</span>, <span class="at">height =</span> <span class="dv">2</span>)</span>
+<span id="cb110-2"><a href="#cb110-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb110-3"><a href="#cb110-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(ggS2<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS3B.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="session-info" class="level1">
+<h1>Session Info</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb111"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb111-1"><a href="#cb111-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>R version 4.0.3 (2020-10-10)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 24.04.1 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
+LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] ordinal_2019.12-10 rstatix_0.7.2      aplot_0.1.9        scales_1.2.1      
+ [5] readxl_1.4.3       ggpubr_0.4.0       viridis_0.6.2      viridisLite_0.4.0 
+ [9] data.table_1.16.2  lubridate_1.9.3    forcats_1.0.0      stringr_1.5.0     
+[13] dplyr_1.1.2        purrr_1.0.2        readr_2.1.5        tidyr_1.3.1       
+[17] tibble_3.2.1       ggplot2_3.4.2      tidyverse_2.0.0   
+
+loaded via a namespace (and not attached):
+ [1] bit64_4.0.5         vroom_1.6.5         jsonlite_1.8.9     
+ [4] carData_3.0-5       ucminf_1.1-4        yulab.utils_0.0.4  
+ [7] vipor_0.4.5         cellranger_1.1.0    yaml_2.3.10        
+[10] lattice_0.20-41     numDeriv_2016.8-1.1 pillar_1.9.0       
+[13] backports_1.5.0     glue_1.6.2          digest_0.6.29      
+[16] ggsignif_0.6.3      colorspace_2.0-3    ggfun_0.0.9        
+[19] htmltools_0.5.3     Matrix_1.4-1        pkgconfig_2.0.3    
+[22] broom_1.0.7         patchwork_1.1.1     ggplotify_0.1.1    
+[25] tzdb_0.4.0          timechange_0.3.0    generics_0.1.2     
+[28] farver_2.1.0        car_3.0-12          withr_2.5.0        
+[31] cli_3.6.3           magrittr_2.0.3      crayon_1.5.0       
+[34] evaluate_1.0.1      fansi_1.0.6         MASS_7.3-53        
+[37] beeswarm_0.4.0      textshaping_0.4.0   tools_4.0.3        
+[40] hms_1.1.3           lifecycle_1.0.4     munsell_0.5.0      
+[43] compiler_4.0.3      systemfonts_1.1.0   gridGraphics_0.5-1 
+[46] rlang_1.1.4         grid_4.0.3          rstudioapi_0.17.1  
+[49] htmlwidgets_1.5.4   labeling_0.4.2      rmarkdown_2.29     
+[52] gtable_0.3.0        abind_1.4-5         R6_2.5.1           
+[55] gridExtra_2.3       knitr_1.49          fastmap_1.1.0      
+[58] bit_4.0.4           utf8_1.2.4          ragg_1.3.3         
+[61] stringi_1.8.4       ggbeeswarm_0.6.0    parallel_4.0.3     
+[64] vctrs_0.6.5         tidyselect_1.2.1    xfun_0.49          </code></pre>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

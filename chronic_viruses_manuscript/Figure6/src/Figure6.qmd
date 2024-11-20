@@ -1,0 +1,770 @@
+---
+title: "Figure6"
+format: html
+editor: visual
+---
+
+## Figure 6
+
+## Boot up Key Data
+
+```{r}
+library(tidyverse)
+library(limma)
+library(edgeR)
+library(ggrepel)
+library(scales)
+comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.csv") %>% dplyr::select(-1) %>%
+  dplyr::select(-starts_with("Human betaherpesvirus 6"),
+         -starts_with("Human gammaherpesvirus 8"),
+         -starts_with("Human betaherpesvirus 7"),
+         -starts_with("Respiratory syncytial virus"),
+         -starts_with("Human immunodeficiency virus 1"),
+         -starts_with("SARS-CoV-2.pbmc"),
+         -starts_with("Enterovirus"),
+         -starts_with("Anelloviridae.ea"),
+         -starts_with("Anelloviridae.nasal"),
+         -ends_with(".ea")) %>%
+  dplyr::rename("Betacoronavirus.nasal" = "SARS-CoV-2.nasal")
+
+data_env <- readRDS("/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS")
+clinical_data <- data_env$clinical_data
+
+clinical_data_ext <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-supp-locked.csv")
+out_dir <- "../output/"
+```
+
+### Differential Expression and Enrichment Functions
+
+```{r}
+library(biomaRt)
+diff_exp_time_indep <- function(counts, rowfeatures, clinical_data, virus, comb_data, binary = TRUE, omic = "Same",
+                     event_date_cutoff = 40, lower_date_cutoff = 0, knockin = FALSE){
+  
+ earliest_part <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(data_env$clinical_data %>%
+              distinct(event_id, participant_id, event_date, event_type)) %>%
+  filter(event_date >= lower_date_cutoff) %>%
+  filter(event_date <= event_date_cutoff) %>%
+  group_by(participant_id, name) %>%
+  filter(name != "Betacoronavirus.nasal") %>%
+  filter(value > 0) %>%
+  filter(value != -Inf) %>%
+  distinct() %>%
+  slice_min(value, n= 1) %>%
+  ungroup() %>%
+  filter(!grepl(".ea|Betacorona|Simplexvirus.pbmc", name))
+
+ 
+  max_part <- comb_data %>%
+    pivot_longer(cols = -event_id) %>%
+    left_join(data_env$clinical_data %>%
+                distinct(event_id, participant_id, event_date)) %>%
+    filter(event_date >= 0) %>%
+    filter(event_date <= event_date_cutoff) %>%
+    group_by(participant_id, name) %>%
+    filter(name != "Betacoronavirus.nasal") %>%
+    dplyr::summarize(value = max(value, na.rm = TRUE)) %>%
+    filter(value != -Inf) %>%
+    distinct() %>%
+    pivot_wider(names_from = name, values_from = value) %>%
+    ungroup() %>%
+    dplyr::select(-ends_with(".ea"), -starts_with("Betacorona"))
+  ## Filter for participants that we have both a nasal and pbmc sample for
+  max_part <- max_part[complete.cases(max_part),]
+  ctl_part <- max_part$participant_id[rowSums(max_part[,c(-1)]) == 0]
+  
+counts <- counts[,colnames(counts) %in% rownames(rowfeatures)[rowfeatures$gene_biotype == "protein_coding"]]
+counts <- counts[rownames(counts) %in% clinical_data$sample_id[!is.na(clinical_data$trajectory_group)],]
+
+event_ids_conv <- clinical_data$event_id[match(rownames(counts), clinical_data$sample_id)]
+dups <- event_ids_conv[duplicated(event_ids_conv)]
+counts <- counts[!rownames(counts) %in% clinical_data$sample_id[clinical_data$event_id %in% dups],]
+
+rownames(counts) <- clinical_data$event_id[match(rownames(counts), clinical_data$sample_id)]
+
+# Keep genes with at least 10 counts in 20% of samples
+keep <- colSums(counts>=10) >= 0.2*nrow(counts)
+counts <- counts[,keep]
+
+clin.sample.event.individ.1 <- clinical_data %>%
+  filter(event_id %in% rownames(counts)) %>%
+  distinct(event_id, discretized_admit_age_quantile, sex, trajectory_group,
+           event_type, respiratory_status) %>%
+  mutate(trajectory_group = ordered(as.factor(trajectory_group)),
+         respiratory_status = ordered(as.factor(respiratory_status))) %>%
+  left_join(comb_data %>% dplyr::select(event_id, Betacoronavirus.nasal) %>%
+              mutate(Betacoronavirus.nasal = log2(Betacoronavirus.nasal+1)))
+clin.sample.event.individ.1 <- clin.sample.event.individ.1[match(rownames(counts),clin.sample.event.individ.1$event_id),]
+
+## Filter for samples that have complete information
+clin.sample.event.individ.1 <- clin.sample.event.individ.1[complete.cases(clin.sample.event.individ.1),]
+counts <- counts[rownames(counts) %in% clin.sample.event.individ.1$event_id,]
+clin.sample.event.individ.1 <- clin.sample.event.individ.1[clin.sample.event.individ.1$event_id %in% rownames(counts), ]
+
+## Convert detection of the virus to yes or no
+if(binary){
+  if(knockin){
+    virus_pos <- comb_data %>%
+    distinct(event_id, .data[[virus]]) %>%
+    mutate(virus_now = ifelse(is.na(.data[[virus]]) | .data[[virus]] ==0, 0, 1)) %>%
+    left_join(clinical_data %>% distinct(event_id, event_date, participant_id)) %>%
+      left_join(earliest_part %>% distinct(participant_id, name, event_date) %>%
+                  filter(name == virus) %>%
+                  dplyr::rename("min_event_date"=3)) %>%
+    mutate(group = ifelse(event_date >= min_event_date, 1,NA)) %>%
+      mutate(group = ifelse(participant_id %in% ctl_part, 0, group))
+  } else {
+    virus_pos <- comb_data %>%
+    distinct(event_id, .data[[virus]]) %>%
+  mutate(group = ifelse( .data[[virus]] ==0, 0, 1)) %>% ##is.na(.data[[virus]]) |
+    left_join(clinical_data %>% distinct(event_id, participant_id)) %>%
+    filter(group == 1 | participant_id %in% ctl_part)
+  }
+  
+} else {
+  virus_pos <- comb_data %>%
+    distinct(event_id, .data[[virus]]) %>%
+  mutate(group = ifelse(is.na(.data[[virus]]) | .data[[virus]] ==0, 0, log2(.data[[virus]]))) %>%
+    filter(group == 1 | grepl(paste(ctl_part, collapse = "|"), event_id))
+}
+## New lines
+tmp <- clin.sample.event.individ.1 %>% inner_join(virus_pos) %>%
+  filter(!is.na(group))
+counts <- counts[rownames(counts) %in% tmp$event_id,]
+tmp <- tmp[tmp$event_id %in% rownames(counts), ]
+
+metaa <- tmp %>% left_join(virus_pos)
+design <- model.matrix(~ discretized_admit_age_quantile + sex + event_type + trajectory_group + Betacoronavirus.nasal + group, ## Can consider adding TG back in
+                       data=metaa) 
+
+vwts <- voom(t(counts), 
+             design = design,
+             normalize.method = "quantile",
+             plot = T)
+
+vfit <- lmFit(vwts)
+vfit <- eBayes(vfit)
+
+res <- topTable(vfit, coef = "group",
+                sort.by = "none", number = Inf,
+                adjust.method = "BH", p.value = 1)
+return(res)
+}
+
+library("AnnotationDbi")
+library("org.Hs.eg.db")
+mart_retrieved <- data.frame("ensembl_gene_id" = colnames(data_env$pbmc_transcriptomics_counts))
+mart_retrieved$entrezgene_id = mapIds(org.Hs.eg.db,
+                    keys=mart_retrieved$ensembl_gene_id,
+                    column="ENTREZID",
+                    keytype="ENSEMBL",
+                    multiVals="first")
+
+keggdb <-  readRDS(file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds")
+
+enrichment_df <- function(res, mart_retrieved, rowfeatures = data_env$pbmc_transcriptomics_rowfeature,
+                          KEGG = keggdb$pbmc, FC_threshold = 0.5, p_threshold = 0.05){
+library(biomaRt)
+library(clusterProfiler)
+library(ReactomePA)
+
+data <- res %>%
+  rownames_to_column("ensembl_gene_id") %>%
+  left_join(rowfeatures %>%
+  rownames_to_column("ensembl_gene_id")) %>%
+  left_join(mart_retrieved) %>%
+  filter(!is.na(entrezgene_id))
+results_out <- data.frame()
+  if(length(data$entrezgene_id[data$adj.P.Val<= p_threshold &data$logFC> FC_threshold]) > 0){
+    up <- try(enrichPathway(data$entrezgene_id[data$adj.P.Val<= p_threshold &data$logFC> FC_threshold],
+                organism = "human",
+                universe = as.character(unique(data$entrezgene_id))), silent = TRUE)
+    if(!class(up) %in% c("try-error", "NULL")){
+      results_out <- rbind.data.frame(results_out, up@result %>% mutate(dir = "up",
+                                                                        database = "Reactome"))
+    }
+    
+  if(length(data$entrezgene_id[data$adj.P.Val<= p_threshold &data$logFC>FC_threshold]) > 0){
+    up <- try(enricher(data$gene_name[data$adj.P.Val<= p_threshold &data$logFC>FC_threshold],
+                TERM2GENE = KEGG,minGSSize = 3,
+                universe = as.character(unique(data$entrezgene_id))), silent = TRUE)
+    if(!class(up) %in% c("try-error", "NULL")){
+      results_out <- rbind.data.frame(results_out, up@result %>% mutate(dir = "up",
+                                                                        database = "KEGG"))
+    }
+  }
+}
+
+if(length(data$entrezgene_id[data$adj.P.Val<= p_threshold &data$logFC<FC_threshold]) > 0){
+  down <- try(enrichPathway(data$entrezgene_id[data$adj.P.Val<= p_threshold &data$logFC<FC_threshold],
+              organism = "human",
+              universe = as.character(unique(data$entrezgene_id))), silent = TRUE)
+  if(!class(down) %in% c("try-error", "NULL")){
+    results_out <- rbind.data.frame(results_out, down@result %>% mutate(dir = "down",
+                                                                      database = "Reactome"))
+  }
+  if(length(data$entrezgene_id[data$adj.P.Val<= p_threshold &data$logFC>FC_threshold]) > 0){
+    down <- try(enricher(data$gene_name[data$adj.P.Val<= p_threshold &data$logFC>FC_threshold],
+                TERM2GENE = KEGG, minGSSize = 3,
+                universe = as.character(unique(data$entrezgene_id))), silent = TRUE)
+    if(!class(down) %in% c("try-error", "NULL")){
+      results_out <- rbind.data.frame(results_out, down@result %>% mutate(dir = "down",
+                                                                        database = "KEGG"))
+    }
+  }
+  
+}
+return(results_out)
+}
+
+enrichment_plot <- function(data){
+library(biomaRt)
+library(clusterProfiler)
+library(ReactomePA)
+
+data  %>%
+  mutate(p.adjust = as.numeric(p.adjust)) %>%
+  filter(p.adjust <= 0.05) %>%
+  slice_min(p.adjust, n= 20) %>%
+  mutate(Description = stringr::str_trunc(Description, 30)) %>%
+  mutate(log10p = -log10(p.adjust),
+         Description = as.factor(Description)) %>%
+  ggplot(aes(x=-log10(p.adjust), y=fct_reorder(Description, log10p), fill = dir)) +
+  geom_bar(stat = "identity") +
+  geom_vline(xintercept = -log10(0.05), linetype = "dashed") +
+  theme_classic() +
+  scale_fill_manual(values = c("up" = scales::muted("red"),
+                               "down" = scales::muted("blue"))) + 
+  #scale_fill_gradient2(low = "gray", high = scales::muted("red")) +
+  ylab("Reactome Pathway")
+}
+
+```
+
+```{r}
+
+diff_exp_time_indep <- function(counts, rowfeatures, clinical_data, virus, comb_data, binary = TRUE, omic = "Same",
+                     event_date_cutoff = 40, lower_date_cutoff = 0, knockin = FALSE){
+  
+ earliest_part <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(data_env$clinical_data %>%
+              distinct(event_id, participant_id, event_date, event_type)) %>%
+  filter(event_date >= lower_date_cutoff) %>%
+  filter(event_date <= event_date_cutoff) %>%
+  group_by(participant_id, name) %>%
+  filter(name != "Betacoronavirus.nasal") %>%
+  filter(value > 0) %>%
+  filter(value != -Inf) %>%
+  distinct() %>%
+  slice_min(value, n= 1) %>%
+  ungroup() %>%
+  filter(!grepl(".ea|Betacorona|Simplexvirus.pbmc", name))
+
+ 
+  max_part <- comb_data %>%
+    pivot_longer(cols = -event_id) %>%
+    left_join(data_env$clinical_data %>%
+                distinct(event_id, participant_id, event_date)) %>%
+    filter(event_date >= 0) %>%
+    filter(event_date <= event_date_cutoff) %>%
+    group_by(participant_id, name) %>%
+    filter(name != "Betacoronavirus.nasal") %>%
+    dplyr::summarize(value = max(value, na.rm = TRUE)) %>%
+    filter(value != -Inf) %>%
+    distinct() %>%
+    pivot_wider(names_from = name, values_from = value) %>%
+    ungroup() %>%
+    dplyr::select(-ends_with(".ea"), -starts_with("Betacorona"), -Simplexvirus.pbmc)
+  ## Filter for participants that we have both a nasal and pbmc sample for
+  max_part <- max_part[complete.cases(max_part),]
+  ctl_part <- max_part$participant_id[rowSums(max_part[,c(-1)]) == 0]
+  
+counts <- counts[,colnames(counts) %in% rownames(rowfeatures)[rowfeatures$gene_biotype == "protein_coding"]]
+## counts <- counts[rownames(counts) %in% clinical_data$sample_id[clinical_data$event_type == event],]
+counts <- counts[rownames(counts) %in% clinical_data$sample_id[!is.na(clinical_data$trajectory_group)],]
+
+event_ids_conv <- clinical_data$event_id[match(rownames(counts), clinical_data$sample_id)]
+dups <- event_ids_conv[duplicated(event_ids_conv)]
+counts <- counts[!rownames(counts) %in% clinical_data$sample_id[clinical_data$event_id %in% dups],]
+
+rownames(counts) <- clinical_data$event_id[match(rownames(counts), clinical_data$sample_id)]
+
+# Keep genes with at least 10 counts in 20% of samples
+keep <- colSums(counts>=10) >= 0.2*nrow(counts)
+counts <- counts[,keep]
+
+clin.sample.event.individ.1 <- clinical_data %>%
+  filter(event_id %in% rownames(counts)) %>%
+  distinct(event_id, discretized_admit_age_quantile, sex, trajectory_group,
+           event_type, respiratory_status) %>%
+  mutate(trajectory_group = ordered(as.factor(trajectory_group)),
+         respiratory_status = ordered(as.factor(respiratory_status))) %>%
+  left_join(comb_data %>% dplyr::select(event_id, Betacoronavirus.nasal) %>%
+              mutate(Betacoronavirus.nasal = log2(Betacoronavirus.nasal+1)))
+clin.sample.event.individ.1 <- clin.sample.event.individ.1[match(rownames(counts),clin.sample.event.individ.1$event_id),]
+
+## Filter for samples that have complete information
+clin.sample.event.individ.1 <- clin.sample.event.individ.1[complete.cases(clin.sample.event.individ.1),]
+counts <- counts[rownames(counts) %in% clin.sample.event.individ.1$event_id,]
+clin.sample.event.individ.1 <- clin.sample.event.individ.1[clin.sample.event.individ.1$event_id %in% rownames(counts), ]
+
+## Convert detection of the virus to yes or no
+if(binary){
+  if(knockin){
+    virus_pos <- comb_data %>%
+    distinct(event_id, .data[[virus]]) %>%
+    mutate(virus_now = ifelse(is.na(.data[[virus]]) | .data[[virus]] ==0, 0, 1)) %>%
+    left_join(clinical_data %>% distinct(event_id, event_date, participant_id)) %>%
+      left_join(earliest_part %>% distinct(participant_id, name, event_date) %>%
+                  filter(name == virus) %>%
+                  dplyr::rename("min_event_date"=3)) %>%
+    mutate(group = ifelse(event_date >= min_event_date, 1,NA)) %>%
+      mutate(group = ifelse(participant_id %in% ctl_part, 0, group))
+  } else {
+    virus_pos <- comb_data %>%
+    distinct(event_id, .data[[virus]]) %>%
+  mutate(group = ifelse( .data[[virus]] ==0, 0, 1)) %>% ##is.na(.data[[virus]]) |
+    left_join(clinical_data %>% distinct(event_id, participant_id)) %>%
+    filter(group == 1 | participant_id %in% ctl_part)
+  }
+  
+} else {
+  virus_pos <- comb_data %>%
+    distinct(event_id, .data[[virus]]) %>%
+  mutate(group = ifelse(is.na(.data[[virus]]) | .data[[virus]] ==0, 0, .data[[virus]]))%>%
+    filter(group == 1 | grepl(paste(ctl_part, collapse = "|"), event_id))
+}
+## New lines
+tmp <- clin.sample.event.individ.1 %>% inner_join(virus_pos) %>%
+  filter(!is.na(group))
+counts <- counts[rownames(counts) %in% tmp$event_id,]
+tmp <- tmp[tmp$event_id %in% rownames(counts), ]
+
+metaa <- tmp %>% left_join(virus_pos)
+design <- model.matrix(~ discretized_admit_age_quantile + sex + event_type + trajectory_group + Betacoronavirus.nasal + group, ## Can consider adding TG back in
+                       data=metaa) 
+
+# vobj_tmp = voom(t(counts), design, plot=FALSE)
+# dupcor <- duplicateCorrelation(vobj_tmp,design,block=metaa$participant_id)
+
+# run voom considering the duplicateCorrelation results
+# in order to compute more accurate precision weights
+# Otherwise, use the results from the first voom run
+vwts <- voom(t(counts), 
+             design = design,
+             normalize.method = "quantile",
+             plot = T)
+
+vfit <- lmFit(vwts)
+vfit <- eBayes(vfit)
+
+res <- topTable(vfit, coef = "group",
+                sort.by = "none", number = Inf,
+                adjust.method = "BH", p.value = 1)
+return(res)
+}
+
+```
+
+## Calculate PBMC and Nasal DEGs and Enriched Pathways
+
+Pathway enrichment using hypergeometric enrichment on DEGs either Up or Down regulated
+
+```{r}
+#| eval: false
+
+####################### Viral Load Dependent Pathway
+pbmc_enrichment_df <- data.frame()
+nasal_enrichment_df <- data.frame()
+pbmc_diff <- data.frame()
+nasal_diff <- data.frame()
+for(active_vir in colnames(comb_data[2:8])){
+    knock_in = FALSE
+      ## PBMC Transcriptomic
+      res <- diff_exp_time_indep(counts = data_env$pbmc_transcriptomics_counts,
+                      data_env$pbmc_transcriptomics_rowfeature,
+                    data_env$clinical_data, active_vir, comb_data = comb_data,
+                    knockin = knock_in,
+                    binary = TRUE)
+      pbmc_diff <- rbind.data.frame(pbmc_diff, res %>% rownames_to_column("gene_name") %>%
+                                      mutate(virus = active_vir,
+                                          knock_in = knock_in))
+      plot(res %>%
+        rownames_to_column("ensembl_gene_id") %>%
+        left_join(data_env$pbmc_transcriptomics_rowfeature%>%
+        rownames_to_column("ensembl_gene_id")) %>%
+        mutate(gene_name = ifelse(adj.P.Val > 0.05, NA, gene_name)) %>%
+        mutate(diffexpressed = ifelse(adj.P.Val <= 0.05, ifelse(logFC > 0, "UP", "DOWN"), "Not Diff")) %>%
+               ggplot(aes(x=logFC, y=-log10(adj.P.Val), col=diffexpressed, label=gene_name)) +
+              geom_point() + 
+              theme_minimal() +
+              geom_text_repel() +
+              scale_color_manual(values=c("blue", "black", "red")) +
+              geom_hline(yintercept=-log10(0.05), col="red") +
+        ggtitle(paste0("PBMC_", active_vir, "_", knock_in)))
+      
+      if(sum(res$adj.P.Val <= 0.05) < 5){} else{
+        enrichment <- enrichment_df(res, mart_retrieved, rowfeatures = data_env$pbmc_transcriptomics_rowfeature,
+                                    KEGG = keggdb$pbmc,FC_threshold = 0.25)
+        pbmc_enrichment_df <- rbind.data.frame(pbmc_enrichment_df, enrichment %>%
+                                                  mutate(virus = active_vir,
+                                                              knock_in = knock_in))
+        plot(enrichment_plot(enrichment) + ggtitle(paste0("PBMC ", active_vir)))
+      }
+      
+      ## Nasal Transcriptomic
+      res <- diff_exp_time_indep(counts = data_env$nasal_transcriptomics_counts,
+                      data_env$nasal_transcriptomics_rowfeature,
+                    data_env$clinical_data, active_vir, comb_data = comb_data,
+                    knockin = knock_in,
+                    binary = TRUE)
+      nasal_diff <- rbind.data.frame(nasal_diff, res %>% rownames_to_column("gene_name") %>%
+                                       mutate(virus = active_vir,
+                                              knock_in = knock_in))
+      plot(res %>%
+        rownames_to_column("ensembl_gene_id") %>%
+        left_join(data_env$pbmc_transcriptomics_rowfeature%>%
+        rownames_to_column("ensembl_gene_id")) %>%
+        mutate(gene_name = ifelse(adj.P.Val > 0.05, NA, gene_name)) %>%
+        mutate(diffexpressed = ifelse(adj.P.Val <= 0.05, ifelse(logFC > 0, "UP", "DOWN"), "Not Diff")) %>%
+               ggplot(aes(x=logFC, y=-log10(adj.P.Val), col=diffexpressed, label=gene_name)) +
+              geom_point() + 
+              theme_minimal() +
+              geom_text_repel() +
+              scale_color_manual(values=c("blue", "black", "red")) +
+              geom_hline(yintercept=-log10(0.05), col="red") +
+        ggtitle(paste0("Nasal_", active_vir, "_",knock_in)))
+      
+      if(sum(res$adj.P.Val <= 0.05) < 5){} else{
+        enrichment <- enrichment_df(res, mart_retrieved, rowfeatures = data_env$nasal_transcriptomics_rowfeature,
+                                    KEGG = keggdb$nt,FC_threshold = 0.25)
+        nasal_enrichment_df <- rbind.data.frame(nasal_enrichment_df, enrichment %>%
+                                                  mutate(virus = active_vir,
+                                                              knock_in = knock_in))
+      plot(enrichment_plot(enrichment) + ggtitle(paste0("Nasal ",active_vir)))
+      }
+}
+write.csv(pbmc_diff, paste0(out_dir, "Supplemental_Data_5_part1.csv")) ## pbmc_DEGs.csv
+write.csv(nasal_diff, paste0(out_dir, "Supplemental_Data_5_part2.csv")) ## nasal_DEGs.csv
+write.csv(pbmc_enrichment_df, paste0(out_dir, "Supplemental_Data_5_part3.csv")) ## pbmc_enrichment.csv
+write.csv(nasal_enrichment_df, paste0(out_dir, "Supplemental_Data_5_part4.csv")) ## nasal_enrichment.csv
+```
+
+## Figure 6A: PBMC Enrichment
+
+```{r, fig.width=7, fig.height =7}
+library(scales)
+pbmc_enrichment_df <- read_csv(paste0(out_dir, "Supplemental_Data_5_part3.csv")) 
+tmp <- pbmc_enrichment_df %>%
+    filter(virus != "Enterovirus.nasal") %>%
+  filter(Count > 5) %>%
+  group_by(virus) %>%
+mutate(coef = ifelse(dir == "up",1, -1)) %>%
+  mutate(log10p = -log10(p.adjust),
+         signed_log10p = log10p * coef) %>%
+  slice_max(log10p, n=10) %>%
+  filter(p.adjust <= 0.01) %>%
+  ungroup() 
+
+pbmc.plot.data <- pbmc_enrichment_df %>%
+  filter(virus != "Enterovirus.nasal") %>%
+  filter(Count > 5) %>%
+  filter(p.adjust <= 0.01) %>%
+  filter(Description %in% c(tmp$Description, 'Neutrophil degranulation', "Platelet degranulation ")) %>%
+  mutate(Description = gsub(" $", "", Description)) %>%
+mutate(coef = ifelse(dir == "up",1, -1)) %>%
+  mutate(log10p = -log10(p.adjust),
+         signed_log10p = log10p * coef)
+
+cluster_order <- pbmc.plot.data %>%
+  distinct(Description, virus, signed_log10p) %>%
+  pivot_wider(id_cols = Description, names_from = virus, values_from = signed_log10p) %>%
+  column_to_rownames("Description")
+cluster_order[is.na(cluster_order)] <- 0
+heir_cluster <- hclust(vegan::vegdist(cluster_order,method="jaccard"))
+
+slight_manual_resuffle <- heir_cluster[["labels"]]
+slight_manual_resuffle <- slight_manual_resuffle[c(1,3,8,11,2,10,4:7,36, 12:19, 9, 20:35)]
+
+ggpbmc <- pbmc.plot.data %>%
+  mutate(virus = gsub(".*\\(", "", gsub(")", "", virus))) %>%
+  mutate(Description = factor(Description, slight_manual_resuffle)) %>%
+  mutate(virus = factor(virus, c("Anelloviridae.pbmc",
+                                 "HSV1.nasal", "HSV2.nasal",
+                                 "CMV.pbmc",
+                                 "CMV.nasal","EBV.pbmc",
+                                 "EBV.nasal"))) %>%
+  ggplot(aes(x=virus, y= Description)) +
+  geom_point(aes(color = signed_log10p, fill = signed_log10p),
+             shape = 21, size = 3, color = "black") +
+  theme_light() +
+  scale_fill_distiller(palette = "RdBu", limits = c(-10,10), oob=squish,
+                         name = "Signed -log10\np.adjust",
+                       guide = guide_colorbar(frame.colour = "black", ticks.colour = "black")) +
+  theme(legend.position = "bottom", legend.direction = "horizontal",
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"),
+        panel.border = element_rect(color = "black", 
+                                    fill = NA, 
+                                    size = 1)) +
+   ggtitle("PBMC Transcriptomics")
+
+ggpbmc + theme(legend.position = "none")
+ggsave(paste0(out_dir, "Figure6A.pdf"), width = 7, height = 7)
+ggpbmc
+ggsave(paste0(out_dir, "Figure6A_color_scale.pdf"), width = 7, height = 7)
+
+write_csv(ggpbmc$data, paste0(out_dir, "source_data_Figure6A.csv"))
+## Same as supplemental data 6
+```
+
+## Figure 6B: Nasal Enrichment
+
+```{r, fig.width=8, fig.height =7}
+
+nasal_enrichment_df <- read_csv(paste0(out_dir, "Supplemental_Data_5_part4.csv"))
+
+tmp <- nasal_enrichment_df %>%
+    filter(virus != "Enterovirus.nasal") %>%
+  filter(Count > 10) %>%
+  group_by(virus) %>%
+mutate(coef = ifelse(dir == "up",1, -1)) %>%
+  mutate(log10p = -log10(p.adjust),
+         signed_log10p = log10p * coef) %>%
+  slice_max(log10p, n=10) %>%
+  filter(p.adjust <= 0.01) %>%
+  ungroup() 
+
+nasal.plot.data <- nasal_enrichment_df %>%
+  filter(virus != "Enterovirus.nasal") %>%
+  filter(Count > 10) %>%
+  filter(p.adjust <= 0.01) %>%
+  filter(Description %in% c(tmp$Description)) %>% 
+mutate(coef = ifelse(dir == "up",1, -1)) %>%
+  mutate(log10p = -log10(p.adjust),
+         signed_log10p = log10p * coef)
+
+cluster_order <- nasal.plot.data %>%
+  distinct(Description, virus, signed_log10p) %>%
+  pivot_wider(id_cols = Description, names_from = virus, values_from = signed_log10p) %>%
+  column_to_rownames("Description")
+cluster_order[is.na(cluster_order)] <- 0
+heir_cluster <- hclust(vegan::vegdist(cluster_order,method="jaccard"))
+
+manual_ordering <- heir_cluster[["labels"]]#[c(1,7,5,6,19,11,10,13,23,17,21:22,2:4,8,9,12,14:16,18,20, 24:39)]
+
+manual_ordering <- c("Class A/1 (Rhodopsin-like receptors)","GPCR ligand binding", "Signaling by GPCR", "Hemostasis", "Platelet activation, signaling and aggregation", "Transcriptional regulation of granulopoiesis", "Neutrophil degranulation", "Dectin-1 mediated noncanonical NF-kB signaling","NIK-->noncanonical NF-kB signaling", "Interleukin-1 signaling", "Interleukin-2 family signaling", "Interleukin-10 signaling", "Signaling by Interleukins", "Chemokine receptors bind chemokines", "Interferon Signaling", "Interferon alpha/beta signaling", "Interferon gamma signaling", "Parasite infection", "Leishmania infection", "Leishmania phagocytosis", "FCGR3A-mediated phagocytosis", "Fcgamma receptor (FCGR) dependent phagocytosis", "Downstream TCR signaling","TCR signaling", "Phosphorylation of CD3 and TCR zeta chains", "PD-1 signaling", "Translocation of ZAP-70 to Immunological synapse", "Generation of second messenger molecules", "Immunoregulatory interactions between a Lymphoid and a non-Lymphoid cell", "Keratinization", "Formation of the cornified envelope", "The citric acid (TCA) cycle and respiratory electron transport", "Respiratory electron transport", "Respiratory electron transport, ATP synthesis by chemiosmotic coupling, and heat production by uncoupling proteins.", "DNA methylation", "Activated PKN1 stimulates transcription of AR (androgen receptor) regulated genes KLK2 and KLK3", "RNA Polymerase I Promoter Opening", "SIRT1 negatively regulates rRNA expression","Senescence-Associated Secretory Phenotype (SASP)" )
+
+ggb <- nasal.plot.data %>%
+  mutate(virus = gsub(".*\\(", "", gsub(")", "", virus))) %>%
+  mutate(Description = factor(Description, manual_ordering)) %>%
+  mutate(virus = factor(virus, c("CMV.nasal","HSV1.nasal",
+                                 "HSV2.nasal",
+                                 "EBV.nasal", "EBV.pbmc",
+                                 "CMV.pbmc",
+                                 "Anelloviridae.pbmc"))) %>%
+  ggplot(aes(x=virus, y= Description)) +
+  geom_point(aes(color = signed_log10p, fill = signed_log10p),
+             shape = 21, size = 3, color = "black") +
+  theme_light() +
+   scale_color_distiller(palette = "RdBu", limits = c(-10,10), oob=squish,
+                         name = "Signed -log10\np.adjust")+
+  scale_fill_distiller(palette = "RdBu", limits = c(-10,10), oob=squish,
+                         name = "Signed -log10\np.adjust") +
+   ggtitle("Nasal Transcriptomics") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"),
+        panel.border = element_rect(color = "black", 
+                                    fill = NA, 
+                                    size = 1))
+ggb
+ggsave(paste0(out_dir, "Figure6B.pdf"), width = 8, height = 7)
+write_csv(ggb$data, paste0(out_dir, "source_data_Figure6B.csv"))
+```
+
+## Figure S6: DEGs by Compartment
+
+```{r, fig.width = 5, fig.height = 4}
+pbmc_diff <- read_csv(paste0(out_dir, "Supplemental_Data_5_part1.csv"))
+nasal_diff <- read_csv(paste0(out_dir, "Supplemental_Data_5_part2.csv"))
+
+ggs6 <- rbind.data.frame(pbmc_diff %>% mutate(omic = "PBMC DEGs"),
+                 nasal_diff %>% mutate(omic = "Nasal DEGs")) %>%
+  mutate(Tissue = ifelse(grepl(".nasal", virus), "Virus in Nasal RNA", "Virus in PBMC RNA")) %>%
+  mutate(virus = gsub("\\..*", "", virus)) %>%
+  mutate(virus = gsub(".*\\(", "", gsub(")", "", virus))) %>%
+  mutate(virus = gsub("Simplexvirus", "HSV", virus)) %>%
+  mutate(direction = ifelse(logFC > 0, "Up", "Down")) %>%
+  filter(adj.P.Val <= 0.01) %>%
+  group_by(Tissue, omic, virus, direction) %>%
+  dplyr::summarize(count = n()) %>%
+  ggplot(aes(x=virus, y = count, fill = direction)) +
+  geom_bar(stat = "identity", position = "stack") +
+  facet_grid(Tissue ~ omic, drop = FALSE) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  ylab("Number of DEGs") +
+  scale_fill_manual(values = c("dodgerblue", "red"), name = "DEG Direction") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"),
+         panel.border = element_rect(color = "black", fill = NA, size = 1)) +
+  xlab("Virus") +  scale_y_continuous(trans='sqrt')
+ggs6
+ggsave(paste0(out_dir, "FigureS6.pdf"), width = 5, height = 4)
+
+write_csv(ggs6$data, paste0(out_dir, "source_data_FigureS6.csv"))
+```
+
+## Figure 7C: Convalescent Signatures
+
+```{r}
+#| eval: false
+####################### Viral Load Dependent Pathway
+pbmc_enrichment_df <- data.frame()
+nasal_enrichment_df <- data.frame()
+pbmc_diff <- data.frame()
+nasal_diff <- data.frame()
+for(active_vir in colnames(comb_data)[c(4)]){
+ knock_in = FALSE
+      ## PBMC Transcriptomic
+      res <- diff_exp_time_indep(counts = data_env$pbmc_transcriptomics_counts,
+                      data_env$pbmc_transcriptomics_rowfeature,lower_date_cutoff = 70, event_date_cutoff = 999,
+                    data_env$clinical_data, active_vir, comb_data = comb_data,
+                    knockin = knock_in,
+                    binary = TRUE)
+      #browser()
+      pbmc_diff <- rbind.data.frame(pbmc_diff, res %>% rownames_to_column("gene_name") %>%
+                                      mutate(virus = active_vir,
+                                          knock_in = knock_in))
+      plot(res %>%
+        rownames_to_column("ensembl_gene_id") %>%
+        left_join(data_env$pbmc_transcriptomics_rowfeature%>%
+        rownames_to_column("ensembl_gene_id")) %>%
+        mutate(gene_name = ifelse(adj.P.Val > 0.05, NA, gene_name)) %>%
+        mutate(diffexpressed = ifelse(adj.P.Val <= 0.05, ifelse(logFC > 0, "UP", "DOWN"), "Not Diff")) %>%
+               ggplot(aes(x=logFC, y=-log10(adj.P.Val), col=diffexpressed, label=gene_name)) +
+              geom_point() + 
+              theme_minimal() +
+              geom_text_repel() +
+              scale_color_manual(values=c("blue", "black", "red")) +
+              geom_hline(yintercept=-log10(0.05), col="red") +
+        ggtitle(paste0("PBMC_", active_vir, "_", knock_in)))
+      
+      if(sum(res$adj.P.Val <= 0.05) < 5){} else{
+        enrichment <- enrichment_df(res, mart_retrieved, rowfeatures = data_env$pbmc_transcriptomics_rowfeature,
+                                    KEGG = keggdb$pbmc,FC_threshold = 0.25)
+        pbmc_enrichment_df <- rbind.data.frame(pbmc_enrichment_df, enrichment %>%
+                                                  mutate(virus = active_vir,
+                                                              knock_in = knock_in))
+        plot(enrichment_plot(enrichment) + ggtitle(paste0("PBMC ", active_vir)))
+      }
+      
+      ## Nasal Transcriptomic
+      res <- diff_exp_time_indep(counts = data_env$nasal_transcriptomics_counts,
+                      data_env$nasal_transcriptomics_rowfeature,lower_date_cutoff = 70, event_date_cutoff = 999,
+                    data_env$clinical_data, active_vir, comb_data = comb_data,
+                    knockin = knock_in,
+                    binary = TRUE)
+      nasal_diff <- rbind.data.frame(nasal_diff, res %>% rownames_to_column("gene_name") %>%
+                                       mutate(virus = active_vir,
+                                              knock_in = knock_in))
+      plot(res %>%
+        rownames_to_column("ensembl_gene_id") %>%
+        left_join(data_env$pbmc_transcriptomics_rowfeature%>%
+        rownames_to_column("ensembl_gene_id")) %>%
+        mutate(gene_name = ifelse(adj.P.Val > 0.05, NA, gene_name)) %>%
+        mutate(diffexpressed = ifelse(adj.P.Val <= 0.05, ifelse(logFC > 0, "UP", "DOWN"), "Not Diff")) %>%
+               ggplot(aes(x=logFC, y=-log10(adj.P.Val), col=diffexpressed, label=gene_name)) +
+              geom_point() + 
+              theme_minimal() +
+              geom_text_repel() +
+              scale_color_manual(values=c("blue", "black", "red")) +
+              geom_hline(yintercept=-log10(0.05), col="red") +
+        ggtitle(paste0("Nasal_", active_vir, "_", knock_in)))
+      
+      if(sum(res$adj.P.Val <= 0.05) < 5){} else{
+        enrichment <- enrichment_df(res, mart_retrieved, rowfeatures = data_env$nasal_transcriptomics_rowfeature,
+                                    KEGG = keggdb$nt,FC_threshold = 0.25)
+        nasal_enrichment_df <- rbind.data.frame(nasal_enrichment_df, enrichment %>%
+                                                  mutate(virus = active_vir,
+                                                              knock_in = knock_in))
+      plot(enrichment_plot(enrichment) + ggtitle(paste0("Nasal ", active_vir)))
+      }
+}
+
+write.csv(pbmc_diff, paste0("../../Figure7/output/Supplemental_Data_6_part4.csv")) ## pbmc_DEGs.csv
+write.csv(nasal_diff, paste0("../../Figure7/output/Supplemental_Data_6_part5.csv")) ## nasal_DEGs.csv
+write.csv(pbmc_enrichment_df, paste0("../../Figure7/output/Supplemental_Data_6_part6.csv")) ## pbmc_enrichment.csv
+write.csv(nasal_enrichment_df, paste0("../../Figure7/output/Supplemental_Data_6_part7.csv")) ## nasal_enrichment.csv
+
+```
+
+```{r, fig.width = 5, fig.height = 4}
+library(scales)
+
+pbmc_enrichment_df <- read_csv(paste0("../../Figure7/output/Supplemental_Data_6_part6.csv"))
+
+tmp <- pbmc_enrichment_df %>%
+  group_by(virus) %>%
+mutate(coef = ifelse(dir == "up",1, -1)) %>%
+  mutate(log10p = -log10(p.adjust),
+         signed_log10p = log10p * coef) %>%
+  slice_max(log10p, n=10) %>%
+  filter(p.adjust <= 0.01) %>%
+  ungroup() 
+
+pbmc.plot.data <- pbmc_enrichment_df %>%
+  filter(p.adjust <= 0.01) %>%
+  filter(Description %in% c(tmp$Description, 'Neutrophil degranulation')) %>%
+mutate(coef = ifelse(dir == "up",1, -1)) %>%
+  mutate(log10p = -log10(p.adjust),
+         signed_log10p = log10p * coef)
+
+cluster_order <- pbmc.plot.data %>%
+  distinct(Description, virus, signed_log10p) %>%
+  pivot_wider(id_cols = Description, names_from = virus, values_from = signed_log10p) %>%
+  column_to_rownames("Description")
+cluster_order[is.na(cluster_order)] <- 0
+heir_cluster <- hclust(vegan::vegdist(cluster_order,method="jaccard"))
+
+gg7 <- 
+pbmc.plot.data %>%
+  mutate(virus = gsub(".*\\(", "", gsub(")", "", virus))) %>%
+  mutate(Description = factor(Description, heir_cluster[["labels"]])) %>%
+  mutate(virus = factor(virus, c("Anelloviridae.pbmc", "Simplexvirus.nasal",
+                                 "CMV.pbmc",
+                                 "CMV.nasal","EBV.pbmc",
+                                 "EBV.nasal" ))) %>%
+  ggplot(aes(x=virus, y= Description)) +
+  geom_point(aes(color = signed_log10p, fill = signed_log10p),
+             shape = 21, size = 3, color = "black") +
+  theme_light() +
+   scale_color_distiller(palette = "RdBu", limits = c(-10,10), oob=squish,
+                         name = "Signed -log10\np.adjust")+
+  scale_fill_distiller(palette = "RdBu", limits = c(-10,10), oob=squish,
+                         name = "Signed -log10\np.adjust") +
+   ggtitle("PBMC Transcriptomics Associated with Anelloviridae") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"),
+        panel.border = element_rect(color = "black", 
+                                    fill = NA, 
+                                    size = 1))+
+  xlab(" ") +
+  coord_flip()
+gg7
+ggsave(paste0("../../Figure7/output/Figure7C.pdf"), width = 5, height = 4.5)
+
+write_csv(gg7$data, paste0("../../Figure7/output/source_data_Figure7C.csv"))
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```

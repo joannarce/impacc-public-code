@@ -1,0 +1,7 @@
+Isotype,visit_id,.y.,group1,group2,p,p.adj,p.format,p.signif,method,y.position,p.adj.format
+IgA,VISIT 1,ab_value,EBV-,EBV+,0.0013424607960376069,0.0027,0.00134,**,Wilcoxon,11,0.00270
+IgG,VISIT 1,ab_value,EBV-,EBV+,1.409683921989382e-7,8.5e-7,1.4e-07,****,Wilcoxon,11,8.5e-07
+IgA,VISIT 2,ab_value,EBV-,EBV+,0.0316039995061548,0.038,0.03160,*,Wilcoxon,11,0.03800
+IgG,VISIT 2,ab_value,EBV-,EBV+,2.9266117387243435e-4,8.8e-4,0.00029,***,Wilcoxon,11,0.00088
+IgA,VISIT 3,ab_value,EBV-,EBV+,0.0508973654298525,0.051,0.05090,ns,Wilcoxon,11,0.05100
+IgG,VISIT 3,ab_value,EBV-,EBV+,0.007550750756572294,0.011,0.00755,**,Wilcoxon,11,0.01100
