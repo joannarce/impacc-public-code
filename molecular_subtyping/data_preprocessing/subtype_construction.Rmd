@@ -1,0 +1,164 @@
+---
+title: "Subtype Construction"
+output: html_notebook
+---
+
+```{r load library}
+library(ade4) #used in mcia
+library(mogsa)
+library(factoextra)
+library(cluster)
+library(nnet)
+library(survival)
+library(ordinal)
+library(ggeffects)
+library(openxlsx)
+library(network)
+library(GGally)
+library(ggalt)
+library(metafor)
+library(cowplot)
+library(survminer)
+require(nlme) # directly provides p-values, unlike lme4
+require(splines)
+require(dplyr)
+library(fgsea)
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+source("~/impacc/Analysis/molecular_subtyping/preliminary/helpers_LG202301.R")
+source("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/Fig1_helper.R")
+date = "20230726"; inner_folds = 10
+PACS_group = list(physical = c(2), cognitive = c(5), multiple = c(6))
+path_impacc_analysis = "/scratch/data-integration/cleanedup/"
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+file_mcia = paste0(intermediate_results_outdir_DR,"MCIA_phase123_",date,".rds")
+mcia_results = readRDS(file_mcia)
+
+base_obj = readRDS(file ="/scratch/data-integration/cleanedup/mod1_interpretation_base.rds")
+file_impacc_analysis = paste0(path_impacc_analysis,"impacc_analysis_record_innerfold", inner_folds,".rds")
+impacc_analysis_record=readRDS(file = file_impacc_analysis)
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+
+clin_data_all = organized_data$clinical_data[,setdiff(colnames(organized_data$clinical_data), c("sample_id","sample_type", "phase1_2","samples_collected","phase"))]
+clin_data_all = unique(clin_data_all)
+clin_data_aligned = data_frame(event_id=rownames(organized_data$datasets$plasma_proteomics_targeted))
+clin_data_aligned <- clin_data_aligned %>% left_join(clin_data_all, by = c("event_id"))
+ll = which(clin_data_aligned$event_type %in% paste0("Visit ",1:6))
+clin_data_aligned =clin_data_aligned[ll,]
+mcia_factors= mcia_results$mcia_factors[ll,]
+clin_data_aligned$conv_cluster6[is.na(clin_data_aligned$conv_cluster6)] = 999
+clin_data_aligned$conv_physical_deficit = ifelse(clin_data_aligned$conv_cluster6%in%PACS_group$physical,1,0)
+clin_data_aligned$conv_cognitive_deficit = ifelse(clin_data_aligned$conv_cluster6%in%PACS_group$cognitive,1,0)
+clin_data_aligned$conv_global_deficit = ifelse(clin_data_aligned$conv_cluster6%in%PACS_group$multiple,1,0)
+```
+
+# Clustering data preparation
+```{r data preparation}
+n_factor = 40
+factor_scores = mcia_factors[,1:n_factor]
+# normalize factor scores
+factor_scores = apply(factor_scores, 2, function(z) qqnorm(z, plot.it = F)$x)
+# update factors that explain more consistent variation across assays
+aa = (apply(sqrt(mcia_results$mcia_factor_evaluation$ave_variance_explained[1:n_factor,]),
+            1, sum))^2
+factor_scores = t(apply(factor_scores, 1, function(z) z*sqrt(aa)))
+# flip the sign of factor1
+factor_scores[,1] = -factor_scores[,1]
+
+visit_max = 6
+extended_data = make_data_long(factor_scores, sample_meta = clin_data_aligned, 
+                               visit_max = visit_max, mean_removal = F)
+X = extended_data$X
+# upweight samples with convalesent outcomes
+ll0 = which(clin_data_aligned$conv_cluster6 != 999)
+extended_data_conv = make_data_long(factor_scores[ll0,], 
+                                    sample_meta = clin_data_aligned[ll0,], 
+                                    visit_max = visit_max, mean_removal = F)
+
+participant_ids = rownames(extended_data$X)
+other_features = colnames(clin_data_aligned)[grepl("comorb",colnames(clin_data_aligned)) |grepl("ever",colnames(clin_data_aligned))|grepl("comp",colnames(clin_data_aligned))]
+clin_vars <- c("participant_id", "conv_cluster3", "conv_cluster6", 
+               "conv_cognitive_deficit", "conv_physical_deficit", 
+               "conv_global_deficit", "ethnicity", other_features)
+clin_mat_use = data.frame(unique(clin_data_aligned[, clin_vars]))
+rownames(clin_mat_use) = clin_mat_use$participant_id
+clin_mat_use = clin_mat_use[participant_ids,]
+tmp1 = extended_data$sample_meta_participant_level
+tmp1$participant_id = NULL
+clin_mat_use = cbind(clin_mat_use, tmp1)
+
+id_PASC = (clin_mat_use$conv_cluster6 != 999)
+PASCs = rep(NA, nrow(clin_mat_use))
+PASCs[id_PASC] = ifelse(
+  clin_mat_use$conv_cluster6[id_PASC]%in%PACS_group$physical, "physical",
+  ifelse(clin_mat_use$conv_cluster6[id_PASC]%in%PACS_group$cognitive, "cognitive",
+         ifelse(clin_mat_use$conv_cluster6[id_PASC]%in%PACS_group$multiple, "multiple",
+                "minimal")))
+PASCs = factor(PASCs, c("minimal", "physical", "cognitive", "multiple"))
+clin_data_pasc = data.frame("participant_id" = clin_mat_use$participant_id,
+                            "PASC_group" = PASCs)
+clin_data_aligned = left_join(clin_data_aligned, clin_data_pasc, 
+                              by = "participant_id")
+```
+
+# Hierarchical clustering
+```{r hierarchical clustering}
+dist_mat_all <- calculate_distance_matrix(X, n_factor, visit_max = visit_max)
+dist_mat_conv <- calculate_distance_matrix(extended_data_conv$X, n_factor, 
+                                           visit_max = visit_max)
+participant_id_conv = rownames(extended_data_conv$X)
+# Clustering using all participants
+hcl_all <- hclust(d = dist_mat_all, method = "ward.D2")
+# Clustering using convalesent participants
+hcl_conv <- hclust(d = dist_mat_conv, method = "ward.D2")
+
+Kmin = 5; Kmax= 10
+k.values <- Kmin:Kmax
+sil_values <- c()
+avg_sil <- function(dist_obj, cluster) {
+  ss <- silhouette(cluster, dist_obj)
+  mean(ss[, 3])
+}
+for (k in k.values) {
+  cluster_cut <- cutree(hcl_all, k)
+  sil_values[k - Kmin+1] <- avg_sil(dist_obj  = dist(x = X[,1:n_factor]), 
+                                    cluster_cut)
+}
+
+nclust_tree_conv = nclust_tree_all = k.values[which.max(sil_values)]
+
+subtype_hcl_all = cutree(hcl_all, k = nclust_tree_all)
+subtype_hcl_conv =  cutree(hcl_conv, k = nclust_tree_conv)
+subtype_hcl = data.frame(full = subtype_hcl_all)
+subtype_hcl$conv = NA
+rownames(subtype_hcl) = names(subtype_hcl_all)
+subtype_hcl[names(subtype_hcl_conv),]$conv = subtype_hcl_conv
+subtype_hcl$PASC = PASCs
+subtype_hcl$TG = factor(clin_mat_use$trajectory_group)
+
+# S8 S3 S4 S5 S7 S1 S6 S2
+# rename: SD, SC1, SC2, SE, SF, SA, SB1, SB2
+# merge: SD, SC, SC, SE, SF, SA, SB, SB
+mapping_label <- c("1" = "A", "2" = "B", "3" = "C", "4" = "C", 
+                   "5" = "E", "6" = "B", "7" = "F", "8" = "D")
+subtype_hcl$label <- mapping_label[as.character(subtype_hcl$full)]
+# table(subtype_hcl$label, subtype_hcl$full)
+nclust_tree_all = 6
+```
+
+
+

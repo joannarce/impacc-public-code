@@ -1,0 +1,157 @@
+---
+title: "MCIA factor constructions and enrichment"
+output: html_notebook
+---
+# Load in MOFA Data and Construct MICA factors
+```{r factor construction}
+require(openxlsx)
+library(ade4) #used in mcia
+library(mogsa)
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+date = "20230726"
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+
+####construct factors
+rank_max = 100
+x.mcia = list()
+D = length(organized_data$datasets_imputed)
+data_list = list()
+for(d in 1:D){
+  data_list[[d]] =organized_data$datasets_imputed[[d]]
+  x.mcia[[d]] = t(data_list[[d]])
+}
+
+x.mcia =nsc_prep(data_input=x.mcia, rank_max)
+x.mcia = processOpt(x.mcia,scale=FALSE,center=FALSE,num_comps=rank_max,option= 'lambda_all')
+mcia_model <-mbpca(x.mcia,ncomp=rank_max,k="all",method="globalScore", option="uniform",center=FALSE,scale=FALSE,
+                                                            unit.p=TRUE,unit.obs=TRUE,moa=FALSE)
+mcia_factors=new_gs(x.mcia,mcia_model)
+
+
+mcia_projection_evaluation = projection_coef_func(mcia_factors=mcia_factors,
+                                datasets=data_list)
+
+mcia_results = list(mcia_factors=mcia_factors, 
+                    mcia_model = mcia_model,
+                    clinical_data = organized_data$clinical_data,
+                    mcia_factor_evaluation = mcia_projection_evaluation)
+
+saveRDS(mcia_results, file = paste0(intermediate_results_outdir_DR,"MCIA_phase123_",date,".rds"))
+
+```
+
+# Enrichment Analysis for Selected MCIA Factors
+```{r enrichment}
+library(clusterProfiler)
+data_env0 <- readRDS("/scratch/data-integration/pipelines/processedData/data_env_ravi_20220513.RDS")
+file_mcia = paste0(intermediate_results_outdir_DR,"MCIA_phase123_",date,".rds")
+mcia_results = readRDS(file_mcia)
+kegg_database = readRDS(file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds")
+hallmark_database = readRDS( file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/hallmark0522.rds")
+metabolite_row_DF = data_env0$plasma_metabolomics_global_rowfeature
+rownames(metabolite_row_DF) = metabolite_row_DF[["CHEMICAL_NAME"]]
+metabolite_row_DF=metabolite_row_DF[,c("CHEMICAL_NAME","SUB_PATHWAY","SUPER_PATHWAY")]
+subpath_databse = list()
+subpath_databse[["pmg"]] = data.frame(description =metabolite_row_DF[["SUB_PATHWAY"]],
+                                      CHEMICAL_NAME = metabolite_row_DF[["CHEMICAL_NAME"]])
+
+mcia_output=mcia_results
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+omic_names =c("plasma_proteomics_targeted","plasma_proteomics_global_dda",
+              "serum_olink","plasma_metabolomics_global","nasal_transcriptomics",
+              "pbmc_transcriptomics")  
+projection_coef = convert_mciaObj_to_annotation_format(mcia_output$mcia_factor_evaluation$projection_coef, omic_names = names(omics_used_DR))
+projection_pval = convert_mciaObj_to_annotation_format(mcia_output$mcia_factor_evaluation$projection_pval, omic_names = names(omics_used_DR))
+K = 10
+projection_coef=projection_coef[1:40]
+projection_pval=projection_pval[1:40]
+for(mod_id in c(1:40)){
+  mod_name = paste0("mod", mod_id)
+  print(mod_name)
+  projection_coef[[mod_id]]= coefficient_name_translator(data_env = data_env0, projection_coef_factor = projection_coef[[mod_id]], omic_names = omic_names) 
+  projection_pval[[mod_id]]= coefficient_name_translator(data_env = data_env0, projection_coef_factor = projection_pval[[mod_id]], omic_names = omic_names)
+}
+
+short_list_features = list()
+mag_thr = 0.3; adjp = 0.01
+ use_assay = 1:6
+for(mod_id in c(1:K)){ 
+  ###extract coefficients for relevant module
+  tmp_coef = projection_coef[[mod_id]]
+  tmp_pval = projection_pval[[mod_id]]
+  short_list_features[[mod_id]] = list()
+  short_list_features[[mod_id]][["unsigned"]]=cutlist(
+    projection_coef = tmp_coef , 
+    projection_pval = tmp_pval, 
+    mag_thr = mag_thr, FWER_thr =adjp, direction = NULL)
+  
+  short_list_features[[mod_id]][["pos"]]=cutlist(
+    projection_coef = tmp_coef , 
+    projection_pval = tmp_pval, 
+    mag_thr = mag_thr, FWER_thr =adjp, direction =1)
+  
+  short_list_features[[mod_id]][["neg"]]=cutlist(
+    projection_coef = tmp_coef , 
+    projection_pval = tmp_pval, 
+    mag_thr = mag_thr, FWER_thr =adjp, direction =-1)
+}
+lapply(  short_list_features,function(z) sapply(z[[1]],dim))
+short_list_features[[2]]$unsigned$pmg[order(short_list_features[[2]]$unsigned$pmg[,1]),,drop = F]
+short_list_features[[2]]$unsigned$ppgd[order(short_list_features[[2]]$unsigned$ppgd[,1]),,drop = F]
+short_list_features[[2]]$unsigned$ppt[order(short_list_features[[2]]$unsigned$ppt[,1]),,drop = F]
+short_list_features[[4]]$unsigned[[6]][order(-abs(short_list_features[[4]]$unsigned[[6]][,1])),,drop = F]
+
+enrichment_mhg_list = list()
+enrichment_mhg_list[["kegg"]] = list()
+enrichment_mhg_list[["hallmark"]] = list()
+enrichment_mhg_list[["subpath"]] = list()
+for(mod_id in 1:K){
+  list0 =  short_list_features[[mod_id]]
+  tmp_coef = projection_coef[[mod_id]]
+  #KEGG
+  enrichment_mhg_list[["kegg"]][[mod_id]] = list()
+  enrichment_mhg_list[["kegg"]][[mod_id]][["pos"]] = runMGH(short_list_coef=list0[["pos"]][use_assay],  Term2GeneList = kegg_database,
+                                                            projection_coef=tmp_coef, backround = "impacc")
+  enrichment_mhg_list[["kegg"]][[mod_id]][["neg"]] = runMGH(short_list_coef=list0[["neg"]][use_assay],  Term2GeneList = kegg_database,
+                                                            projection_coef=tmp_coef,backround = "impacc")
+  print(lapply(enrichment_mhg_list[["kegg"]][[mod_id]][["pos"]], function(z) head(z[,c("ID", "pvalue","p.adj")])))
+  print(lapply(enrichment_mhg_list[["kegg"]][[mod_id]][["neg"]], function(z) head(z[,c("ID", "pvalue","p.adj")])))
+  #hallmark
+  enrichment_mhg_list[["hallmark"]][[mod_id]] = list()
+  enrichment_mhg_list[["hallmark"]][[mod_id]][["pos"]] = runMGH(short_list_coef=list0[["pos"]][use_assay],  Term2GeneList = hallmark_database, projection_coef=tmp_coef, backround = "impacc")
+  enrichment_mhg_list[["hallmark"]][[mod_id]][["neg"]] = runMGH(short_list_coef=list0[["neg"]][use_assay],  Term2GeneList = hallmark_database,  projection_coef=tmp_coef,backround = "impacc")
+  
+  print(lapply(enrichment_mhg_list[["hallmark"]][[mod_id]][["pos"]], function(z) head(z[,c("ID", "pvalue","p.adj")])))
+  print(lapply(enrichment_mhg_list[["hallmark"]][[mod_id]][["neg"]], function(z) head(z[,c("ID", "pvalue","p.adj")])))
+  
+  ##SUBPATHWAYS
+  enrichment_mhg_list[["subpath"]][[mod_id]] = list()
+  enrichment_mhg_list[["subpath"]][[mod_id]][["pos"]] = runMGH(short_list_coef=list0[["pos"]],  Term2GeneList = subpath_databse,  projection_coef=tmp_coef,backround = "impacc")
+  enrichment_mhg_list[["subpath"]][[mod_id]][["neg"]] = runMGH(short_list_coef=list0[["neg"]],  Term2GeneList = subpath_databse,  projection_coef=tmp_coef,backround = "impacc")
+  
+  print(lapply(enrichment_mhg_list[["subpath"]][[mod_id]][["pos"]], function(z) head(z[,c("ID", "pvalue","p.adj")])))
+  print(lapply(enrichment_mhg_list[["subpath"]][[mod_id]][["neg"]], function(z) head(z[,c("ID", "pvalue","p.adj")])))
+}
+
+
+saveRDS(enrichment_mhg_list, file=paste0(intermediate_results_outdir_DR, "pathway_enrichment_mhgF1_2_3_10_LG",mag_thr,".rds"))
+
+
+
+```
+

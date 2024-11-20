@@ -1,0 +1,579 @@
+---
+title: "Fig5"
+output: html_document
+---
+
+```{r load library}
+require(openxlsx)
+library(factoextra)
+library(cluster)
+require(nlme) # directly provides p-values, unlike lme4
+require(splines)
+require(dplyr)
+library(fgsea)
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+source("~/impacc/Analysis/molecular_subtyping/preliminary/helpers_LG202301.R")
+source("~/impacc/Analysis/molecular_subtyping/interpretation/leying_helpers.R")
+source("~/impacc/Analysis/molecular_subtyping/code/Fig5/src/Fig5_helper.R")
+
+date = "20230726"; inner_folds = 10
+path_impacc_analysis = "/scratch/data-integration/cleanedup/"
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+intermediate_results_outdir_RESULTS = "/scratch/data-integration/molecular_subtyping/Results/"
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+file_mcia = paste0(intermediate_results_outdir_DR,"MCIA_phase123_",date,".rds")
+mcia_results = readRDS(file_mcia)
+
+base_obj = readRDS(file ="/scratch/data-integration/cleanedup/mod1_interpretation_base.rds")
+file_impacc_analysis = paste0(path_impacc_analysis,"impacc_analysis_record_innerfold", inner_folds,".rds")
+impacc_analysis_record=readRDS(file = file_impacc_analysis)
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+```
+
+# Load preliminary results
+```{r load subtype assignment and clinical data}
+# load subtype assignment and clinical data
+nclust_tree_all = 6
+subtype_hcl = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_aligned = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+
+# load omics used
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+omic_names =c("plasma_proteomics_targeted","plasma_proteomics_global_dda",
+              "serum_olink","plasma_metabolomics_global","nasal_transcriptomics",
+              "pbmc_transcriptomics")
+
+# load all databases used for enrichment
+kegg_database = readRDS(file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds")
+hallmark_database = readRDS( file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/hallmark0522.rds")
+metabolite_row_DF = data_env0$plasma_metabolomics_global_rowfeature
+rownames(metabolite_row_DF) = metabolite_row_DF[["CHEMICAL_NAME"]]
+metabolite_row_DF=metabolite_row_DF[,c("CHEMICAL_NAME","SUB_PATHWAY","SUPER_PATHWAY")]
+subpath_databse = list()
+subpath_databse[["pmg"]] = data.frame(description =metabolite_row_DF[["SUB_PATHWAY"]],
+                                      CHEMICAL_NAME = metabolite_row_DF[["CHEMICAL_NAME"]])
+for(k in 1:length(kegg_database)){
+  kegg_database[[k]]=kegg_database[[k]][which(kegg_database[[k]]!="Ig"),]
+}
+
+# load enrichment results
+mag_thr=0.3
+enrichment_mhg_list0 = readRDS(file=paste0(intermediate_results_outdir_DR, "pathway_enrichment_mhgF1_2_3_10_LG", mag_thr,".rds"))
+
+projection_coef0 = convert_mciaObj_to_annotation_format(mcia_results$mcia_factor_evaluation$projection_coef, omic_names = names(omics_used_DR))
+projection_pval0 = convert_mciaObj_to_annotation_format(mcia_results$mcia_factor_evaluation$projection_pval, omic_names = names(omics_used_DR))
+K = 10
+projection_coef=projection_coef0[1:K]
+projection_pval=projection_pval0[1:K]
+for(mod_id in c(1:K)){
+  mod_name = paste0("mod", mod_id)
+  print(mod_name)
+  projection_coef[[mod_id]]= coefficient_name_translator(data_env = data_env0, projection_coef_factor = projection_coef[[mod_id]], omic_names = omic_names) 
+  projection_pval[[mod_id]]= coefficient_name_translator(data_env = data_env0, projection_coef_factor = projection_pval[[mod_id]], omic_names = omic_names)
+}
+
+###### FACTOR NEGATION IF NEEDED
+mod_ids = c(1,2, 3,10)
+negation = c(-1, 1, 1, 1)
+# negate factor coefficients
+for(l in 1:length(mod_ids)){
+  mod_id = mod_ids[l]
+  mod_name = paste0("mod", mod_id)
+  print(mod_name)
+  for(i in 1:length(projection_coef[[mod_id]])){
+    projection_coef[[mod_id]][[i]][,1] = negation[l]*
+      projection_coef[[mod_id]][[i]][,1]
+  }
+}
+# negate enrichment results
+enrichment_mhg_list = enrichment_mhg_list0
+for(l in 1:length(enrichment_mhg_list)){
+  for(i in 1:length(mod_ids)){
+    mod_id =mod_ids[i]
+    if(negation[i] == -1){
+      enrichment_mhg_list[[l]][[mod_id]]$pos = enrichment_mhg_list0[[l]][[mod_id]]$neg
+      enrichment_mhg_list[[l]][[mod_id]]$neg = enrichment_mhg_list0[[l]][[mod_id]]$pos
+    }
+  }
+}
+mod_ids = c(2, 3)
+negation = c(1, 1)
+# negate factors
+mcia_factors = t(t(mcia_results$mcia_factors[,mod_ids]) * negation)
+mcia_factors=apply(mcia_factors,2, function(z) qqnorm(z, plot.it = F)$x)
+mcia_factors = data.frame(mcia_factors,row.names = rownames(organized_data$datasets$plasma_proteomics_targeted))
+mcia_factors = mcia_factors[clin_data_aligned$event_id,]
+colnames(mcia_factors) = paste0("Factor", mod_ids)
+```
+
+# Factor trajectory (Figure 5A left & Figure 5E left)
+```{r factor trajectory, fig.height=6, fig.width=6, warning=FALSE}
+assay_mat = mcia_factors
+assay_mat$event_id = rownames(assay_mat)
+assay_mat = cytof_mat_preprocess(cytof_mat = assay_mat, 
+                                 subtype_hcl =subtype_hcl,
+                                 clin_data = clin_data_aligned)
+clin_colnames_select = setdiff(colnames(assay_mat), colnames(mcia_factors))
+
+factor_trajectory_analysis_results = helper_trajectory_data_smooth_spline(
+  assay_mat = assay_mat, clin_colnames_select = clin_colnames_select,
+  endpoint = "label", use_endpoint_levels = c("A", "B", "C", "E", "F"),
+  max_date = 40)
+test_Fig5_factor_traj = factor_trajectory_analysis_results$test_pval_list
+factor_trajectory_analysis_results$test_fig_list
+```
+
+# Early/late Factor 2 multi-group comparison (Figure 5A right)
+```{r early/late Factor 2 multi-group comparison, fig.height=6, fig.width=4}
+assay_mat = mcia_factors
+assay_mat$event_id = rownames(assay_mat)
+assay_mat = cytof_mat_preprocess(cytof_mat = assay_mat, 
+                                 subtype_hcl =subtype_hcl,
+                                 clin_data = clin_data_aligned)
+
+discretized_test = list()
+feature_name = c("Factor2","Factor3")
+discretized_test[["early"]] = multi_group_mixed_test(
+  feature_name = feature_name, data_mat = assay_mat, 
+  visit_numbers = c("V1", "V2", "V3"))
+discretized_test[["late"]] = multi_group_mixed_test(
+  feature_name = feature_name, data_mat = assay_mat, 
+  visit_numbers = c("V4", "V5", "V6"))
+
+# Factor 2
+est_mat = cbind(discretized_test$early$est[,1],
+                discretized_test$late$est[,1])
+colnames(est_mat) = c("V1-V3", "V4-V6")
+pval_mat = cbind(discretized_test$early$pval[,1],
+                 discretized_test$late$pval[,1])
+colnames(pval_mat) = c("V1-V3", "V4-V6")
+adj_p = apply(pval_mat, 2, function(p) p.adjust(p, method = "BH"))
+test_Fig5A = list()
+test_Fig5A$estimate = est_mat
+test_Fig5A$pval = pval_mat
+test_Fig5A$adj_p = adj_p
+
+factor2_multi_comparison = ComplexHeatmap::Heatmap(
+  as.matrix(est_mat), row_names_gp = gpar(fontsize = 15), 
+  column_names_gp = gpar(fontsize = 15), column_names_rot = 0, 
+  column_names_centered = T, 
+  heatmap_legend_param = list(title = "Coefficient", direction = "horizontal", 
+                              title_position = "topcenter",
+                              title_gp = gpar(fontsize = 15), 
+                              labels_gp = gpar(fontsize = 15)),
+  col = circlize::colorRamp2(c(-max(abs(est_mat)), 0, max(abs(est_mat))), 
+                             c("#284AA0", "white", "#BC4A4A")), 
+  na_col = "grey90", cluster_columns = F, cluster_rows = F, 
+  cell_fun = function(j, i, x, y, w, h, fill) {
+    if(adj_p[i, j] < 0.001) {
+      grid.text("***", x, y-h*0.08, gp = gpar(cex=2))
+      } else if(adj_p[i, j] < 0.01) {
+        grid.text("**", x, y-h*0.08, gp = gpar(cex=2))
+        } else if(adj_p[i, j] < 0.05) {
+          grid.text("*", x, y-h*0.08, gp = gpar(cex=2))
+          }
+    })
+ComplexHeatmap::draw(factor2_multi_comparison, heatmap_legend_side = "top")
+```
+
+# Early/late Factor 3 multi-group comparison (Figure 5E right)
+```{r early/late Factor 3 multi-group comparison, fig.height=6, fig.width=4}
+# Factor 3
+est_mat = cbind(discretized_test$early$est[,2],
+                discretized_test$late$est[,2])
+colnames(est_mat) = c("V1-V3", "V4-V6")
+pval_mat = cbind(discretized_test$early$pval[,2],
+                 discretized_test$late$pval[,2])
+colnames(pval_mat) = c("V1-V3", "V4-V6")
+adj_p = apply(pval_mat, 2, function(p) p.adjust(p, method = "BH"))
+test_Fig5E = list()
+test_Fig5E$estimate = est_mat
+test_Fig5E$pval = pval_mat
+test_Fig5E$adj_p = adj_p
+
+factor3_multi_comparison = ComplexHeatmap::Heatmap(
+  as.matrix(est_mat), row_names_gp = gpar(fontsize = 15), 
+  column_names_gp = gpar(fontsize = 15), column_names_rot = 0, 
+  column_names_centered = T, 
+  heatmap_legend_param = list(title = "Coefficient", direction = "horizontal", 
+                              title_position = "topcenter",
+                              title_gp = gpar(fontsize = 15), 
+                              labels_gp = gpar(fontsize = 15)),
+  col = circlize::colorRamp2(c(-max(abs(est_mat)), 0, max(abs(est_mat))), 
+                             c("#284AA0", "white", "#BC4A4A")), 
+  na_col = "grey90", cluster_columns = F, cluster_rows = F, 
+  cell_fun = function(j, i, x, y, w, h, fill) {
+    if(adj_p[i, j] < 0.001) {
+      grid.text("***", x, y-h*0.08, gp = gpar(cex=2))
+      } else if(adj_p[i, j] < 0.01) {
+        grid.text("**", x, y-h*0.08, gp = gpar(cex=2))
+        } else if(adj_p[i, j] < 0.05) {
+          grid.text("*", x, y-h*0.08, gp = gpar(cex=2))
+          }
+    })
+ComplexHeatmap::draw(factor3_multi_comparison, heatmap_legend_side = "top")
+```
+
+# Enrichment analysis - Factor 2 (Figure 5B)
+```{r enrichment analysis - factor 2, fig.height=6, fig.width=8.5}
+KEGG_max = 10; Hallmark_max = 10; Subpath_max = 5;
+KEGG_metabo_max = 2; pathway_max = 30; date = 20231201
+kegg_pathnames = unique(kegg_database$pbmc$description)
+kegg_metabopathnames = kegg_pathnames[grepl("metabolism", kegg_pathnames)]
+data_base_names = c("kegg", "hallmark", "subpath")
+size_max = c(KEGG_max, Hallmark_max, Subpath_max)
+shorten = FALSE
+plot_list = list()
+test_enrichment = list()
+thr = 0.05
+pathway_counts = data.frame(matrix(NA, ncol = 6, nrow = length(mod_ids)))
+colnames(pathway_counts) = names(enrichment_mhg_list$kegg[[1]]$pos)
+rownames(pathway_counts) = paste0("Factor", mod_ids)
+for(i in 1:length(mod_ids)){
+  mod_id = mod_ids[i]
+  factor_enrichment = lapply(enrichment_mhg_list, function(z) z[[mod_id]])
+  aggregated_mat = enrichment_aggregation_subtype(factor_enrichment[1:3], 
+                                                  adj.p.thr = thr, 
+                                                  thr = .2, type = "mhg")
+  temp = aggregated_mat[,c(1:6)]
+  temp[is.na(temp)] = 0
+  pathway_counts[i,]=apply(abs(temp) > (-log(thr, base = 10)), 2, sum)
+  if(shorten) {
+    aggregated_mat_short = pathway_shortlist_selection(
+      aggregated_mat, data_base_names = data_base_names, 
+      size_max = size_max, KEGG_metabo_max = KEGG_metabo_max)
+  } else {
+    aggregated_mat_short =  aggregated_mat
+  }
+  aggregated_mat_short = aggregated_mat_short
+  aggregated_mat_short = aggregated_mat_short[order(-aggregated_mat_short$joint),]
+  
+  plot_title = paste0("Factor",mod_id)
+  plotDF_df = gather(
+    aggregated_mat_short[1:min(nrow(aggregated_mat_short), pathway_max),], 
+    key = "dataset", value = "log10.sig.val", -joint, -pathway, -database)
+  plotDF_df = plotDF_df[!is.na(plotDF_df$log10.sig.val),]
+  plotDF_df$direction = NA
+  plotDF_df$direction[plotDF_df$log10.sig.val>0] = "pos"
+  plotDF_df$direction[plotDF_df$log10.sig.val<0] = "neg"
+  plotDF_df$direction[plotDF_df$dataset == "joint_adj"] = "unsigned"
+  plotDF_df$log10.sig.val = abs(plotDF_df$log10.sig.val)
+  
+  plotDF_df$pathway = factor(
+    plotDF_df$pathway, 
+    levels = aggregated_mat_short$pathway[length(aggregated_mat$pathway):1])
+  
+  levels(plotDF_df$pathway) = gsub("HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION", 
+                                  "HALLMARK_EPITHELIAL_\nMESENCHYMAL_TRANSITION", 
+                                  levels(plotDF_df$pathway))
+  
+  plotDF_df$dataset = factor(plotDF_df$dataset, 
+                             levels = c(omic_short_names, "joint_adj"))
+  plotDF_df$database = factor(plotDF_df$database, 
+                              levels = data_base_names)
+  test_enrichment[[i]] = plotDF_df
+  plot_list[[i]] = 
+    ggplot(data = plotDF_df, aes(x = dataset, y = pathway, 
+                                 size = log10.sig.val, col = direction)) +
+    geom_point(color = "white") + 
+    geom_point(shape = 1) + 
+    geom_point(data =. %>% dplyr::filter(log10.sig.val > -log10(thr))) + 
+    ggtitle(plot_title) + 
+    theme_classic() +
+    theme(panel.grid.major = element_line(color="grey", size=0.1), 
+          axis.text.x = element_text(angle = 90, hjust=1, vjust=0.5, 
+                                     size = 15, color = "black"), 
+          axis.text.y = element_text(size = 15, color = "black"),
+          strip.text = element_text(color = "black", size = 12.5),
+          plot.title = element_text(color = "black", size = 15),
+          legend.title = element_text(color = "black", size = 15),
+          legend.text = element_text(color = "black", size = 15)) + 
+    ylab("") + 
+    xlab("") +
+    scale_color_manual(values = c("neg" ="#284AA0", "pos" ="#BC4A4A",
+                                  "unsigned"= "#808080"),
+                       labels = c("negative", "positive", "unsigned"),
+                       name = "Direction") +
+    facet_grid(database~., scales = "free_y", space = "free_y") +
+    guides(size = guide_legend(title = expression("Signed "*log[10]*"(p.val)"), 
+                               order = 1))
+  
+  plotDF_df$pathway = factor(
+    plotDF_df$pathway,
+    levels = aggregated_mat_short$pathway[1:length(aggregated_mat$pathway)])
+   plotDF_df$dataset = factor(
+     plotDF_df$dataset,
+     levels = c(omic_short_names[length(omic_short_names):1], "joint_adj"))
+  p_horizontal = ggplot(data = plotDF_df, aes(x = pathway, y = dataset,
+                                              size = log10.sig.val,
+                                              col = direction)) +
+    geom_point(color = "white") + 
+    geom_point(shape = 1) + 
+    geom_point(data =. %>% dplyr::filter(log10.sig.val > -log10(thr))) + 
+    ggtitle(plot_title) + 
+    theme_classic() +
+    theme(panel.grid.major = element_line(color = "grey", size = 0.1), 
+          axis.text.x = element_text(angle = 90, hjust = 1, size = rel(1.5)), 
+          axis.text.y = element_text(size = rel(1.5))) +
+    ylab(NULL) + 
+    scale_color_manual(values = c("neg" ="#284AA0", "pos" = "#BC4A4A", 
+                                  "unsigned"= "#808080")) +
+    facet_grid(.~database, scales = "free_x", space = "free_x")
+  # extract core enrichment
+  aggregated_mat_core_enrichment0 = aggregated_mat_short[,c(1:6, 9, 10)]
+  aggregated_mat_core_enrichment = aggregated_mat_short[,c(1:6, 9, 10)]
+  for(j in 1:nrow(aggregated_mat_core_enrichment)){
+    database0 = aggregated_mat_core_enrichment$database[j]
+    pathway0 = aggregated_mat_core_enrichment$pathway[j]
+    temp_pos = lapply(enrichment_mhg_list[[database0]][[mod_id]]$pos, 
+                      function(z) z[z$ID==pathway0,])
+    temp_neg = lapply(enrichment_mhg_list[[database0]][[mod_id]]$neg, 
+                      function(z) z[z$ID==pathway0,])
+    for(dataset_id in 1:6){
+      dataset_name = omic_short_names[dataset_id]
+      if(!is.na(aggregated_mat_core_enrichment0[j,dataset_id])){
+        if((aggregated_mat_core_enrichment0[j,dataset_id]) > 0){
+           aggregated_mat_core_enrichment[j,dataset_id] = 
+             temp_pos[[dataset_name]]$core_enrichment
+        }else if((aggregated_mat_core_enrichment0[j,dataset_id]) < 0){
+          aggregated_mat_core_enrichment[j,dataset_id] = 
+            temp_neg[[dataset_name]]$core_enrichment
+        }
+      }
+    }
+  }
+  colnames(aggregated_mat_core_enrichment)[1:6] = 
+    paste0("core_enrich_",colnames(aggregated_mat_core_enrichment)[1:6])
+  aggregated_mat_short = left_join(aggregated_mat_short, 
+                                   aggregated_mat_core_enrichment,
+                                   by = c("pathway","database"))
+}
+#         ppt ppgd so pmg nt pbmc
+#Factor2   1    4  0   7  0    0
+#Factor3   1    4  1   3  0    0
+print(pathway_counts)
+test_Fig5B = test_enrichment[[1]]
+test_Fig5F = test_enrichment[[2]]
+
+plot_list[[1]]
+```
+
+# Enrichment analysis - Factor 3 (Figure 5F)
+```{r enrichment analysis - factor 3, fig.height=6, fig.width=7}
+plot_list[[2]]
+```
+
+# Pathway activity trajectory - Factor 2 (Figure 5D)
+```{r pathway activity trajectory - factor 2, fig.height=6, fig.width=12, warning=FALSE}
+pathway_prot = c("Complement and coagulation cascades",
+                 "Cardiac muscle contraction" )
+pathway_met = c("Plasmalogen",
+                "Long Chain Polyunsaturated Fatty Acid (n3 and n6)", 
+                "Tryptophan Metabolism",
+                "Acetylated Peptides")
+pathways0 = c(pathway_prot,pathway_met)
+protein_list = kegg_database$ppgd[kegg_database$ppgd$description%in%pathways0,]
+metabolite_list = subpath_databse$pmg[subpath_databse$pmg$description%in%pathways0,]
+protein_list = unique(protein_list)
+metabolite_list = unique(metabolite_list)
+colnames(metabolite_list) = colnames(protein_list)
+flist = rbind(protein_list,metabolite_list)
+# for factor 1 and factor 4 and the weights
+weight_comparisons = list()
+for(dataset_id in c(1:6)){
+  temp =intersect(rownames(projection_coef$mod1[[dataset_id]]),flist$gene_name)
+  weight_comparisons[[dataset_id]] = data.frame(feature =   temp)
+  for(mod_id in (1:3)){
+    weight_comparisons[[dataset_id]][[paste0("Factor", mod_id)]] =
+      projection_coef[[mod_id]][[dataset_id]][ temp,]
+  }
+  temp2 = flist
+  rownames( temp2) = temp2$gene_name
+  weight_comparisons[[dataset_id]]$pathway = temp2[temp,]$description
+}
+names(weight_comparisons) = names(projection_coef$mod1)
+
+dataDF = organized_data$datasets$plasma_proteomics_global_dda
+colnames(dataDF) = rownames(projection_coef$mod1$ppgd)
+thrs = matrix(0, ncol =2, nrow = 2)
+thrs[1,] = c(1,-1) #cog
+thrs[2,] = c(-1,1) #muscle
+thrs = thrs*mag_thr
+pathway_score_prot = NULL
+pathways1 = pathway_prot
+i=0
+for(mod_id in c(2,3)){
+  i=i+1
+  for(j in 1:length(pathways1)){
+    temp1 = weight_comparisons[[2]][weight_comparisons[[2]]$pathway==pathways1[j],]
+    temp1 = temp1[temp1[,paste0("Factor",mod_id)]/thrs[j,i] >=1,]
+    temp2 = dataDF[,(temp1$feature)]
+    temp3 = as.matrix(temp2)%*%abs(temp1[[paste0("Factor",mod_id)]])
+    temp3 = data.frame(value = temp3)
+    colnames(temp3)= paste0(pathways1[j],"_Factor",mod_id)
+    if(is.null(pathway_score_prot)){
+     pathway_score_prot = temp3 
+    }else{
+      pathway_score_prot = cbind(pathway_score_prot, temp3 )
+    }
+  }
+}
+ll = apply(pathway_score_prot,2,var, na.rm = T)
+pathway_score_prot=pathway_score_prot[,ll>0]
+ii = !is.na(pathway_score_prot[,1])
+pathway_score_prot[ii,] = apply(pathway_score_prot[ii,], 2,
+                                function(z) qqnorm(z, plot.it = F)$x)
+pathway_score_prot$event_id = rownames(dataDF)
+
+
+dataDF = organized_data$datasets$plasma_metabolomics_global
+colnames(dataDF) = rownames(projection_coef$mod1$pmg)
+thrs = matrix(0, ncol =3, nrow = 4)
+thrs[1,] = c(-1,1,1) # Plasmalogen
+thrs[2,] = c(1,-1,-1) # fatty acid
+thrs[3,] = c(1,-1,1) # Peptide
+thrs[4,] = c(1,-1,1) # Trptophan
+thrs = thrs*mag_thr
+pathway_score_met = NULL
+pathways1 = pathway_met
+for(mod_id in c(2,3)){
+  i = mod_id
+  for(j in 1:length(pathways1)){
+    temp1 = weight_comparisons[[4]][weight_comparisons[[4]]$pathway==pathways1[j],]
+    temp1 = temp1[temp1[,paste0("Factor",mod_id)]/thrs[j,i] >=1,]
+    temp2 = dataDF[,(temp1$feature)]
+    temp3 = as.matrix(temp2)%*%abs(temp1[[paste0("Factor",mod_id)]])
+    temp3 = data.frame(value = temp3)
+    colnames(temp3)= paste0(pathways1[j],"_Factor",mod_id)
+    if(is.null(pathway_score_met)){
+     pathway_score_met = temp3 
+    } else {
+      pathway_score_met = cbind(pathway_score_met, temp3 )
+    }
+  }
+}
+ll = apply(pathway_score_met,2,var, na.rm = T)
+pathway_score_met = pathway_score_met[,ll>0]
+ii = !is.na(pathway_score_met[,1])
+pathway_score_met[ii,] = apply(pathway_score_met[ii,], 2,
+                               function(z) qqnorm(z, plot.it = F)$x)
+
+pathway_score_met$event_id = rownames(dataDF)
+
+pathway_score_select = cbind(pathway_score_prot[,c(1,3,4)], 
+                             pathway_score_met[,c(1,2,3)])
+colnames(pathway_score_select ) = c("ComplementAndCoagulation_Factor2",
+                                    "CardiacMuscleContraction_Factor3",
+                                    "event_id",
+                                    "LC_PolyunsaturatedFattyAcid_Factor2",
+                                    "TryptophanMetabolism_Factor3", 
+                                    "AcetylatedPeptides_Factor3")
+  
+dataDF = pathway_score_select
+dataDF = dataDF[clin_data_aligned$event_id,]
+dataDF = cytof_mat_preprocess(cytof_mat = dataDF,
+                              subtype_hcl = subtype_hcl,
+                              clin_data = clin_data_aligned)
+assay_mat = dataDF
+clin_colnames_select = c(setdiff(colnames(assay_mat),
+                                 colnames(pathway_score_select)),"event_id")
+
+pathway_trajectory_analysis_results = helper_trajectory_data_smooth_spline(
+  assay_mat = assay_mat, clin_colnames_select = clin_colnames_select,
+  endpoint = "label", use_endpoint_levels = c("A", "B", "C", "E", "F"),
+  max_date = 40, feature_with_ylab = c("ComplementAndCoagulation_Factor2",
+                                       "CardiacMuscleContraction_Factor3"))
+test_Fig5_pathway_traj = pathway_trajectory_analysis_results$test_pval_list
+ggarrange(plotlist = pathway_trajectory_analysis_results$test_fig_list[
+  c("ComplementAndCoagulation_Factor2", "LC_PolyunsaturatedFattyAcid_Factor2")
+], nrow = 1, common.legend = T, legend = "bottom")
+```
+
+# Pathway activity trajectory - Factor 3 (Figure 5G)
+```{r pathway activity trajectory - factor 3, fig.height=6, fig.width=18, warning=FALSE}
+ggarrange(plotlist = pathway_trajectory_analysis_results$test_fig_list[
+  c("CardiacMuscleContraction_Factor3", "TryptophanMetabolism_Factor3",
+    "AcetylatedPeptides_Factor3")], 
+  nrow = 1, common.legend = T, legend = "bottom")
+```
+
+# CC protein comparison for Factor 1 and Factor 2 (Figure 5C)
+```{r CC protein comparison, fig.height=6, fig.width=4.5}
+coef_mat = weight_comparisons[[2]][weight_comparisons[[2]]$pathway %in% 
+                                     c("Complement and coagulation cascades"),
+                                   c(1,2,3)]
+coef_mat = coef_mat[apply(abs(coef_mat[,-1]),1,max)>mag_thr,]
+coef_mat = coef_mat[(rank(-coef_mat[,3])<=5)|(rank(-coef_mat[,2])<=5),]
+temp1 = coef_mat[(rank(-coef_mat[,3])<=5),]
+temp1 = temp1[order(-temp1$Factor2),]
+feature_levels = temp1$feature
+temp1 = coef_mat[(rank(-coef_mat[,2])<=5),]
+temp1 = temp1[order(temp1$Factor1),]
+feature_levels = c(feature_levels, setdiff(temp1$feature,feature_levels))
+plotDF = coef_mat
+plotDF$feature = factor(plotDF$feature, 
+                        levels = feature_levels[length(feature_levels):1])
+
+plotDF = gather(plotDF, key = "Factor", value = "coefficient", -feature)
+plotDF$abs_coef = abs(plotDF$coefficient)
+plotDF$sign = ifelse(plotDF$coefficient > 0, "Positive", "Negative")
+plotDF$plot_coef = ifelse(plotDF$Factor == "Factor2", 
+                          -plotDF$abs_coef, plotDF$abs_coef)
+test_Fig5C = plotDF
+ggplot(plotDF, aes(x =plot_coef , y = feature, group = feature, color = sign)) +
+  geom_segment(aes(xend = 0, yend =  feature), linewidth = 1.5) +
+  geom_point(aes(x = plot_coef), size = 3) +
+  scale_color_manual(values = c("Positive" = "#BC4A4A", 
+                                "Negative" = "#284AA0")) +
+  labs(x = "Absolute Value of Coefficient", y = "Feature", 
+       title = "") +
+  theme_minimal()  +
+  geom_vline(xintercept = 0, linetype = "solid") +
+  geom_hline(yintercept = -Inf, linetype = "solid") +
+  theme(axis.ticks.x = element_line(linewidth = 0.5),
+        axis.line.x = element_line(linewidth = 1),
+        axis.line.y = element_line(linewidth = 1),
+        axis.ticks = element_line(linewidth = 1),
+        axis.text.x = element_text(color = "black", size = 15),  
+        axis.text.y = element_text(color = "black", size = 15),  
+        axis.title = element_text(color = "black", size = 15),
+        axis.ticks.length = unit(0.15, "cm"),
+        plot.subtitle = element_text(color = "black", hjust = 0.5, 
+                                     size = 15),
+        legend.text = element_text(color = "black", size = 15),
+        legend.title = element_text(color = "black", size = 15)) +
+  annotate("text", x = -0.2, y = Inf, label = "Factor 2", vjust = 1, 
+           hjust = 1, size = 5.5) +
+  annotate("text", x = 0.2, y = Inf, label = "Factor 1", vjust = 1, 
+           hjust = 0, size = 5.5) + 
+  scale_x_continuous(labels = function(x) abs(x))+
+  annotate("segment", x = -.5, xend = -.7, y = -Inf, yend = -Inf) +
+  annotate("segment", x = .5, xend = .7, y = -Inf, yend = -Inf) + 
+  theme(legend.position = "bottom")
+```
+
+
+
+

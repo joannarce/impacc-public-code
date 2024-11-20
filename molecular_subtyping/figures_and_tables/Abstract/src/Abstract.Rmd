@@ -1,0 +1,195 @@
+---
+title: "Abstract"
+output: html_notebook
+---
+
+```{r load library}
+library(ade4) #used in mcia
+library(mogsa)
+library(factoextra)
+library(cluster)
+library(nnet)
+library(survival)
+library(ordinal)
+library(ggeffects)
+library(openxlsx)
+library(network)
+library(GGally)
+library(ggalt)
+library(metafor)
+library(cowplot)
+library(survminer)
+require(nlme) # directly provides p-values, unlike lme4
+require(splines)
+require(dplyr)
+library(fgsea)
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+source("~/impacc/Analysis/molecular_subtyping/preliminary/helpers_LG202301.R")
+date = "20230726"; inner_folds = 10
+PACS_group = list(physical = c(2), cognitive = c(5), multiple = c(6))
+path_impacc_analysis = "/scratch/data-integration/cleanedup/"
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+file_mcia = paste0(intermediate_results_outdir_DR,"MCIA_phase123_",date,".rds")
+mcia_results = readRDS(file_mcia)
+
+base_obj = readRDS(file ="/scratch/data-integration/cleanedup/mod1_interpretation_base.rds")
+file_impacc_analysis = paste0(path_impacc_analysis,"impacc_analysis_record_innerfold", inner_folds,".rds")
+impacc_analysis_record=readRDS(file = file_impacc_analysis)
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+```
+
+# Load subtype assignment and clinical data
+```{r load subtype assignment and clinical data}
+nclust_tree_all = 6
+subtype_hcl = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_aligned = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+extended_data = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/extended_data.rds")
+```
+
+# Summary percentage calculation
+```{r summary percentage calculation}
+clin_data_patient <- clin_data_aligned[clin_data_aligned$event_type == "Visit 1",]
+clin_data_patient$num_renal <- rowSums(clin_data_patient[c("comp_renal")] == 1)
+clin_data_patient$if_renal <- ifelse(clin_data_patient$num_renal>0, 1, 0)
+clin_data_patient$num_cardiac <- rowSums(
+  clin_data_patient[c("comp_afib", "comp_ventricular_arr", "comp_endo", 
+                      "comp_myocard", "comp_cardarrest", "comp_stemi",
+                      "comp_nstemi", "comp_chf", "comp_aat")] == 1)
+clin_data_patient$if_cardiac <- ifelse(clin_data_patient$num_cardiac>0, 1, 0)
+clin_data_patient$num_hema <- rowSums(
+  clin_data_patient[c("comp_avthromb", "comp_coag", "comp_bleed", 
+                      "comp_anemia")] == 1)
+clin_data_patient$if_hema <- ifelse(clin_data_patient$num_hema>0, 1, 0)
+
+df_demo <- data.frame(clin_data_patient[, c("admit_age", "sex")], 
+                      label = subtype_hcl$label)
+df_demo <- df_demo %>%
+  group_by(label) %>%
+  summarise(admit_age = median(admit_age, na.rm = TRUE),
+            sex = mean(sex == "Female"))
+
+df_clin <- data.frame(
+  clin_data_patient[, c("if_renal", "if_cardiac", "if_hema",
+                        "comorb_isaric_cardiac", "comorb_isaric_ckd")],
+  label = subtype_hcl$label)
+df_clin <- df_clin %>%
+  group_by(label) %>%
+  summarise(
+    if_renal = mean(if_renal, na.rm = TRUE),
+    if_cardiac = mean(if_cardiac, na.rm = TRUE),
+    if_hema = mean(if_hema, na.rm = TRUE),
+    comorb_isaric_cardiac = mean(comorb_isaric_cardiac, na.rm = TRUE),
+    comorb_isaric_ckd = mean(comorb_isaric_ckd, na.rm = TRUE))
+
+df_pasc <- subtype_hcl[!is.na(subtype_hcl$conv), c("PASC", "label")]
+df_pasc <- df_pasc %>%
+  group_by(label) %>%
+  summarise(
+    pasc = (sum(PASC == "physical") +
+      sum(PASC == "cognitive") + sum(PASC == "multiple")) / 
+      (sum(PASC == "minimal") + sum(PASC == "physical") +
+      sum(PASC == "cognitive") + sum(PASC == "multiple")))
+
+sample_meta_participant <- extended_data$sample_meta_participant_level
+sample_meta_participant$death_date[sample_meta_participant$death_date<0] <- NA
+sample_meta_participant$death_date[sample_meta_participant$death_date==999] <- NA
+death <- ifelse(sample_meta_participant$death_date <= 28, 1, 0)
+df_death <- data.frame(death, label = subtype_hcl$label)
+df_death <- df_death %>%
+  group_by(label) %>%
+  summarise(acute = sum(death == 1, na.rm = TRUE) / length(death),
+            post_acute = sum(death == 0, na.rm = TRUE) / 
+              sum(death == 0|is.na(death)))
+
+df <- cbind(df_demo[, c("admit_age", "sex")],
+            df_clin[, c("if_renal", "if_cardiac", "if_hema",
+                        "comorb_isaric_cardiac", "comorb_isaric_ckd")],
+            df_pasc[, "pasc"],
+            df_death[, c("acute", "post_acute")])
+rownames(df) <- LETTERS[1:nclust_tree_all]
+df <- df[rownames(df) != "D",]
+```
+
+# Summary figure
+```{r summary figure, fig.height=6, fig.width=6}
+n_feature <- ncol(df)
+df <- pivot_longer(df, cols = everything())
+df$subtype <- rep(c("A", "B", "C", "E", "F"), each = n_feature)
+df$subtype <- factor(df$subtype)
+df$subtype <- factor(df$subtype, levels = rev(levels(df$subtype)))
+summary_names <- c("admit_age" = "Median Age",
+                   "sex" = "Female (%)",
+                   "if_renal" = "Renal Complications (%)",
+                   "if_cardiac" = "Cardiac Complications (%)",
+                   "if_hema" = "Hematologic Complications (%)",
+                   "pasc" = "PASC (%)",
+                   "acute" = "Acute Mortality (%)",
+                   "post_acute" = "Post-acute Mortality (%)",
+                   "comorb_isaric_cardiac" = "Chronic Cardiac Disease (%)",
+                   "comorb_isaric_ckd" = "Chronic Kidney Disease (%)")
+df$name <- summary_names[match(df$name, names(summary_names))]
+df$name <- factor(df$name)
+df$name <- factor(df$name, levels = c("Median Age", "Female (%)", 
+                                      "Acute Mortality (%)",
+                                      "Renal Complications (%)", 
+                                      "Cardiac Complications (%)",
+                                      "Hematologic Complications (%)", 
+                                      "Chronic Cardiac Disease (%)",
+                                      "Chronic Kidney Disease (%)",
+                                      "Post-acute Mortality (%)", 
+                                      "PASC (%)"))
+df$name <- factor(df$name, levels = rev(levels(df$name)))
+
+df <- df %>%
+  mutate(category = case_when(
+    name %in% c("Median Age", "Female (%)") ~ 1,
+    name %in% c("Renal Complications (%)", "Cardiac Complications (%)", 
+                "Hematologic Complications (%)", "Acute Mortality (%)",
+                "Chronic Cardiac disease (%)", "Chronic Kidney disease (%)") ~ 2,
+    name %in% c("Post-acute Mortality (%)", "PASC (%)") ~ 3,
+    TRUE ~ 0))
+df$category <- factor(df$category)
+df$category <- factor(df$category, levels = rev(levels(df$category)))
+
+df_plot <- df
+df_plot$value[df_plot$name == "Median Age"] <- 
+  df_plot$value[df_plot$name == "Median Age"] / 
+  max(df_plot$value[df_plot$name == "Median Age"])
+
+ggplot(df_plot, aes(x = subtype, y = value, fill = subtype)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("A" = "#20854EB2", "B" = "#0072B5B2",
+                               "C" = "#E18727B2", "E" = "#EE4C97B2", 
+                               "F" = "#BC3C29B2")) +
+  coord_flip() +
+  facet_wrap(~ name, nrow = 1, scales = "free_x") +
+  ylim(0, 1) +
+  theme_bw() +
+  theme(axis.line  = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text.y = element_text(size = 15, color = "black"),
+        axis.text.x = element_blank(),
+        legend.position = "none",
+        strip.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.text = element_text(size = 15, angle = 270, hjust = 1)) +
+  labs(x = NULL, y = NULL)
+```
+
+
