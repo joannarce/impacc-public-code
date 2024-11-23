@@ -4,7 +4,7 @@
 
 
 
-<img src="figures_and_tables/Abstract/output/Abstract.png" alt="Abstract" width="60%;" height="60%;" margin="auto;"/>
+<img src="figures_and_tables/Abstract/output/Abstract.png" alt="Abstract" width="400"/>
 
 </br>
 
@@ -21,8 +21,6 @@
 ### Figures and Tables
 
 Scripts used to generate figures and tables.
-
-</br>
 
 </br>
 
