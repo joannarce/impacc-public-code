@@ -44,7 +44,7 @@ Scripts used to generate figures and tables.
 
 ## Term of use
 
-License details: GNU AFFERO GENERAL PUBLIC LICENSE (see the [LICENSE file](LICENSE))
+License details: MIT License (see the [LICENSE file](LICENSE))
 
 </br>
 
