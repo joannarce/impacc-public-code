@@ -4,7 +4,7 @@
 
 
 
-<img src="figures_and_tables/Abstract/output/Abstract.png" alt="Abstract" width="200"/>
+<img src="figures_and_tables/Abstract/output/Abstract.jpg" alt="Abstract" width="300"/>
 
 </br>
 
