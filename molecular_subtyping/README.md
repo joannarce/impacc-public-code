@@ -10,11 +10,11 @@
 
 ### Data Preprocessing
 
-- `mofa_imputation`: Complete assay imputation for multi-omics assays via MOFA.
+- `mofa_imputation` ([Script](data_preprocessing/mofa_imputation.R)): Complete assay imputation for multi-omics assays via MOFA.
 
-- `mcia_factor_construction`: Low-dimensional multi-omics factors generation via MCIA.
+- `mcia_factor_construction` ([Script](data_preprocessing/mcia_factor_construction.Rmd)): Low-dimensional multi-omics factors generation via MCIA.
 
-- `subtype_construction`: Subtype construction using hierarchical clustering.
+- `subtype_construction` ([Script](data_preprocessing/subtype_construction.Rmd)): Subtype construction using hierarchical clustering.
 
 ### Figures and Tables
 
