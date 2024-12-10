@@ -1,0 +1,1147 @@
+---
+title: "data_preprocessing"
+output: html_document
+---
+
+Preprocess (Ravi) -> Data preparation + MOFA imputation (Jeremy)
+
+1. Preprocessed object
+
+2. Organized raw/imputed/clinical data objects for Phase I+II (training), Phase III (test)
+
+# Data preprocess (Ravi)
+
+# Specify input and output directory
+```{r input and output directory, warning=FALSE, message=FALSE}
+# data directory
+database_path = "/impacc-study/data_deposition/processed-data-Multiomics"
+
+# codebase directory
+codebase_path = "/scratch/data-integration/molecular_subtyping/public_testing/codebase"
+source(paste0(codebase_path, "/data_analysis_template_codebase.R"))
+source(paste0(codebase_path, "/codebase_integration.R")) 
+
+# intermediate output directory
+out_path = "/scratch/data-integration/molecular_subtyping/public_testing/intermediate_output_public"
+```
+
+## Preprocess Functions
+```{r preprocess functions}
+##### PVCA analysis
+run_pvca <- function(assay, data_env, preprocessed_matrix, plate_metadata_column,
+                     core_site_metadata_column, plot_title) {
+  # step 1: load required packages
+  library(package = "pvca") # devtools::install_github("dleelab/pvca")
+  VarCorr <- lme4::VarCorr
+  
+  assay_counts = data_env[[ data_env$assay_files_info[[assay]]$count_var_name ]]
+  assay_metadata = data_env[[ data_env$assay_files_info[[assay]]$metadata_var_name ]]
+  assay_metadata$plate = assay_metadata[, plate_metadata_column]
+  if(core_site_metadata_column != FALSE) {
+    assay_metadata$selected_core_site_column = assay_metadata[,core_site_metadata_column]
+  }
+  clinical_data = data_env$clinical_data
+  
+  # step 2: specify which assay is going to be used as input
+  pvca_input_matrix <- t(preprocessed_matrix)
+  if (sum(is.na(pvca_input_matrix)) > 0) {
+    stop("pvca input matrix should not have missing values")
+  }
+  pvca_input_raw <- t(assay_counts)
+  pvca_input_metadata <- assay_metadata
+  
+  # step3: select variable to be included in PVCA
+  #   event_data_week: day from admission to to the hospital coded as week (categorical variable)
+  #   sympt_date_week: day from onset of symptoms coded as week (categorical variable)
+  #   discretized_admit_age_quantile: age at admission coded as quintiles 
+  pvca_input_phenodata <- clinical_data %>%
+    mutate(event_date_week = findInterval(event_date, 
+                                          vec        = c(0, 7, 14, 21, 28), 
+                                          all.inside = TRUE),
+           day_from_sympt  = event_date - symptom_date,
+           sympt_date_week = findInterval(day_from_sympt, 
+                                          vec        = c(0, 7, 14, 21, 28, Inf),
+                                          all.inside = TRUE)) %>%
+    dplyr::select(sample_id, event_date_week, event_type, respiratory_status,
+           sex, sympt_date_week, event_location,
+           discretized_admit_age_quantile, ethnicity, participant_id, race, 
+           # admit_month, trajectory_group, 
+           enrollment_site, bmi)
+  
+  # step 4 append meta data to pvca phenodata
+  #   core site: where are the sample processed (this chunk of code need to be modified for each core assay)
+  #   plate = interaction term of phase and plate
+  
+  if(core_site_metadata_column != FALSE) {
+    pvca_input_metadata <- pvca_input_metadata %>%
+      mutate(core_site = gsub(pattern = "_.+", replacement = "", selected_core_site_column))
+    # Print the core_site table
+    print(table(pvca_input_metadata$core_site))
+  }
+  
+  pvca_input_phenodata <- pvca_input_metadata %>%
+    rownames_to_column(var = "sample_id") %>%
+    mutate(plate     = interaction(phase, plate, drop = TRUE)) %>%
+    dplyr::select( which(colnames(.) %in% c("sample_id", "plate", "phase", "core_site")) ) %>%
+    merge(x     = pvca_input_phenodata,
+          by    = "sample_id",
+          all.x = TRUE)
+  
+  
+  # append rownames
+  pvca_input_phenodata <- pvca_input_phenodata %>%
+    column_to_rownames(var = "sample_id")
+  pvca_input_phenodata <- pvca_input_phenodata[colnames(pvca_input_matrix), , drop = FALSE]
+  
+  # add percent missing values (if processeed matrix required imputation otherwise comment line below)
+  pvca_input_phenodata$percent_missing <- factor(colMeans(is.na(pvca_input_raw[, rownames(pvca_input_phenodata)])))
+  
+  # Keep those phenodata columns for which there are more than one levels
+  columns_to_keep = apply(pvca_input_phenodata, 2, function(x){length(na.omit(unique(x))) > 1} )
+  pvca_input_phenodata = pvca_input_phenodata[, columns_to_keep]
+  
+  library(lme4)
+  #VarCorr <- lme4::VarCorr
+  # step 5: run PVCA
+  message("Running PVCA")
+  fit <- PVCA(counts    = pvca_input_matrix,
+              meta      = pvca_input_phenodata,
+              inter     = FALSE,
+              threshold = 0.6)
+  message("Done running PVCA")
+  
+  # step 6: plot barplot with PVCA results
+  pvca_barplot_data <- data.frame(explained = as.vector(fit),
+                                  effect    = names(fit)) %>%
+    arrange(explained) %>%
+    mutate(effect = factor(effect, levels = effect))
+  
+  pvca_barplot <- ggplot(data    = pvca_barplot_data,
+                         mapping = aes(x = effect, y = explained)) +
+    geom_bar(stat = "identity") +
+    geom_text(aes(label = signif(explained, digits = 3)),
+              nudge_y   = 0.01,
+              size      = 3) +
+    labs(x = NULL, y = "Proportion of the variance explained") + 
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45,
+                                     vjust = 1,
+                                     hjust = 1)) +
+    ggtitle(plot_title)
+  print(pvca_barplot)
+}
+
+
+##### transcriptomics
+
+
+preprocess_transcriptomics_select_filter = function(assay, data_env){
+  counts = data_env[[ data_env$assay_files_info[[assay]]$count_var_name ]]
+  rowfeature = data_env[[ data_env$assay_files_info[[assay]]$rowfeature_var_name ]]
+  genes_pc <- rowfeature %>%
+    # get rownames as an explicit column
+    tibble::rownames_to_column(var = "gene_id") %>%
+    # remove row names
+    tibble::remove_rownames() %>%
+    # keep only gene ids with valid hgnc symbols
+    tidyr::drop_na(gene_name) %>%
+    # keep only protein coding genes
+    dplyr::filter(gene_biotype == "protein_coding") %>%
+    # remove redundant genes if any and make unique
+    dplyr::distinct(gene_name, .keep_all = TRUE) %>%
+    # add gene ids as row names
+    column_to_rownames(var = "gene_id")
+  
+  
+  # sample_id %in% rownames(nasal_transcriptomics_counts)
+  
+  # define good samples
+  # No need of this step now as I already filtered for good samples while loading the data
+  
+  # goodSamples <- nasal_transcriptome_QCMetrics_data %>%
+  #   filter(passQC == "Pass") %>%
+  #   filter(sample_id %in% rownames(nasal_transcriptomics_counts)) %>%
+  #   pull(sample_id)
+  
+  # get counts data only for pc genes
+  counts1 <- counts[,rownames(genes_pc)] %>%
+    t()
+  counts1 <- counts1[rownames(genes_pc), ]  # 19835  1086
+  
+  # compute CPM values
+  dge_list <- edgeR::DGEList(counts = counts1, genes = genes_pc)
+  dge_list <- edgeR::calcNormFactors(dge_list)
+  
+  
+  # expressed gene (CPM >=1) should be present in at least 10% of samples
+  cut.filter <- 0.1
+  keepRows <- rowSums(round(edgeR::cpm(dge_list$counts)) >= 1) >= cut.filter*ncol(counts1)
+  #table(keepRows)
+  curDGE <- dge_list[keepRows,]
+  curDGE <- edgeR::calcNormFactors(curDGE) # 15957   1086
+  
+  
+  #### Select top P fraction of genes with highest MAD
+  P = 0.75
+  counts1_cpm = edgeR::cpm(curDGE$counts)
+  mad_vals = apply(counts1_cpm, 1, mad)
+  mad_cutoff = min(tail(sort(mad_vals), P*length(mad_vals)))
+  df_mad <- data.frame(
+    gene_id = rownames(counts1_cpm), 
+    mean_exp = rowMeans((counts1_cpm)),
+    mad_val = mad_vals)
+  
+  p1 = ggplot(df_mad, aes(y=log1p(mad_val))) +
+    geom_histogram(bins = 1000) +
+    coord_flip() + ggtitle(assay) + 
+    geom_hline(yintercept = log1p(mad_cutoff), color="red")
+  
+  p2 = ggplot(df_mad, aes(log1p(mean_exp), log1p(mad_val))) + 
+    #geom_point(size=0.5) + 
+    geom_hex(bins=100) +
+    geom_smooth() + ggtitle(assay) +
+    geom_hline(yintercept = log1p(mad_cutoff), color="red") + 
+    scale_fill_viridis_c(option = "A")
+  
+  print(ggarrange(p1, p2))
+  
+  
+  
+  
+  mad_vals = apply(log1p(counts1_cpm), 1, mad)
+  mad_cutoff = min(tail(sort(mad_vals), P*length(mad_vals)))
+  df_mad <- data.frame(
+    gene_id = rownames(counts1_cpm), 
+    mean_exp = rowMeans(log1p(counts1_cpm)),
+    mad_val = mad_vals)
+  p1 = ggplot(df_mad, aes(y=mad_val)) +
+    geom_histogram(bins = 1000) +
+    coord_flip() + ggtitle(assay) + 
+    geom_hline(yintercept = mad_cutoff, color="red")
+  
+  p2 = ggplot(df_mad, aes(mean_exp, mad_val)) + 
+    #geom_point(size=0.5) + 
+    geom_hex(bins=100) +
+    geom_smooth() + ggtitle(assay) +
+    geom_hline(yintercept = mad_cutoff, color="red") + 
+    scale_fill_viridis_c(option = "A")
+  
+  print(ggarrange(p1, p2))
+  
+  
+  
+  # Voom normalization
+  voomCounts_1 <- limma::voom(curDGE, design = NULL, plot = FALSE, save.plot = FALSE)
+  processed_data = t(voomCounts_1$E)
+  
+  
+  mad_vals = apply(processed_data, 2, mad)
+  mad_cutoff = min(tail(sort(mad_vals), P*length(mad_vals)))
+  df_mad <- data.frame(
+    gene_id = colnames(processed_data), 
+    mean_exp = rowMeans(t(processed_data)),
+    mad_val = mad_vals)
+  
+  p1 = ggplot(df_mad, aes(y=mad_val)) +
+    geom_histogram(bins = 1000) +
+    coord_flip() + ggtitle(assay) + 
+    geom_hline(yintercept = mad_cutoff, color="red")
+  
+  p2 = ggplot(df_mad, aes(mean_exp, mad_val)) + 
+    #geom_point(size=0.5) + 
+    geom_hex(bins=100) +
+    geom_smooth() + ggtitle(assay) +
+    geom_hline(yintercept = mad_cutoff, color="red") + 
+    scale_fill_viridis_c(option = "A")
+  
+  print(ggarrange(p1, p2))
+} 
+
+
+
+
+# Keep only protein-coding genes
+preprocess_transcriptomics = function(assay, data_env){
+  counts = data_env[[ data_env$assay_files_info[[assay]]$count_var_name ]]
+  rowfeature = data_env[[ data_env$assay_files_info[[assay]]$rowfeature_var_name ]]
+  metadata = data_env[[ data_env$assay_files_info[[assay]]$metadata_var_name ]]
+  genes_pc <- rowfeature %>%
+    # get rownames as an explicit column
+    tibble::rownames_to_column(var = "gene_id") %>%
+    # remove row names
+    tibble::remove_rownames() %>%
+    # keep only gene ids with valid hgnc symbols
+    tidyr::drop_na(gene_name) %>%
+    # keep only protein coding genes
+    dplyr::filter(gene_biotype == "protein_coding") %>%
+    # remove redundant genes if any and make unique
+    dplyr::distinct(gene_name, .keep_all = TRUE) %>%
+    # add gene ids as row names
+    column_to_rownames(var = "gene_id")
+  
+  
+  # sample_id %in% rownames(nasal_transcriptomics_counts)
+  
+  # define good samples
+  # No need of this step now as I already filtered for good samples while loading the data
+  
+  # goodSamples <- nasal_transcriptome_QCMetrics_data %>%
+  #   filter(passQC == "Pass") %>%
+  #   filter(sample_id %in% rownames(nasal_transcriptomics_counts)) %>%
+  #   pull(sample_id)
+  
+  # get counts data only for pc genes
+  counts1 <- counts[,rownames(genes_pc)] %>%
+    t()
+  counts1 <- counts1[rownames(genes_pc), ]  # 19835  1086
+  
+  # compute CPM values
+  dge_list <- edgeR::DGEList(counts = counts1, genes = genes_pc)
+  dge_list <- edgeR::calcNormFactors(dge_list)
+  
+  # expressed gene (CPM >=1) should be present in at least 5% of samples for at least one trajectory group.
+  cut.filter <- 0.05
+  # get trajectory group info for the samples included.
+  tg = data_env$clinical_data$trajectory_group[ match( rownames(counts), data_env$clinical_data$sample_id ) ]
+  agg_res = aggregate(t(round(edgeR::cpm(dge_list$counts)) >= 1), by=list(tg=tg), mean)
+  keepRows = colSums(agg_res[,-1] > cut.filter) > 0
+  #keepRows <- rowSums(round(edgeR::cpm(dge_list$counts)) >= 1) >= cut.filter*ncol(counts1)
+  #table(keepRows)
+  curDGE <- dge_list[keepRows,]
+  curDGE <- edgeR::calcNormFactors(curDGE) # 15957   1086
+  
+  counts1_cpm = edgeR::cpm(curDGE$counts)
+  
+  #### Select top P fraction of genes with highest MAD
+  P = 0.75
+  
+  
+  if(FALSE) {  # Using data in linear space
+    mad_vals = apply(counts1_cpm, 1, mad)
+    mad_cutoff = min(tail(sort(mad_vals), P*length(mad_vals)))
+    df_mad <- data.frame(
+      gene_id = rownames(counts1_cpm), 
+      mean_exp = rowMeans((counts1_cpm)),
+      mad_val = mad_vals)
+    
+    p1 = ggplot(df_mad, aes(y=log1p(mad_val))) +
+      geom_histogram(bins = 1000) +
+      coord_flip() + ggtitle(assay) + 
+      geom_hline(yintercept = log1p(mad_cutoff), color="red")
+    
+    p2 = ggplot(df_mad, aes(log1p(mean_exp), log1p(mad_val))) + 
+      geom_point(size=0.5) + geom_smooth() + ggtitle(assay) +
+      geom_hline(yintercept = log1p(mad_cutoff), color="red")
+    
+    print(ggarrange(p1, p2))
+  }
+  
+  
+  # Using data in log space
+  mad_vals = apply(log1p(counts1_cpm), 1, mad)
+  mad_cutoff = min(tail(sort(mad_vals), P*length(mad_vals)))
+  df_mad <- data.frame(
+    gene_id = rownames(counts1_cpm), 
+    mean_exp = rowMeans(log1p(counts1_cpm)),
+    mad_val = mad_vals)
+  p1 = ggplot(df_mad, aes(y=mad_val)) +
+    geom_histogram(bins = 1000) +
+    coord_flip() + ggtitle(assay) + 
+    geom_hline(yintercept = mad_cutoff, color="red")
+  
+  p2 = ggplot(df_mad, aes(mean_exp, mad_val)) + 
+    #geom_point(size=0.5) + 
+    geom_hex(bins=100) +
+    geom_smooth() + ggtitle(assay) +
+    geom_hline(yintercept = mad_cutoff, color="red") + 
+    scale_fill_viridis_c(option = "A")
+  
+  print(ggarrange(p1, p2))
+  
+  
+  
+  # Voom normalization  
+  voomCounts_1 <- limma::voom(curDGE, design = NULL, plot = FALSE, save.plot = FALSE)
+  
+  # Selecting the plate column name in metadata
+  if(assay == "pbmc_transcriptomics") {
+    plate_metadata_column = "plate_num"
+  } else {
+    plate_metadata_column = "plate"
+  }
+  # Run PVCA
+  p0 = run_pvca(assay, data_env, 
+           preprocessed_matrix = t(voomCounts_1$E), 
+           plate_metadata_column = plate_metadata_column,
+           core_site_metadata_column = "Core", plot_title = paste0(assay, " - before batch-correction") )
+  print(p0)
+  
+  # Batch-correction (from Naresh)
+  # Prepare metadata subset
+  metadata$plate = metadata[, plate_metadata_column]
+  metadata_2 = metadata %>% 
+    rownames_to_column("sample_id") %>%
+    dplyr::select(sample_id,
+           #core_specific_ID,
+           #phase, 
+           plate)
+  # Prepare clinical meta data
+  clinical_meta_data <- data_env$clinical_data %>%
+    #dplyr::select(-phase) %>%
+    # filter(sample_id %in% goodSamples) %>% 
+    mutate(chr_respiratory_status_day14 = as.character(respiratory_status_day14),
+           chr_respiratory_status_day28 = as.character(respiratory_status_day28)) %>%
+    # add initial endpoint group classification
+    mutate(endpoint_grp_day14 = case_when((chr_respiratory_status_day14 == "1" | chr_respiratory_status_day14 == "2") ~ "Discharged(1-2)",
+                                          (chr_respiratory_status_day14 == "3" | chr_respiratory_status_day14 == "4") ~ "Moderate(3-4)",
+                                          (chr_respiratory_status_day14 == "5" | chr_respiratory_status_day14 == "6") ~ "Severe(5-6)",
+                                          (chr_respiratory_status_day14 == "7") ~ "Dead(7)",
+                                          TRUE ~ chr_respiratory_status_day14)) %>%
+    mutate(endpoint_grp_day28 = case_when((chr_respiratory_status_day28 == "1" | chr_respiratory_status_day28 == "2") ~ "Discharged(1-2)",
+                                          (chr_respiratory_status_day28 == "3" | chr_respiratory_status_day28 == "4") ~ "Moderate(3-4)",
+                                          (chr_respiratory_status_day28 == "5" | chr_respiratory_status_day28 == "6") ~ "Severe(5-6)",
+                                          (chr_respiratory_status_day28 == "7") ~ "Dead(7)",
+                                          TRUE ~ chr_respiratory_status_day28)) %>%
+    # convert into factor and specific order
+    mutate(endpoint_grp_day14 = factor(endpoint_grp_day14, 
+                                       levels = c("Discharged(1-2)", "Moderate(3-4)", "Severe(5-6)", "Dead(7)")),
+           endpoint_grp_day28 = factor(endpoint_grp_day28, 
+                                       levels = c("Discharged(1-2)", "Moderate(3-4)", "Severe(5-6)", "Dead(7)"))) %>%
+    # remove the temporary variable
+    mutate(chr_respiratory_status_day14 = NULL,
+           chr_respiratory_status_day28 = NULL) %>%
+    mutate_at(vars(participant_id, respiratory_status, sex, event_type, respiratory_status_day14, respiratory_status_day28, enrollment_site, race, ethnicity, trajectory_group), list(factor)) %>%
+    # add age group classification
+    mutate(age_group = case_when((admit_age < 65) ~ "<65",
+                                 (admit_age >= 65) ~ ">=65")) %>%
+    # convert into factor
+    mutate(age_group = factor(age_group, 
+                              levels = c("<65", ">=65"))) %>%
+    inner_join(metadata_2, by = "sample_id") %>%
+    mutate(phase_plate = paste0(phase, "_", plate)) %>%
+    mutate_at(vars(phase_plate, phase, plate), list(factor)) %>%
+    # keep only samples which has counts data
+    filter(sample_id %in% colnames(counts1)) %>%
+    arrange(match(sample_id, colnames(counts1)))
+  
+  # Remove samples where traj_grou and event_type are NA.
+  clinical_meta_data_batch_corr <- clinical_meta_data %>%
+    tidyr::drop_na(trajectory_group, event_type)
+  
+  # Remove the samples removed above.
+  curDGE_noNA <- curDGE[, clinical_meta_data_batch_corr$sample_id] # 16361  1088
+  if(!(all(rownames(curDGE_noNA$samples) == clinical_meta_data_batch_corr$sample_id))){
+    stop("make sure samples are ordered consistent between counts data and metadata")
+  } else {message("samples are ordered consistent between counts data and metadata")}
+  
+  # Prepare variables for the batch-correction
+  phase_plate <- clinical_meta_data_batch_corr$phase_plate
+  medCV <- clinical_meta_data_batch_corr$median_cv_coverage
+  designMat <- model.matrix(~trajectory_group*event_type, data = clinical_meta_data_batch_corr)
+  
+  # compute voom counts
+  voomCounts_batch_corr_input <- limma::voom(curDGE_noNA, design = NULL, plot = FALSE, save.plot = FALSE) # 16361  1088
+  
+  exp_batch_corr_output_with_design <- limma::removeBatchEffect(voomCounts_batch_corr_input, batch = phase_plate, covariates = medCV, design = designMat)
+  
+  # Run PVCA
+  p1 = run_pvca(assay, data_env, 
+           preprocessed_matrix = t(exp_batch_corr_output_with_design), 
+           plate_metadata_column = plate_metadata_column,
+           core_site_metadata_column = "Core", plot_title = paste0(assay, " - after batch-correction") )
+  print(p1)
+  
+  processed_data = t(exp_batch_corr_output_with_design)
+  
+  # Filter genes based on the cutoff from above.
+  mad_genes <- df_mad %>%
+    filter(mad_val >= mad_cutoff) %>%
+    pull(gene_id)
+  
+  warning("Warning: MAD-based filtering retained ", round(length(mad_genes)/dim(df_mad)[1]*100, 2), "% genes." )
+  
+  processed_data <- processed_data[, mad_genes ]
+  
+  
+  if(FALSE) {
+    mad_vals = apply(processed_data, 2, mad)
+    mad_cutoff = min(tail(sort(mad_vals), P*length(mad_vals)))
+    df_mad <- data.frame(
+                  gene_id = colnames(processed_data), 
+                  mean_exp = rowMeans(t(processed_data)),
+                  mad_val = mad_vals)
+    
+    p1 = ggplot(df_mad, aes(y=mad_val)) +
+      geom_histogram(bins = 1000) +
+      coord_flip() + ggtitle(assay) + 
+      geom_hline(yintercept = mad_cutoff, color="red")
+    
+    p2 = ggplot(df_mad, aes(mean_exp, mad_val)) + 
+      geom_point(size=0.5) + geom_smooth() + ggtitle(assay) +
+      geom_hline(yintercept = mad_cutoff, color="red")
+    
+    print(ggarrange(p1, p2))
+  }
+  
+  
+  #Scale the processed (normalized and log-transformed) data
+  processed_data <- apply(processed_data, 2, scale) %>% 
+                          data.frame(check.names = F) %>% 
+                          `rownames<-`(row.names(processed_data))
+  
+  return(list(data=processed_data, pvca=list(p0=p0,p1=p1)))
+}
+
+
+##proteomics
+preprocess_proteomics <- function(assay, data_env, alpha = 0.99){
+  counts = data_env[[ data_env$assay_files_info[[assay]]$count_var_name ]]
+  clin = data_env$clinical_data
+  if (assay == "plasma_proteomics_targeted") {
+    plate_metadata_column = "Plate.id"
+  }
+  if (assay == "plasma_proteomics_global_dda") {
+    plate_metadata_column = "plate_num"
+  }
+  # Remove features that have more than "alpha" missing values in phases I+II and in phase III samples.
+  p12 = apply( is.na( counts[ intersect(rownames(counts), clin$sample_id[clin$phase %in% 1:2]) ,] ), 2, mean) > alpha
+  p3 = apply( is.na( counts[ intersect(rownames(counts), clin$sample_id[clin$phase %in% c(3)]) ,] ), 2, mean) > alpha
+  #pall = apply(is.na(counts), 2, mean) > alpha
+  discard_features <- p12 | p3
+  if( sum(discard_features) > 0 ) {
+    warning(
+      "Discarding the following ",
+      sum(discard_features),
+      " features of ",
+      assay,
+      ", because they have > ",
+      alpha * 100,
+      "% missing values:\n"
+    )
+    warning(paste(colnames(counts)[discard_features], collapse = ","), "\n")
+    counts <- counts[,!discard_features]
+  }
+  
+  counts <- 2^counts #unlog2 the counts
+  counts_return <- counts #copy. This is the one we will change and return
+  
+  NormalisationFactor <- median(rowSums(counts, na.rm = TRUE)) #calculate row(sample) sums. Take the median of all sums.
+  
+  #run for loop over each over the rows (samples)
+  for(i in 1:nrow(counts)) {
+    #get sample i, apply normalisation factor on it. Change sample i in the normalized df.
+    counts_return[i,] <- counts[i,] * (NormalisationFactor / sum(counts[i,], na.rm = TRUE))
+  }
+  #remove samples with more than 50% missing features? remove samples with more 50% missing samples?
+  
+  #Impute with half min value per Protein
+  for(i in 1:ncol(counts_return)) {       # for-loop over columns
+    halfmin <- min(counts_return[,i], na.rm = TRUE)/2
+    counts_return[,i][is.na(counts_return[,i])] <- halfmin
+  }
+  
+  # Log-transform data
+  counts_return <- log1p(counts_return)
+
+  # Run PVCA
+  p1 = run_pvca(assay, data_env, 
+           preprocessed_matrix = counts_return, 
+           plate_metadata_column = plate_metadata_column,
+           core_site_metadata_column = FALSE, plot_title = paste0(assay) )
+  print(p1)
+  
+  # Scale data
+  counts_return <- counts_return %>% 
+    apply(2, scale) %>% 
+    data.frame(check.names = F) %>% 
+    `rownames<-`(row.names(counts_return))
+  
+  return(list(data=counts_return, pvca=list(p1=p1)))
+}
+
+
+##olink
+preprocess_serum_olink <- function(assay, data_env) {
+  counts = data_env[[ data_env$assay_files_info[[assay]]$count_var_name ]]
+  # Remove Slim's outlier samples.
+  drop_samples <- c("0865-002K3G00-002", "0865-002NVJ00-002", "0865-0041HH00-002", "0865-0062BG00-002",
+                    # phase 3 outliers
+                    "0865-00BJWD00-002", "0865-00DH6J00-002")
+  counts = counts[ ! rownames(counts) %in% drop_samples,]
+  counts_processed <- counts[rowMeans(is.na(counts)) < 1, ] %>%
+    as.matrix() %>%
+    impute.knn() %>%
+    .$data
+  
+  # Run PVCA
+  p1 = run_pvca(assay, data_env, 
+           preprocessed_matrix = counts_processed, 
+           plate_metadata_column = "plate",
+           core_site_metadata_column = FALSE, plot_title = paste0(assay) )
+  print(p1)
+  
+  # Scaling the data (log-transformation is not performed since there are negative values)
+  counts_processed <- apply(counts_processed, 2, scale) %>% 
+    data.frame(check.names = F) %>% 
+    `rownames<-`(row.names(counts_processed))
+    return(list(data=counts_processed,pvca=list(p1=p1)))
+}
+
+
+#cytof
+#' @title preprocesseed blood cytof children populations
+#' @description remove debris, red blood cells and undefined populations and normalize on total number of events per sample 
+#' @author Slim Fourati
+#' @author Brian Lee
+#' @author Jingjing Qi
+#' @author Ravi Patel
+#' @param assay: assay name in data_env (e.g. "bld_cytof" or "ea_cytof")
+#' @param data_env: the data environment generated using load_IMPACC_datasets function
+#' @examples \dontrun{bld_cytof_parent_counts_processed <- preprocess_bld_cytof(assay, data_env)}
+preprocess_bld_cytof <- function(assay, data_env) {
+  counts = data_env[[ data_env$assay_files_info[[assay]]$count_var_name ]]
+  output_counts <-  counts %>%
+    rownames_to_column(var = "sample_id") %>%
+    dplyr::select(-contains(match = "Debris"), 
+           -contains(match = "Multiplet"),
+           -`Platelets`, 
+           -`RBC`, 
+           -`Tier1_Undefined`,
+           -`Tier2_undefined_Undefined`) %>%
+    column_to_rownames(var = "sample_id")
+  output_counts <- output_counts/rowSums(output_counts)
+  
+  # Log-transform
+  output_counts <- log1p(output_counts)
+  
+  # Run PVCA
+  p1 = run_pvca(assay, data_env, 
+           preprocessed_matrix = output_counts, 
+           plate_metadata_column = "plate_num",
+           core_site_metadata_column = "Core", plot_title = paste0(assay) )
+  print(p1)
+  
+  # Scale data
+  output_counts <- output_counts %>% 
+    apply(2, scale) %>% 
+    data.frame(check.names = F) %>% 
+    `rownames<-`(row.names(output_counts))
+  
+  return(list(data=output_counts, pvca=list(p1=p1)))
+}
+
+#' @title preprocesseed blood cytof parent populations
+#' @description remove debris, red blood cells and undefined populations, summarize parent populations and normalize on total number of events per sample 
+#' @author Slim Fourati
+#' @author Brian Lee
+#' @author Jingjing Qi
+#' @author Ravi Patel
+#' @param assay: assay name in data_env (e.g. "bld_cytof" or "ea_cytof")
+#' @param data_env: the data environment generated using load_IMPACC_datasets function
+#' @examples \dontrun{bld_cytof_parent_counts_processed <- preprocess_bld_cytof_parent(assay, data_env)}
+preprocess_bld_cytof_parent <- function(assay, data_env) {
+  counts = data_env[[ data_env$assay_files_info[[assay]]$count_var_name ]]
+  rowfeature = data_env[[ data_env$assay_files_info[[assay]]$rowfeature_var_name ]]
+  bld_cytof_parent_counts_processed <- counts %>%
+    rownames_to_column(var = "sample_id") %>%
+    pivot_longer(cols = -sample_id, names_to = "rowname") %>%
+    merge(y = rownames_to_column(rowfeature), by = "rowname") %>%
+    group_by(sample_id, `Broad Parent Population`) %>%
+    mutate(`Broad Parent Population` = gsub(pattern = "\\+", replacement = "", `Broad Parent Population`)) %>%
+    summarize(value = sum(value)) %>%
+    pivot_wider(names_from = `Broad Parent Population`) %>%
+    dplyr::select(-contains(match = "Debris"), 
+           -contains(match = "Multiplet"),
+           -`Platelets`, 
+           -`RBC`, 
+           -`Undefined`) %>%
+    column_to_rownames(var = "sample_id")
+  bld_cytof_parent_counts_processed <-   bld_cytof_parent_counts_processed/rowSums(bld_cytof_parent_counts_processed)
+  
+  # Log-transform 
+  bld_cytof_parent_counts_processed <- log1p(bld_cytof_parent_counts_processed)
+
+  # Run PVCA
+  p1 = run_pvca(assay, data_env, 
+           preprocessed_matrix = bld_cytof_parent_counts_processed, 
+           plate_metadata_column = "plate_num",
+           core_site_metadata_column = "Core", plot_title = paste0(assay) )
+  print(p1)
+  
+  bld_cytof_parent_counts_processed <- bld_cytof_parent_counts_processed %>% 
+    apply(2, scale) %>% 
+    data.frame(check.names = F) %>% 
+    `rownames<-`(row.names(bld_cytof_parent_counts_processed))
+  
+  return(list(data=bld_cytof_parent_counts_processed, pvca=list(p1=p1)))
+}
+
+preprocess_default <- function(assay, data_env) {
+  warning("NOTE: the sparse features are filtered by traj group, yet...!")
+  counts = data_env[[ data_env$assay_files_info[[assay]]$count_var_name ]]
+  # Imputation using missForest
+  missForest_imputation(data_env$assay_files_info[[assay]], data_env, alpha = data_env$alpha, random_seed = data_env$random_seed, cores = data_env$impute_cores)
+  # Return the imputed count data; the imputed count data frame is stored in data_env by missForest_imputation function
+  output_counts = data_env[[ data_env$assay_files_info[[assay]]$count_var_name ]]
+
+  # Scaling the data (log-transformation is not performed since there could be negative values for some datasets. If log-transformation is needed for a specific assay, create a new function for that assay and log-transform only for that assay)
+  output_counts <- apply(output_counts, 2, scale) %>% 
+    data.frame(check.names = F) %>% 
+    `rownames<-`(row.names(output_counts))
+  
+  return( output_counts )
+}
+
+preprocess_metabolomics <- function(assay, data_env){
+  counts = data_env[[ data_env$assay_files_info[[assay]]$count_var_name ]]
+  rowfeature = data_env[[ data_env$assay_files_info[[assay]]$rowfeature_var_name ]]
+  counts_return <- counts #copy. This is the one we will change and return
+  rowfeature_return <- rowfeature #copy. This is the one we will change and return
+  
+  # Impute the NA values by half-min method
+  for(i in 1:ncol(counts_return)) {       # for-loop over columns
+    halfmin <- min(counts_return[,i], na.rm = TRUE)/2
+    counts_return[,i][is.na(counts_return[,i])] <- halfmin
+  }
+  
+  # Removing non-Xenobiotic annotated features with IQR == 0
+  iqrs = apply(counts_return, 2, IQR)
+  if(ncol(counts_return) == nrow(rowfeature_return)) {
+    ft_to_remove = iqrs == 0 & 
+                    ! is.na(rowfeature_return$SUPER_PATHWAY) &
+                    rowfeature_return$SUPER_PATHWAY != "Xenobiotics"
+    counts_return = counts_return[, ! ft_to_remove]
+    rowfeature_return = rowfeature_return[! ft_to_remove, ]
+  }
+  
+  warning("IQR-based filtering retained ", round(ncol(counts_return)/ncol(counts)*100,2), "% features." )
+  
+  # Run PVCA
+  p1 = run_pvca(assay, data_env, 
+           preprocessed_matrix = counts_return, 
+           plate_metadata_column = "plate",
+           core_site_metadata_column = FALSE, plot_title = paste0(assay) )
+  print(p1)
+  
+  # Pareto-scaling.
+  pareto_scaling <- function(x) {(x - mean(x, na.rm = T))/sqrt(sd(x, na.rm = T))}
+  
+  counts_return <- counts_return %>% 
+    # log1p() %>%  # It is appears that the data in /data is already log-transformed. But the data Joann's analysis uses doesn't seem log-transformed (has only positive values). Need to figure out where their raw data comes from.
+    apply(2, pareto_scaling) %>% 
+    data.frame(check.names = F) %>% 
+    `rownames<-`(row.names(counts_return))
+  
+  return(list(data=counts_return, pvca=list(p1=p1)))
+}
+
+preprocess_nasal_viralload <- function(assay, data_env){
+  counts = preprocess_default(assay, data_env)
+  return(counts)
+}
+
+preprocess_serum_rbd_abtiters <- function(assay, data_env){
+  counts = preprocess_default(assay, data_env)
+  return(counts)
+}
+
+preprocess_serum_sarscov2_abtiters <- function(assay, data_env){
+  counts = preprocess_default(assay, data_env)
+  return(counts)
+}
+
+preprocess_metagenomics <- function(assay, data_env){
+  counts = preprocess_default(assay, data_env)
+  return(counts)
+}
+
+
+
+#
+#' @title preprocess data
+#' @description preprocess the data using assay specific preprocessing functions.
+#' @author Ravi Patel
+#' @param data_env The data environment produced by load_IMPACC_datasets / load_IMPACC_Publication_datasets functions.
+#' @param alpha Optional, features with "alpha" or more missing values are discarded
+#' @param random_seed Optional, random seed used by missForest
+#' @param impute_cores Optional, the number of cores to use for imputation.
+#' @examples \dontrun{ preprocessed_data <- preprocess_data(data_env) }
+preprocess_data <- function(data_env, alpha=0.3, random_seed=2021,  impute_cores=8, assays_to_process = NULL) {
+  # List of preprocessing functions
+  preprocess_funcs = list(
+    "plasma_proteomics_targeted" = preprocess_proteomics,
+    "plasma_proteomics_global_dda" = preprocess_proteomics,
+    "serum_olink" = preprocess_serum_olink,
+    "nasal_viralload" = preprocess_nasal_viralload,
+    "serum_rbd_abtiters" = preprocess_serum_rbd_abtiters,
+    "nasal_transcriptomics" = preprocess_transcriptomics,
+    "plasma_metabolomics_global"= preprocess_metabolomics,
+    "bld_cytof" = preprocess_bld_cytof,
+    "ea_transcriptomics" = preprocess_transcriptomics,
+    "pbmc_transcriptomics" = preprocess_transcriptomics
+  )
+  
+  
+  # Load required packages
+  library(impute)
+  
+  # Load the imputation-related parameters into data_env for an easy access in the downstream functions.
+  data_env$alpha = alpha
+  data_env$random_seed = random_seed
+  data_env$impute_cores = impute_cores
+  
+  pvca_data = data.frame()
+
+  # Preprocess the data
+  if(is.null(assays_to_process)) {
+    assays_to_process = names(data_env$assay_files_info)
+  }
+  preprocessed_data = list()
+  for(assay in assays_to_process ) {
+    # Preprocess the data for the assays that have preprocessing functions defined.
+    if( ! is.null(preprocess_funcs[[assay]]) ) {
+      cat("Preprocessing", assay, "\n")
+      # Preprocess the data
+      preprocess_out = preprocess_funcs[[assay]](assay, data_env)
+      preprocessed_data[[ assay ]] = preprocess_out$data
+      if(!is.null(preprocess_out$pvca)) {
+        p = preprocess_out$pvca$p1
+        p$data$assay = paste0(assay, "_final")
+        pvca_data = rbind(pvca_data, p$data)
+        if(!is.null(preprocess_out$pvca$p0)) {
+          p = preprocess_out$pvca$p0
+          p$data$assay = paste0(assay, "_beforeBatchCorr")
+          pvca_data = rbind(pvca_data, p$data)
+        }
+      }
+    }
+  }
+  return(list(preprocessed_data=preprocessed_data, pvca_data = pvca_data))
+}
+```
+
+## Proprocess
+```{r preprocess, eval=TRUE}
+KEEP_COVID19_POS = TRUE; PHASES = c(1,2,3)
+FILTER_BY_CORE_ASSAY_COHORT = FALSE;
+                                FILTER_BY_INTEGRATION_COHORT = TRUE;
+                                EVENT_DATE_UPPER = 42; VISIT_UPPER = 6; 
+                                ALLOWED_SMPL_STATUS =
+                                  c("IMPACC sample assayed and passed QC",
+                                    "IMPACC sample assayed with questionable QC");
+                                data_base_dir = database_path
+
+
+data_env = load_IMPACC_datasets_subtyping(
+  KEEP_COVID19_POS = TRUE, PHASES = c(1,2,3),
+  FILTER_BY_INTEGRATION_COHORT = TRUE,
+  EVENT_DATE_UPPER = 42, VISIT_UPPER = 6,
+  ALLOWED_SMPL_STATUS = c("IMPACC sample assayed and passed QC",
+                          "IMPACC sample assayed with questionable QC"),
+  data_base_dir = database_path)
+
+data_env$clinical_individ_supp_file = gsub(".csv$", "-supp.csv", data_env$clinical_individ_file)
+indiv_supp = read_data_files(data_env$clinical_individ_supp_file, header = TRUE)
+if(! any(duplicated(indiv_supp$participant_id))) {
+  data_env$clinical_data <- left_join(data_env$clinical_data, indiv_supp,
+                                      by = "participant_id")
+}
+
+datasets_used <- c("plasma_proteomics_targeted",
+                   "plasma_proteomics_global_dda",
+                   "serum_olink",
+                   "nasal_transcriptomics",
+                   "pbmc_transcriptomics",
+                   "plasma_metabolomics_global")
+
+
+if(TRUE) {
+
+  # Make a plot for each dataset to assess the number of samples in phase I+II or in phase III datasets.
+  plots = list()
+  for(d in paste0(datasets_used, "_counts") ) {
+    tt = data_env$clinical_data %>% 
+          filter(sample_id %in% row.names(data_env[[d]]) & grepl("Visit", event_type) ) %>% 
+          select(participant_id, phase, event_type) %>% 
+          group_by(participant_id) %>% 
+          summarise(phaseI_II = sum(phase %in% 1:2), phaseIII = sum(phase == 3) ) %>% 
+          pivot_longer(names_to = "phase_groups", cols=-participant_id) %>% ungroup() %>%
+          mutate(phase_groups = factor(phase_groups, levels=c("phaseIII", "phaseI_II")) )
+    
+    participant_order = tt %>% pivot_wider(names_from = phase_groups, values_from = value) %>%
+      mutate(order = ifelse(phaseI_II != 0, phaseI_II, phaseIII-6) ) %>%
+      arrange(-order) %>%
+      pull(participant_id)
+
+    p = tt %>% mutate(
+                participant_id = factor(participant_id, 
+                                        levels = participant_order  )
+                ) %>% 
+          ggplot(aes(participant_id, value, fill=phase_groups)) + 
+            geom_bar(stat = "identity", position = "stack") + 
+            ggtitle(d) + theme_classic() + 
+            theme(axis.text.x = element_blank()) + ylab("# of samples per patient")
+    plots[[d]] = p
+  }
+  
+  ggarrange(plotlist = plots, ncol=2, nrow=4)
+}
+
+
+preprocess_data <- function(data_env, alpha=0.3, random_seed=2021,  impute_cores=8, assays_to_process = NULL) {
+  # List of preprocessing functions
+  preprocess_funcs = list(
+    #"plasma_proteomics_targeted" = preprocess_proteomics
+    # "plasma_proteomics_global_dda" = preprocess_proteomics
+    # "serum_olink" = preprocess_serum_olink
+    # "nasal_viralload" = preprocess_nasal_viralload
+    # "serum_rbd_abtiters" = preprocess_serum_rbd_abtiters
+    "nasal_transcriptomics" = preprocess_transcriptomics
+    # "plasma_metabolomics_global"= preprocess_metabolomics
+    # "bld_cytof" = preprocess_bld_cytof
+    # "ea_transcriptomics" = preprocess_transcriptomics
+    # "pbmc_transcriptomics" = preprocess_transcriptomics
+  )
+  
+  
+  # Load required packages
+  library(impute)
+  
+  # Load the imputation-related parameters into data_env for an easy access in the downstream functions.
+  data_env$alpha = alpha
+  data_env$random_seed = random_seed
+  data_env$impute_cores = impute_cores
+  
+  pvca_data = data.frame()
+
+  # Preprocess the data
+  if(is.null(assays_to_process)) {
+    assays_to_process = names(data_env$assay_files_info)
+  }
+  preprocessed_data = list()
+  for(assay in assays_to_process ) {
+    # Preprocess the data for the assays that have preprocessing functions defined.
+    if( ! is.null(preprocess_funcs[[assay]]) ) {
+      cat("Preprocessing", assay, "\n")
+      # Preprocess the data
+      preprocess_out = preprocess_funcs[[assay]](assay, data_env)
+      preprocessed_data[[ assay ]] = preprocess_out$data
+      if(!is.null(preprocess_out$pvca)) {
+        p = preprocess_out$pvca$p1
+        p$data$assay = paste0(assay, "_final")
+        pvca_data = rbind(pvca_data, p$data)
+        if(!is.null(preprocess_out$pvca$p0)) {
+          p = preprocess_out$pvca$p0
+          p$data$assay = paste0(assay, "_beforeBatchCorr")
+          pvca_data = rbind(pvca_data, p$data)
+        }
+      }
+    }
+  }
+  return(list(preprocessed_data=preprocessed_data, pvca_data = pvca_data))
+}
+
+
+preprocessed_data_list = preprocess_data(data_env, alpha = 0.3, 
+                                         random_seed = 2021,
+                                         impute_cores = 8)
+preprocessed_data = preprocessed_data_list$preprocessed_data
+
+
+# saveRDS(preprocessed_data, file = paste0(out_path, "/preprocessed_data.rds"))
+saveRDS(data_env, file = paste0(out_path, "/data_env.rds"))
+```
+
+# MOFA Imputation (Jeremy)
+
+## MOFA functions
+```{r MOFA functions}
+get.event_id.from.sample_id <- function(s_id, clinical_data){
+  dict <- distinct(clinical_data, sample_id, event_id) %>% filter(sample_id==s_id)
+  if(nrow(dict) > 0){
+    return(dict$event_id[1])
+  } else {
+    return(NA)
+  }
+}
+
+get.training_test.from.sample_id <- function(s_id, clinical_data){
+  dict <- distinct(clinical_data, sample_id, training_test) %>% filter(sample_id==s_id)
+  if(nrow(dict) > 0){
+    return(dict$training_test[1])
+  } else {
+    return(NA)
+  }
+}
+
+data_prepare_DR = function(omics_used, data_env, clinical_data, rna_keep = 5000){
+  # assay data
+  datasets.mofa = list()
+  #### Identify outlying samples and filter out them.
+  for( i in 1:length(omics_used) ) {
+    o_name = omics_used[i]
+    count_df <- data_env[[omics_used[i]]]
+    datasets.mofa[[o_name]] = count_df
+  }
+  datasets <- datasets.mofa
+  train.datasets <- list()
+  test.datasets <- list()
+  datasets.names <- names(datasets.mofa)
+  for(i in 1:length(datasets)){
+    dataset.name <- datasets.names[i]
+    dataset <- datasets[[i]]
+    print(dataset.name)
+    ##filter and transformation
+    
+    ###filtering transcriptomics
+    sds = apply(dataset, 2, sd)
+    dataset = dataset[,!is.na(sds)]
+    sds = apply(dataset, 2, sd)
+    nas = apply(dataset!=0, 2, sum)
+    if(grepl("transcriptomics",dataset.name) & !is.null(rna_keep)){
+      thr_sd =sort(sds,decreasing = T)[rna_keep]
+    }else{
+      thr_sd = -Inf
+    }
+    dataset = dataset[,sds>=thr_sd & nas >= 10]
+
+    # Change sample name to event_id
+    train_test = sapply(rownames(dataset), function(z) get.training_test.from.sample_id(z, clinical_data=clinical_data))
+    train.dataset = dataset[which(train_test == "training" | train_test == "test"),]
+    
+    tmp =  sapply(rownames(train.dataset), function(z) get.event_id.from.sample_id(z, clinical_data=clinical_data))
+    # replace later duplicate samples with NA:
+    tmp[duplicated(tmp)] <- NA
+    train.dataset <- train.dataset[!is.na(tmp),]
+    tmp <- tmp[!is.na(tmp)]
+    print(any(duplicated(tmp)))
+    rownames(train.dataset) <- tmp
+    train.datasets[[i]] <- train.dataset
+  }
+  
+  # Name the training/testing
+  names(train.datasets) <- names(datasets)
+  
+  return(list(train = train.datasets, test = NULL))
+}
+
+generate_full_matrices = function(datasets_combined){
+  event_ids <- sort(unique(unlist(sapply(datasets_combined, function(i){return(rownames(i))}))))
+  new_datasets_combined <- list()
+  for(i in 1:length(datasets_combined)){
+    print(i)
+    d <- datasets_combined[[i]]
+    m <- matrix(NA, nrow = length(event_ids), ncol = ncol(d))
+    rownames(m) <- event_ids
+    colnames(m) <- colnames(d)
+    m <- as.data.frame(m)
+    m[rownames(d),] <- d
+    new_datasets_combined[[i]] <- m
+  }
+  names(new_datasets_combined) <- names(datasets_combined)
+  return(new_datasets_combined)
+}
+
+mofa_run = function(datasets_combined, num_factors = 50,
+                    seed = 42, maxiter = 1000, drop_factor_threshold = -1, 
+                    convergence_mode = "fast", startELBO = 2, stochastic=F,
+                    mofa_file = NULL){
+  # Run MOFA+:
+  x.mofa <- list()
+  for(d in 1:length(datasets_combined)){
+    x.mofa[[d]] = t(datasets_combined[[d]])
+  }
+  names(x.mofa) = names(datasets_combined)
+  MOFAobject <- create_mofa(x.mofa)
+  # MOFA+ specific parameters:
+  data_opts <- get_default_data_options(MOFAobject)
+  model_opts <- get_default_model_options(MOFAobject)
+  train_opts <- get_default_training_options(MOFAobject)
+  model_opts$num_factors =num_factors
+  train_opts$convergence_mode = convergence_mode
+  train_opts$startELBO = startELBO
+  train_opts$maxiter = maxiter
+  train_opts$stochastic = stochastic
+  train_opts$seed = seed
+  train_opts$drop_factor_threshold =drop_factor_threshold
+  MOFAobject <- prepare_mofa(
+    object = MOFAobject,
+    data_options = data_opts,
+    model_options = model_opts,
+    training_options = train_opts
+  )
+  MOFAobject.trained <- run_mofa(MOFAobject,use_basilisk = TRUE, save_data = F)
+  return(MOFAobject.trained)
+}
+```
+
+## Imputation
+```{r}
+library(MOFA2)
+predict = stats::predict # otherwise masked by MOFA2::predict
+
+# Read in the newest data_env:
+# preprocessed_data <- readRDS(paste0(out_path, "/preprocessed_data.rds"))
+# data_env <- readRDS(paste0(out_path, "/data_env.rds"))
+
+# Load clinical data:
+clinical_data <- data_env$clinical_data
+
+# Designate omics to be used:
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+
+# Prepare data for MOFA imputation
+prepared_data_DR = data_prepare_DR(omics_used_DR, rna_keep = NULL, clinical_data = clinical_data, data_env = preprocessed_data_list)
+
+# Make matrices full (i.e. make the event_ids consistent across all omics, and add NA if missing)
+prepared_data_DR_full <- list(
+  train = generate_full_matrices(prepared_data_DR$train)
+)
+
+# IMPUTING TRAINING DATASET VIA MOFA:
+cur_data <- prepared_data_DR_full$train
+names(cur_data) <- omics_used_DR
+for(d in 1:length(cur_data)){
+  colnames(cur_data[[d]]) <- paste0(names(cur_data)[d], "_", colnames(cur_data[[d]]))
+}
+# Train MOFA model:
+MOFAobject.trained = mofa_run(datasets_combined = cur_data, num_factors = 200,
+                              seed = 2021, maxiter = 1000, drop_factor_threshold = 1e-4, convergence_mode = "fast", stochastic = F,  startELBO = 1)
+# Get predicted values from MOFA model:
+imputedMOFA <- MOFA2::predict(MOFAobject.trained, factors = "all", add_intercept = T)
+# Replace any NA in data with imputedMOFA:
+tmp = prepared_data_DR_full$train
+names(tmp) <- omics_used_DR
+for(i in 1:length(tmp)){
+  non_observed <- is.na(tmp[[i]])
+  tmp[[i]][non_observed] = t(imputedMOFA[[i]][[1]])[non_observed]
+}
+
+# Generate return object and save it:
+organized_data = list()
+organized_data[["datasets"]] =  prepared_data_DR_full$train
+organized_data[["datasets_imputed"]] = tmp
+organized_data[["MOFAobject.trained"]] = MOFAobject.trained
+
+# get event_ids
+event_ids <- rownames(organized_data$datasets_imputed[[1]])
+
+# remove omic-specific sample_id and omic:
+clinical_data <- dplyr::filter(clinical_data, training_test %in% c("training", "test"))
+clinical_data <- dplyr::select(clinical_data, -sample_id, -sample_type, -phase,
+                               -training_test)
+clinical_data_min <- dplyr::distinct(clinical_data)
+clinical_data_min <- clinical_data_min[match(event_ids, clinical_data_min$event_id), ]
+rownames(clinical_data_min) <- clinical_data_min$event_id
+
+# save to objects
+organized_data[["clinical_data"]] <- clinical_data_min
+saveRDS(organized_data, paste0(out_path, "/organized_data.rds"))
+```

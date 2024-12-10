@@ -15,18 +15,18 @@ Data used in this study is available at ImmPort Shared Data under the accession 
 
 ### Preparation
 
-- `mofa_imputation` ([Script](data_preprocessing/mofa_imputation.R)): Complete assay imputation for multi-omics assays via MOFA.
-
-- `mcia_factor_construction` ([Script](data_preprocessing/mcia_factor_construction.Rmd)): Low-dimensional multi-omics factors generation via MCIA.
-
-- `subtype_construction` ([Script](data_preprocessing/subtype_construction.Rmd)): Subtype construction using hierarchical clustering.
+|Source File| Description | Input | Output |
+|:-----|:-----|:-----|:-----|
+| [data_preprocessing.Rmd](data_preprocessing/data_preprocessing.Rmd) | Data preprocessing and complete assay imputation for multi-omics assays via MOFA | Raw data | (1) Raw data environment <br> (2) Organized data: multi-omics datasets with and without imputation, and clinical data |
+| [factor_construction.Rmd](factor_construction/factor_construction.Rmd) | Low-dimensional multi-omics factors generation via MCIA and enrichment of top factors (Factors 1, 2, 3, and 10) using the mhg test | (1) Raw data environment <br> (2) Organized data | (1) MCIA factors: factor scores, factor evaluation such as projection coefficients, projection p-values, and variance explained <br> (2) Enrichment results |
+| [subtype_construction.Rmd](subtype_construction/subtype_construction.Rmd) | Subtype construction using hierarchical clustering | (1) Organized data <br> (2) MCIA factors | (1) Subtype assignment <br> (2) Aligned clinical data |
 
 ### Figures and Tables
 
 Scripts used to generate figures and tables.
 
-| Figure |Source File| Output File |
-|------|------|------|
+| Figure |Source File| Output |
+|:-----|:-----|:-----|
 | Abstract | [Abstract.Rmd](figures_and_tables/Abstract/src/Abstract.Rmd) | [Abstract](figures_and_tables/Abstract/output/Abstract.pdf) |
 | Figure 1 | [Fig1.Rmd](figures_and_tables/Fig1/src/Fig1.Rmd) | [Fig1](figures_and_tables/Fig1/output) |
 | Figure 2 | [Fig2.Rmd](figures_and_tables/Fig2/src/Fig2.Rmd) | [Fig2](figures_and_tables/Fig2/output) |

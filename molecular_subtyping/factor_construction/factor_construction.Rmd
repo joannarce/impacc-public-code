@@ -2,21 +2,30 @@
 title: "MCIA factor constructions and enrichment"
 output: html_notebook
 ---
+
+# Specify input and output directory
+```{r input and output directory, warning=FALSE, message=FALSE}
+# codebase directory
+codebase_path = "/scratch/data-integration/molecular_subtyping/public_testing/codebase"
+hallmark_database_path = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/hallmark0522.rds"
+kegg_database_path = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds"
+
+# intermediate output directory
+out_path = "/scratch/data-integration/molecular_subtyping/public_testing/intermediate_output_public"
+```
+
 # Load in MOFA Data and Construct MICA factors
 ```{r factor construction}
 require(openxlsx)
 library(ade4) #used in mcia
 library(mogsa)
-codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
 source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
 source(paste0(codebase_path,"/codebase_basic.R"))
 source(paste0(codebase_path,"/codebase_prediction.R"))
 source(paste0(codebase_path,"/codebase_interpretation.R"))
 source(paste0(codebase_path,"/class_structures.R"))
 source(paste0(codebase_path,"/codebase_mod.R"))
-date = "20230726"
-intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
-organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+organized_data = readRDS(paste0(out_path, "/organized_data.rds"))
 
 ####construct factors
 rank_max = 100
@@ -43,18 +52,16 @@ mcia_results = list(mcia_factors=mcia_factors,
                     clinical_data = organized_data$clinical_data,
                     mcia_factor_evaluation = mcia_projection_evaluation)
 
-saveRDS(mcia_results, file = paste0(intermediate_results_outdir_DR,"MCIA_phase123_",date,".rds"))
-
+saveRDS(mcia_results, file = paste0(out_path, "mcia_results.rds"))
 ```
 
 # Enrichment Analysis for Selected MCIA Factors
 ```{r enrichment}
 library(clusterProfiler)
-data_env0 <- readRDS("/scratch/data-integration/pipelines/processedData/data_env_ravi_20220513.RDS")
-file_mcia = paste0(intermediate_results_outdir_DR,"MCIA_phase123_",date,".rds")
-mcia_results = readRDS(file_mcia)
-kegg_database = readRDS(file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds")
-hallmark_database = readRDS( file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/hallmark0522.rds")
+data_env0 <- readRDS(paste0(out_path, "/data_env.rds"))
+mcia_results = readRDS(paste0(out_path, "mcia_results.rds"))
+kegg_database = readRDS(kegg_database_path)
+hallmark_database = readRDS(hallmark_database_path)
 metabolite_row_DF = data_env0$plasma_metabolomics_global_rowfeature
 rownames(metabolite_row_DF) = metabolite_row_DF[["CHEMICAL_NAME"]]
 metabolite_row_DF=metabolite_row_DF[,c("CHEMICAL_NAME","SUB_PATHWAY","SUPER_PATHWAY")]
@@ -148,10 +155,6 @@ for(mod_id in 1:K){
   print(lapply(enrichment_mhg_list[["subpath"]][[mod_id]][["neg"]], function(z) head(z[,c("ID", "pvalue","p.adj")])))
 }
 
-
-saveRDS(enrichment_mhg_list, file=paste0(intermediate_results_outdir_DR, "pathway_enrichment_mhgF1_2_3_10_LG",mag_thr,".rds"))
-
-
-
+saveRDS(enrichment_mhg_list, file = paste0(out_path, "enrichment_mhg_list.rds"))
 ```
 
