@@ -8,7 +8,12 @@
 
 ## Instructions
 
-### Data Preprocessing
+### Data availability
+
+Data used in this study is available at ImmPort Shared Data under the accession number [SDY1760](https://www.immport.org/shared/search?text=SDY1760%20) and in the NLM's
+769 Database of Genotypes and Phenotypes (dbGaP) under the accession number [phs002686.v2.p2](https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs002686.v2.p2). Note this is a controlled database with approval from NIAID required (please follow the instructions as you try to access the data). However, Immport has agreed to provide special access to reviewers of this article upon request by the IMPACC team.
+
+### Preparation
 
 - `mofa_imputation` ([Script](data_preprocessing/mofa_imputation.R)): Complete assay imputation for multi-omics assays via MOFA.
 
