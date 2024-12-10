@@ -16,7 +16,7 @@ Data used in this study is available at ImmPort Shared Data under the accession 
 ### Preparation
 
 |Source File| Description | Input | Output |
-|:-----|:-----|:-----|:-----|
+|:-----|:-----|:-------|:-------|
 | [data_preprocessing.Rmd](data_preprocessing/data_preprocessing.Rmd) | Data preprocessing and complete assay imputation for multi-omics assays via MOFA | Raw data | (1) Raw data environment <br> (2) Organized data: multi-omics datasets with and without imputation, and clinical data |
 | [factor_construction.Rmd](factor_construction/factor_construction.Rmd) | Low-dimensional multi-omics factors generation via MCIA and enrichment of top factors (Factors 1, 2, 3, and 10) using the mhg test | (1) Raw data environment <br> (2) Organized data | (1) MCIA factors: factor scores, factor evaluation such as projection coefficients, projection p-values, and variance explained <br> (2) Enrichment results |
 | [subtype_construction.Rmd](subtype_construction/subtype_construction.Rmd) | Subtype construction using hierarchical clustering | (1) Organized data <br> (2) MCIA factors | (1) Subtype assignment <br> (2) Aligned clinical data |
