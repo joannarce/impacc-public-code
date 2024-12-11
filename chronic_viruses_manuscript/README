@@ -7,6 +7,8 @@ This code is for the manuscript titled "Chronic Viral Reactivation and Associate
 Data used in this study is available at ImmPort Shared Data under the accession number [SDY1760](https://www.immport.org/shared/search?text=SDY1760%20) and in the NLM's
 769 Database of Genotypes and Phenotypes (dbGaP) under the accession number [phs002686.v2.p2](https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs002686.v2.p2). Note this is a controlled database with approval from NIAID required (please follow the instructions as you try to access the data). However, Immport has agreed to provide special access to reviewers of this article upon request by the IMPACC team.
 
+Once downloaded, see the [data_object_generation.Rmd](data_object_generation.qmd) file for how to load the omics into a singular data environment (which downstream Figure code will depend on).
+
 ### Code Install and Run Time
 The codebase itself is small and should install in a few minutes or less depending on your download speed. The run time is variable between the figures' scripts, with Figures 1, 3, and 7 running in just a few minutes, Figure 2 and 6 taking ~30 min-1 hour, Figure 4 taking ~2 hours, and Figure 5 taking several hours.
 
