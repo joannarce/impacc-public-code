@@ -1,0 +1,60 @@
+---
+title: "Data Object Generation"
+format: html
+editor: visual
+---
+
+## Data Object Generation
+
+This script build a general data object that will be used to load assays and clinical data throughout the Figure code. This loading code was designed for the IMPACC server and intentionally looks for specified data folders in the codebase function: load_IMPACC_datasets() which you can change to match your directory structure as needed.
+
+```{r}
+library(tidyverse)
+source("data_loading_codebase.R")
+source("~/git_clones/impacc-full-cohort/Analysis/IMPACC_data_analysis_codebase.R")
+
+DATA_VERSION <- "current"
+PHASES <- c(1,2,3,4,5,9, NA)
+ALLOWED_SMPL_STATUS <- c("IMPACC sample assayed and passed QC", 
+                         "IMPACC sample assayed with questionable QC")
+KEEP_COVID19_POS <- TRUE
+KEEP_ESCALATIONS = TRUE
+KEEP_EMORY_CONTROLS = FALSE
+EVENT_DATE_UPPER = 999
+VISIT_LOWER = 1
+VISIT_UPPER = 999
+USE_LOCKED_CLINICAL <- TRUE
+FILTER_BY_CORE_ASSAY_COHORT = FALSE
+FILTER_BY_INTEGRATION_COHORT = FALSE
+
+options(encoding = "UTF-8") # instead of ANSI
+options(scipen = 999) # non-scientific output
+
+data_env <- load_IMPACC_datasets(# Data version:
+  DATA_VERSION = DATA_VERSION,
+  # QC Sample Filtering:
+  ALLOWED_SMPL_STATUS = ALLOWED_SMPL_STATUS,
+  # COVID-19 Positive
+  KEEP_COVID19_POS = KEEP_COVID19_POS,
+  # Emory controls:
+  KEEP_EMORY_CONTROLS = KEEP_EMORY_CONTROLS,
+  # Escalations:
+  KEEP_ESCALATIONS = KEEP_ESCALATIONS,
+  # Use the locked clinical data (01/01/2023)
+  USE_LOCKED_CLINICAL = USE_LOCKED_CLINICAL,
+  
+  # Don't restrict filtering by manuscript:
+  FILTER_BY_CORE_ASSAY_COHORT = FILTER_BY_CORE_ASSAY_COHORT,
+  FILTER_BY_INTEGRATION_COHORT = FILTER_BY_INTEGRATION_COHORT,
+  
+  # event_type / visit upper limits
+  EVENT_DATE_UPPER = EVENT_DATE_UPPER,
+  VISIT_LOWER = VISIT_LOWER,
+  VISIT_UPPER = VISIT_UPPER,
+  
+  # Phases
+  PHASES = PHASES)
+## This code was ran on 2024-02-02 using the current data version of that date
+saveRDS(data_env, "/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS")
+## The above path is the one referenced throughout the figure code
+```
