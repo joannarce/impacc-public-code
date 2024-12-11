@@ -7,19 +7,21 @@ This code is for the manuscript titled "Chronic Viral Reactivation and Associate
 Data used in this study is available at ImmPort Shared Data under the accession number [SDY1760](https://www.immport.org/shared/search?text=SDY1760%20) and in the NLM's
 769 Database of Genotypes and Phenotypes (dbGaP) under the accession number [phs002686.v2.p2](https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs002686.v2.p2). Note this is a controlled database with approval from NIAID required (please follow the instructions as you try to access the data). However, Immport has agreed to provide special access to reviewers of this article upon request by the IMPACC team.
 
-### Figures and Tables
+### Code Install and Run Time
+The codebase itself is small and should install in a few minutes or less depending on your download speed. The run time is variable between the figures' scripts, with Figures 1, 3, and 7 running in just a few minutes, Figure 2 and 6 taking ~30 min-1 hour, Figure 4 taking ~2 hours, and Figure 5 taking several hours.
 
+### Figures and Tables
 Scripts used to generate figures and tables.
 
 | Figure |Source File| Output |
 |:-----|:-----|:-----|
-| Figure 1 | [Figure1.Rmd](Figure1/src/Figure1.qmd) | [Figure1](Figure1/output) |
-| Figure 2 | [Figure2.Rmd](Figure2/src/Figure2.qmd) | [Figure2](Figure2/output) |
-| Figure 3 | [Figure3.Rmd](Figure3/src/Figure3.qmd) | [Figure3](Figure3/output) |
-| Figure 4 | [Figure4.Rmd](Figure4/src/Figure4.qmd) | [Figure4](Figure4/output) |
-| Figure 5 | [Figure5.Rmd](Figure5/src/Figure5.qmd) | [Figure5](Figure5/output) |
-| Figure 6 | [Figure6.Rmd](Figure6/src/Figure6.qmd) | [Figure6](Figure6/output) |
-
+| Figure 1 and S1 | [Figure1.Rmd](Figure1/src/Figure1.qmd) | [Figure1](Figure1/output) |
+| Figure 2 and S2  | [Figure2.Rmd](Figure2/src/Figure2.qmd) | [Figure2](Figure2/output) |
+| Figure 3 and S3  | [Figure3.Rmd](Figure3/src/Figure3.qmd) | [Figure3](Figure3/output) |
+| Figure 4 and S4  | [Figure4.Rmd](Figure4/src/Figure4.qmd) | [Figure4](Figure4/output) |
+| Figure 5 and S5  | [Figure5.Rmd](Figure5/src/Figure5.qmd) | [Figure5](Figure5/output) |
+| Figure 6 and S6 (and Figure 7C)  | [Figure6.Rmd](Figure6/src/Figure6.qmd) | [Figure6](Figure6/output) |
+| Figure 7 and S7  | [Figure6.Rmd](Figure7/src/Figure6.qmd) | [Figure7](Figure7/output) |
 
 </br>
 
