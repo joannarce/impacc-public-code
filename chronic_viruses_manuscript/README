@@ -35,4 +35,4 @@ License details: MIT License (see the [LICENSE file](LICENSE))
 
 ## Required software
 
-The codes were run in R v4.2.3. The sessionInfo() with the package used and their versions are reported at the bottom of each Figures script.
+The codes were run in R v4.0.3. The sessionInfo() with the package used and their versions are reported at the bottom of each Figures script.
