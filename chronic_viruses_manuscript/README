@@ -21,7 +21,7 @@ Scripts used to generate figures and tables.
 | Figure 4 and S4  | [Figure4.Rmd](Figure4/src/Figure4.qmd) | [Figure4](Figure4/output) |
 | Figure 5 and S5  | [Figure5.Rmd](Figure5/src/Figure5.qmd) | [Figure5](Figure5/output) |
 | Figure 6 and S6 (and Figure 7C)  | [Figure6.Rmd](Figure6/src/Figure6.qmd) | [Figure6](Figure6/output) |
-| Figure 7 and S7  | [Figure6.Rmd](Figure7/src/Figure6.qmd) | [Figure7](Figure7/output) |
+| Figure 7 and S7  | [Figure7.Rmd](Figure7/src/Figure7.qmd) | [Figure7](Figure7/output) |
 
 </br>
 
