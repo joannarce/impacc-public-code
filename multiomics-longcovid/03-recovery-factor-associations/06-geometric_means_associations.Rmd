@@ -1,0 +1,739 @@
+ ---
+title: "Geometric mean plots"
+author: "Jessica Maciuch"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output: html_document
+---
+
+Note: This script contains code to generate all geometric means plots, including versions that were not used (i.e. box plots with per-visit pvals, longitudinal plots, etc.) 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Set working directory
+  workDir <- "~/impacc-full-cohort/Analysis/convalescent-project/Spear/clinical_associations"
+  setwd(workDir) # For troubleshooting in the command line
+  knitr::opts_knit$set(root.dir = workDir)
+
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(magrittr)
+  library(ggpubr)
+  library(rstatix)
+  library(patchwork)
+  library(pheatmap)})
+
+# Load codebase functions
+  source("~/impacc-full-cohort/Analysis/IMPACC_data_analysis_codebase.R")
+
+# Initialize list of variables to exclude from downstream environment cleaning
+  keep_vars <- ls()
+  keep_vars %<>% c("keep_vars")
+```
+
+# Calculate geometric means
+
+If you have access to the geometric_means_clinical.csv file, skip to "Load geometric means" section.
+
+## Dictionary for gene and metabolite names
+
+```{r}
+
+# Grab RowFeature tables for PMG and PGX
+  PMG_dict <- read_csv("/data/metabolomics/plasma-metabolomics-global/current/GlobalPlasmaMetabolomics-RowFeature.csv")
+  PMG_dict %<>% select(MET_ID, CHEMICAL_NAME)
+  colnames(PMG_dict) <- c("Analyte", "Feature")
+  
+  PGX_dict <- read_csv("/data/pbmc-transcriptomics/current/pbmc-transcriptomics-RowFeature.csv", skip = 1)
+  PGX_dict %<>% dplyr::select(gene_id, gene_name)
+  colnames(PGX_dict) <- c("Analyte", "Feature")
+  
+  dict <- bind_rows(PMG_dict, PGX_dict)
+  
+# Clean environment
+  keep_vars %<>% c("dict")
+  rm(list = setdiff(ls(), keep_vars))
+  gc()
+```
+
+## Load gene sets
+
+```{r}
+
+#### HEME METABOLISM AND ANDROGENIC STEROIDS ####
+  gsea_files <- c("GSEA_subpath_Factor1_PMG_results.tsv",
+                  "GSEA_hallmark_Factor1_PGX_results.tsv")
+  gsea_files %<>% paste("~/impacc-full-cohort/Analysis/convalescent-project/Spear/enrichment_spear_factors_promis_physical_Factor1", ., sep = "/")
+  
+  results <- gsea_files |> map(\(f) read_delim(f, delim = "\t"))
+  
+  results %<>% bind_rows()
+  results %<>% filter(ID %in% c("HALLMARK_HEME_METABOLISM",
+                                "Androgenic Steroids"))
+  
+  # Separate individual features from their formatting in the table
+  leadingEdge <- results$core_enrichment
+  names(leadingEdge) <- results$ID
+  
+  leadingEdge %<>% map(\(l) str_split_i(l, pattern = "\t", i = -1))
+  leadingEdge %<>% bind_rows()
+  leadingEdge %<>% pivot_longer(cols = 1:last_col(),
+                                names_to = "GeneSet",
+                                values_to = "Feature")
+  leadingEdge %<>% separate_longer_delim(cols = Feature,
+                                         delim = "/")
+  
+  # Get assay names for features
+  leadingEdge %<>% left_join(x = .,
+                             y = dict,
+                             by = "Feature")
+  
+  # Rename heme metabolism
+  leadingEdge %<>% mutate(GeneSet = case_match(GeneSet,
+                                               "HALLMARK_HEME_METABOLISM" ~ "Hallmark Heme Metabolism",
+                                               .default = GeneSet))
+
+#### SIGNIFICANT SPEAR ANALYTES ####
+  spear <- readRDS("/scratch/data-fullcohort/spear_model/results/020624/032124_spearphysical_finalscores_allsamples.rds")
+  
+  top_analytes <- spear$analyte.scores
+  top_analytes$joint.probability %<>% round(digits = 2)
+  top_analytes %<>% filter(joint.probability >= 0.95)
+  
+  # Format same as leading edge data frames
+  top_analytes %<>% mutate(GeneSet = "Significant SPEAR Analytes")
+  top_analytes %<>% select(GeneSet, Analyte)
+  
+  # Get assay names for features
+  top_analytes %<>% left_join(x = .,
+                              y = dict,
+                              by = "Analyte")
+  
+# Combine all gene sets into one data frame
+  gene_sets <- rbind(leadingEdge, top_analytes)
+  
+  # If no readable feature name in dict, use original analyte name
+  gene_sets$Feature %<>% if_else(is.na(.), gene_sets$Analyte, .)
+  
+  # Pull direction of each analyte in spear model
+    gene_sets %<>% left_join(x = .,
+                             y = spear$analyte.scores %>% select(Analyte, projection.coefficient),
+                             by = "Analyte")
+    
+    gene_sets %<>% mutate(direction = sign(projection.coefficient))
+  
+#### COMBINED (i.e. Top Spear + Heme + steroids) ####
+  Combined <- gene_sets %>% mutate(GeneSet = "Combined (Hallmark Heme Metabolism + Androgenic Steroids + Significant SPEAR Analytes)") %>% distinct()
+  gene_sets %<>% rbind(Combined)
+  
+# Clean environment
+  keep_vars %<>% c("spear", "gene_sets")
+  rm(list = setdiff(ls(), keep_vars))
+  gc()
+```
+
+## Load assay data for gene set features
+
+```{r}
+
+# Load pre-processed assay data
+  acute_filepaths <- list("Train" = "/scratch/data-fullcohort/spear/acute_fullcohort_preprocessed_data_20240812/MOFA_acute_fullcohort_train_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240812.rds",
+                          "Test" = "/scratch/data-fullcohort/spear/acute_fullcohort_preprocessed_data_20240812/MOFA_acute_fullcohort_test_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240812.rds")
+
+  conv_filepaths <- list("Train" = "/scratch/data-fullcohort/MOFA_factors/MOFA_train_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212.rds",
+                                 "Test" = "/scratch/data-fullcohort/MOFA_factors/MOFA_test_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212.rds")
+  
+  data <- list("Acute" = acute_filepaths,
+               "Convalescent" = conv_filepaths) |> map_depth(.depth = 2, \(x) readRDS(x))
+  
+# Helper function to pull assay data from MOFA object
+  pull_assay_data <- function(x, gene_sets) {
+    data <- x@data |> lapply(\(x) x <- x[["group1"]])
+    data %<>% purrr::reduce(rbind)
+    data %<>% .[c(rownames(.) %in% gene_sets$Analyte),]
+    data %<>% t() %>% cbind(x@samples_metadata %>% select(event_id))
+    return(data)
+  }
+  
+# Combine data from timepoints
+  data %<>% map_depth(.depth = 2, \(x) pull_assay_data(x, gene_sets))
+  data %<>% map(\(x) x %<>% bind_rows())
+  data %<>% bind_rows(.id = "cohort")
+  
+# Convert to long form for geom mean function
+  data %<>% pivot_longer(cols = which(colnames(data) %in% gene_sets$Analyte), names_to = "Analyte")
+  
+# Clean environment
+  keep_vars %<>% c("data")
+  rm(list = setdiff(ls(), keep_vars))
+  gc()
+```
+
+## Calculate geometric mean
+
+```{r}
+
+# Function to calculate geometric mean
+  geom_mean <- function(df, gene_set) {
+    # Take only the features in the gene set
+    df %<>% inner_join(x = .,
+                       y = gene_set,
+                       by = "Analyte")
+    
+    df %<>% 
+      # Calculate separate mean for features in each direction for each event ID
+      group_by(event_id, direction) %>% 
+      summarise(mean = mean(value, na.rm = T)) %>%
+      # Create separate columns for pos and neg mean
+      pivot_wider(names_from = direction, values_from = mean) %>%
+      # If all values are pos or neg, create all 0 column for other direction
+      mutate("1" = if (!"1" %in% names(.)) {0} else {.data[["1"]]},
+             "-1" = if (!"-1" %in% names(.)) {0} else {.data[["-1"]]}) 
+    
+    # Subtract neg from pos means
+    df %<>% mutate(geom_mean = .data[["1"]] - .data[["-1"]]) 
+    # If all directions were neg, flip sign again
+    if (all(df[["1"]] == 0)) {df$geom_mean <- df$geom_mean * -1} 
+    
+    # Add pathway name to res
+    res <- df %>% 
+      select(event_id, geom_mean) %>%
+      cbind(., pathway = unique(gene_set$GeneSet))
+    return(res)
+  }
+
+# Separate data frame by gene set
+  # Order gene sets for plotting
+  order <- c("Hallmark Heme Metabolism",
+             "Androgenic Steroids",
+             "Significant SPEAR Analytes",
+             "Combined (Hallmark Heme Metabolism + Androgenic Steroids + Significant SPEAR Analytes)")
+  
+  gene_sets$GeneSet %<>% factor(., levels = order)
+  gene_sets %<>% split(., f = .[["GeneSet"]])
+  
+# Generate scores for each gene set
+  scores <- gene_sets |> map(\(g) geom_mean(data, g))
+  scores %<>% reduce(rbind)
+  
+# Save geometric means
+  write_csv(scores, file = "./geometric_means.csv")
+  
+# Clean environment
+  keep_vars %<>% c("scores")
+  rm(list = setdiff(ls(), keep_vars))
+  gc()
+```
+
+## Combine with clinical data
+
+```{r}
+
+# Load data environments for acute and convalescent
+  data_env_conv <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_all_Feb_11_2024.RDS")
+  data_env_acute <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_acute_data_env_allcohort_all_Aug_12_2024.RDS") 
+  
+# Pull clinical data
+  clinical_data_conv <- data_env_conv$clinical_data
+  clinical_data_acute <- data_env_acute$clinical_data
+  clinical_data <- dplyr::bind_rows(list("convalescent" = clinical_data_conv, 
+                                         "acute" = clinical_data_acute), 
+                                    .id = "cohort")
+  
+# Select relevant columns
+  clinical_data %<>% 
+    select(all_of(c("participant_id", 
+                    "event_id", 
+                    "event_type",
+                    "event_date",
+                    "enrollment_site", 
+                    "discretized_admit_age_quantile",
+                    "sex",
+                    "trajectory_group",
+                    "pro_2_groups",
+                    "cohort"))) %>% 
+    distinct()
+  
+# Combine with scores
+  scores %<>% left_join(x = .,
+                      y = clinical_data,
+                      by = "event_id")
+  
+# Update partition variable to reflect "extended test"
+  test_eventIDs <- c(rownames(spear$Test),
+                     rownames(spear$TestNoPhysical),
+                     rownames(spear$TrainNoPhysical_NoOverlap))
+  scores$partition <- if_else(scores$event_id %in% test_eventIDs, "test", "train")
+  
+  # If event in acute cohort, no partition
+  scores$partition <- if_else(scores$cohort == "acute", "acute", scores$partition)
+  
+# Remove outlier/accidental acute data points after event date 50
+  scores %<>% filter(!(cohort == "acute" & event_date > 50))
+  
+# Make sure categorical variables are plotted in consistent order
+  scores$pro_2_groups <- if_else(scores$pro_2_groups == "MIN", "MIN", "LC")
+  scores$pro_2_groups %<>% factor(., levels = c("MIN", "LC"))
+  scores$sex %<>% factor(., levels = c("Male", "Female"))
+  
+# Format variables for stat functions
+  scores %<>% dplyr::rename(value = geom_mean,
+                            endpoints = pro_2_groups,
+                            name = pathway)
+  
+# Save geometric means with clinical data
+  write_csv(scores, file = "./geometric_means_clinical.csv")
+```
+
+# Load geometric means
+
+```{r}
+
+# Load csv
+  scores <- read_csv("./geometric_means_clinical.csv")
+
+# Format factors for proper plotting
+  scores$endpoints %<>% factor(., levels = c("MIN", "LC"))
+  scores$sex %<>% factor(., levels = c("Female", "Male"))
+  scores$event_type %<>% factor(., levels = paste("Visit", 1:10))
+  
+  scores %<>% mutate(name = case_match(name, 
+                                       "Combined (Hallmark Heme Metabolism + Androgenic Steroids + Significant SPEAR Analytes)" ~ "Combined (Hallmark Heme Metabolism +\nAndrogenic Steroids + Significant SPEAR Analytes)",
+                                       .default = name))
+  
+  scores$name %<>% factor(., levels = c("Hallmark Heme Metabolism",
+                                        "Androgenic Steroids",
+                                        "Significant SPEAR Analytes",
+                                        "Combined (Hallmark Heme Metabolism +\nAndrogenic Steroids + Significant SPEAR Analytes)"))
+```
+
+# Set color palette
+
+```{r}
+
+# Set color palette 
+pro_2_groups_cols <- c("MIN" = "#649B20",
+                       "LC" = "#7A186D")
+```
+
+# Per-visit box plots (global p-val)
+
+This section generates plots of per-visit box plots with one global p-value correcting for age and visit # (plus random effects)
+
+## Set filename vars
+
+```{r}
+# Set variables for filenames
+  comparison <- "MIN_LC_geom_mean"
+  plot_type <- "pervisit_globalpval"
+```
+
+## Plotting functions
+
+```{r}
+
+# Helper function to calculate pairwise p-val across all visits
+  global_mixed_pairwise <- function(df,
+                                    fixed_vars,
+                                    predictor,
+                                    random) {
+    
+    # Generate formulas for mixed_pairwise function
+    var_list <- c(fixed_vars, random)
+    
+    terms <- paste(var_list, collapse = "+")
+    formula.0 <- formula(paste("value~", terms, sep = ""))
+    
+    var_list %<>% c(predictor)
+    terms <- paste(var_list, collapse = "+")
+    formula.1 <- formula(paste("value~", terms, sep = ""))
+    
+    res_table <- mixed_pairwise(formula.0, formula.1, df)
+    
+    return(res_table$res_table)
+  }
+
+# Helper function to generate per-visit boxplots
+  plot_geom_mean_pervisit <- function(df, pval_df, cols) {
+    ggplot(df, aes(x = event_type, y = value)) +
+      ggbeeswarm::geom_quasirandom(aes(fill = endpoints),
+                                   shape = 21,
+                                   width = .15, 
+                                   dodge.width = 0.75) +
+      geom_boxplot(aes(fill = endpoints),
+                   alpha = 0.6, 
+                   color = "black", 
+                   outlier.shape = NA) +
+      facet_wrap(~name, scales = "free_y") +
+      theme_bw() + 
+      scale_color_manual(values = cols) +
+      scale_fill_manual(values = cols) +
+      labs(x = NULL, 
+           y = "Geometric Mean", 
+           fill = "") +
+      scale_y_continuous(expand = expansion(mult = c(0.1, 0.15))) + 
+      geom_label(data = pval_df, 
+                 inherit.aes = F, 
+                 aes(label = label,
+                     x = Inf,
+                     y = Inf,
+                     hjust = 1,
+                     vjust = 1),
+                 label.r = unit(0, "pt"),
+                 size = 4) +
+      theme(strip.background = element_blank(),
+            text = element_text(size = 14)) -> plot
+
+    return(plot)
+  }
+  
+# Helper function to generate per visit box plots from starting df
+  generate_geom_mean_pervisit_plots <- function(df) {
+     df_list <- df %>% split(f = .[["name"]])
+  
+    # Calculate p-vals
+    pval_list <- df_list |> 
+      map(\(x) global_mixed_pairwise(df = x,
+                                     fixed_vars = c("discretized_admit_age_quantile", "event_type", "sex"),
+                                     predictor = "endpoints",
+                                     random = "(1|enrollment_site/participant_id)")) |>
+      as.numeric()
+    
+    # P-value adjustment
+    adj_pval_list <- qvalue::qvalue(pval_list, fdr.level = 0.05, pi0 = 1)$qvalues
+    
+    # Create p-val df
+    pval_df <- data.frame(name = names(df_list),
+                          adjp = adj_pval_list)
+    
+    # Create p-val label
+    pval_df %<>% mutate(label = paste("adj. p=", signif(adjp, digits = 2), sep = ""))
+    
+    # Order p-val df
+    pval_df$name %<>% factor(., levels = levels(df$name))
+    
+    # Generate plot
+    plot <- plot_geom_mean_pervisit(df, pval_df, pro_2_groups_cols)
+    
+    return(plot)
+  }
+
+```
+
+## Convalescent plots
+
+```{r}
+
+# Pull only convalescent test set data
+  df <- scores %>% filter(partition == "test")
+
+# Generate plot
+  plot <- generate_geom_mean_pervisit_plots(df)
+
+# Save plots
+  timepoint <- "convalescent"
+  filename <- paste(workDir, "/plot_objects/plots_for_figures/", comparison, "_", plot_type, "_", timepoint, ".Rds", sep = "")
+
+  saveRDS(plot, filename)
+```
+
+## Acute plots
+
+```{r}
+# Pull only acute data
+  df <- scores %>% filter(partition == "acute")
+
+# Remove participants with no MIN/LC label
+  df %<>% filter(!is.na(endpoints))
+
+# Generate plot
+  plot <- generate_geom_mean_pervisit_plots(df)
+
+# Save plots
+  timepoint <- "acute"
+  filename <- paste(workDir, "/plot_objects/plots_for_figures/", comparison, "_", plot_type, "_", timepoint, ".Rds", sep = "")
+
+  saveRDS(plot, filename)
+```
+
+# Per-visit box plots by sex (global p-val)
+
+This section generates plots of per-visit box plots with one global p-value correcting for age, sex, and visit # (plus random effects), separated by sex.
+
+## Set filename vars
+
+```{r}
+# Set variables for filenames
+  comparison <- "MIN_LC_geom_mean_bysex"
+  plot_type <- "pervisit_globalpval"
+```
+
+## Plotting functions
+
+```{r}
+
+# Helper function to generate per-visit boxplots
+  plot_geom_mean_pervisit_bysex <- function(df, cols) {
+    ggplot(df, aes(x = event_type, y = value)) +
+      ggbeeswarm::geom_quasirandom(aes(fill = endpoints),
+                                   shape = 21,
+                                   width = .15, 
+                                   dodge.width = 0.75) +
+      geom_boxplot(aes(fill = endpoints),
+                   alpha = 0.6, 
+                   color = "black", 
+                   outlier.shape = NA) +
+      facet_wrap(~sex) +
+      theme_bw() + 
+      scale_color_manual(values = cols) +
+      scale_fill_manual(values = cols) +
+      labs(x = NULL, 
+           y = "Geometric Mean", 
+           fill = "",
+           title = unique(df$name)) +
+      scale_y_continuous(expand = expansion(mult = c(0.1))) + 
+      theme(strip.background = element_blank(),
+            strip.text = element_text(size = 12),
+            plot.title = element_text(hjust = 0.5, size = rel(1)),
+            text = element_text(size = 14)) -> plot
+    
+    # Add p-values
+    pval_df <- df %>% 
+      select(name, sex, pval_label) %>% 
+      distinct()
+    
+    plot <- plot + geom_label(data = pval_df,
+                              inherit.aes = F,
+                              aes(label = pval_label,
+                                  x = Inf, 
+                                  y = Inf, 
+                                  hjust = 1,
+                                  vjust = 1),
+                              size = 4,
+                              label.r = unit(0, "pt"))
+
+    return(plot)
+  }
+  
+# Helper function to generate per visit box plots by sex from starting df
+  generate_geom_mean_pervisit_bysex_plots <- function(df) {
+    # Split by pathway
+    df_list <- df %>% split(f = .[["name"]])
+     
+    # Split by sex
+    df_list %<>% map(\(df) df %<>% split(f = .[["sex"]]))
+    
+    # Calculate p-vals
+    pval_list <- df_list |> map_depth(.depth = 2, \(df) global_mixed_pairwise(df = df,
+                                                                              fixed_vars = c("discretized_admit_age_quantile", "event_type"),
+                                                                              predictor = "endpoints",
+                                                                              random = "(1|enrollment_site/participant_id)"))
+  
+    # Format pvals
+    pvals <- pval_list %>% map(\(x) x %<>% bind_rows(.id = "sex"))
+    pvals %<>% bind_rows(.id = "name")
+      
+    # P-value correction
+    pvals$padj <- qvalue::qvalue(pvals$`MIN|LC`, fdr.level = 0.05, pi0 = 1)$qvalue
+    
+    # Create label for plots
+    pvals$pval_label <- paste("adj. p=", 
+                              signif(pvals$padj, digits = 2), 
+                              sep = "")
+      
+    # Add p-vals to original df
+    df %<>% left_join(x = .,
+                      y = pvals,
+                      by = c("name", "sex"))
+    df$name %<>% factor(., levels = unique(pvals$name))
+    
+    # Split by pathway
+    df_list <- df %>% split(f = .[["name"]])
+      
+    # Generate plots
+    plot_list <- df_list |> 
+        map(\(df) plot_geom_mean_pervisit_bysex(df, pro_2_groups_cols))
+  
+    # Combine plots
+    plot <- wrap_plots(plot_list, ncol = 2, byrow = T)
+  
+    return(plot)
+  }
+```
+
+## Convalescent plots by sex
+
+```{r}
+
+# Pull only convalescent test set data
+  df <- scores %>% filter(partition == "test")
+
+# Generate plots
+  plot <- generate_geom_mean_pervisit_bysex_plots(df)
+
+# Save plots
+  timepoint <- "convalescent"
+  filename <- paste(workDir, "/plot_objects/plots_for_figures/", comparison, "_", plot_type, "_", timepoint, ".Rds", sep = "")
+
+  saveRDS(plot, filename)
+```
+
+## Acute plots by sex
+
+```{r}
+
+# Pull only acute data
+  df <- scores %>% filter(partition == "acute")
+
+# Filter data points with MIN/LC label
+  df %<>% filter(!is.na(endpoints))
+
+# Generate plots
+  plot <- generate_geom_mean_pervisit_bysex_plots(df)
+
+# Save plots
+  timepoint <- "acute"
+  filename <- paste(workDir, "/plot_objects/additional_plots/", comparison, "_", plot_type, "_", timepoint, ".Rds", sep = "")
+
+  saveRDS(plot, filename)
+```
+
+# MIN/LC longitudinal plots 
+
+This section generates longitudinal plots of geometric means.
+
+## Set filename vars
+
+```{r}
+
+# Set variables for filenames
+  comparison <- "MIN_LC_geom_mean"
+  plot_type <- "longitudinal"
+```
+
+## Plotting functions
+
+```{r}
+
+# Helper function to create longitudinal plot
+  plot_geom_mean_MIN_LC_longitudinal <- function(df, cols) {
+    # Generate model
+    form <- as.formula("value ~ endpoints + discretized_admit_age_quantile + sex + s(event_date, bs = 'ts') + s(event_date, by = endpoints, bs = 'cr')")
+    model <- gamm4::gamm4(form, random = ~(1|enrollment_site/participant_id), data = df)
+    
+    # Calculate confidence interval
+    pred <- ggpredict(model, c("event_date", "endpoints"), type = "fixed",
+                      ci.lvl = 0.95)
+    
+    # Generate plot
+    plot <- ggplot(df, aes(x = event_date, y = value)) +
+      geom_point(aes(color = endpoints),
+                 size = 0.3) +
+      geom_label(data = df %>% select(name, pval_label) %>% distinct(),
+                 inherit.aes = F, 
+                 aes(label = pval_label,
+                     x = Inf, 
+                     y = Inf, 
+                     hjust = 1,
+                     vjust = 1),
+                 size = 4,
+                 label.r = unit(0, "pt")) +
+      geom_ribbon(inherit.aes = F, 
+                  data = pred, 
+                  aes(x = x, ymin = pred$conf.low, ymax = pred$conf.high, fill = group),
+                  alpha = 0.3) +
+      geom_line(inherit.aes = F, 
+                data = pred, 
+                aes(x = x, y = predicted, color = group),
+                linewidth = 1.5) +
+      scale_color_manual(values = cols) +
+      scale_fill_manual(values = cols) +
+      labs(title = unique(df$name),
+           color = "",
+           fill = "",
+           x = "Days from Admission", 
+           y = "Geometric Mean") +
+      theme_bw() +
+      theme(plot.title = element_text(hjust = 0.5))
+    
+    return(plot)
+  }
+
+# Helper function to generate longitudinal geom mean plots
+ generate_geom_mean_MIN_LC_longitudinal_plots <- function(df) {
+    # Split by pathway
+    df_list <- df %>% split(f = .[["name"]])
+    
+    # Calcualte p-vals
+    pval_list <- df_list |> map(\(df) model_loop(df, 
+                                                 age_sex = T,
+                                                 model_type = "smoothSpline",
+                                                 spline_type = "ts",
+                                                 endpoint ="trajectory_group"))
+    pval_df <- bind_rows(pval_list, .id = "name")
+    
+    # P-value correction
+    pval_df$padj <- qvalue::qvalue(pval_df$p.intercept, fdr.level = 0.05, pi0 = 1)$qvalues
+    
+    # Create p-value label
+    pval_df %<>% select(name, padj)
+    pval_df %<>% mutate(pval_label = paste("adj. p=", signif(padj, digits = 2), sep = ""))
+     
+    # Add p-vals to original df
+    df %<>% left_join(x = .,
+                      y = pval_df,
+                      by = c("name"))
+    df$name %<>% factor(., levels = unique(pval_df$name))
+    
+    # Split by pathway
+    df_list <- df %>% split(f = .[["name"]])
+    
+    # Generate plots
+    plot_list <- df_list |> 
+        map(\(df) plot_geom_mean_MIN_LC_longitudinal(df, pro_2_groups_cols))
+  
+    # Combine plots
+    plot <- wrap_plots(plot_list, ncol = 2, byrow = T)
+  
+    return(plot)
+  }
+
+```
+
+## Acute plots
+
+```{r}
+
+# Pull only acute data
+  df <- scores %>% filter(partition == "acute")
+
+# Drop observations without PRO group label
+  df %<>% filter(!is.na(endpoints))
+    
+# Generate plot
+  plot <- generate_geom_mean_MIN_LC_longitudinal_plots(df)
+  
+# Save plots
+  timepoint <- "acute"
+  filename <- paste(workDir, "/plot_objects/additional_plots/", comparison, "_", plot_type, "_", timepoint, ".Rds", sep = "")
+
+  saveRDS(plot, filename)
+```
+
+## Convalescent plots
+
+```{r}
+
+# Pull only convalescent test data
+  df <- scores %>% filter(partition == "test")
+    
+# Generate plot
+  plot <- generate_geom_mean_MIN_LC_longitudinal_plots(df)
+  
+# Save plots
+  timepoint <- "convalescent"
+  filename <- paste(workDir, "/plot_objects/plots_for_figures/", comparison, "_", plot_type, "_", timepoint, ".Rds", sep = "")
+
+  saveRDS(plot, filename)
+```
+

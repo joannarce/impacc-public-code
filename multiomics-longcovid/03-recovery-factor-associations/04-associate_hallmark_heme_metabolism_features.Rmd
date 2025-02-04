@@ -1,0 +1,1384 @@
+---
+title: "Spear feature association analysis"
+author: "Gisela Gabernet (gisela.gabernet@yale.edu)"
+subtitle: PGX, SO, PMG, PPT, PPG, BCT
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+params:
+  results_dir: "associate_hallmark_features_promis_physical_Factor1_test/"
+  spear_object: "/scratch/data-fullcohort/spear_model/results/020624/032124_spearphysical_finalscores_allsamples.rds"
+  features: "hallmark"
+  partition: "test_train_nophy_nooverlap"
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r}
+library(data.table)
+#install.packages("RColorBrewer")
+library(RColorBrewer)
+library(ggplot2)
+library(tidyverse)
+#install.packages("psych")
+library(psych)
+library(dplyr)
+# Additional libraries for mixed effect models
+#BiocManager::install("qvalue")
+library(qvalue)
+library(lme4)
+library(ordinal)
+library(nlme)
+library(gamm4)
+library(mgcv)
+library(ggsignif)
+library(kableExtra)
+library(corrplot)
+library(ggeffects)
+library(ggfortify)
+library(grid)
+library(ComplexHeatmap)
+
+#install.packages("ggvenn")
+library(ggvenn)
+
+#install.packages("msigdbr")
+library(msigdbr)
+
+knitr::opts_chunk$set(warning = F, message=F)
+
+print_kable <- function(table, kable_height = "500px", kable_width = "100%") {
+  kable(table, digits=3) %>%
+    kable_styling("striped") #%>%
+    #scroll_box(height = kable_height, width = kable_width)
+  
+}
+
+# save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
+#    stopifnot(!missing(x))
+#    stopifnot(!missing(filename))
+#    pdf(filename, width=width, height=height)
+#    grid::grid.newpage()
+#    grid::grid.draw(x$gtable)
+#    dev.off()
+# }
+
+```
+
+# Running parameters
+
+Running with parameters:
+- features:
+  - spear: get spear top features with joint probability >0.95
+  - hallmark: get core set from hallmark heme metabolism pathway
+- partition:
+  - all: use all data for association
+  - test: use the test dataset for association (with and without PROMIS PHY values)
+  - PRO_PHY_NA_TEST: use all test dataset for association (with and without PROMIS PHY values, and the train dataset without PROMIS PHY values available)
+- Spear object: spear object containing factor scores, and joint probabilities for extracting features.
+- results_dir: name of results dir, will be created.
+
+Example command to execute using an R script:
+
+```{r eval=F}
+# rmarkdown::render("associate_top_spear_features.Rmd",
+#                   output_file="associate_top_spear_features_promis_physical_Factor1.html",
+#                   params=list(
+#                     results_dir = "associate_top_spear_features_promis_physical_Factor1/",
+#                     spear_object = "/scratch/data-fullcohort/spear_model/results/factor_scores/031124_spearphysical_finalscores.rds",
+#                     partition = "all",
+#                     features = "spear"
+#                   ))
+```
+
+
+# Explore Spear results
+
+## Explore Feature correlation and variance explained
+
+```{r fig.height=5, fig.width=10}
+
+spear_object <- readRDS(params$spear_object)
+
+data_env <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_all_Feb_11_2024.RDS")
+mofa_model_train <- readRDS("/scratch/data-fullcohort/MOFA_factors/MOFA_train_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212.rds")
+mofa_model_test <- readRDS("/scratch/data-fullcohort/MOFA_factors/MOFA_test_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212.rds")
+
+#results_dir <- "./associate_spear_factor_promis_physical_train/"
+results_dir <- params$results_dir
+dir.create(results_dir)
+
+figures_dir <- "Figures_hallmark_features"
+dir.create(figures_dir)
+
+
+path_to_codebase <- "~/repos/impacc-full-cohort/Analysis/IMPACC_data_analysis_codebase.R"
+source(path_to_codebase)
+
+selected_factor_name <- "Factor1"
+```
+
+
+## Get clinical data
+
+```{r}
+clinical_data <- data_env$clinical_data
+
+# Add additional symptom groups to metadata
+symptom_groups <- read_csv("/scratch/clinical/current/impacc_conv_symptoms.csv", show_col_types = F)
+PRO_scores <- read_csv("/scratch/clinical/current/PRO_scores_dates_updated_29Aug23.csv", show_col_types = F)
+
+```
+
+
+# Identify features to associate
+
+Plotting features from `r params$features`.
+
+```{r spear features}
+if (params$features == "spear") {
+  top_analyte_scores <- spear_object$analyte.scores %>% 
+                              dplyr::filter(Factor == selected_factor_name) %>%
+                              dplyr::mutate(joint.probability.rounded = round(joint.probability, 2)) %>%
+                              dplyr::filter(joint.probability.rounded >= 0.95)
+}
+
+
+PRO_scores_PHY_avail <- PRO_scores %>% filter(!is.na(PROMIS_Physical_score))
+event_with_PRO_PHY <- unique(PRO_scores_PHY_avail$event_id)
+
+PRO_scores_PHY_na <- PRO_scores %>% filter(is.na(PROMIS_Physical_score))
+event_without_PRO_PHY <- unique(PRO_scores_PHY_na$event_id)
+```
+
+# Create feature matrix
+
+```{r}
+library(MOFA2)
+
+train_data <- MOFA2::get_data(mofa_model_train)
+test_data <- MOFA2::get_data(mofa_model_test)
+
+detach("package:MOFA2", unload=TRUE)
+
+
+feature_data_all <- list(
+  SO = bind_rows(as.data.frame(t(train_data$SO$group1)),as.data.frame(t(test_data$SO$group1))),
+  PMG = bind_rows(as.data.frame(t(train_data$PMG$group1)),as.data.frame(t(test_data$PMG$group1))),
+  PPT = bind_rows(as.data.frame(t(train_data$PPT$group1)),as.data.frame(t(test_data$PPT$group1))),
+  PPG = bind_rows(as.data.frame(t(train_data$PPG$group1)),as.data.frame(t(test_data$PPG$group1))),
+  PGX = bind_rows(as.data.frame(t(train_data$PGX$group1)),as.data.frame(t(test_data$PGX$group1))),
+  BCT = bind_rows(as.data.frame(t(train_data$BCT$group1)),as.data.frame(t(test_data$BCT$group1)))
+)
+  
+if (params$partition == "all"){
+
+  feature_data <- feature_data_all
+  
+} else if (params$partition == "test_train_nophy_nooverlap"){
+  
+  factor_scores <- rbind(spear_object$Test, spear_object$TestNoPhysical, spear_object$TrainNoPhysical_NoOverlap)
+  event_ids <- rownames(factor_scores)
+  # Rownames event_ids, colnames features
+  feature_data <- lapply(feature_data_all, function(x) x[row.names(x) %in% event_ids,])
+
+} else if (params$partition == "train_phy"){
+
+  factor_scores <- spear_object$Train
+  event_ids <- rownames(factor_scores)
+  feature_data <- lapply(feature_data_all, function(x) x[row.names(x) %in% event_ids,])
+  
+} else {
+  stop("Invalid partition parameter. Choose one of: all, test_train_nophy_nooverlap, train_phy")
+}
+
+print(lapply(feature_data,dim))
+
+# Call top_feat_data_df <- as.data.frame(feature_data)
+
+```
+
+```{r}
+# DFs for translating features to human readable
+# PMG
+metabolite_row_DF = data_env$plasma_metabolomics_global_rowfeature
+metabolite_row_DF$CHEMICAL_NAME <- str_replace_all(metabolite_row_DF$CHEMICAL_NAME," ","_")
+metabolite_row_DF$CHEMICAL_NAME <- str_replace_all(metabolite_row_DF$CHEMICAL_NAME,"[[:punct:]]","")
+
+metabolomics_translate <- data.frame(metabolite_id = row.names(metabolite_row_DF),
+                                     CHEMICAL_NAME = str_replace_all(metabolite_row_DF$CHEMICAL_NAME," ","_"))
+
+
+gene_ensembl_PGX <- data_env$pbmc_transcriptomics_rowfeature %>%
+                    rownames_to_column("ensembl_gene_id") %>%
+                    dplyr::select(ensembl_gene_id, gene_name)
+
+sample_event <- clinical_data %>% dplyr::select(sample_id, event_id) %>% distinct()
+
+analyte_scores <- spear_object$analyte.scores %>% 
+                              dplyr::filter(Factor == selected_factor_name)
+    
+analyte_scores_omics <- split(analyte_scores, analyte_scores$Assay)
+analyte_scores_omics$PGX <- analyte_scores_omics$PGX %>%
+                                        left_join(gene_ensembl_PGX, 
+                                                  by=join_by(Analyte == ensembl_gene_id)) %>%
+                                        dplyr::rename(translated_name = gene_name)
+analyte_scores_omics$PMG <- analyte_scores_omics$PMG %>%
+                                        left_join(metabolomics_translate,
+                                                  by=join_by(Analyte == metabolite_id)) %>%
+                                        dplyr::rename(translated_name = CHEMICAL_NAME)
+analyte_scores_omics$PPG <- analyte_scores_omics$PPG %>%
+                                        dplyr::mutate(translated_name = Analyte)
+analyte_scores_omics$SO <- analyte_scores_omics$SO %>%
+                                        dplyr::mutate(translated_name = Analyte)
+analyte_scores_translated <- dplyr::bind_rows(analyte_scores_omics)
+
+if (params$features == "spear") {
+
+  top_feat_data <- list()
+  for (assay in unique(top_analyte_scores$Assay)) {
+    print(assay)
+    
+    selected_features_assay <- top_analyte_scores %>% filter(Assay == assay)
+    
+    top_feature_data <- list()
+    
+    if (nrow(selected_features_assay > 0)) {
+      top_feat_data_assay <- feature_data[[assay]] %>%
+                            dplyr::select(all_of(selected_features_assay$Analyte))
+      
+      if (assay == "PGX"){
+        
+        top_feat_data_assay_translate <- as.data.frame(t(top_feat_data_assay)) %>%
+                                              rownames_to_column("ensembl_gene_id") %>%
+                                              left_join(gene_ensembl_PGX, 
+                                                        by="ensembl_gene_id") %>%
+                                              dplyr::select(!ensembl_gene_id) %>%
+                                              column_to_rownames("gene_name")
+        top_feat_data_assay_translated <- as.data.frame(t(top_feat_data_assay_translate))
+        
+      } else if (assay == "PMG") {
+        
+        top_feat_data_assay_translate <- as.data.frame(t(top_feat_data_assay)) %>%
+                                              rownames_to_column("metabolite_id") %>%
+                                              left_join(metabolomics_translate,
+                                                        by="metabolite_id") %>%
+                                              dplyr::select(!metabolite_id) %>%
+                                              column_to_rownames("CHEMICAL_NAME")
+        top_feat_data_assay_translated <- as.data.frame(t(top_feat_data_assay_translate))
+        
+      } else {
+        
+        top_feat_data_assay_translated <- top_feat_data_assay
+        top_feat_data_assay_translate <- NULL
+        
+      }
+      
+      colnames(top_feat_data_assay_translated) <- paste(assay,colnames(top_feat_data_assay_translated), sep = "_")
+      top_feat_data[[assay]] <- top_feat_data_assay_translated
+      rm(top_feat_data_assay_translated, 
+         top_feat_data_assay_translate, top_feat_data_assay)
+    }
+  }
+  
+  top_feat_data_df <- bind_cols(top_feat_data)
+  
+  top_analyte_scores_omics <- split(top_analyte_scores, top_analyte_scores$Assay)
+  top_analyte_scores_omics$PGX <- top_analyte_scores_omics$PGX %>%
+                                        left_join(gene_ensembl_PGX, 
+                                                  by=join_by(Analyte == ensembl_gene_id)) %>%
+                                        dplyr::rename(translated_name = gene_name)
+  top_analyte_scores_omics$PMG <- top_analyte_scores_omics$PMG %>%
+                                        left_join(metabolomics_translate,
+                                                  by=join_by(Analyte == metabolite_id)) %>%
+                                        dplyr::rename(translated_name = CHEMICAL_NAME)
+  top_analyte_scores_omics$PPG <- top_analyte_scores_omics$PPG %>%
+                                        dplyr::mutate(translated_name = Analyte)
+  top_analyte_scores_omics$SO <- top_analyte_scores_omics$SO %>%
+                                        dplyr::mutate(translated_name = Analyte)
+  top_analyte_scores_translated <- dplyr::bind_rows(top_analyte_scores_omics)
+
+} else if (params$features == "hallmark") {
+  
+    GSEA_result_hallmark_Factor1_PGX <- read.table("enrichment_spear_factors_promis_physical_Factor1/GSEA_hallmark_Factor1_PGX_results.tsv", sep = "\t", header = T)
+    top_analytes_core_list <- GSEA_result_hallmark_Factor1_PGX %>% 
+                                filter(ID == "HALLMARK_HEME_METABOLISM") %>%
+                                pull(core_enrichment)
+    
+    top_analytes_core <- str_split(top_analytes_core_list, "/")[[1]]
+    
+    feat_data_assay <- feature_data[["PGX"]]
+    feat_data_assay_translate <- as.data.frame(t(feat_data_assay)) %>%
+                                              rownames_to_column("ensembl_gene_id") %>%
+                                              left_join(gene_ensembl_PGX, by="ensembl_gene_id") %>%
+                                              dplyr::select(!ensembl_gene_id) %>%
+                                              column_to_rownames("gene_name")
+    feat_data_assay_translated <- as.data.frame(t(feat_data_assay_translate))
+    
+    top_feat_data_df  <- feat_data_assay_translated %>% 
+                                        dplyr::select(all_of(top_analytes_core))
+    colnames(top_feat_data_df) <- paste("PGX",colnames(top_feat_data_df), sep = "_")
+    
+}
+
+```
+
+# Associate features with outcomes
+
+Here we will use a mixed linear model to associate features with outcomes
+
+## Prepare metadata
+
+```{r prepare the metadata for mixed linear model analysis, echo= FALSE, warning= FALSE}
+
+correlation_metadata <- clinical_data %>%
+  dplyr::select(event_id, resp_status_v1, sex, admit_age, event_after_first_vaccine_dose, 
+                race, enrollment_site, event_date, 
+                event_date_3weeks_after_dose, pro_group_labels, event_type, 
+                discretized_admit_age_quantile, participant_id, partition)  %>%
+  dplyr::mutate(pro_2_groups = 
+      case_match( pro_group_labels,
+      "MIN" ~ "MIN",
+      c("PHY", "COG", "MLT")  ~ "OTHER"
+      )
+  ) %>%
+  dplyr::distinct() %>%
+  filter(event_id %in% rownames(top_feat_data_df))
+
+clinical_subsets_all <- as.data.frame(correlation_metadata)
+rownames(clinical_subsets_all) <- clinical_subsets_all$event_id
+
+
+endpoint_coefficients_all <- data.frame(matrix(nrow=ncol(top_feat_data_df), ncol = 0))
+rownames(endpoint_coefficients_all) <- colnames(top_feat_data_df)
+```
+
+## Check feature distribution over train and test set
+
+```{r fig.height = 15, fig.width=8}
+top_features_long <- top_feat_data_df %>%
+                      rownames_to_column("event_id") %>%
+                      tidyr::pivot_longer(!event_id, names_to = "feature", values_to="value")
+
+plot_split_df <- top_features_long %>%
+                    left_join(clinical_subsets_all)
+
+p <- ggplot(plot_split_df, aes(x=partition, y=value, fill=pro_2_groups)) +
+  #geom_violin(draw_quantiles = c(0.25,0.5,0.75)) +
+  geom_boxplot() +
+  facet_wrap(~feature, drop = T, scales = "free_y", ncol = 4) + 
+  theme_bw() #+ theme(legend.position = "none")
+p
+
+```
+
+## Functions for association
+
+```{r}
+
+pro_min_colors <- c("#639A21", "#781B6C")
+names(pro_min_colors) <- c("MIN", "OTHER")
+
+
+pro_min_labels <- c("MIN", "PASC")
+names(pro_min_labels) <- c("MIN", "OTHER")
+
+#original
+#pro_colors <- c("#639A21", "#6371AD", "#FFC20A", "#9C3418")
+pro_colors <- c("#639A21", "#6371AD", "#FFC20A", "#7D2D17")
+
+col_annot = c("#8DD3C7", "#FFFFB3", "#BEBADA", "#FB8072")
+names(col_annot) = c("SO", "PMG", "PPG", "PGX")
+
+#pro_colors <- c("#3CE0B3", "#0072B2", "#F0E438", "#D55E00" )
+names(pro_colors) <- c("MIN", "COG", "PHY", "MLT")
+
+ordered_visits <- c("Visit 7", "Visit 8", "Visit 9", "Visit 10" )
+
+scaleFUN <- function(x) sprintf("%.2e",x)
+violin_plot_visits <- function(data, colors, limits=NULL, ncol=5) {
+  p <- ggplot(data, aes(x=endpoints, y=value, fill=endpoints)) +
+    geom_violin(draw_quantiles = c(0.25,0.5,0.75)) +
+    facet_wrap(~Feature, drop = T, ncol = ncol, scales = "free_y") +
+    theme_bw() + theme(legend.position = "none")
+  if(!(is.null(limits))){
+    p <- p + scale_y_continuous(limits = limits)
+  } else {
+    p <- p + scale_y_continuous(labels = scaleFUN)
+  }
+  if(!(missing(colors))){
+    p <- p + scale_color_manual(values=colors)
+    p <- p + scale_fill_manual(values=colors)
+  }
+  return(p)
+}
+
+pairwise_association_visit <- function(clinical_subsets_all, 
+                                       feature_data, visit_id, 
+                                       selected_features_names, 
+                                       endpoint_var = "pro_2_groups",
+                                       ordered_endpoint_var = c("MIN","OTHER"),
+                                       colors = pro_min_colors
+                                       ){
+  cur_visit <- visit_id
+
+  visit_row_ids = rownames(clinical_subsets_all[clinical_subsets_all$event_type == cur_visit,])
+  
+  # Use the visit7_row_ids to only get samples from 'Visit 7':
+  features_filtered = feature_data[visit_row_ids , colnames(top_feat_data_df), drop=F]
+  clinical_subsets = clinical_subsets_all[visit_row_ids ,]
+  
+  data_use = features_filtered
+  
+  # Add the respiratory_status_day14 as $endpoints
+  data_use$endpoints = factor(clinical_subsets[[endpoint_var]], levels=ordered_endpoint_var)
+  
+  # Add the enrollment_site as $sites
+  data_use$sites = clinical_subsets$enrollment_site
+  data_use$age =  clinical_subsets$discretized_admit_age_quantile
+  data_use$sex =  clinical_subsets$sex
+  
+  # Add the $control, needs to be different for each sample
+  # required for clmm (always requires some random effect)
+  data_use$control =  factor(1:nrow(data_use))
+  
+  # Set module names:
+  feature_names = colnames(features_filtered)
+  
+  # Only use samples that have valid endpoints (not NA/missing)
+  data_use = data_use[!is.na(data_use$endpoints),]
+
+  for(j in 1:length(feature_names)){
+    #print(j)
+    my.formula0 = paste0(feature_names[j],"~ (1|sites)+age+sex")
+    my.formula1 = paste0(feature_names[j],"~ endpoints + (1|sites)+age+sex")
+    if(j == 1){
+      tmp = mixed_pairwise(my.formula0, my.formula1, data_use)
+      res_table_pairwise = data.frame(matrix(0, ncol = length(tmp$res_table), nrow = length(feature_names)))
+      coef_endpoint_pairwise = data.frame(matrix(0, ncol= length(tmp$coef_endpoint), nrow=length(feature_names)))
+      res_table_pairwise[j,] = tmp$res_table
+      coef_endpoint_pairwise[j,] = tmp$coef_endpoint
+      colnames(res_table_pairwise) = names(tmp$res_table)
+      colnames(coef_endpoint_pairwise) = names(tmp$coef_endpoint)
+    }else{
+      tmp = mixed_pairwise(my.formula0, my.formula1, data_use)
+      res_table_pairwise[j,] = tmp$res_table
+      coef_endpoint_pairwise[j,] = tmp$coef_endpoint
+    }
+  }
+  
+  if (length(ordered_endpoint_var) > 2) {
+      coef_endpoint_pairwise <- coef_endpoint_pairwise[,1:3]
+      res_table_pairwise <- res_table_pairwise[,1:3]
+  }
+  coef_endpoint_pairwise$feature <- feature_names
+  coef_endpoint_pairwise$visit <- cur_visit
+  
+  if (nrow(res_table_pairwise)>1) {
+    res_table_pairwise_adj_df <- qvalue::qvalue(res_table_pairwise, fdr.level = 0.05, pi0=1)$qvalues
+  } else {
+    res_table_pairwise_adj_df <- res_table_pairwise
+  }
+
+  res_table_pairwise_adj_df$feature <- feature_names
+  res_table_pairwise_adj_df$visit <- cur_visit
+  
+  plot_df <- data_use %>% dplyr::select(starts_with("SO"), 
+                                        starts_with("PMG"),
+                                        starts_with("PPT"),
+                                        starts_with("PPG"),
+                                        starts_with("PGX"),
+                                        starts_with("BCT"),
+                                        endpoints) %>%
+            pivot_longer(!endpoints, names_to = "Feature", values_to = "value")
+  plot_df$Feature <- factor(plot_df$Feature, levels=colnames(top_feat_data_df))
+  
+  p <- violin_plot_visits(plot_df, colors = colors) + ggtitle(visit_id)
+  
+  res_list <- list(coefs_df = coef_endpoint_pairwise, 
+                   res_df = res_table_pairwise_adj_df,
+                   violin_plot = p)
+  
+  return(res_list)
+}
+
+```
+
+## Functions for better pheatmap
+
+```{r}
+## Edit body of pheatmap:::draw_colnames, customizing it to your liking
+draw_colnames_45 <- function (coln, ...) {
+    m = length(coln)
+    x = (1:m)/m - 1/2/m
+    grid.text(coln, x = x, y = unit(0.96, "npc"), vjust = .5, 
+        hjust = 1, rot = 45, gp = gpar(...)) ## Was 'hjust=0' and 'rot=270'
+}
+
+## For pheatmap_1.0.8 and later:
+draw_colnames_45 <- function (coln, gaps, ...) {
+    coord = pheatmap:::find_coordinates(length(coln), gaps)
+    x = coord$coord - 0.5 * coord$size
+    res = textGrob(coln, x = x, y = unit(1, "npc") - unit(3,"bigpts"), vjust = 0.5, hjust = 1, rot = 45, gp = gpar(...))
+    return(res)}
+
+## 'Overwrite' default draw_colnames with your own version 
+assignInNamespace(x="draw_colnames", value="draw_colnames_45",
+ns=asNamespace("pheatmap"))
+
+p_val_only_palette <- colorRampPalette(brewer.pal(9,"Reds"))(10)
+
+breaklist = seq(0,3,0.3)
+```
+
+## Association MIN vs OTHER for each visit
+
+
+We treat each factor expression as the covariate and consider its association with clinical endpoints 
+(pro_groups) in the presence of potential heterogeneity across different clinical sites, 
+which is modeled as a random effect.
+
+We first examine if there is indeed a visible random effect from clinical sites, for both the intercepts and the slopes.
+There may be some weak random effects for the intercept, but observe "nothing" regarding the slope. 
+As a result, we consider only the random intercept effects.
+
+We perform pairwise comparisons.
+
+
+```{r fig.width=2, fig.height=2}
+endpoint_coefficients_all <- data.frame()
+res_table_pairwise_adj_all <- data.frame()
+
+for (visit_id in ordered_visits){
+  print(paste("Computing associations for visit:", visit_id))
+  res_list <- pairwise_association_visit(clinical_subsets_all=clinical_subsets_all, 
+                                          feature_data=top_feat_data_df, 
+                                          visit_id=visit_id, 
+                                          selected_features_names = colnames(top_feat_data_df),
+                                          endpoint_var = "pro_2_groups")
+
+  endpoint_coefficients_all <- bind_rows(endpoint_coefficients_all,
+                                         res_list$coefs_df)
+  res_table_pairwise_adj_all <- bind_rows(res_table_pairwise_adj_all, 
+                                          res_list$res_df)
+}
+
+
+```
+
+### Adj p-val all visits
+
+```{r fig.height=2.5, fig.width=10}
+
+library(pheatmap)
+
+res_table_pairwise_adj_all_plot <- res_table_pairwise_adj_all %>%
+                                      pivot_wider(names_from = feature,
+                                                  values_from = "MIN|OTHER") %>%
+                                      column_to_rownames("visit")
+
+print_kable(res_table_pairwise_adj_all_plot)
+write.csv(res_table_pairwise_adj_all_plot, paste0(results_dir, "Adj_pval_all_visits_min_vs_other.csv"))
+```
+
+
+### Log p-value plot with coefficient sign
+
+```{r fig.asp=0.5, fig.width=20}
+endpoint_coefficient_plot <- endpoint_coefficients_all %>%
+                              mutate(sign = if_else(`MIN|OTHER`>0, 1, -1)) %>%
+                              dplyr::select(feature, visit, sign)
+
+df_plot <- res_table_pairwise_adj_all %>%
+              mutate(log10_adjpval = -log10(`MIN|OTHER`)) %>%
+              inner_join(endpoint_coefficient_plot, by=c("feature", "visit")) %>%
+              mutate(signed_adjp = log10_adjpval * sign)
+
+df_plot$feature <- factor(df_plot$feature, levels = colnames(top_feat_data_df))
+df_plot$visit <- factor(df_plot$visit, levels = unique(df_plot$visit))
+df_plot <- df_plot %>% 
+            mutate(annot =
+                case_when(
+                 abs(log10_adjpval) >= -log10(0.001) ~ "***",
+                 abs(log10_adjpval) >= -log10(0.01) ~ "**",
+                 abs(log10_adjpval) >= -log10(0.05) ~ "*",
+                 .default = as.character("")
+                 ))
+
+thr <- 0.05
+plot_title <- "Adj p-value feature association"
+
+
+convert_df <- df_plot %>% 
+              dplyr::select(feature, visit, signed_adjp) %>%
+              pivot_wider(id_cols = c(visit), 
+                          names_from = feature, 
+                          values_from = signed_adjp) %>%
+              column_to_rownames("visit")
+
+convert_annot <- df_plot %>%
+              dplyr::select(feature, visit, annot) %>%
+              pivot_wider(id_cols = c(visit),
+                          names_from = feature,
+                          values_from = annot) %>%
+              column_to_rownames("visit")
+
+mat <- as.matrix(convert_df)
+mat_annot <- as.matrix(convert_annot)
+
+palette_length <- 50
+abs_max <- max(abs(min(mat)), abs(max(mat)), 1.3)
+breaks_list <- c(seq(-abs_max, 0, length.out=ceiling(palette_length/2) + 1), 
+              seq(abs_max/palette_length, abs_max, length.out=floor(palette_length/2)))
+
+pdf(file = paste0(results_dir, "Adj_pval_all_visits_min_vs_other_plot.pdf"), width = 12, height = 12)
+p <- pheatmap::pheatmap(t(mat),
+         cluster_cols = F, cluster_rows = F,
+         cellwidth = 15, cellheight = 15,
+         color = colorRampPalette(rev(brewer.pal(9,"RdBu")))(palette_length),
+         breaks = breaks_list,
+         display_numbers = t(mat_annot),
+         number_color = "black",
+         fontsize_number = 10
+         )
+p
+dev.off()
+
+p
+#save_pheatmap_pdf(p, paste0(results_dir,"Adj_pval_all_visits_min_vs_other_plot.pdf"), width = 12, height = 6)
+
+```
+
+```{r fig.asp=0.5, fig.width=20}
+row_annot = data.frame(omics = str_split_i(rownames(t(mat)), "_", 1),
+                       row.names = rownames(t(mat))
+                       )
+gp_row = which(diff(as.numeric(factor(row_annot$omics)))!=0)
+
+pdf(file = paste0(results_dir, "Adj_pval_all_visits_min_vs_other_plot.pdf"), width = 12, height = 12)
+p <- pheatmap::pheatmap(t(mat),
+         cluster_cols = F, cluster_rows = F,
+         cellwidth = 15, cellheight = 15,
+         color = colorRampPalette(rev(brewer.pal(9,"RdBu")))(palette_length),
+         breaks = breaks_list,
+         display_numbers = t(mat_annot),
+         number_color = "black",
+         annotation_row = row_annot, 
+         annotation_names_row = F, 
+         annotation_colors = list(omics= col_annot),
+         gaps_row = gp_row,
+         labels_row = str_split_i(rownames(t(mat)),"_",2),
+         fontsize_number = 10
+         )
+p
+dev.off()
+
+p
+#save_pheatmap_pdf(p, paste0(results_dir,"Adj_pval_all_visits_min_vs_other_plot.pdf"), width = 12, height = 6)
+
+```
+
+### Violin plots all visits
+
+```{r }
+
+features_filtered = top_feat_data_df[, colnames(top_feat_data_df), drop=F]
+clinical_subsets = clinical_subsets_all[rownames(top_feat_data_df),]
+  
+
+data_use = features_filtered 
+
+data_use$endpoints = as.factor(clinical_subsets$pro_2_groups)
+
+# Add the enrollment_site as $sites
+data_use$sites = clinical_subsets$enrollment_site
+data_use$age =  clinical_subsets$discretized_admit_age_quantile
+data_use$sex =  clinical_subsets$sex
+data_use$visit = clinical_subsets$event_type
+
+# Add the $control, needs to be different for each sample
+# required for clmm (always requires some random effect)
+data_use$control =  factor(1:nrow(data_use))
+
+# Set module names:
+feature_names = colnames(features_filtered)
+
+# Only use samples that have valid endpoints (not NA/missing)
+data_use = data_use[!is.na(data_use$endpoints),]
+```
+
+Violin plots for all features, values from all visits
+
+```{r fig.width=10, fig.height=15}
+
+plot_df <- data_use %>% dplyr::select(starts_with("SO"), 
+                                        starts_with("PMG"),
+                                        starts_with("PPT"),
+                                        starts_with("PPG"),
+                                        starts_with("PGX"),
+                                        starts_with("BCT"),
+                                        endpoints) %>%
+            pivot_longer(!endpoints, names_to = "Feature", values_to = "value")
+plot_df$Feature <- factor(plot_df$Feature, levels=colnames(top_feat_data_df))
+
+p <- ggplot(plot_df, aes(x=endpoints, y=value, fill=endpoints)) +
+  geom_violin(draw_quantiles = c(0.25,0.5,0.75)) +
+  scale_y_continuous(labels = scaleFUN) +
+  theme_bw() + theme(legend.position = "none") +
+  scale_color_manual(values=pro_min_colors) +
+  scale_fill_manual(values=pro_min_colors) +
+  facet_wrap(~Feature, drop = T, scales = "free_y", ncol = 4)
+p
+```
+
+Violin plots for all features, values per visit
+
+```{r fig.height=2, fig.width=6}
+
+plot_df <- data_use %>% dplyr::select(starts_with("SO"), 
+                                        starts_with("PMG"),
+                                        starts_with("PPT"),
+                                        starts_with("PPG"),
+                                        starts_with("PGX"),
+                                        starts_with("BCT"),
+                                        endpoints, visit) %>%
+            pivot_longer(!c(endpoints,visit), names_to = "Feature", values_to = "value")
+plot_df$Feature <- factor(plot_df$Feature, levels=colnames(top_feat_data_df))
+ordered_visits <- c("Visit 7", "Visit 8", "Visit 9", "Visit 10" )
+plot_df$visit <- factor(plot_df$visit, levels=ordered_visits)
+
+for (feature in colnames(top_feat_data_df)) {
+  plot_df_fact <- plot_df %>% filter(Feature == feature)
+  
+  p <- ggplot(plot_df_fact, aes(x=endpoints, y=value, fill=endpoints)) +
+  geom_violin(draw_quantiles = c(0.25,0.5,0.75)) +
+  scale_y_continuous(labels = scaleFUN) +
+  theme_bw() + theme(legend.position = "none") +
+  scale_color_manual(values=pro_min_colors) +
+  scale_fill_manual(values=pro_min_colors) +
+  facet_wrap(~visit, drop = T, ncol = 4) +
+  labs(title = feature, x="", y="value")
+  print(p)
+}
+
+```
+
+## Association MIN vs all other groups
+
+```{r fig.width=2, fig.height=2, warning=F}
+endpoint_coefficients_all <- data.frame()
+res_table_pairwise_adj_all <- data.frame()
+
+for (visit_id in ordered_visits){
+  tryCatch(
+    {
+      print(paste("Computing associations for visit:", visit_id))
+      res_list <- pairwise_association_visit(clinical_subsets_all=clinical_subsets_all, 
+                                              feature_data=top_feat_data_df, 
+                                              visit_id=visit_id, 
+                                              selected_features_names = colnames(top_feat_data_df),
+                                              endpoint_var = "pro_group_labels", #TODO: update outcome variable here
+                                              ordered_endpoint_var = names(pro_colors),
+                                              colors = pro_colors
+                                              )
+    
+      endpoint_coefficients_all <- bind_rows(endpoint_coefficients_all,
+                                             res_list$coefs_df)
+      res_table_pairwise_adj_all <- bind_rows(res_table_pairwise_adj_all, 
+                                              res_list$res_df)
+    },
+    error = function(cond){
+      message(paste("Not possible to calculate association for visit:",visit_id))
+    }
+  )
+  
+}
+
+
+```
+
+### Adj p-val all visits
+
+```{r pairwise_heatmap, fig.height=2.5, fig.width=20}
+
+library(pheatmap)
+
+res_table_pairwise_adj_all_plot <- res_table_pairwise_adj_all %>% 
+                                    pivot_longer(cols=starts_with("MIN"),
+                                                 values_to="padj",
+                                                 names_to="comp") %>%
+                                    mutate(comp_visit = paste0(comp, "_", visit)) %>%
+                                    dplyr::select(-c(comp)) %>%
+                                    pivot_wider(id_cols = c(comp_visit),
+                                                names_from = feature,
+                                                values_from = padj) %>%
+                                    column_to_rownames("comp_visit")
+print_kable(res_table_pairwise_adj_all_plot)
+write.csv(res_table_pairwise_adj_all_plot, paste0(results_dir, "Adj_pval_all_visits_all_pro_groups.csv"))
+```
+
+
+
+### Log p-value plot with coefficient sign
+```{r fig.asp=0.8, fig.width=20}
+endpoint_coefficient_plot <- endpoint_coefficients_all %>%
+                              pivot_longer(-c(feature,visit), 
+                                           names_to = "comparison", 
+                                           values_to = "coefficient") %>% 
+                              mutate(sign = if_else(coefficient>0, 1, -1)) %>%
+                              dplyr::select(feature, visit, comparison, sign)
+
+df_plot <- res_table_pairwise_adj_all %>%
+              pivot_longer(-c(feature,visit),
+                           names_to = "comparison",
+                           values_to = "adj_pval") %>%
+              mutate(log10_adjpval = -log10(adj_pval)) %>%
+              inner_join(endpoint_coefficient_plot, 
+                         by=c("feature", "visit", "comparison")) %>%
+              mutate(comp_visit = paste0(comparison, "_", visit)) %>%
+              mutate(signed_adjp = log10_adjpval * sign)
+
+df_plot$feature <- factor(df_plot$feature, levels = colnames(top_feat_data_df))
+df_plot$comp_visit <- factor(df_plot$comp_visit, levels = unique(df_plot$comp_visit))
+df_plot <- df_plot %>% 
+            mutate(annot =
+                case_when(
+                 abs(log10_adjpval) >= -log10(0.001) ~ "***",
+                 abs(log10_adjpval) >= -log10(0.01) ~ "**",
+                 abs(log10_adjpval) >= -log10(0.05) ~ "*",
+                 .default = as.character("")
+                 ))
+
+thr <- 0.05
+plot_title <- "Adj p-value feature association"
+
+convert_df <- df_plot %>% 
+              dplyr::select(feature, comp_visit, signed_adjp) %>%
+              pivot_wider(id_cols = c(comp_visit), 
+                          names_from = feature, 
+                          values_from = signed_adjp) %>%
+              column_to_rownames("comp_visit")
+
+convert_annot <- df_plot %>%
+              dplyr::select(feature, comp_visit, annot) %>%
+              pivot_wider(id_cols = c(comp_visit),
+                          names_from = feature,
+                          values_from = annot) %>%
+              column_to_rownames("comp_visit")
+
+mat <- as.matrix(convert_df)
+mat_annot <- as.matrix(convert_annot)
+
+palette_length <- 50
+abs_max <- max(abs(min(mat)), abs(max(mat)), 1.3)
+breaks_list <- c(seq(-abs_max, 0, length.out=ceiling(palette_length/2) + 1), 
+              seq(abs_max/palette_length, abs_max, length.out=floor(palette_length/2)))
+
+pdf(file = paste0(results_dir, "Adj_pval_all_visits_pro_groups_plot.pdf"), width = 12, height = 12)
+p <- pheatmap::pheatmap(t(mat),
+         cluster_cols = F, cluster_rows = F,
+         cellwidth = 15, cellheight = 15,
+         color = colorRampPalette(rev(brewer.pal(9,"RdBu")))(palette_length),
+         breaks = breaks_list,
+         display_numbers = t(mat_annot),
+         number_color = "black",
+         fontsize_number = 10,
+         )
+p
+dev.off()
+
+p
+
+#save_pheatmap_pdf(p, paste0(results_dir,"Adj_pval_all_visits_pro_groups_plot.pdf"), width = 12, height = 6)
+
+```
+
+```{r fig.asp=0.5, fig.width=20}
+row_annot = data.frame(omics = str_split_i(rownames(t(mat)), "_", 1),
+                       row.names = rownames(t(mat))
+                       )
+gp_row = which(diff(as.numeric(factor(row_annot$omics)))!=0)
+
+pdf(file = paste0(results_dir, "Adj_pval_all_visits_pro_groups_plot.pdf"), width = 12, height = 12)
+p <- pheatmap::pheatmap(t(mat),
+         cluster_cols = F, cluster_rows = F,
+         cellwidth = 15, cellheight = 15,
+         color = colorRampPalette(rev(brewer.pal(9,"RdBu")))(palette_length),
+         breaks = breaks_list,
+         display_numbers = t(mat_annot),
+         number_color = "black",
+         annotation_row = row_annot, 
+         annotation_colors = list(omics= col_annot),
+         annotation_names_row = F, 
+         gaps_row = gp_row,
+         labels_row = str_split_i(rownames(t(mat)),"_",2),
+         fontsize_number = 10
+         )
+p
+dev.off()
+
+p
+#save_pheatmap_pdf(p, paste0(results_dir,"Adj_pval_all_visits_min_vs_other_plot.pdf"), width = 12, height = 6)
+
+```
+
+### Violin plots all visits
+
+```{r }
+
+features_filtered = top_feat_data_df[, colnames(top_feat_data_df), drop=F]
+clinical_subsets = clinical_subsets_all[rownames(top_feat_data_df),]
+  
+
+data_use = features_filtered 
+
+data_use$endpoints = factor(clinical_subsets$pro_group_labels, levels = names(pro_colors))
+
+# Add the enrollment_site as $sites
+data_use$sites = clinical_subsets$enrollment_site
+data_use$age =  clinical_subsets$discretized_admit_age_quantile
+data_use$sex =  clinical_subsets$sex
+data_use$visit = clinical_subsets$event_type
+
+# Add the $control, needs to be different for each sample
+# required for clmm (always requires some random effect)
+data_use$control =  factor(1:nrow(data_use))
+
+# Set module names:
+feature_names = colnames(features_filtered)
+
+# Only use samples that have valid endpoints (not NA/missing)
+data_use = data_use[!is.na(data_use$endpoints),]
+```
+
+Violin plots for all features, values from all visits
+
+```{r fig.height=8, fig.width=15}
+
+plot_df <- data_use %>% dplyr::select(starts_with("SO"), 
+                                        starts_with("PMG"),
+                                        starts_with("PPT"),
+                                        starts_with("PPG"),
+                                        starts_with("PGX"),
+                                        starts_with("BCT"),
+                                        endpoints) %>%
+            pivot_longer(!endpoints, names_to = "Feature", values_to = "value")
+plot_df$Feature <- factor(plot_df$Feature, levels=colnames(top_feat_data_df))
+
+p <- ggplot(plot_df, aes(x=endpoints, y=value, fill=endpoints)) +
+  geom_violin(draw_quantiles = c(0.25,0.5,0.75)) +
+  scale_y_continuous(labels = scaleFUN) +
+  theme_bw() + theme(legend.position = "none") +
+  scale_color_manual(values=pro_colors) +
+  scale_fill_manual(values=pro_colors) +
+  facet_wrap(~Feature, drop = T, scales = "free_y", ncol = 4)
+p
+```
+
+Violin plots for all features, values per visit
+
+```{r fig.height=2, fig.width=6}
+
+plot_df <- data_use %>% dplyr::select(starts_with("SO"), 
+                                        starts_with("PMG"),
+                                        starts_with("PPT"),
+                                        starts_with("PPG"),
+                                        starts_with("PGX"),
+                                        starts_with("BCT"),
+                                        endpoints, visit) %>%
+            pivot_longer(!c(endpoints,visit), names_to = "Feature", values_to = "value")
+plot_df$Feature <- factor(plot_df$Feature, levels=colnames(top_feat_data_df))
+ordered_visits <- c("Visit 7", "Visit 8", "Visit 9", "Visit 10" )
+plot_df$visit <- factor(plot_df$visit, levels=ordered_visits)
+
+for (feature in colnames(top_feat_data_df)) {
+  plot_df_fact <- plot_df %>% filter(Feature == feature)
+  
+  p <- ggplot(plot_df_fact, aes(x=endpoints, y=value, fill=endpoints)) +
+  geom_violin(draw_quantiles = c(0.25,0.5,0.75)) +
+  scale_y_continuous(labels = scaleFUN) +
+  theme_bw() + theme(legend.position = "none") +
+  scale_color_manual(values=pro_colors) +
+  scale_fill_manual(values=pro_colors) +
+  facet_wrap(~visit, drop = T, ncol = 4) +
+  labs(title = feature, x="", y="value")
+  print(p)
+}
+
+```
+
+## Longitudinal analysis
+
+With spear features
+
+```{r data preparation, echo=TRUE}
+clinical_subsets <- correlation_metadata
+rownames(clinical_subsets) <- clinical_subsets$event_id
+
+row_ids <-rownames(top_feat_data_df)
+clinical_subsets <- clinical_subsets[row_ids,]
+
+
+modules_filtered = top_feat_data_df %>% dplyr::select(all_of(colnames(top_feat_data_df)))
+
+####%%%%%%%% spear Input %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+inputDF <- modules_filtered %>%
+  rownames_to_column(var = "event_id") %>%
+  merge(y = clinical_subsets,
+        by = "event_id") %>%
+  mutate(outcome = pro_2_groups) %>% #TODO: update outcome variable here
+  pivot_longer(cols = -c("event_id", "event_date", "participant_id",
+                        "enrollment_site", "pro_group_labels", "pro_2_groups", "event_type", "outcome",
+                        "sex", "admit_age", "discretized_admit_age_quantile", "resp_status_v1",
+                        "event_after_first_vaccine_dose", "partition", "event_date_3weeks_after_dose","race")) %>%
+  dplyr::filter(!is.na(value) & !is.na(pro_2_groups))
+inputDF$names <- factor(inputDF$name, levels=colnames(top_feat_data_df))
+
+
+## Ensure proper variables are features
+inputDF$pro_group_labels <- as.factor(inputDF$pro_group_labels)
+inputDF$pro_2_groups <- as.factor(inputDF$pro_2_groups)
+inputDF$sex <- factor(inputDF$sex, levels = c("Female", "Male"))
+inputDF$race <- as.factor(inputDF$race)
+inputDF$discretized_admit_age_quantile <- as.factor(inputDF$discretized_admit_age_quantile)
+inputDF$participant_id <- as.factor(inputDF$participant_id)
+inputDF$enrollment_site <- as.factor(inputDF$enrollment_site)
+```
+
+
+### PRO 2 groups
+
+```{r, linear_model_loop, fig.width = 3, fig.height=5}
+
+gamm_model_loop <- model_loop(inputDF, age_sex = T, 
+                              model_type = "smoothSpline", 
+                              spline_type = "ts", 
+                              endpoint = "pro_2_groups") #TODO: update outcome variable here
+
+gamm_model_loop_plot <- gamm_model_loop %>% 
+                        dplyr::select(adjp.slope, adjp.intercept)
+
+print_kable(gamm_model_loop_plot[colnames(top_feat_data_df),])
+write.csv(gamm_model_loop_plot[colnames(top_feat_data_df),], paste0(results_dir, "global_p_value_longitudinal_pro_2_groups.csv"))
+```
+
+```{r, longitudinal_model_loop_pheatmap, fig.width = 6, fig.height=10}
+pdf(file = paste0(results_dir, "global_p_value_longitudinal_min_vs_other.pdf"), width = 6, height = 10)
+
+mat_log10pval <- -log10(gamm_model_loop_plot[colnames(top_feat_data_df),])
+mat_annot <- mat_log10pval %>% 
+  mutate(across(everything(), ~ case_when(
+                 abs(.x) >= -log10(0.001) ~ "***",
+                 abs(.x) >= -log10(0.01) ~ "**",
+                 abs(.x) >= -log10(0.05) ~ "*",
+                 .default = as.character("")
+                 )))
+
+row_annot = data.frame(omics = str_split_i(rownames(mat_log10pval), "_", 1),
+                       row.names = rownames(mat_log10pval)
+                       )
+#row_annot_col = c()
+#names(row_annot_col) <-  
+
+gp_row = which(diff(as.numeric(factor(row_annot$omics)))!=0)
+
+p1 <- pheatmap::pheatmap(as.matrix(mat_log10pval),
+         cellwidth = 15,
+         cellheight = 15,
+         display_numbers = as.matrix(mat_annot),
+         fontsize_number = 10,
+         number_color = "white",
+         cluster_rows = F, 
+         cluster_cols = F,
+         annotation_row = row_annot, 
+         annotation_colors = list(omics= col_annot),
+         annotation_names_row = F, 
+         gaps_row = gp_row,
+         labels_row = str_split_i(rownames(mat_log10pval),"_",2),
+         color = p_val_only_palette,
+         breaks = breaklist)
+p1
+dev.off()
+#save_pheatmap_pdf(p1, paste0(results_dir,"global_p_value_longitudinal_min_vs_other.pdf"), width = 3, height = 6)
+p1
+
+
+df_adjp_minother <- mat_log10pval %>% dplyr::select(adjp.intercept) %>% dplyr::rename(`MIN vs LC`=adjp.intercept)
+
+df_adjp_minother_annot <- mat_annot %>% dplyr::select(adjp.intercept) %>% dplyr::rename(`PASC vs MIN`=adjp.intercept)
+```
+
+### Variability of features over time
+
+```{r, fig.width=10, fig.height=50}
+plots <- list()
+plots_model <- list()
+for (feature_name in colnames(top_feat_data_df)) {
+  plotDF <- inputDF %>% filter(name == feature_name)
+  p1 <- plot_model(plotDF, 
+                     gamm_model_loop,
+                     model_type = "smoothSpline",
+                      colors = pro_min_colors,
+                     spline_type = "ts",
+                     knot_lines = F,
+                     group_trendline_color = "endpoint",
+                     CI = T,
+                     endpoint = "pro_2_groups") #TODO: update outcome variable here
+  plots <- c(plots, list(p1))
+  p2 <- plot_model(plotDF, 
+                   gamm_model_loop,
+                   endpoint = "pro_2_groups", #TODO: update outcome variable here
+                   model_type = "smoothSpline",
+                   colors = pro_min_colors,
+                   spline_type = "ts",
+                   knot_lines = F,
+                   individual_trendlines = F,
+                   individual_points = F,
+                   individual_paths = F,
+                   CI = T,
+                   group_trendline_color = "endpoint",
+                   facet = F) + theme(legend.position = "right")
+  plots_model <- c(plots_model, list(p2))
+}
+
+pdf(paste0(results_dir,"Features_longitudinal_MIN_vs_OTHER.pdf"), width = 18, height = 45)
+gridExtra::grid.arrange(grobs = plots, ncol=2)
+dev.off()
+
+png(paste0(results_dir,"Features_longitudinal_MIN_vs_OTHER.png"), width = 18, height = 50, units="cm", res = 300)
+gridExtra::grid.arrange(grobs = plots, ncol=2)
+dev.off()
+
+pdf(paste0(results_dir,"Features_longitudinal_MIN_vs_OTHER_model.pdf"), width = 18, height = 45)
+gridExtra::grid.arrange(grobs = plots_model, ncol=2)
+dev.off()
+
+png(paste0(results_dir,"Features_longitudinal_MIN_vs_OTHER_model.png"), width = 18, height = 50, units="cm", res = 300)
+gridExtra::grid.arrange(grobs = plots_model, ncol=2)
+dev.off()
+
+gridExtra::grid.arrange(grobs = plots, ncol=2)
+
+```
+
+### All PRO groups
+
+```{r, linear_model_loop_PRO_groups, fig.width = 3, fig.height=5}
+
+gamm_model_loop <- model_loop(inputDF, age_sex = T,
+                              model_type = "smoothSpline",
+                              spline_type = "ts",
+                              endpoint = "pro_group_labels") #TODO: update outcome variable here
+
+gamm_model_loop_plot <- gamm_model_loop %>% 
+                        dplyr::select(adjp.slope, 
+                               adjp.intercept)
+
+print_kable(gamm_model_loop_plot[colnames(top_feat_data_df),])
+
+write.csv(gamm_model_loop_plot[colnames(top_feat_data_df),], paste0(results_dir, "global_p_value_longitudinal_all_pro_groups.csv"))
+```
+
+```{r linear_model_loop_pheatmap_allpro, fig.width = 6, fig.height=10}
+pdf(file = paste0(results_dir, "global_p_value_longitudinal_pro_groups.pdf"), width = 6, height = 10)
+mat_log10pval <- -log10(gamm_model_loop_plot[colnames(top_feat_data_df),])
+mat_annot <- mat_log10pval %>% 
+  mutate(across(everything(), ~ case_when(
+                 abs(.x) >= -log10(0.001) ~ "***",
+                 abs(.x) >= -log10(0.01) ~ "**",
+                 abs(.x) >= -log10(0.05) ~ "*",
+                 .default = as.character("")
+                 )))
+
+row_annot = data.frame(omics = str_split_i(rownames(mat_log10pval), "_", 1),
+                       row.names = rownames(mat_log10pval)
+                       )
+gp_row = which(diff(as.numeric(factor(row_annot$omics)))!=0)
+
+p1 <- pheatmap::pheatmap(as.matrix(mat_log10pval),
+         cellwidth = 15,
+         cellheight = 15,
+         display_numbers = as.matrix(mat_annot),
+         fontsize_number = 10,
+         number_color = "white",
+         cluster_rows = F, 
+         cluster_cols = F,
+         annotation_row = row_annot, 
+         annotation_colors = list(omics= col_annot),
+         annotation_names_row = F, 
+         gaps_row = gp_row,
+         labels_row = str_split_i(rownames(mat_log10pval),"_",2),
+         color = p_val_only_palette,
+         breaks = breaklist)
+p1
+dev.off()
+#save_pheatmap_pdf(p1, paste0(results_dir,"global_p_value_longitudinal_min_vs_other.pdf"), width = 3, height = 6)
+p1
+
+df_adjp_pro <- mat_log10pval %>% dplyr::select(adjp.intercept) %>% dplyr::rename(`PRO group`=adjp.intercept)
+
+df_adjp_pro_annot <- mat_annot %>% dplyr::select(adjp.intercept) %>% dplyr::rename(`PRO group`=adjp.intercept)
+#save_pheatmap_pdf(p1, paste0(results_dir,"global_p_value_longitudinal_pro_groups.pdf"), width = 3, height = 6)
+
+```
+
+### Plotting features over the visits
+
+```{r, fig.width=10, fig.height=50}
+plots <- list()
+plots_model <- list()
+
+for (feature_name in colnames(top_feat_data_df)) {
+  plotDF <- inputDF %>% filter(name == feature_name)
+  plotDF$pro_group_labels <- factor(plotDF$pro_group_labels, levels = names(pro_colors))
+  p1 <- plot_model(plotDF, 
+                     gamm_model_loop,
+                     model_type = "smoothSpline", 
+                     spline_type = "ts",
+                     colors = pro_colors,
+                     CI = T,
+                     knot_lines = F,
+                     group_trendline_color = "endpoint",
+                     facet = T,
+                     endpoint = "pro_group_labels")
+  plots <- c(plots, list(p1))
+  p2 <- plot_model(plotDF, 
+                   gamm_model_loop,
+                   endpoint = "pro_group_labels",
+                   model_type = "smoothSpline",
+                   spline_type = "ts",
+                   knot_lines = F,
+                   colors = pro_colors,
+                   individual_trendlines = F,
+                   individual_points = F,
+                   individual_paths = F,
+                   CI = T,
+                   group_trendline_color = "endpoint",
+                   facet = F) + theme(legend.position = "right")
+  plots_model <- c(plots_model, list(p2))
+}
+
+if(params$feature == "spear"){
+  pdf(paste0(results_dir,"Features_longitudinal_PRO_GROUPS.pdf"), width = 15, height = 50)
+  gridExtra::grid.arrange(grobs = plots, ncol=1)
+  dev.off()
+  
+  png(paste0(results_dir,"Features_longitudinal_PRO_GROUPS.png"), width = 20, height = 60, units="cm", res = 300)
+  gridExtra::grid.arrange(grobs = plots, ncol=1)
+  dev.off()
+  
+  pdf(paste0(results_dir,"Features_longitudinal_PRO_GROUPS_model.pdf"), width = 15, height = 50)
+  gridExtra::grid.arrange(grobs = plots_model, ncol=1)
+  dev.off()
+  
+  png(paste0(results_dir,"Features_longitudinal_PRO_GROUPS_model.png"), width = 20, height = 60, units="cm", res = 300)
+  gridExtra::grid.arrange(grobs = plots_model, ncol=1)
+dev.off()
+
+}
+
+gridExtra::grid.arrange(grobs = plots, ncol=1)
+
+```
+
+
+## Analyte pval
+
+```{r fig.width = 7, fig.height=2}
+pdf(file = paste0(results_dir, "global_p_value_longitudinal_min_pasc.pdf"), width = 7, height = 3)
+
+mat_log10pval <- df_adjp_minother %>% dplyr::arrange(desc(`MIN vs LC`))
+mat_annot <- df_adjp_minother_annot[rownames(mat_log10pval),]
+colnames(mat_log10pval) <- "adj. p-val"
+
+p1 <- ComplexHeatmap::pheatmap(t(as.matrix(mat_log10pval)),
+        column_names_side = c("top"),
+        angle_col = "45",
+         cellwidth = 10,
+         cellheight = 10,
+         display_numbers = t(as.matrix(mat_annot)),
+         fontsize_number = 8,
+         fontsize = 8,
+         number_color = "white",
+         cluster_rows = F, 
+         cluster_cols = F,
+         labels_col = str_split_i(rownames(mat_log10pval),"_",2),
+         show_rownames = F,
+         color = p_val_only_palette,
+         breaks = breaklist,
+        heatmap_legend_param = list(
+        title = "-log10 adj.p"
+        ))
+p1
+dev.off()
+
+hallmark_analyte_pval <- p1
+saveRDS(hallmark_analyte_pval, file.path(figures_dir, "hallmark_analyte_pval.rds"))
+
+p1 
+```
+## Analyte scores
+
+```{r fig.width = 5, fig.height=5}
+pdf(file = paste0(results_dir, "analyte_scores_longitudinal_min_pasc_and_pro_groups.pdf"), width = 6, height = 10)
+
+
+analyte_scores_mat <- analyte_scores_translated %>%
+  dplyr::mutate(coefficient = projection.coefficient,
+                analyte_name = paste0(Assay,"_",translated_name)) %>%
+  dplyr::filter(analyte_name %in% rownames(df_adjp_minother)) %>%
+  dplyr::select(analyte_name, coefficient) %>%
+  tibble::column_to_rownames("analyte_name")
+
+met_labels <- str_split_i(rownames(analyte_scores_mat),"_",2)
+metabolite_translate_plot <- metabolite_row_DF %>%
+  select(CHEMICAL_NAME, PLOT_NAME) %>%
+  remove_rownames() %>%
+  column_to_rownames("CHEMICAL_NAME")
+translate_met_labels <- metabolite_translate_plot[met_labels,]
+
+palette_length <- 50
+breaks_list <- c(seq(-0.16, 0, length.out=ceiling(palette_length/2) + 1), 
+              seq(0.16/palette_length, 0.16, length.out=floor(palette_length/2)))
+
+p2 <- ComplexHeatmap::pheatmap(t(as.matrix(analyte_scores_mat[rownames(mat_log10pval),])),
+        column_names_side = c("top"),
+        angle_col = "45",
+         cellwidth = 10,
+         cellheight = 10,
+         #display_numbers = t(as.matrix(mat_annot)),
+         fontsize_number = 8,
+         fontsize = 8,
+         number_color = "white",
+         cluster_rows = F, 
+         cluster_cols = F,
+         labels_col = translate_met_labels,
+         show_rownames = F,
+         #show_colnames = F,
+         color = colorRampPalette(rev(brewer.pal(9,"RdBu")))(palette_length),
+         breaks = breaks_list,
+        heatmap_legend_param = list(
+        title = "coefficient"
+        ))
+
+androgenic_analyte_coef <- p2
+saveRDS(androgenic_analyte_coef, file.path(figures_dir, "hallmark_analyte_coef.rds"))
+
+p_all <- p1 %v% p2
+saveRDS(p_all, file.path(figures_dir, "hallmark_p_val_and_analyte_coef.rds"))
+
+p_all
+```
+
+```{r}
+sessionInfo()
+```

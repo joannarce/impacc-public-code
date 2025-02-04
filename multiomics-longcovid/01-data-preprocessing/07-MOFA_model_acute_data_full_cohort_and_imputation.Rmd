@@ -1,0 +1,542 @@
+---
+title: "Acute data preparation and imputation"
+author: "Gisela Gabernet (gisela.gabernet@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+```{r}
+library(MOFA2)
+#library(MOFAdata)
+library(data.table)
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(kableExtra)
+library(RColorBrewer)
+
+
+knitr::opts_chunk$set(warning = F, message=F)
+
+print_kable <- function(table, kable_height = "500px", kable_width = "100%") {
+  kable(table, digits=3) %>%
+    kable_styling("striped") #%>%
+    #scroll_box(height = kable_height, width = kable_width)
+}
+
+# set random seed
+set.seed(42)
+```
+
+
+# Get MOFA model and impute values (with CyTOF)
+
+## Load MOFA model
+```{r fig.height=5, fig.width=10}
+
+# Set MOFA model name
+mofa_model_name_train <- "MOFA_acute_fullcohort_train_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240812.rds"
+mofa_model_name_test <- "MOFA_acute_fullcohort_test_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240812.rds"
+results_dir <- "/scratch/data-fullcohort/spear/acute_fullcohort_preprocessed_data_20240812/"
+
+dir.create(results_dir)
+
+# Import data env
+data_env_train <- readRDS('/scratch/data-fullcohort/batch-effects/impacc_acute_data_env_allcohort_train_Aug_12_2024.RDS')
+data_env_test <- readRDS('/scratch/data-fullcohort/batch-effects/impacc_acute_data_env_allcohort_test_Aug_12_2024.RDS')
+
+# Import preprocessed assays
+preprocessed_assays_train <- readRDS("/scratch/data-fullcohort/batch-effects/preprocessed_assays_acute_allcohort_train_Aug_12_2024.RDS")
+preprocessed_assays_test <- readRDS("/scratch/data-fullcohort/batch-effects/preprocessed_assays_acute_allcohort_test_Aug_12_2024.RDS")
+
+clinical_data_train <- data_env_train$clinical_data
+clinical_data_test <- data_env_test$clinical_data
+
+event_id_train <- unique(clinical_data_train %>% pull(event_id))
+event_id_test <- unique(clinical_data_test %>% pull(event_id))
+
+# Get selected features from convalescent assays train
+preprocessed_assays_conv_train <- readRDS("/scratch/data-fullcohort/batch-effects/preprocessed_assays_train_Feb_11_2024.RDS")
+
+# Get features for test data feature selection
+PPT_selected_features <- colnames(preprocessed_assays_conv_train$preprocessed_data$plasma_proteomics_targeted)
+PPG_selected_features <- colnames(preprocessed_assays_conv_train$preprocessed_data$plasma_proteomics_global_dda)
+
+#cytof MSI features
+BCT_selected_features <- colnames(preprocessed_assays_conv_train$preprocessed_data$bld_msi_cytof)
+
+# PBMC transcriptomics features
+PGX_selected_features <- colnames(preprocessed_assays_conv_train$preprocessed_data$pbmc_transcriptomics)
+
+# Plasma metabolomics features
+PMG_selected_features <- colnames(preprocessed_assays_conv_train$preprocessed_data$plasma_metabolomics_global)
+```
+
+## Aggregate datasets according to event_id
+
+## Prepare training data
+
+```{r}
+omic_name <- c()
+dim_samples <- c()
+dim_features <- c()
+
+sample_event <- clinical_data_train %>% dplyr::select(sample_id, event_id) %>% distinct()
+
+# Get list of event_ids across modalities
+pbmc_transcriptomics <- preprocessed_assays_train$preprocessed_data$pbmc_transcriptomics %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "pbmc_transcriptomics")
+dim_samples <- append(dim_samples, nrow(pbmc_transcriptomics))
+dim_features <- append(dim_features, ncol(pbmc_transcriptomics)-1)
+
+plasma_proteomics_targeted <- preprocessed_assays_train$preprocessed_data$plasma_proteomics_targeted %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+
+omic_name <- append(omic_name, "plasma_proteomics_targeted")
+dim_samples <- append(dim_samples, nrow(plasma_proteomics_targeted))
+dim_features <- append(dim_features, ncol(plasma_proteomics_targeted)-1)
+
+# Filter out features from serum olink and plasma proteomics global that are already in plasma proteomics targeted
+rm_dups_ppt <- colnames(preprocessed_assays_train$preprocessed_data$plasma_proteomics_global_dda) %in% colnames(plasma_proteomics_targeted)
+
+rm_dups_so <- colnames(preprocessed_assays_train$preprocessed_data$plasma_proteomics_global_dda) %in% colnames(preprocessed_assays_train$preprocessed_data$serum_olink)
+
+dups_names_ppt <- colnames(preprocessed_assays_train$preprocessed_data$plasma_proteomics_global_dda)[rm_dups_ppt]
+dups_names_so <- colnames(preprocessed_assays_train$preprocessed_data$plasma_proteomics_global_dda)[rm_dups_so]
+
+plasma_proteomics_global <- preprocessed_assays_train$preprocessed_data$plasma_proteomics_global_dda %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id) %>%
+                          dplyr::select(-all_of(c(dups_names_ppt, dups_names_so)))
+omic_name <- append(omic_name, "plasma_proteomics_global")
+dim_samples <- append(dim_samples, nrow(plasma_proteomics_global))
+dim_features <- append(dim_features, ncol(plasma_proteomics_global)-1)
+
+plasma_metabolomics_global <- preprocessed_assays_train$preprocessed_data$plasma_metabolomics_global %>%
+                          dplyr::select(all_of(PMG_selected_features)) %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "plasma_metabolomics_global")
+dim_samples <- append(dim_samples, nrow(plasma_metabolomics_global))
+dim_features <- append(dim_features, ncol(plasma_metabolomics_global)-1)
+
+serum_olink <- preprocessed_assays_train$preprocessed_data$serum_olink %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "serum_olink")
+dim_samples <- append(dim_samples, nrow(serum_olink))
+dim_features <- append(dim_features, ncol(serum_olink)-1)
+
+bld_msi_cytof <- preprocessed_assays_train$preprocessed_data$bld_msi_cytof %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "bld_msi_cytof")
+dim_samples <- append(dim_samples, nrow(bld_msi_cytof))
+dim_features <- append(dim_features, ncol(bld_msi_cytof)-1)
+
+all_event_ids_train <- unique(c(pbmc_transcriptomics$event_id,
+                           plasma_proteomics_targeted$event_id,
+                           plasma_proteomics_global$event_id,
+                           plasma_metabolomics_global$event_id,
+                           serum_olink$event_id,
+                            bld_msi_cytof$event_id
+                           ))
+
+all_sample_ids_train <- unique(c(row.names(preprocessed_assays_train$preprocessed_data$pbmc_transcriptomics),
+                           row.names(preprocessed_assays_train$preprocessed_data$plasma_proteomics_targeted),
+                           row.names(preprocessed_assays_train$preprocessed_data$plasma_proteomics_global),
+                           row.names(preprocessed_assays_train$preprocessed_data$plasma_metabolomics_global),
+                           row.names(preprocessed_assays_train$preprocessed_data$serum_olink),
+                           row.names(preprocessed_assays_train$bld_msi_cytof)
+                           ))
+
+pbmc_transcriptomics <- pbmc_transcriptomics %>%
+  complete(event_id = all_event_ids_train) %>% 
+  column_to_rownames("event_id")
+
+plasma_proteomics_targeted <- plasma_proteomics_targeted %>%
+  complete(event_id = all_event_ids_train) %>% 
+  column_to_rownames("event_id")
+
+plasma_proteomics_global <- plasma_proteomics_global %>%
+  complete(event_id = all_event_ids_train) %>% 
+  column_to_rownames("event_id")
+
+plasma_metabolomics_global <- plasma_metabolomics_global %>%
+  complete(event_id = all_event_ids_train) %>% 
+  column_to_rownames("event_id")
+
+serum_olink <- serum_olink %>%
+  complete(event_id = all_event_ids_train) %>% 
+  column_to_rownames("event_id")
+
+bld_msi_cytof <- bld_msi_cytof %>%
+  complete(event_id = all_event_ids_train) %>%
+  column_to_rownames("event_id")
+
+
+df_dims <- data.frame(omic_name, dim_samples, dim_features)
+print_kable(df_dims)
+```
+
+
+## Check train matrix dimensions
+
+Train sample dimensions
+
+```{r}
+train_data = list(
+  SO = t(as.matrix(serum_olink %>% filter(rownames(serum_olink) %in% event_id_train))),
+  PPT = t(as.matrix(plasma_proteomics_targeted %>% filter(rownames(plasma_proteomics_targeted) %in% event_id_train))),
+  PPG = t(as.matrix(plasma_proteomics_global %>% filter(rownames(plasma_proteomics_global) %in% event_id_train))),
+  PMG = t(as.matrix(plasma_metabolomics_global %>% filter(rownames(plasma_metabolomics_global) %in% event_id_train))),
+  PGX = t(as.matrix(pbmc_transcriptomics %>% filter(rownames(pbmc_transcriptomics) %in% event_id_train))),
+  BCT = t(as.matrix(bld_msi_cytof %>% filter(rownames(bld_msi_cytof) %in% event_id_train)))
+)
+
+
+lapply(train_data,dim)
+
+
+```
+## Prepare test data
+
+```{r}
+omic_name <- c()
+dim_samples <- c()
+dim_features <- c()
+
+sample_event <- clinical_data_test %>% dplyr::select(sample_id, event_id) %>% distinct()
+
+# Get list of event_ids across modalities
+# check that they are the same features as for training data
+
+# PGX
+stopifnot(ncol(preprocessed_assays_test$preprocessed_data$pbmc_transcriptomics) == ncol(preprocessed_assays_train$preprocessed_data$pbmc_transcriptomics))
+
+stopifnot(sum(colnames(preprocessed_assays_test$preprocessed_data$pbmc_transcriptomics ) == colnames(preprocessed_assays_train$preprocessed_data$pbmc_transcriptomics)) == ncol(preprocessed_assays_test$processed_data$pbmc_transcriptomic))
+
+pbmc_transcriptomics <- preprocessed_assays_test$preprocessed_data$pbmc_transcriptomics %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "pbmc_transcriptomics")
+dim_samples <- append(dim_samples, nrow(pbmc_transcriptomics))
+dim_features <- append(dim_features, ncol(pbmc_transcriptomics)-1)
+
+
+# PPT
+
+stopifnot(ncol(preprocessed_assays_test$preprocessed_data$plasma_proteomics_targeted ) == ncol(preprocessed_assays_train$preprocessed_data$plasma_proteomics_targeted))
+
+stopifnot(sum(colnames(preprocessed_assays_test$preprocessed_data$plasma_proteomics_targeted) == colnames(preprocessed_assays_train$preprocessed_data$plasma_proteomics_targeted)) == ncol(preprocessed_assays_test$preprocessed_data$plasma_proteomics_targeted))
+
+plasma_proteomics_targeted <- preprocessed_assays_test$preprocessed_data$plasma_proteomics_targeted %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+
+omic_name <- append(omic_name, "plasma_proteomics_targeted")
+dim_samples <- append(dim_samples, nrow(plasma_proteomics_targeted))
+dim_features <- append(dim_features, ncol(plasma_proteomics_targeted)-1)
+
+
+## PPG
+# Overlapping features in PPG + PPT training data were removed so they have to be removed there as well
+
+plasma_proteomics_global_test <- preprocessed_assays_test$preprocessed_data$plasma_proteomics_global_dda %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id) %>%
+                          dplyr::select(-all_of(c(dups_names_ppt, dups_names_so)))
+
+omic_name <- append(omic_name, "plasma_proteomics_global")
+dim_samples <- append(dim_samples, nrow(plasma_proteomics_global_test))
+dim_features <- append(dim_features, ncol(plasma_proteomics_global_test)-1)
+
+## PMG
+
+plasma_metabolomics_global <- preprocessed_assays_test$preprocessed_data$plasma_metabolomics_global %>%
+                          dplyr::select(all_of(PMG_selected_features)) %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "plasma_metabolomics_global")
+dim_samples <- append(dim_samples, nrow(plasma_metabolomics_global))
+dim_features <- append(dim_features, ncol(plasma_metabolomics_global)-1)
+
+#SO
+stopifnot(ncol(preprocessed_assays_test$preprocessed_data$serum_olink ) == ncol(preprocessed_assays_train$preprocessed_data$serum_olink))
+
+stopifnot(sum(colnames(preprocessed_assays_test$preprocessed_data$serum_olink) == colnames(preprocessed_assays_train$preprocessed_data$serum_olink)) == ncol(preprocessed_assays_test$preprocessed_data$serum_olink))
+
+serum_olink <- preprocessed_assays_test$preprocessed_data$serum_olink %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "serum_olink")
+dim_samples <- append(dim_samples, nrow(serum_olink))
+dim_features <- append(dim_features, ncol(serum_olink)-1)
+
+#BCT
+stopifnot(ncol(preprocessed_assays_test$preprocessed_data$bld_msi_cytof ) == ncol(preprocessed_assays_train$preprocessed_data$bld_msi_cytof))
+
+stopifnot(sum(colnames(preprocessed_assays_test$preprocessed_data$bld_msi_cytof) == colnames(preprocessed_assays_train$preprocessed_data$bld_msi_cytof)) == ncol(preprocessed_assays_test$preprocessed_data$bld_msi_cytof))
+
+bld_msi_cytof <- preprocessed_assays_test$preprocessed_data$bld_msi_cytof %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "bld_msi_cytof")
+dim_samples <- append(dim_samples, nrow(bld_msi_cytof))
+dim_features <- append(dim_features, ncol(bld_msi_cytof)-1)
+
+
+all_event_ids_test <- unique(c(pbmc_transcriptomics$event_id,
+                           plasma_proteomics_targeted$event_id,
+                           plasma_proteomics_global_test$event_id,
+                           plasma_metabolomics_global$event_id,
+                           serum_olink$event_id,
+                           bld_msi_cytof$event_id
+                           ))
+
+all_sample_ids_test <- unique(c(row.names(preprocessed_assays_test$preprocessed_data$pbmc_transcriptomics),
+                           row.names(preprocessed_assays_test$preprocessed_data$plasma_proteomics_targeted),
+                           row.names(preprocessed_assays_test$preprocessed_data$plasma_proteomics_global),
+                           row.names(preprocessed_assays_test$preprocessed_data$plasma_metabolomics_global),
+                           row.names(preprocessed_assays_test$preprocessed_data$serum_olink),
+                           row.names(preprocessed_assays_test$preprocessed_data$bld_msi_cytof)
+                           ))
+
+pbmc_transcriptomics <- pbmc_transcriptomics %>%
+  complete(event_id = all_event_ids_test) %>% 
+  column_to_rownames("event_id")
+
+plasma_proteomics_targeted <- plasma_proteomics_targeted %>%
+  complete(event_id = all_event_ids_test) %>% 
+  column_to_rownames("event_id")
+
+plasma_proteomics_global_test <- plasma_proteomics_global_test %>%
+  complete(event_id = all_event_ids_test) %>% 
+  column_to_rownames("event_id")
+
+plasma_metabolomics_global <- plasma_metabolomics_global %>%
+  complete(event_id = all_event_ids_test) %>% 
+  column_to_rownames("event_id")
+
+serum_olink <- serum_olink %>%
+  complete(event_id = all_event_ids_test) %>% 
+  column_to_rownames("event_id")
+
+bld_msi_cytof <- bld_msi_cytof %>%
+  complete(event_id = all_event_ids_test) %>%
+  column_to_rownames("event_id")
+
+
+df_dims <- data.frame(omic_name, dim_samples, dim_features)
+print_kable(df_dims)
+```
+
+## Check test matrix dimensions
+
+Test sample dimensions
+
+```{r}
+test_data = list(
+  SO = t(as.matrix(serum_olink %>% filter(rownames(serum_olink) %in% event_id_test))),
+  PPT = t(as.matrix(plasma_proteomics_targeted %>% filter(rownames(plasma_proteomics_targeted) %in% event_id_test))),
+  PPG = t(as.matrix(plasma_proteomics_global_test %>% filter(rownames(plasma_proteomics_global_test) %in% event_id_test))),
+  PMG = t(as.matrix(plasma_metabolomics_global %>% filter(rownames(plasma_metabolomics_global) %in% event_id_test))),
+  PGX = t(as.matrix(pbmc_transcriptomics %>% filter(rownames(pbmc_transcriptomics) %in% event_id_test))),
+  BCT = t(as.matrix(bld_msi_cytof %>% filter(rownames(bld_msi_cytof) %in% event_id_test)))
+)
+
+
+lapply(test_data,dim)
+```
+
+## Save acute train and test data
+
+```{r}
+acute_preprocessed_data <- list(train = train_data,
+                                test = test_data)
+
+saveRDS(acute_preprocessed_data, file.path(results_dir,"acute_allcohort_preprocessed_data.rds"))
+```
+
+
+# Train MOFA training data
+
+```{r fig.height=10, eval=T}
+
+# Defining the multi-group framework to distinguish the visits
+MOFAobject_base <- MOFA2::create_mofa(train_data)
+
+plot_data_overview(MOFAobject_base)
+
+#data options
+data_opts <- get_default_data_options(MOFAobject_base)
+
+# Model options
+model_opts_F300 <- get_default_model_options(MOFAobject_base)
+model_opts_F300$num_factors <- 250
+
+## train options
+train_opts <- get_default_training_options(MOFAobject_base)
+train_opts$convergence_mode <- "fast"
+train_opts$seed <- 42
+
+# Automatically drop factors that explain less than 1% of variance in all omics
+train_opts$drop_factor_threshold <- 0.01
+
+```
+
+## Run MOFA train
+
+
+```{r use_basilisk = TRUE, eval=T}
+MOFAobject_f300 <- prepare_mofa(MOFAobject_base,
+  data_options = data_opts,
+  model_options = model_opts_F300,
+  training_options = train_opts
+)
+
+MOFAobject_f300 <- run_mofa(MOFAobject_f300, use_basilisk = TRUE)
+
+```
+
+
+```{r eval=T}
+correlation_metadata <- clinical_data_train %>%
+  dplyr::select(event_id, resp_status_v1, sex, admit_age, event_after_first_vaccine_dose,
+                race, enrollment_site, event_date, comorb_anyresp_noasthma,
+                event_date_3weeks_after_dose, pro_group_labels, event_type,
+                discretized_admit_age_quantile, participant_id, partition)  %>%
+  dplyr::distinct() %>%
+  dplyr::mutate(sample = event_id) %>%
+  dplyr::filter(sample %in% samples_metadata(MOFAobject_f300)$sample)
+
+freq = correlation_metadata %>%
+  group_by(sample) %>%
+  summarise(n = n())
+
+correlation_metadata_join <- samples_metadata(MOFAobject_f300) %>%
+  left_join(correlation_metadata, by="sample")
+
+samples_metadata(MOFAobject_f300) <- correlation_metadata_join
+
+# Save MOFA object
+saveRDS(MOFAobject_f300, file = paste0(results_dir, mofa_model_name_train ))
+
+```
+
+# Train MOFA test data
+
+```{r fig.height=10, eval=T}
+
+# Defining the multi-group framework to distinguish the visits
+MOFAobject_base_test <- MOFA2::create_mofa(test_data)
+
+plot_data_overview(MOFAobject_base_test)
+
+```
+
+## Run MOFA test
+
+```{r use_basilisk = TRUE, eval=T}
+MOFAobject_f300_test <- prepare_mofa(MOFAobject_base_test,
+  data_options = data_opts,
+  model_options = model_opts_F300,
+  training_options = train_opts
+)
+
+MOFAobject_f300_test <- run_mofa(MOFAobject_f300_test, use_basilisk = TRUE)
+
+## Add metadata to MOFA object
+correlation_metadata <- clinical_data_test %>%
+  dplyr::select(event_id, resp_status_v1, sex, admit_age, event_after_first_vaccine_dose,
+                race, enrollment_site, event_date, comorb_anyresp_noasthma,
+                event_date_3weeks_after_dose, pro_group_labels, event_type,
+                discretized_admit_age_quantile, participant_id, partition)  %>%
+  dplyr::distinct() %>%
+  dplyr::mutate(sample = event_id) %>%
+  filter(sample %in% samples_metadata(MOFAobject_f300_test)$sample)
+
+freq = correlation_metadata %>%
+  group_by(sample) %>%
+  summarise(n = n())
+
+correlation_metadata_join <- samples_metadata(MOFAobject_f300_test) %>%
+  left_join(correlation_metadata, by="sample")
+
+samples_metadata(MOFAobject_f300_test) <- correlation_metadata_join
+
+
+# Save MOFA object
+saveRDS(MOFAobject_f300_test, file = paste0(results_dir, mofa_model_name_test))
+
+```
+
+
+
+# Perform imputation 
+
+```{r}
+# Impute train data using MOFA
+imputed_data_train = impute(MOFAobject_f300, views = "all")
+data_train = imputed_data_train@imputed_data
+imputed_train <- list(
+  SO = as.data.frame(t(as.matrix(data_train$SO$group1))), # serum olink
+  PPT = as.data.frame(t(as.matrix(data_train$PPT$group1))), # targeted plasma proteomics
+  PPG = as.data.frame(t(as.matrix(data_train$PPG$group1))), # global plasma proteomics
+  PMG = as.data.frame(t(as.matrix(data_train$PMG$group1))), # plasma metabolomics global
+  PGX = as.data.frame(t(as.matrix(data_train$PGX$group1))), # pbmc trnascriptomics
+  #NGX = as.data.frame(t(as.matrix(data_train$NGX$group1))), # nasal transcriptomics
+  BCT = as.data.frame(t(as.matrix(data_train$BCT$group1)))
+)
+
+
+# Impute test data using MOFA
+imputed_data_test = impute(MOFAobject_f300_test, views = "all")
+data_test = imputed_data_test@imputed_data
+imputed_test <- list(
+  SO = as.data.frame(t(as.matrix(data_test$SO$group1))), # serum olink
+  PPT = as.data.frame(t(as.matrix(data_test$PPT$group1))), # targeted plasma proteomics
+  PPG = as.data.frame(t(as.matrix(data_test$PPG$group1))), # global plasma proteomics
+  PMG = as.data.frame(t(as.matrix(data_test$PMG$group1))), # plasma metabolomics global
+  PGX = as.data.frame(t(as.matrix(data_test$PGX$group1))), # pbmc trnascriptomics
+  #NGX = as.data.frame(t(as.matrix(data_test$NGX$group1))), # nasal transcriptomics
+  BCT = as.data.frame(t(as.matrix(data_test$BCT$group1)))
+)
+
+acute_imputed_data <- list(train = imputed_train,
+                                test = imputed_test)
+
+saveRDS(acute_imputed_data, file.path(results_dir,"acute_allcohort_imputed_data.rds"))
+```
+
+
+# Tools versions
+
+```{r}
+sessionInfo()
+```
+

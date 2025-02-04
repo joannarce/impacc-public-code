@@ -1,0 +1,1195 @@
+---
+title: "Convalescent cohort V7 - 10 data preprocessing"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 5
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+author: Gisela Gabernet (gisela.gabernet@yale.edu)
+date: "`r format(Sys.time(), '%b %d %Y')`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(caret)
+```
+
+<!-- ################################################################################################### -->
+<!-- Mandatory code starts here -->
+
+```{r paths and dependencies}
+# Change this to the location where the Bitbucket has been cloned in your home directory (~):
+path_to_bitbucket <- "~/repos/impacc-full-cohort"
+path_to_codebase <- paste0(path_to_bitbucket,
+                           "/Analysis/IMPACC_data_analysis_codebase.R")
+```
+
+
+## Read convalescent annotations file
+    
+```{r read and process convalescent annotations}
+
+convalescent_pro_groups <- read.csv("/impacc-study/data_deposition/clinical/impacc-convalescent.csv")
+
+# Convert PRO group cluster numbers to PRO groups as described in paper
+# This mapping was communicated by Leying Guan via Teams on May 15th as the 
+# original table is unclear about the exact PRO groups mappings
+    
+convalescent_pro_groups <- convalescent_pro_groups %>% 
+  dplyr::mutate( pro_group_labels = case_match( 
+    conv_cluster6,
+    c(1,3,4) ~ "MIN",
+    c(2) ~ "PHY",
+    c(5) ~ "COG",
+    c(6) ~ "MLT"
+  ))
+
+# Check number of patients in each of the groups
+conv_cohort_size <- length(unique(convalescent_pro_groups$participant_id))
+cat("There are ", conv_cohort_size,
+        " participants in the convalescent cohort.")
+```
+    
+    
+
+```{r define dataset version, echo = FALSE}
+##### Authors: Ravi K. Patel, Jeremy Gygi;
+
+# Indicate the version of the data to use ("current" or a date in "YYYY-MM-DD" format)
+# If "current", the data files in "current" directories are used, otherwise, the data files in "legacy" directories that were current on the specified date are used.
+DATA_VERSION <- "current"
+
+# Indicate the phases that you want to include.
+# NOTE: PHASES = 4 refers to 4a
+#.      PHASES = 5 refers to 4b
+#.      PHASES = 9 refers to phase 9 (leftover samples)
+PHASES <- c(4,5)
+
+# Allowed QC? Defaults to pass (including questionable)
+ALLOWED_SMPL_STATUS <- c("IMPACC sample assayed and passed QC", 
+                         "IMPACC sample assayed with questionable QC")
+
+# Keep only COVID-19 Positive individuals. Defaults to TRUE
+# (TRUE will remove all COVID-19 Negative individuals)
+KEEP_COVID19_POS <- TRUE
+# Keep Escalation visits (Escalation 1, Escalation 2)? Defaults to FALSE
+KEEP_ESCALATIONS = FALSE
+# Keep Emory Controls? Defaults to FALSE
+KEEP_EMORY_CONTROLS = FALSE
+
+# Upper limit for event_date.
+# Using higher values (e.g. 999) will include all visits (see KEEP_ESCALATIONS
+#   for inclusion of Escalation visits).
+EVENT_DATE_UPPER = 999
+
+# Upper limit for event_type. For example, 6 would use up to 'Visit 6'.
+# Using higher values (e.g. 999) will include all visits (see KEEP_ESCALATIONS
+#   for inclusion of Escalation visits).
+VISIT_LOWER = 7
+VISIT_UPPER = 999
+
+# Use 01/01/2023 locked data in "/data/clinical/current"?
+USE_LOCKED_CLINICAL <- TRUE
+
+# Filtering by manuscript cohorts:
+# Currently supports core assay / integration manuscript cohort filtering.
+FILTER_BY_CORE_ASSAY_COHORT = FALSE
+FILTER_BY_INTEGRATION_COHORT = FALSE
+
+# Filter by convalescent cohort participant ID
+SELECT_PARTICIPANT_ID = convalescent_pro_groups$participant_id
+
+# Exclude samples
+EXCLUDE_SAMPLES = NULL
+```
+
+<!-- ################################################################################################### -->
+<!--           No need to edit any of the code below this point until end of Mandatory Code chunk        -->
+<!-- ################################################################################################### -->
+
+```{r Prepare environment, echo=FALSE}
+##### Authors: Ravi K. Patel, Jeremy Gygi.
+# Set options
+options(encoding = "UTF-8") # instead of ANSI
+options(scipen = 999) # non-scientific output
+```
+
+
+### ------------------------------------
+#### **Study:** IMPACC
+#### **Analysis title:** IMPACC Convalescent Data Loading
+#### **Analysis description:** Loading combined data from all phases for analyses.
+#### **License:** 
+#### **Author(s):** Ravi K. Patel (ravi.patel2@ucsf.edu), Jeremy Gygi (jeremy.gygi@yale.edu), Steven Kleinstein (steven.kleinstein@yale.edu), Leying Guan (leying.guan@yale.edu)
+#### **Date Created:** `r paste(format(Sys.time(), "%Y-%d-%m %X"), "UTC")`
+
+#### **Source file:** `r knitr::current_input()`
+#### **Dataset version:** `r ifelse(DATA_VERSION == "current", paste0("current (date: ", format(Sys.time(),"%Y-%m-%d"), ")"), paste0("legacy (date: ", DATA_VERSION, ")") )` `r paste0("(phases: ", paste0(PHASES, collapse=","), ")") `
+#### **R version:** `r paste(R.Version()$version.string)`
+#### **Platform:** `r paste(R.Version()$platform)`
+#### **Running under**: `r paste(sessionInfo()$running)`
+
+#### **Notes:** The observations for which the clinical data is unavailable or have failed QC are removed.
+### ------------------------------------
+
+```{r load header template codebase, echo=FALSE}
+# Source the codebase file:
+source(path_to_codebase)
+```
+
+```{r load datasets, message=FALSE, echo=FALSE}
+# Load all available IMPACC datasets associated with DATA_VERSION.
+data_env <- load_IMPACC_datasets(# Data version:
+                                 DATA_VERSION = DATA_VERSION,
+                                 # QC Sample Filtering:
+                                 ALLOWED_SMPL_STATUS = ALLOWED_SMPL_STATUS,
+                                 # COVID-19 Positive
+                                 KEEP_COVID19_POS = KEEP_COVID19_POS,
+                                 # Emory controls:
+                                 KEEP_EMORY_CONTROLS = KEEP_EMORY_CONTROLS,
+                                 # Escalations:
+                                 KEEP_ESCALATIONS = KEEP_ESCALATIONS,
+                                 # Use the locked clinical data (01/01/2023)
+                                 USE_LOCKED_CLINICAL = USE_LOCKED_CLINICAL,
+                                 
+                                 # Don't restrict filtering by manuscript:
+                                 FILTER_BY_CORE_ASSAY_COHORT = FILTER_BY_CORE_ASSAY_COHORT,
+                                 FILTER_BY_INTEGRATION_COHORT = FILTER_BY_INTEGRATION_COHORT,
+                                 
+                                 # Select participant IDs
+                                 SELECT_PARTICIPANT_ID = SELECT_PARTICIPANT_ID,
+                                 
+                                 # Exclude samples
+                                 EXCLUDE_SAMPLES = EXCLUDE_SAMPLES,
+                                 
+                                 # event_type / visit upper limits
+                                 EVENT_DATE_UPPER = EVENT_DATE_UPPER,
+                                 VISIT_LOWER = VISIT_LOWER,
+                                 VISIT_UPPER = VISIT_UPPER,
+                                 
+                                 # Phases
+                                 PHASES = PHASES)
+
+# Load and assign the data objects into the environment
+# User can call upon any assay via the name e.g. serum_olink_counts
+for( n in names(data_env) ) {
+  assign( n, data_env[[n]] )
+}
+
+original_clinical_data <- data_env$clinical_data
+```
+
+Data summary table
+
+```{r Print file and object names, echo=FALSE}
+
+df <- get_data_summary(data_env)
+
+DT::datatable(df) %>% DT::formatStyle(columns = c(0:4), fontSize = '80%')
+```
+
+<!-- Mandatory code ends here -->
+<!-- ################################################################################################### -->
+#### Add convalescent PRO group info to clinical_data
+
+```{r join clinical data, echo=FALSE, fig.width = 10}
+clinical_data <- left_join(clinical_data, convalescent_pro_groups, by="participant_id") %>%
+                dplyr::mutate(pro_2_groups =
+                    case_match( pro_group_labels,
+                    "MIN" ~ "MIN",
+                    c("PHY", "COG", "MLT")  ~ "OTHER"
+                    )
+                )
+
+data_env$clinical_data <- clinical_data
+```
+
+#### Add vaccine group info to clinical_data
+
+```{r join vaccination data, echo=FALSE, fig.width = 10}
+vaccine_data <- read.csv("/scratch/data-fullcohort/vaccination/Convalescent_vaccination_data_with_event_dates.csv")
+
+
+# vaccine_data <- vaccine_data %>% 
+#       rowwise() %>%
+#       dplyr::mutate(date_anyfirstdose = dplyr::if_else(is.na(date_first_dose), 
+#                                                date_JJ, 
+#                                                date_first_dose)) %>%
+#       # If date of first dose is unknown but first visit after vaccine is known, 
+#       # adding that as a vaccine date
+#       dplyr::mutate(date_anyfirstdose_with_firstdosevisit = dplyr::if_else(is.na(date_anyfirstdose),
+#                                                   if_else(is.na(eventid_first_date),
+#                                                        eventid_JJ_date,
+#                                                        eventid_first_date),
+#                                                   date_anyfirstdose)) %>%
+#       dplyr::select(studyid, 
+#              date_anyfirstdose, 
+#              date_anyfirstdose_with_firstdosevisit, 
+#              First.dose,
+#              date_second_dose,
+#              date_booster
+#              )
+
+
+clinical_data <- left_join(clinical_data, vaccine_data, by=join_by("participant_id"==id))
+
+clinical_data <- clinical_data %>% 
+  rowwise() %>%
+  mutate(event_after_first_vaccine_dose_NA = 
+        dplyr::if_else(event_date >= date_anydose,
+                       "yes",
+                       "no"),
+        event_after_first_vaccine_dose = dplyr::if_else(vac_reported_corrected=="No", 
+                                                        "no", 
+                                                        event_after_first_vaccine_dose_NA),
+        event_date_relative_to_first_dose = event_date - date_anyfirstdose,
+        event_date_relative_to_second_dose = event_date - date_second_dose,
+        event_date_relative_to_booster_dose = event_date - date_booster,
+        event_date_3weeks_after_first_dose = ifelse((event_date_relative_to_first_dose >= 0 && 
+                                                       event_date_relative_to_first_dose <= 21),
+                                        1, 0),
+        event_date_3weeks_after_second_dose = ifelse((event_date_relative_to_second_dose >= 0 &&
+                                                       event_date_relative_to_second_dose <= 21),
+                                        1, 0),
+        event_date_3weeks_after_booster = ifelse((event_date_relative_to_booster_dose >= 0 &&
+                                                       event_date_relative_to_booster_dose <= 21),
+                                        1, 0),
+        event_date_3weeks_after_dose_NA = ifelse(( event_date_3weeks_after_first_dose |  event_date_3weeks_after_second_dose | event_date_3weeks_after_booster ), "yes", "no"),
+        event_date_3weeks_after_dose = ifelse(is.na(event_date_3weeks_after_dose_NA),
+                                                    ifelse(event_after_first_vaccine_dose == "no", "no", event_date_3weeks_after_dose_NA),
+                                                    event_date_3weeks_after_dose_NA),
+        event_date_3weeks_after_dose = ifelse(is.na(event_date_3weeks_after_dose),
+                                                    ifelse(vaccinated == "No", "no", event_date_3weeks_after_dose),
+                                                    event_date_3weeks_after_dose)
+        )
+
+```
+
+#### Predefined color schemes
+
+```{r Define color schemes, echo=FALSE, fig.width = 10}
+##### Authors: Ravi K. Patel, Jeremy Gygi
+DT::datatable(color_schemes)
+
+### Display color schemes
+  legends <- list( 
+                  display_color_scheme(color_sex, "Sex"), 
+                  display_color_scheme(color_respiratory_status, "Respiratory status"), 
+                  display_color_scheme(color_sample_type, "Sample type"), 
+                  display_color_scheme(color_race, "Race"), 
+                  display_color_scheme(color_event_type, "Event type") 
+                )
+  
+  #ggarrange(plotlist = legends, ncol = 5, nrow = 1)
+```
+
+
+
+&nbsp;
+
+## Factorizing visits
+
+```{r Subset convalescent, echo=FALSE, fig.height=6, fig.width=10, warning=FALSE}
+
+### Color scheme for pro_group
+pro_group_levels <- unique( sort( clinical_data$pro_group_labels ) )
+color_pro_group <- get_categorical_color_vector( pro_group_levels )
+
+### Color scheme for visits (adapted so that Visit 10 comes after Visit 9)
+all_visits <- c("Visit 7",
+             "Visit 8",
+             "Visit 9",
+             "Visit 10")
+clinical_data$event_type <- factor(clinical_data$event_type, levels=all_visits)
+visit_levels <- levels(clinical_data$event_type)
+color_event_type <- get_ordinal_color_vector( visit_levels )
+
+### Color scheme for phases
+phase_levels <- unique(sort(clinical_data$phase))
+color_phase <- get_ordinal_color_vector(phase_levels)
+
+# Color scheme for vaccines
+vaccine_levels <- unique(sort(clinical_data$vaccinated))
+color_vaccinated <- get_categorical_color_vector(vaccine_levels)
+
+# Color scheme for event after first vaccine
+event_after_vaccine_levels <- unique(sort(clinical_data$event_after_first_vaccine_dose))
+color_event_after_vaccine_levels <- get_categorical_color_vector(event_after_vaccine_levels)
+
+# Color scheme for event 3 weeks after dose
+event_3weeks_after_dose_levels <- unique(sort(clinical_data$event_date_3weeks_after_dose))
+color_event_3weeks_after_dose <- get_categorical_color_vector(event_3weeks_after_dose_levels)
+
+# Color scheme for resp status v1
+traj_group_levels <- unique(sort(as.factor(clinical_data$trajectory_group)))
+color_traj_group <- get_ordinal_color_vector(traj_group_levels)
+```
+
+# General cohort characteristics
+
+```{r Demographics data, fig.width = 10, fig.height = 9, warning=FALSE, echo=FALSE}
+#generate_sample_plots <- function() {
+
+  # Distribution of samples by sex
+  bar_sex <- clinical_data %>% count(sex) %>% 
+    ggplot( aes(x="Sex", y=n, fill=sex) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_sex ) + theme_classic() + 
+    labs(x="", y="Event Count", title = "", fill="")
+  
+  
+  # Distribution of samples by respiratory_status
+  # bar_respiratory_status <- clinical_data %>% count(resp_status_v1) %>% 
+  #   ggplot( aes(x="Respiratory status v1", y=n, fill = as.factor( resp_status_v1 ) ) ) + 
+  #   geom_bar(position="stack", stat="identity") + 
+  #   scale_fill_manual( values = color_resp_status_v1_levels, na.value = color_na ) + theme_classic() + 
+  #   labs(x="", y="Event Count", title = "Respiratory status v1", fill="")
+
+  bar_trajectory_group <- clinical_data %>% count(trajectory_group) %>% 
+  ggplot( aes(x="Trajectory group", y=n, fill = as.factor( trajectory_group ) ) ) + 
+  geom_bar(position="stack", stat="identity") + 
+  scale_fill_manual( values = color_traj_group, na.value = color_na ) + theme_classic() + 
+  labs(x="", y="Event Count", title = "Trajectory group", fill="")
+  
+  # Distribution of samples by PRO group
+  bar_PRO_group <- clinical_data %>% count(pro_group_labels) %>% 
+    ggplot( aes(x="PRO group", y=n, fill = as.factor( pro_group_labels ) ) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_pro_group, na.value = color_na ) + theme_classic() + 
+    labs(x="", y="Event Count", title = "PRO group", fill="")
+  
+  # Adapt factor of clinical data event type so Visit 10 comes after Visit 9
+  
+  # Distribution of samples by visit
+  bar_visit <- clinical_data %>% count(event_type) %>%
+    ggplot( aes(x="Event type", y=n, fill = as.factor( event_type ) ) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_event_type, na.value = color_na ) + theme_classic() + 
+    labs(x="", y="Event Count", title = "Visit", fill="")
+  
+  # Distribution of samples by phase
+  bar_phase <- clinical_data %>% count(phase) %>%
+    ggplot( aes(x="Phase", y=n, fill = as.factor( phase ))) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_phase, na.value = color_na ) + theme_classic() + 
+    labs(x="", y="Event Count", title = "Phase", fill="")
+  
+  # Distribution of samples by vaccine state
+  bar_vaccinated <- clinical_data %>% count(vaccinated) %>%
+    ggplot( aes(x="Vaccinated", y=n, fill = as.factor( vaccinated ) ) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_vaccinated, na.value = color_na ) + theme_classic() + 
+    labs(x="", y="Event Count", title = "Vaccinated", fill="")
+  
+  bar_event_after_first_vaccine <- clinical_data %>% count(event_after_first_vaccine_dose) %>%
+    ggplot( aes(x="Event_after_first_vaccine", y=n, fill = as.factor(event_after_first_vaccine_dose)) ) +
+    geom_bar(position="stack", stat = "identity") +
+    scale_fill_manual( values = color_event_after_vaccine_levels, na.value = color_na) + theme_classic() +
+    labs(x="", y="Event Count", title = "After first vac dose", fill="")
+  
+  bar_event_3weeks_after_dose <- clinical_data %>% count(event_date_3weeks_after_dose) %>%
+    ggplot( aes(x="Event_within_3weeks_after_dose", y=n, fill = as.factor(event_date_3weeks_after_dose)) ) +
+    geom_bar(position="stack", stat = "identity") +
+    scale_fill_manual( values = color_event_3weeks_after_dose, na.value = color_na) + theme_classic() +
+    labs(x="", y="Event Count", title = "3w after vac dose", fill="")
+  
+  
+  print(ggarrange(bar_sex, bar_trajectory_group, bar_PRO_group, 
+                  bar_visit, bar_phase, bar_vaccinated,
+                  bar_event_after_first_vaccine, bar_event_3weeks_after_dose,
+            labels = c("A", "B", "C", "D", "E", "F", "G", "H"), ncol = 4, nrow = 3))
+```
+
+```{r Respiratory status heatmap}
+  # Generate heatmap:
+  melted.df <-
+    tidyr::pivot_longer(clinical_data, cols = respiratory_status, )
+  melted.df <-
+    mutate(melted.df, respiratory_status = as.character(value))
+  ggplot(melted.df) +
+    geom_tile(aes(x = participant_id, y = event_type, fill = respiratory_status)) +
+    # add color scale:
+    scale_fill_manual(values = color_respiratory_status, na.value = color_na) +
+    ggtitle("Respiratory status heatmap") +
+    theme_bw() +
+    theme(axis.text.x = element_blank())
+  
+#}
+```
+
+```{r Phase heatmap}
+  # Generate heatmap:
+  melted.df <-
+    tidyr::pivot_longer(clinical_data, cols = phase, )
+  melted.df <-
+    mutate(melted.df, phase = as.character(value))
+  ggplot(melted.df) +
+    geom_tile(aes(x = participant_id, y = event_type, fill = phase)) +
+    # add color scale:
+    scale_fill_manual(values = color_phase, na.value = color_na) +
+    ggtitle("Phase heatmap") +
+    theme_bw() +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  
+#}
+```
+
+
+```{r Respiratory status by phase}
+  melted.df <-
+    mutate(clinical_data, respiratory_status = as.character(respiratory_status))
+  ggplot(melted.df) +
+    geom_tile(aes(x = participant_id, y = event_type, fill = respiratory_status)) +
+    # add color scale:
+    scale_fill_manual(values = color_respiratory_status, na.value = color_na) +
+    ggtitle("Respiratory status heatmap split by phase") +
+    facet_wrap(~phase, ncol=6) +
+    theme_bw() +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  
+#}
+```
+
+# Samples per omics layer
+
+### Targeted plasma proteomics checks
+
+```{r Targeted plasma proteomics}
+  modality <- plasma_proteomics_targeted_counts
+  modality_name <- "Targeted plasma proteomics"
+
+  plot.df <- clinical_data %>% filter(sample_id %in% row.names(modality))
+  ggplot(plot.df) +
+    geom_tile(aes(x = participant_id, y = event_type, fill = sample_type)) +
+    # add color scale:
+    scale_fill_manual(values = color_sample_type, na.value = color_na) +
+    ggtitle(modality_name) +
+    theme_bw() +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  
+```
+
+```{r Targeted plasma proteomics histogram}
+
+  plot.df <- clinical_data %>% filter(sample_id %in% row.names(modality)) %>%
+                group_by(event_id) %>%
+                summarize(sample_per_event_count = n())
+  ggplot(plot.df, aes(x = sample_per_event_count)) +
+    geom_histogram(binwidth = 1) +
+    stat_count(geom = 'text',
+             color = 'black',
+             aes(label = after_stat(count)),
+           position = position_stack(vjust = 1)) +
+    # add color scale:
+    #scale_fill_manual(values = color_sample_type, na.value = color_na) +
+    ggtitle(modality_name) +
+    theme_bw()
+```
+
+```{r Targeted plasma proteomics check 2 samples per event id}
+  count_gt1 <- plot.df %>% filter(sample_per_event_count >1)
+  tab <- clinical_data %>% 
+            filter(sample_id %in% row.names(modality)) %>% 
+            filter(event_id %in% count_gt1$event_id) %>%
+            dplyr::select(sample_id, sample_type, event_id, event_type, participant_id, phase)
+  DT::datatable(tab) %>% DT::formatStyle(columns = c(1:ncol(tab)), fontSize = '80%')
+  
+```
+
+```{r Targeted plasma proteomics event histogram}
+
+plot.df <- clinical_data %>% filter(sample_id %in% row.names(modality)) %>%
+              dplyr::select(participant_id, event_id, phase, event_type) %>%
+              distinct() %>%
+              group_by(participant_id, event_type, event_id) %>%
+              summarize(event_per_visit_count = n())
+ggplot(plot.df, aes(x = event_per_visit_count)) +
+  geom_histogram(binwidth = 1) +
+  stat_count(geom = 'text',
+           color = 'black',
+           aes(label = after_stat(count)),
+         position = position_stack(vjust = 1)) +
+  # add color scale:
+  #scale_fill_manual(values = color_sample_type, na.value = color_na) +
+  ggtitle(modality_name) +
+  theme_bw()
+```
+
+```{r Targeted plasma proteomics check event_id and event_type unique}
+  count_gt1 <- plot.df %>% filter(event_per_visit_count >1)
+  tab <- clinical_data %>% 
+            filter(sample_id %in% row.names(modality)) %>% 
+            filter(event_id %in% count_gt1$event_id) %>%
+            dplyr::select(sample_id, sample_type, event_id, event_type, participant_id, phase)
+  DT::datatable(tab) %>% DT::formatStyle(columns = c(1:ncol(tab)), fontSize = '80%')
+  
+```
+
+```{r Targeted plasma proteomics number of samples per visit}
+  tab_targeted_plasma_proteomics <- clinical_data %>% 
+            filter(sample_id %in% row.names(modality)) %>% 
+            group_by(event_type) %>%
+            summarize(modality = n()) %>%
+            pivot_wider(names_from = event_type, values_from = modality) %>%
+            mutate( omics = modality_name )
+  DT::datatable(tab_targeted_plasma_proteomics) %>% DT::formatStyle(columns = c(1:ncol(tab)))
+  
+```
+
+### Global proteomics checks
+
+```{r Global plasma proteomics}
+  modality <- plasma_proteomics_global_dda_counts
+  modality_name <- "Global plasma proteomics"
+
+  plot.df <- clinical_data %>% filter(sample_id %in% row.names(modality))
+  ggplot(plot.df) +
+    geom_tile(aes(x = participant_id, y = event_type, fill = sample_type)) +
+    # add color scale:
+    scale_fill_manual(values = color_sample_type, na.value = color_na) +
+    ggtitle(modality_name) +
+    theme_bw() +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  
+```
+
+```{r Global plasma proteomics histogram}
+
+  plot.df <- clinical_data %>% filter(sample_id %in% row.names(modality)) %>%
+                group_by(event_id) %>%
+                summarize(sample_per_event_count = n())
+  ggplot(plot.df, aes(x = sample_per_event_count)) +
+    geom_histogram(binwidth = 1) +
+    stat_count(geom = 'text',
+             color = 'black',
+             aes(label = after_stat(count)),
+           position = position_stack(vjust = 1)) +
+    # add color scale:
+    #scale_fill_manual(values = color_sample_type, na.value = color_na) +
+    ggtitle(modality_name) +
+    theme_bw()
+```
+
+```{r Global plasma proteomics check 2 samples per event id}
+  count_gt1 <- plot.df %>% filter(sample_per_event_count >1)
+  tab <- clinical_data %>% 
+            filter(sample_id %in% row.names(modality)) %>% 
+            filter(event_id %in% count_gt1$event_id) %>%
+            dplyr::select(sample_id, sample_type, event_id, event_type, participant_id, phase)
+  DT::datatable(tab) %>% DT::formatStyle(columns = c(1:ncol(tab)), fontSize = '80%')
+  
+```
+
+```{r Global plasma proteomics number of samples per visit}
+  tab_global_plasma_proteomics <- clinical_data %>% 
+            filter(sample_id %in% row.names(modality)) %>% 
+            group_by(event_type) %>%
+            summarize(modality = n()) %>%
+          pivot_wider(names_from = event_type, values_from = modality) %>%
+          mutate( omics = modality_name )
+  DT::datatable(tab_global_plasma_proteomics) %>% DT::formatStyle(columns = c(1:ncol(tab)))
+  
+```
+
+### PBMC transcriptomics
+
+```{r PBMC transcriptomics}
+  modality <- pbmc_transcriptomics_counts
+  modality_name <- "PBMC transcriptomics"
+  
+  plot.df <- clinical_data %>% filter(sample_id %in% row.names(modality))
+  ggplot(plot.df) +
+    geom_tile(aes(x = participant_id, y = event_type, fill = sample_type)) +
+    # add color scale:
+    scale_fill_manual(values = color_sample_type, na.value = color_na) +
+    ggtitle(modality_name) +
+    theme_bw() +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  
+```
+
+```{r PBMC transcriptomics histogram}
+
+  plot.df <- clinical_data %>% filter(sample_id %in% row.names(modality)) %>%
+                group_by(event_id) %>%
+                summarize(sample_per_event_count = n())
+  ggplot(plot.df, aes(x = sample_per_event_count)) +
+    geom_histogram(binwidth = 1) +
+    stat_count(geom = 'text',
+             color = 'black',
+             aes(label = after_stat(count)),
+           position = position_stack(vjust = 1)) +
+    # add color scale:
+    #scale_fill_manual(values = color_sample_type, na.value = color_na) +
+    ggtitle(modality_name) +
+    theme_bw()
+```
+
+```{r PBMC transcriptomics check 2 samples per event id}
+  count_gt1 <- plot.df %>% filter(sample_per_event_count >1)
+  tab <- clinical_data %>% 
+            filter(sample_id %in% row.names(modality)) %>% 
+            filter(event_id %in% count_gt1$event_id) %>%
+            dplyr::select(sample_id, sample_type, event_id, event_type, participant_id, phase)
+  DT::datatable(tab) %>% DT::formatStyle(columns = c(1:ncol(tab)), fontSize = '80%')
+  
+```
+
+```{r PBMC transcriptomics number of samples per visit}
+  tab_pbmc_transcriptomics <- clinical_data %>% 
+            filter(sample_id %in% row.names(modality)) %>% 
+            group_by(event_type) %>%
+            summarize(modality = n()) %>%
+            pivot_wider(names_from = event_type, values_from = modality) %>%
+            mutate( omics = modality_name )
+  DT::datatable(tab_pbmc_transcriptomics) %>% DT::formatStyle(columns = c(1:ncol(tab)))
+  
+```
+
+### Olink targeted serum
+
+```{r serum Olink targeted}
+  modality <- serum_olink_counts
+  modality_name <- "Serum Olink"
+
+  plot.df <- clinical_data %>% filter(sample_id %in% row.names(modality))
+  ggplot(plot.df) +
+    geom_tile(aes(x = participant_id, y = event_type, fill = sample_type)) +
+    # add color scale:
+    scale_fill_manual(values = color_sample_type, na.value = color_na) +
+    ggtitle(modality_name) +
+    theme_bw() +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  
+```
+
+```{r Serum Olink histogram}
+
+  plot.df <- clinical_data %>% filter(sample_id %in% row.names(modality)) %>%
+                group_by(event_id) %>%
+                summarize(sample_per_event_count = n())
+  ggplot(plot.df, aes(x = sample_per_event_count)) +
+    geom_histogram(binwidth = 1) +
+    stat_count(geom = 'text',
+             color = 'black',
+             aes(label = after_stat(count)),
+           position = position_stack(vjust = 1)) +
+    # add color scale:
+    #scale_fill_manual(values = color_sample_type, na.value = color_na) +
+    ggtitle(modality_name) +
+    theme_bw()
+```
+
+```{r Serum Olink check 2 samples per event id}
+  count_gt1 <- plot.df %>% filter(sample_per_event_count >1)
+  tab <- clinical_data %>% 
+            filter(sample_id %in% row.names(modality)) %>% 
+            filter(event_id %in% count_gt1$event_id) %>%
+            dplyr::select(sample_id, sample_type, event_id, event_type, participant_id, phase)
+  DT::datatable(tab) %>% DT::formatStyle(columns = c(1:ncol(tab)), fontSize = '80%')
+  
+```
+
+```{r Serum Olink number of samples per visit}
+  tab_olink_targeted_serum <- clinical_data %>% 
+            filter(sample_id %in% row.names(modality)) %>% 
+            group_by(event_type) %>%
+            summarize( modality = n()) %>%
+            pivot_wider(names_from = event_type, values_from = modality) %>%
+            mutate( omics = modality_name )
+  DT::datatable(tab_olink_targeted_serum) %>% DT::formatStyle(columns = c(1:ncol(tab)))
+  
+```
+
+### Plasma metabolomics
+
+```{r Plasma metabolomics}
+  modality <- plasma_metabolomics_global_counts
+  modality_name <- "Plasma metabolomics"
+
+  plot.df <- clinical_data %>% filter(sample_id %in% row.names(modality))
+  ggplot(plot.df) +
+    geom_tile(aes(x = participant_id, y = event_type, fill = sample_type)) +
+    # add color scale:
+    scale_fill_manual(values = color_sample_type, na.value = color_na) +
+    ggtitle(modality_name) +
+    theme_bw() +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  
+```
+
+```{r Plasma metabolomics histogram}
+
+  plot.df <- clinical_data %>% filter(sample_id %in% row.names(modality)) %>%
+                group_by(event_id) %>%
+                summarize(sample_per_event_count = n())
+  ggplot(plot.df, aes(x = sample_per_event_count)) +
+    geom_histogram(binwidth = 1) +
+    stat_count(geom = 'text',
+             color = 'black',
+             aes(label = after_stat(count)),
+           position = position_stack(vjust = 1)) +
+    # add color scale:
+    #scale_fill_manual(values = color_sample_type, na.value = color_na) +
+    ggtitle(modality_name) +
+    theme_bw()
+```
+
+```{r Plasma metabolomics check 2 samples per event id}
+  count_gt1 <- plot.df %>% filter(sample_per_event_count >1)
+  tab <- clinical_data %>% 
+            filter(sample_id %in% row.names(modality)) %>% 
+            filter(event_id %in% count_gt1$event_id) %>%
+            dplyr::select(sample_id, sample_type, event_id, event_type, participant_id, phase)
+  DT::datatable(tab) %>% DT::formatStyle(columns = c(1:ncol(tab)), fontSize = '80%')
+  
+```
+
+```{r plasma metabolomics number of samples per visit}
+  tab_plasma_metabolomics <- clinical_data %>% 
+            filter(sample_id %in% row.names(modality)) %>% 
+            group_by(event_type) %>%
+            summarize( modality = n()) %>%
+            pivot_wider(names_from = event_type, values_from = modality) %>%
+            mutate( omics = modality_name )
+  DT::datatable(tab_plasma_metabolomics) %>% DT::formatStyle(columns = c(1:ncol(tab)))
+  
+```
+
+### Nasal transcriptomics
+
+```{r Nasal transcriptomics}
+  modality <- nasal_transcriptomics_counts
+  modality_name <- "Nasal transcriptomics"
+
+  plot.df <- clinical_data %>% filter(sample_id %in% row.names(modality))
+  ggplot(plot.df) +
+    geom_tile(aes(x = participant_id, y = event_type, fill = sample_type)) +
+    # add color scale:
+    scale_fill_manual(values = color_sample_type, na.value = color_na) +
+    ggtitle(modality_name) +
+    theme_bw() +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  
+```
+
+```{r Nasal transcriptomics histogram}
+
+  plot.df <- clinical_data %>% filter(sample_id %in% row.names(modality)) %>%
+                group_by(event_id) %>%
+                summarize(sample_per_event_count = n())
+  ggplot(plot.df, aes(x = sample_per_event_count)) +
+    geom_histogram(binwidth = 1) +
+    stat_count(geom = 'text',
+             color = 'black',
+             aes(label = after_stat(count)),
+           position = position_stack(vjust = 1)) +
+    # add color scale:
+    #scale_fill_manual(values = color_sample_type, na.value = color_na) +
+    ggtitle(modality_name) +
+    theme_bw()
+```
+
+```{r Nasal transcriptomics check 2 samples per event id}
+  count_gt1 <- plot.df %>% filter(sample_per_event_count >1)
+  tab <- clinical_data %>% 
+            filter(sample_id %in% row.names(modality)) %>% 
+            filter(event_id %in% count_gt1$event_id) %>%
+            dplyr::select(sample_id, sample_type, event_id, event_type, participant_id, phase)
+  DT::datatable(tab) %>% DT::formatStyle(columns = c(1:ncol(tab)), fontSize = '80%')
+  
+```
+
+```{r Nasal transcriptomics number of samples per visit}
+  tab_nasal_transcriptomics <- clinical_data %>% 
+            filter(sample_id %in% row.names(modality)) %>% 
+            group_by(event_type) %>%
+            summarize( modality = n()) %>%
+            pivot_wider(names_from = event_type, values_from = modality) %>%
+            mutate( omics = modality_name )
+  DT::datatable(tab_nasal_transcriptomics) %>% DT::formatStyle(columns = c(1:ncol(tab)))
+  
+```
+
+### Blood cytof
+
+```{r Blood cytof}
+  modality <- bld_cytof_msi_counts
+  modality_name <- "Blood cytof"
+
+  plot.df <- clinical_data %>% filter(sample_id %in% row.names(modality))
+  ggplot(plot.df) +
+    geom_tile(aes(x = participant_id, y = event_type, fill = sample_type)) +
+    # add color scale:
+    scale_fill_manual(values = color_sample_type, na.value = color_na) +
+    ggtitle(modality_name) +
+    theme_bw() +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  
+```
+
+```{r Blood cytof histogram}
+
+  plot.df <- clinical_data %>% filter(sample_id %in% row.names(modality)) %>%
+                group_by(event_id) %>%
+                summarize(sample_per_event_count = n())
+  ggplot(plot.df, aes(x = sample_per_event_count)) +
+    geom_histogram(binwidth = 1) +
+    stat_count(geom = 'text',
+             color = 'black',
+             aes(label = after_stat(count)),
+           position = position_stack(vjust = 1)) +
+    # add color scale:
+    #scale_fill_manual(values = color_sample_type, na.value = color_na) +
+    ggtitle(modality_name) +
+    theme_bw()
+```
+
+```{r Blood cytof check 2 samples per event id}
+  count_gt1 <- plot.df %>% filter(sample_per_event_count >1)
+  tab <- clinical_data %>% 
+            filter(sample_id %in% row.names(modality)) %>% 
+            filter(event_id %in% count_gt1$event_id) %>%
+            dplyr::select(sample_id, sample_type, event_id, event_type, participant_id, phase)
+  DT::datatable(tab) %>% DT::formatStyle(columns = c(1:ncol(tab)), fontSize = '80%')
+  
+```
+
+```{r Blood cytof number of samples per visit}
+  tab_blood_cytof <- clinical_data %>% 
+            filter(sample_id %in% row.names(modality)) %>% 
+            group_by(event_type) %>%
+            summarize( modality = n()) %>%
+            pivot_wider(names_from = event_type, values_from = modality) %>%
+            mutate( omics = modality_name )
+  DT::datatable(tab_blood_cytof) %>% DT::formatStyle(columns = c(1:ncol(tab)))
+  
+```
+
+# Summary of samples per omics modality
+
+```{r Summary omics modality}
+df_omics <- bind_rows(
+  tab_pbmc_transcriptomics,
+  tab_global_plasma_proteomics,
+  tab_targeted_plasma_proteomics,
+  tab_nasal_transcriptomics,
+  tab_olink_targeted_serum,
+  tab_plasma_metabolomics,
+  tab_blood_cytof
+) %>% 
+  relocate(omics) %>%
+  rowwise() %>%
+  mutate(total = sum(`Visit 7`, `Visit 8`, `Visit 9`, `Visit 10`)) %>%
+  ungroup()
+
+DT::datatable(df_omics) %>% DT::formatStyle(columns = c(1:ncol(tab)))
+```
+
+## Total number of samples per visit
+
+```{r Summary visits}
+df_visits <- df_omics %>% 
+                dplyr::select(!c("omics")) %>%
+                summarise_all(sum) %>%
+                mutate(total = rowSums(.))
+                
+
+DT::datatable(df_visits) %>% DT::formatStyle(columns = c(1:ncol(tab)))
+```
+```{r}
+so_exclude <- c("0865-002K3G00-002", "0865-0041HH00-002", "0865-00BJWD00-002", 
+                                                   "0865-002NVJ00-002", "0865-0062BG00-002", "0865-00DH6J00-002",
+                                                   "0865-00G24H00-002", "0865-00G66B00-002", "0865-00HMPH00-002")
+ppg_exclude <- c("0865-00G25C00-004")
+ppt_exclude <- c("0865-00G25C00-004")
+pmg_exclude <- c("0865-00G25C00-004")
+pmg_exclude <- c("0865-00G25C00-004")
+ngx_exclude <- c("0865-00H4YJ00-001")
+bct_exclude <- c("0865-00G25C00-001", "0865-00GGKG00-001", "0865-00J3FH00-001")
+
+serum_olink_counts <- serum_olink_counts[!row.names(serum_olink_counts) %in% so_exclude,]
+plasma_proteomics_global_dda_counts <- plasma_proteomics_global_dda_counts[!row.names(plasma_proteomics_global_dda_counts) %in% ppg_exclude,]
+plasma_proteomics_targeted_counts <- plasma_proteomics_targeted_counts[!row.names(plasma_proteomics_targeted_counts) %in% ppt_exclude,]
+plasma_metabolomics_global_counts <- plasma_metabolomics_global_counts[!row.names(plasma_metabolomics_global_counts) %in% pmg_exclude,]
+nasal_transcriptomics_counts <- nasal_transcriptomics_counts[!row.names(nasal_transcriptomics_counts) %in% ngx_exclude,]
+bld_cytof_msi_counts <- bld_cytof_msi_counts[!row.names(bld_cytof_msi_counts) %in% bct_exclude,]
+
+```
+
+```{r}
+all_sample_ids <- unique(c(row.names(pbmc_transcriptomics_counts),
+                           row.names(plasma_proteomics_targeted_counts),
+                           row.names(plasma_proteomics_global_dda_counts),
+                           row.names(plasma_metabolomics_global_counts),
+                           row.names(serum_olink_counts),
+                          row.names(bld_cytof_msi_counts)
+                           ))
+```
+
+```{r train-test split}
+
+clinical_data <- clinical_data %>%
+                          dplyr::filter(sample_id %in% all_sample_ids)
+
+participant_progroup <- clinical_data %>%
+                          dplyr::select(participant_id, pro_group_labels) %>% 
+                          dplyr::distinct()
+set.seed(10)
+train_index <- caret::createDataPartition(participant_progroup$pro_group_labels, p = .8, list = F)
+train <- participant_progroup[train_index,]
+test <- participant_progroup[-train_index,]
+
+clinical_data <- clinical_data %>% mutate(partition = 
+                                            case_when (
+                                              participant_id %in% train$participant_id ~ "train",
+                                              participant_id %in% test$participant_id ~ "test"
+                                            ))
+data_env$clinical_data <- clinical_data
+event_id_train <- clinical_data %>% filter(partition == "train") %>% pull(event_id)
+event_id_test <- clinical_data %>% filter(partition == "test") %>% pull(event_id)
+participant_id_train <- clinical_data %>% filter(partition == "train") %>% pull(participant_id)
+participant_id_test <- clinical_data %>% filter(partition == "test") %>% pull(participant_id)
+```
+
+```{r}
+#The extra added metadata is needed
+
+data_env_train <- load_IMPACC_datasets(# Data version:
+                                 DATA_VERSION = DATA_VERSION,
+                                 ALLOWED_SMPL_STATUS = ALLOWED_SMPL_STATUS,
+                                 KEEP_COVID19_POS = KEEP_COVID19_POS,
+                                 KEEP_EMORY_CONTROLS = KEEP_EMORY_CONTROLS,
+                                 KEEP_ESCALATIONS = KEEP_ESCALATIONS,
+                                 USE_LOCKED_CLINICAL = USE_LOCKED_CLINICAL,
+                                 FILTER_BY_CORE_ASSAY_COHORT = FILTER_BY_CORE_ASSAY_COHORT,
+                                 FILTER_BY_INTEGRATION_COHORT = FILTER_BY_INTEGRATION_COHORT,
+                                 # Select train participant IDs
+                                 SELECT_PARTICIPANT_ID = participant_id_train,
+                                 EXCLUDE_SAMPLES = EXCLUDE_SAMPLES,
+                                 EVENT_DATE_UPPER = EVENT_DATE_UPPER,
+                                 VISIT_LOWER = VISIT_LOWER,
+                                 VISIT_UPPER = VISIT_UPPER,
+                                 PHASES = PHASES)
+
+# Extra metadata is needed
+data_env_train$clinical_data <- clinical_data %>% filter(event_id %in% event_id_train)
+
+# Save matrices with excluded samples
+data_env_train$serum_olink_counts <- data_env_train$serum_olink_counts[!row.names(data_env_train$serum_olink_counts) %in% so_exclude,]
+data_env_train$plasma_proteomics_global_dda_counts <- data_env_train$plasma_proteomics_global_dda_counts[!row.names(data_env_train$plasma_proteomics_global_dda_counts) %in% ppg_exclude,]
+data_env_train$plasma_proteomics_targeted_counts <- data_env_train$plasma_proteomics_targeted_counts[!row.names(data_env_train$plasma_proteomics_targeted_counts) %in% ppt_exclude,]
+data_env_train$plasma_metabolomics_global_counts <- data_env_train$plasma_metabolomics_global_counts[!row.names(data_env_train$plasma_metabolomics_global_counts) %in% pmg_exclude,]
+data_env_train$nasal_transcriptomics_counts <- data_env_train$nasal_transcriptomics_counts[!row.names(data_env_train$nasal_transcriptomics_counts) %in% ngx_exclude,]
+data_env_train$bld_cytof_msi_counts <- data_env_train$bld_cytof_msi_counts[!row.names(data_env_train$bld_cytof_msi_counts) %in% bct_exclude,]
+
+data_env_test <- load_IMPACC_datasets(# Data version:
+                                 DATA_VERSION = DATA_VERSION,
+                                 ALLOWED_SMPL_STATUS = ALLOWED_SMPL_STATUS,
+                                 KEEP_COVID19_POS = KEEP_COVID19_POS,
+                                 KEEP_EMORY_CONTROLS = KEEP_EMORY_CONTROLS,
+                                 KEEP_ESCALATIONS = KEEP_ESCALATIONS,
+                                 USE_LOCKED_CLINICAL = USE_LOCKED_CLINICAL,
+                                 FILTER_BY_CORE_ASSAY_COHORT = FILTER_BY_CORE_ASSAY_COHORT,
+                                 FILTER_BY_INTEGRATION_COHORT = FILTER_BY_INTEGRATION_COHORT,
+                                 # select test participant IDs
+                                 SELECT_PARTICIPANT_ID = participant_id_test,
+                                 EXCLUDE_SAMPLES = EXCLUDE_SAMPLES,
+                                 EVENT_DATE_UPPER = EVENT_DATE_UPPER,
+                                 VISIT_LOWER = VISIT_LOWER,
+                                 VISIT_UPPER = VISIT_UPPER,
+                                 PHASES = PHASES)
+
+# Extra metadata is needed
+data_env_test$clinical_data <- clinical_data %>% filter(event_id %in% event_id_test)
+
+# Save matrices with excluded samples
+data_env_test$serum_olink_counts <- data_env_test$serum_olink_counts[!row.names(data_env_test$serum_olink_counts) %in% so_exclude,]
+data_env_test$plasma_proteomics_global_dda_counts <- data_env_test$plasma_proteomics_global_dda_counts[!row.names(data_env_test$plasma_proteomics_global_dda_counts) %in% ppg_exclude,]
+data_env_test$plasma_proteomics_targeted_counts <- data_env_test$plasma_proteomics_targeted_counts[!row.names(data_env_test$plasma_proteomics_targeted_counts) %in% ppt_exclude,]
+data_env_test$plasma_metabolomics_global_counts <- data_env_test$plasma_metabolomics_global_counts[!row.names(data_env_test$plasma_metabolomics_global_counts) %in% pmg_exclude,]
+data_env_test$nasal_transcriptomics_counts <- data_env_test$nasal_transcriptomics_counts[!row.names(data_env_test$nasal_transcriptomics_counts) %in% ngx_exclude,]
+data_env_test$bld_cytof_msi_counts <- data_env_test$bld_cytof_msi_counts[!row.names(data_env_test$bld_cytof_msi_counts) %in% bct_exclude,]
+```
+
+```{r preprocess assays, eval=T, warning=F}
+#Example to preprocess multiple assays
+preprocessed_assays_train <- preprocess_IMPACC_datasets(data_env = data_env_train,
+                                              assays_to_process = c(
+                                                                    "serum_olink",
+                                                                    "bld_msi_cytof",
+                                                                    "plasma_proteomics_targeted",
+                                                                    "plasma_proteomics_global_dda",
+                                                                    "plasma_metabolomics_global",
+                                                                    "pbmc_transcriptomics"
+                                                                    ),
+                                              transcriptomics_batch_correction = TRUE,
+                                              transcriptomics_expression_filter_grouping = "pro_group_labels",
+                                              transcriptomics_limma_matrix_design = "~pro_group_labels*event_type",
+                                              transcriptomics_limma_matrix_design_variables = c("pro_group_labels",
+                                                                                                "event_type"),
+                                              transcriptomics_mad_gene_fraction = 0.2,
+                                              proteomics_batch_correction = T,
+                                              proteomics_combat_matrix_design = "~pro_group_labels*event_type",
+                                              proteomics_combat_matrix_design_variables = c("pro_group_labels",
+                                                                                                "event_type"),
+                                              additional_pvca_variables = c(
+                                                                      "pro_group_labels",
+                                                                      "event_date_3weeks_after_dose",
+                                                                      "event_type"),
+                                              cytof_msi_batch_correction = TRUE,
+                                              cytof_msi_limma_matrix_design = "~pro_group_labels*event_type",
+                                              cytof_msi_limma_matrix_design_variables = c("pro_group_labels",
+                                                                                                "event_type"),
+                                              run_pvca=T)
+
+# Get features for test data feature selection
+PPT_selected_features <- colnames(preprocessed_assays_train$preprocessed_data$plasma_proteomics_targeted)
+PPG_selected_features <- colnames(preprocessed_assays_train$preprocessed_data$plasma_proteomics_global_dda)
+
+#cytof MSI features
+BCT_selected_features <- colnames(preprocessed_assays_train$preprocessed_data$bld_msi_cytof)
+
+# PBMC transcriptomics features
+PGX_selected_features <- colnames(preprocessed_assays_train$preprocessed_data$pbmc_transcriptomics)
+
+# Plasma metabolomics features
+PMG_selected_features <- colnames(preprocessed_assays_train$preprocessed_data$plasma_metabolomics_global)
+```
+
+```{r preprocess test data}
+preprocessed_assays_test <- preprocess_IMPACC_datasets(data_env = data_env_test,
+                                              assays_to_process = c("plasma_proteomics_targeted",
+                                                                    "pbmc_transcriptomics",
+                                                                    "serum_olink",
+                                                                    "bld_msi_cytof",
+                                                                    "plasma_metabolomics_global"
+                                                                    ),
+                                              transcriptomics_batch_correction = TRUE,
+                                              transcriptomics_expression_filter_grouping = "pro_group_labels",
+                                              transcriptomics_limma_matrix_design = "~pro_group_labels*event_type",
+                                              transcriptomics_limma_matrix_design_variables = c("pro_group_labels",
+                                                                                                "event_type"),
+                                              transcriptomics_selected_features = PGX_selected_features,
+                                              proteomics_selected_features = PPT_selected_features,
+                                              proteomics_batch_correction = T,
+                                              proteomics_combat_matrix_design = "~pro_group_labels*event_type",
+                                              proteomics_combat_matrix_design_variables = c("pro_group_labels",
+                                                                                                "event_type"),
+                                              metabolomics_selected_features = PMG_selected_features,
+                                              additional_pvca_variables = c(
+                                                                      "pro_group_labels",
+                                                                      "event_date_3weeks_after_dose",
+                                                                      "event_type"),
+                                              cytof_msi_batch_correction = TRUE,
+                                              cytof_msi_limma_matrix_design = "~pro_group_labels*event_type",
+                                              cytof_msi_limma_matrix_design_variables = c("pro_group_labels",
+                                                                                                "event_type"),
+                                              cytof_msi_selected_features = BCT_selected_features,
+                                              run_pvca=T)
+
+preprocessed_PPG_test <- preprocess_IMPACC_datasets(data_env = data_env_test,
+                                              assays_to_process = c(
+                                                                    "plasma_proteomics_global_dda"
+                                                                    ),
+                                              transcriptomics_batch_correction = TRUE,
+                                              proteomics_selected_features = PPG_selected_features,
+                                              proteomics_batch_correction = T,
+                                              proteomics_combat_matrix_design = "~pro_group_labels*event_type",
+                                              proteomics_combat_matrix_design_variables = c("pro_group_labels",
+                                                                                                "event_type"),
+                                              additional_pvca_variables = c(
+                                                                      "pro_group_labels",
+                                                                      "event_date_3weeks_after_dose",
+                                                                      "event_type"),
+                                              run_pvca=T)
+                                                                      
+preprocessed_assays_test$preprocessed_data$plasma_proteomics_global_dda <- preprocessed_PPG_test$preprocessed_data$plasma_proteomics_global_dda
+preprocessed_assays_test$pvca_data <- bind_rows(preprocessed_assays_test$pvca_data, preprocessed_PPG_test$pvca_data)
+preprocessed_assays_test$pvca_plots$plasma_proteomics_global_dda <- preprocessed_PPG_test$pvca_plots$plasma_proteomics_global_dda
+```
+
+```{r plot_assays, eval = T}
+dir.create("plot_assays")
+
+assays_processed = c("plasma_proteomics_targeted",
+                      "plasma_proteomics_global_dda",
+                      "plasma_metabolomics_global",
+                      "pbmc_transcriptomics",
+                      "serum_olink",
+                      "bld_msi_cytof"
+                      )
+
+
+```
+
+
+
+```{r eval=T}
+saveRDS(data_env, file=paste0("/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_all_",
+                             format(Sys.time(), '%b_%d_%Y'),".RDS"))
+saveRDS(data_env_train, file=paste0("/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_train_",
+                             format(Sys.time(), '%b_%d_%Y'),".RDS"))
+saveRDS(data_env_test, file=paste0("/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_test_",
+                             format(Sys.time(), '%b_%d_%Y'),".RDS"))
+saveRDS(preprocessed_assays_train, file=paste0("/scratch/data-fullcohort/batch-effects/preprocessed_assays_train_",
+                            format(Sys.time(), '%b_%d_%Y'),".RDS"))
+saveRDS(preprocessed_assays_test, file=paste0("/scratch/data-fullcohort/batch-effects/preprocessed_assays_test_",
+                            format(Sys.time(), '%b_%d_%Y'),".RDS"))
+```
+
+
+```{r eval=F}
+ds = c("plasma_proteomics_targeted",
+            "plasma_proteomics_global_dda",
+            "plasma_metabolomics_global",
+            "pbmc_transcriptomics",
+            #"nasal_transcriptomics",
+            "serum_olink",
+           "bld_msi_cytof"
+            )
+
+# save train
+preprocessed_data_train = preprocessed_assays_train$preprocessed_data
+pvca_data = preprocessed_assays_train$pvca_data %>% dplyr::filter(str_remove(preprocessed_assays_train$pvca_data$assay, "_[^_]+$") %in% ds)
+pvca_data = pivot_wider(pvca_data, names_from = effect, values_from = explained) %>% column_to_rownames("assay")
+
+pvca_dir <- "pvca_plots_preprocess_train"
+dir.create(pvca_dir)
+
+prefix = "pvca_"
+lapply(names(preprocessed_assays_train$pvca_plots), 
+  function(x)ggsave(filename=paste(pvca_dir, "/",prefix, x,"_p0_",format(Sys.time(), '%b_%d_%Y'),".png",sep=""),
+                    plot=preprocessed_assays_train$pvca_plots[[x]]$p0, width = 10, height = 7))
+lapply(names(preprocessed_assays_train$pvca_plots), 
+  function(x)ggsave(filename=paste(pvca_dir,"/",prefix,x,"_p1_",format(Sys.time(), '%b_%d_%Y'),".png",sep=""),
+                    plot=preprocessed_assays_train$pvca_plots[[x]]$p1, width = 10, height = 7))
+pvca_dir <- "pvca_plots_preprocess_test"
+dir.create(pvca_dir)
+# save test 
+preprocessed_data_test = preprocessed_assays_test$preprocessed_data
+pvca_data = preprocessed_assays_test$pvca_data %>% dplyr::filter(str_remove(preprocessed_assays_test$pvca_data$assay, "_[^_]+$") %in% ds)
+pvca_data = pivot_wider(pvca_data, names_from = effect, values_from = explained) %>% column_to_rownames("assay")
+
+
+prefix = "pvca_"
+lapply(names(preprocessed_assays_test$pvca_plots), 
+  function(x)ggsave(filename=paste(pvca_dir, "/",prefix, x,"_p0_",format(Sys.time(), '%b_%d_%Y'),".png",sep=""),
+                    plot=preprocessed_assays_test$pvca_plots[[x]]$p0, width = 10, height = 7))
+lapply(names(preprocessed_assays_test$pvca_plots), 
+  function(x)ggsave(filename=paste(pvca_dir,"/",prefix,x,"_p1_",format(Sys.time(), '%b_%d_%Y'),".png",sep=""),
+                    plot=preprocessed_assays_test$pvca_plots[[x]]$p1, width = 10, height = 7))
+```
+
+
+```{r print session info}
+sessionInfo()
+```
+

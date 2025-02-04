@@ -1,0 +1,562 @@
+ ---
+title: "Trajectory Group associations with Spear Factor1"
+author: "Jessica Maciuch"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Set working directory
+  workDir <- "~/impacc-full-cohort/Analysis/convalescent-project/Spear/clinical_associations"
+  setwd(workDir) # For troubleshooting in the command line
+  knitr::opts_knit$set(root.dir = workDir)
+
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(magrittr)
+  library(ggpubr)
+  library(rstatix)
+  library(patchwork)
+  library(pheatmap)
+  library(ggeffects)
+  library(RColorBrewer)})
+
+# Load codebase functions
+  source("~/impacc-full-cohort/Analysis/IMPACC_data_analysis_codebase.R")
+
+# Initialize list of variables to exclude from downstream environment cleaning
+  keep_vars <- ls()
+  keep_vars %<>% c("keep_vars")
+```
+
+# Load data
+
+## Clinical data
+
+Pull clinical data for confounding factors (age, sex) and trajectory group designations
+
+```{r}
+
+# Load clinical data for acute and convalescent ppts
+  data_env_conv <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_all_Feb_11_2024.RDS")
+  data_env_acute <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_acute_data_env_allcohort_all_Aug_12_2024.RDS") 
+  
+  clinical_data_conv <- data_env_conv$clinical_data
+  clinical_data_acute <- data_env_acute$clinical_data
+  clinical_data <- dplyr::bind_rows(list(clinical_data_conv, 
+                                         clinical_data_acute))
+    
+# Select variables
+  clinical_data %<>% 
+    select(all_of(c("participant_id", 
+                    "event_id", 
+                    "event_type",
+                    "event_date",
+                    "enrollment_site", 
+                    "discretized_admit_age_quantile",
+                    "sex",
+                    "trajectory_group",
+                    "pro_2_groups"))) %>% 
+    distinct()
+
+# Transform variables into factors
+  factor_vars <- c("enrollment_site", 
+                   "discretized_admit_age_quantile", 
+                   "sex", 
+                   "trajectory_group", 
+                   "event_type", 
+                   "participant_id",
+                   "pro_2_groups")
+  clinical_data %<>% mutate(across(all_of(factor_vars), as.factor))
+  
+# Specify order of variables for plotting
+  clinical_data %<>% mutate(pro_2_groups = if_else(pro_2_groups == "MIN", "MIN", "LC"))
+  clinical_data$pro_2_groups %<>% factor(., levels = c("MIN", "LC"))
+  
+  clinical_data$event_type %<>% factor(., levels = paste("Visit", 1:10))
+  
+  # Append "TG" to trajectory group variable
+  clinical_data$trajectory_group %<>% 
+    paste("TG", ., sep = "") %>%
+    factor(., levels = paste("TG", 1:5, sep = "")) %>%
+    droplevels()
+  
+# Clean environment
+  keep_vars %<>% c("clinical_data")
+  rm(list = setdiff(ls(), keep_vars))
+  gc()
+```
+
+## Spear factors
+
+```{r}
+
+# Load spear factors
+  spear_promis_phys_conv <- readRDS("/scratch/data-fullcohort/spear_model/results/020624/032124_spearphysical_finalscores_allsamples.rds")
+  spear_promis_phys_acute <- readRDS("/scratch/data-fullcohort/spear/scores_data_acutefullcohort/082024_spearphysical_finalscores_acute_fullcohort_allsamples.rds")
+
+# Separate test and train factors
+  spear_scores <- list(test = rbind(spear_promis_phys_conv$Test,
+                                    spear_promis_phys_conv$TestNoPhysical,
+                                    spear_promis_phys_conv$TrainNoPhysical_NoOverlap),
+                       acute = spear_promis_phys_acute$Acute_fullcohort)
+    
+# Add event_id as explicit column for downstream merging
+  spear_scores %<>% map(\(df) df %<>% 
+                          as.data.frame() %>% 
+                          mutate(event_id = rownames(.)) %>% 
+                          select(event_id, Factor1))
+  
+# Combine spear data with clinical data
+  spear_scores %<>% bind_rows(.id = "partition") 
+    
+# Clean environment
+  keep_vars %<>% c("spear_scores")
+  rm(list = setdiff(ls(), keep_vars))
+  gc()
+```
+
+## Prepare data frame
+
+```{r}
+
+# Combine spear and clinical data
+  clinical_spear <- left_join(x = spear_scores,
+                              y = clinical_data,
+                              by = "event_id")
+
+# Remove visit 6 outliers and accidentally included acute visits from conv phase
+  clinical_spear %<>% filter(!(partition == "acute" & event_date > 50))
+  
+# Prepare data frame for codebase functions
+  clinical_spear %<>% pivot_longer(cols = Factor1)
+
+# Clean environment
+  keep_vars %<>% c("clinical_spear")
+  keep_vars %<>% .[which(!. %in% c("clinical_data", "spear_scores"))]
+  rm(list = setdiff(ls(), keep_vars))
+  gc()
+```
+
+# Color palettes
+
+```{r}
+
+# Set color palette for individual trajectory groups
+  TG_cols <- c('#639A21',
+               '#39828C', 
+               '#6371AD',
+               '#BD7D31',
+               '#9C3418')
+  names(TG_cols) <- levels(clinical_spear$trajectory_group)
+  
+# Set color palette for MIN/LC
+  pro_2_groups_cols <- c("#649B20",
+                         "#7A186D")
+  names(pro_2_groups_cols) <- levels(clinical_spear$pro_2_groups)
+  
+# Clean environment
+  keep_vars %<>% c("TG_cols", "pro_2_groups_cols")
+  rm(list = setdiff(ls(), keep_vars))
+  gc()
+```
+
+# MIN/LC per-visit box plots by trajectory group (global pvals)
+
+## Set filename vars
+
+```{r}
+# Set variables for filenames
+  comparison <- "MIN_LC_Factor1_byTG"
+  plot_type <- "pervisit_global_pval"
+```
+
+## Plotting functions
+
+```{r}
+
+# Helper function to calculate p-value association
+  global_mixed_pairwise <- function(df, 
+                                    fixed_vars,
+                                    predictor, 
+                                    random) {
+      
+      # Generate formulas for mixed_pairwise function
+      var_list <- c(fixed_vars, random)
+      
+      terms <- paste(var_list, collapse = "+")
+      formula.0 <- formula(paste("value~", terms, sep = ""))
+      
+      var_list %<>% c(predictor)
+      terms <- paste(var_list, collapse = "+")
+      formula.1 <- formula(paste("value~", terms, sep = ""))
+      
+      res_table <- mixed_pairwise(formula.0, formula.1, df)
+    
+    return(res_table$res_table)
+  }
+  
+# Helper function to generate per-visit boxplots
+  plot_TG_MIN_LC <- function(df, cols) {
+    ggplot(df, aes(x = trajectory_group, y = value)) +
+      ggbeeswarm::geom_quasirandom(aes(fill = endpoints),
+                                   shape = 21,
+                                   width = .15, 
+                                   dodge.width = 0.75) +
+      geom_boxplot(aes(fill = endpoints),
+                   alpha = 0.6, 
+                   color = "black", 
+                   outlier.shape = NA) +
+      theme_bw() + 
+      scale_color_manual(values = cols) +
+      scale_fill_manual(values = cols) +
+      scale_x_discrete(drop = F) +
+      labs(x = "Trajectory Group", 
+           y = "Recovery Factor", 
+           fill = "") +
+      geom_label(aes(x = Inf,
+                     y = Inf, 
+                     label = label,
+                     hjust = 1,
+                     vjust = 1),
+                 label.r = unit(0, "pt"),
+                 size = 4) +
+      scale_y_continuous(expand = expansion(mult = c(0.1, 0.1))) +
+      facet_wrap(vars(event_type)) +
+      theme(text = element_text(size = 14),
+            strip.background = element_blank(),
+            strip.text = element_text(size = rel(1.25))) -> plot
+
+    return(plot)
+  }
+  
+# Helper function to generate completed plot from data frame
+  generate_plot_TG_MIN_LC <- function(df) {
+    # Change variable name for pval function
+      df %<>% dplyr::rename("endpoints" = "pro_2_groups")
+      
+    # Drop observations without MIN/LC label
+      df %<>% filter(!is.na(endpoints))
+      
+    # Drop TG5 from factor
+      df$trajectory_group %<>% droplevels()
+      
+    # Split by visit
+      df_list <- df %>% split(f = .[["event_type"]], drop = T)
+      
+    # Calculate p-values
+      pval_list <- df_list |> 
+        map(\(df) global_mixed_pairwise(df, 
+                                        fixed_vars = c("discretized_admit_age_quantile",
+                                                       "sex",
+                                                       "trajectory_group"),
+                                        predictor = "endpoints",
+                                        random = "(1|enrollment_site)")) |> as.numeric()
+      
+    # P-value adjustment
+      adjp_list <- qvalue::qvalue(pval_list, fdr.level = 0.05, pi0 = 1)$qvalues
+      
+    # Add p-vals as facet titles
+      pval_df <- data.frame(pval = pval_list,
+                            adj_pval = adjp_list,
+                            event_type = names(df_list))
+      
+      pval_df %<>% mutate(across(contains("pval"), \(x) signif(x, digits = 2)))
+      
+      df %<>% left_join(x = .,
+                        y = pval_df,
+                        by = "event_type")
+      
+      df %<>% mutate(pval_label = paste("adj. p=", adj_pval, sep = ""))
+      
+    # Make sure visits are ordered correctly in facet
+      df$event_type %<>% factor(., levels = paste("Visit", 1:10))
+      
+    # Add "n" for each visit
+      n_df <- df %>% 
+        select(event_type, participant_id) %>%
+        group_by(event_type) %>%
+        count() %>%
+        mutate(n_label = paste("(n = ", n, ")", sep = "")) 
+      
+      df %<>% left_join(x = .,
+                        y = n_df %>% select(event_type, n_label),
+                        by = "event_type")
+      
+      df %<>% mutate(label = paste(pval_label, n_label, sep = "\n"))
+      
+    # Generate plot
+      plot <- plot_TG_MIN_LC(df, pro_2_groups_cols)
+      
+      return(plot)
+  }
+
+```
+
+## Acute plots
+
+```{r}
+
+# Pull only acute data
+  df <- clinical_spear %>% filter(partition == "acute")
+  
+# Generate plot
+  plot <- generate_plot_TG_MIN_LC(df)
+  
+# Save plots
+  timepoint <- "acute"
+  filename <- paste(workDir, "/plot_objects/plots_for_figures/", comparison, "_", plot_type, "_", timepoint, ".Rds", sep = "")
+
+  saveRDS(plot, filename)
+```
+
+## Convalescent plots
+
+```{r}
+
+# Pull only convalescent test data
+  df <- clinical_spear %>% filter(partition == "test")
+  
+# Generate plot
+  plot <- generate_plot_TG_MIN_LC(df)
+  
+# Save plots
+  timepoint <- "convalesecent"
+  filename <- paste(workDir, "/plot_objects/plots_for_figures/", comparison, "_", plot_type, "_", timepoint, ".Rds", sep = "")
+
+  saveRDS(plot, filename)
+```
+
+# MIN/LC longitudinal plots by trajectory group
+
+## Set filename vars
+
+```{r}
+
+# Set variables for filenames
+  comparison <- "MIN_LC_Factor1_byTG"
+  plot_type <- "longitudinal"
+```
+
+## Plotting functions
+
+```{r}
+
+# Custom function to create longitudinal plots because of weird bug flipping order of pro_2_groups factor levels for geom_ribbon
+  plot_TG_MIN_LC_longitudinal <- function(df, cols) {
+    # Generate model
+    form <- as.formula("value ~ pro_2_groups + discretized_admit_age_quantile + sex + s(event_date, bs = 'ts') + s(event_date, by = pro_2_groups, bs = 'cr')")
+    model <- gamm4::gamm4(form, random = ~(1|enrollment_site/participant_id), data = df)
+    
+    # Calculate confidence interval
+    pred <- ggpredict(model, c("event_date", "pro_2_groups"), type = "fixed",
+                      ci.lvl = 0.95)
+    
+    # Generate plot
+    plot <- ggplot(df, aes(x = event_date, y = value)) +
+      geom_point(aes(color = pro_2_groups)) +
+      geom_ribbon(inherit.aes = F, 
+                  data = pred, 
+                  aes(x = x, ymin = pred$conf.low, ymax = pred$conf.high, fill = group),
+                  alpha = 0.3) +
+      geom_line(inherit.aes = F, 
+                data = pred, 
+                aes(x = x, y = predicted, color = group),
+                linewidth = 1.5) +
+      scale_color_manual(values = cols) +
+      scale_fill_manual(values = cols) +
+      labs(title = unique(df$trajectory_group),
+           color = "",
+           fill = "",
+           x = "Days from Admission", 
+           y = "Recovery Factor") +
+      theme_bw() +
+      theme(text = element_text(size = 14),
+            plot.title = element_text(hjust = 0.5, size = rel(1.25)))
+    
+    return(plot)
+  }
+
+# Helper function to generate longitudinal MIN/LC plots from starting df
+generate_plot_TG_MIN_LC_longitudinal <- function(df) {
+  # Drop observations without PRO group label
+  df %<>% filter(!is.na(pro_2_groups))
+
+  # Split data frame by trajectory group
+  df_list <- df %>% split(f = .[["trajectory_group"]], drop = T)
+  
+  # Generate plots 
+  plots <- df_list |> map(\(df) plot_TG_MIN_LC_longitudinal(df, pro_2_groups_cols))
+  
+  # Calculate longitudinal p-vals
+  pval_list <- df_list |> 
+    map(\(inputDF) model_loop(inputDF, 
+                              model_type = "smoothSpline",
+                              spline_type = "ts",
+                              endpoint = "pro_2_groups"))
+  pvals <- bind_rows(pval_list, .id = "trajectory_group")
+  
+  # P-value adjustment
+  adj_pvals <- qvalue::qvalue(pvals$p.intercept, fdr.level = 0.05, pi0 = 1)$qvalues
+  
+  # Create p-val labels
+  pval_labels <- paste("adj. p=", signif(adj_pvals, digits = 2), sep = "")
+  
+  # Add p-val labels to plots
+  plots <- list(plots, pval_labels) |> 
+    pmap(\(plot, pval) plot <- plot + annotate("label",  
+                                               x = Inf, 
+                                               y = Inf,
+                                               label = pval, 
+                                               vjust = 1, 
+                                               hjust = 1, 
+                                               size = 5, 
+                                               label.r = unit(0, "pt")))
+  
+  # Combine plots
+  plots %<>% wrap_plots(ncol = 2, byrow = T)
+  
+  # Enforce same y axis limits
+  plots <- plots & scale_y_continuous(limits = c(min(df$value), max(df$value)),
+                                      expand = expansion(mult = c(0.1, 0.1)))
+  
+  return(plots)
+}
+
+```
+
+## Acute plots
+
+```{r}
+
+# Pull only acute data
+  df <- clinical_spear %>% filter(partition == "acute")
+
+# Generate plots
+  plots <- generate_plot_TG_MIN_LC_longitudinal(df)
+  
+# Save plots
+  timepoint <- "acute"
+  filename <- paste(workDir, "/plot_objects/plots_for_figures/", comparison, "_", plot_type, "_", timepoint, ".Rds", sep = "")
+
+  saveRDS(plots, filename)
+
+```
+
+## Convalescent plots
+
+```{r}
+
+# Pull only convalescent test data
+  df <- clinical_spear %>% filter(partition == "test")
+
+# Generate plots
+  plots <- generate_plot_TG_MIN_LC_longitudinal(df)
+  
+# Save plots
+  timepoint <- "convalescent"
+  filename <- paste(workDir, "/plot_objects/plots_for_figures/", comparison, "_", plot_type, "_", timepoint, ".Rds", sep = "")
+
+  saveRDS(plots, filename)
+
+```
+
+# Trajectory group vs. Factor1 longitudinal plots
+
+## Set filename vars
+
+```{r}
+
+# Set variables for filenames
+  comparison <- "trajectorygroups_Factor1"
+  plot_type <- "longitudinal"
+```
+
+## Plotting functions
+
+```{r}
+
+# Helper fuction to generate longitudinal TG plot
+generate_TG_Factor1_longitudinal_plot <- function(df) {
+  # Drop missing TGs if any
+  df$trajectory_group %<>% droplevels()
+  
+  # Calculate p-vals
+  pvals <- model_loop(df, 
+                      model_type = "smoothSpline",
+                      spline_type = "ts",
+                      endpoint ="trajectory_group")
+  
+  # Generate plot
+  plot_model(df,
+             pvals,
+             model_type = "smoothSpline", 
+             spline_type = "ts",
+             colors = TG_cols,
+             CI = T,
+             knot_lines = F,
+             individual_trendlines = F,
+             individual_paths = F,
+             group_trendline_color = "endpoint",
+             facet = F,
+             endpoint ="trajectory_group") -> plot
+  
+  # Add p-val to plot
+  plot <- plot + annotate("label",  
+                          x = Inf, 
+                          y = Inf,
+                          label = paste("p=", 
+                                        signif(pvals$p.intercept, digits = 2), 
+                                        sep = ""), 
+                          vjust = 1, 
+                          hjust = 1, 
+                          size = 5, 
+                          label.r = unit(0, "pt")) +
+    scale_y_continuous(expand = expansion(mult = c(0.1))) +
+    labs(fill = "Trajectory Group",
+         color = "Trajectory Group",
+         y = "Recovery Factor") + 
+    theme(text = element_text(size = 14))
+  
+  return(plot)
+}
+
+```
+
+## Acute plots
+
+```{r}
+
+# Pull only acute data
+  df <- clinical_spear %>% filter(partition == "acute")
+
+# Generate plot
+  plot <- generate_TG_Factor1_longitudinal_plot(df)
+
+# Save plot
+  timepoint <- "acute"
+  filename <- paste(workDir, "/plot_objects/plots_for_figures/", comparison, "_", plot_type, "_", timepoint, ".Rds", sep = "")
+
+  saveRDS(plot, filename)
+
+```
+
+## Convalescent plots
+
+```{r}
+
+# Pull only convalescent test data
+  df <- clinical_spear %>% filter(partition == "test")
+
+# Generate plot
+  plot <- generate_TG_Factor1_longitudinal_plot(df)
+
+# Save plot
+  timepoint <- "convalescent"
+  filename <- paste(workDir, "/plot_objects/additional_plots/", comparison, "_", plot_type, "_", timepoint, ".Rds", sep = "")
+
+  saveRDS(plot, filename)
+
+```

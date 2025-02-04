@@ -1,0 +1,147 @@
+---
+title: "SPEAR data imputation"
+author: "Gisela Gabernet (gisela.gabernet@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+```{r}
+library(MOFA2)
+#library(MOFAdata)
+library(data.table)
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(kableExtra)
+library(RColorBrewer)
+
+
+knitr::opts_chunk$set(warning = F, message=F)
+
+print_kable <- function(table, kable_height = "500px", kable_width = "100%") {
+  kable(table, digits=3) %>%
+    kable_styling("striped") #%>%
+    #scroll_box(height = kable_height, width = kable_width)
+}
+
+# set random seed
+set.seed(42)
+```
+
+
+# Get MOFA model and impute values (with CyTOF)
+
+## Load MOFA model
+```{r fig.height=5, fig.width=10}
+
+# Import MOFA factors
+MOFA_factors_train <- readRDS('/scratch/data-fullcohort/MOFA_factors/MOFA_train_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212.rds')
+MOFA_factors_test <- readRDS('/scratch/data-fullcohort/MOFA_factors/MOFA_test_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212.rds')
+
+MOFA_name_train <- "MOFA_train_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212"
+MOFA_name_test <- "MOFA_test_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212"
+results_dir_train <- "/scratch/data-fullcohort/spear/imputed_data_MOFA_train_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212/"
+results_dir_test <- "/scratch/data-fullcohort/spear/imputed_data_MOFA_test_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212/"
+dir.create(results_dir_train)
+dir.create(results_dir_test)
+
+# Import data env
+data_env_train <- readRDS('/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_train_Feb_11_2024.RDS')
+data_env_test <- readRDS('/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_test_Feb_11_2024.RDS')
+
+clinical_data_train <- data_env_train$clinical_data
+clinical_data_test <- data_env_test$clinical_data
+```
+
+## Perform imputation train data
+```{r}
+# Impute data using MOFA
+imputed_data_train = impute(MOFA_factors_train, views = "all")
+data1 = imputed_data_train@imputed_data
+imputed_train <- list(
+  SO = as.data.frame(t(as.matrix(data1$SO$group1))), # serum olink
+  PPT = as.data.frame(t(as.matrix(data1$PPT$group1))), # targeted plasma proteomics
+  PPG = as.data.frame(t(as.matrix(data1$PPG$group1))), # global plasma proteomics
+  PMG = as.data.frame(t(as.matrix(data1$PMG$group1))), # plasma metabolomics global
+  PGX = as.data.frame(t(as.matrix(data1$PGX$group1))), # pbmc trnascriptomics
+  #NGX = as.data.frame(t(as.matrix(data1$NGX$group1))), # nasal transcriptomics
+  BCT = as.data.frame(t(as.matrix(data1$BCT$group1)))
+)
+
+lapply(imputed_train, dim) ## Check dimension
+
+# write.csv(imputed$SO %>% rownames_to_column("Features"), paste0(results_dir_train,"spear_data_",MOFA_name_train,"_SO.csv"), quote = F, row.names = F)
+# write.csv(imputed$PPT %>% rownames_to_column("Features"), paste0(results_dir_train,"spear_data_",MOFA_name_train,"_PPT.csv"), quote = F, row.names = F)
+# write.csv(imputed$PPG %>% rownames_to_column("Features"), paste0(results_dir_train,"spear_data_",MOFA_name_train,"_PPG.csv"), quote = F, row.names = F)
+# write.csv(imputed$PMG %>% rownames_to_column("Features"), paste0(results_dir_train,"spear_data_",MOFA_name_train,"_PMG.csv"), quote = F, row.names = F)
+# write.csv(imputed$PGX %>% rownames_to_column("Features"), paste0(results_dir_train,"spear_data_",MOFA_name_train,"_PGX.csv"), quote = F, row.names = F)
+# write.csv(imputed$BCT %>% rownames_to_column("Features"), paste0(results_dir_train,"spear_data_",MOFA_name_train,"_BCT.csv"), quote = F, row.names = F)
+
+```
+```{r}
+clinical_data_spear_train <- clinical_data_train %>% 
+                          dplyr::filter(event_id %in% rownames(imputed_train$SO)) %>%
+                          dplyr::arrange(match(event_id, rownames(imputed_train$SO))) %>%
+                          dplyr::select(event_id, participant_id, event_type, pro_group_labels, pro_2_groups, sex, discretized_admit_age_quantile) %>%
+                          dplyr::distinct()
+
+#write.csv(clinical_data_spear, paste0(results_dir_train,"spear_metadata_",MOFA_name_train,".csv"), quote = F, row.names = F)
+```
+
+
+## Perform imputation test data
+```{r}
+# Impute data using MOFA
+imputed_data_test = impute(MOFA_factors_test, views = "all")
+data1 = imputed_data_test@imputed_data
+imputed_test <- list(
+  SO = as.data.frame(t(as.matrix(data1$SO$group1))), # serum olink
+  PPT = as.data.frame(t(as.matrix(data1$PPT$group1))), # targeted plasma proteomics
+  PPG = as.data.frame(t(as.matrix(data1$PPG$group1))), # global plasma proteomics
+  PMG = as.data.frame(t(as.matrix(data1$PMG$group1))), # plasma metabolomics global
+  PGX = as.data.frame(t(as.matrix(data1$PGX$group1))), # pbmc trnascriptomics
+  #NGX = as.data.frame(t(as.matrix(data1$NGX$group1))), # nasal transcriptomics
+  BCT = as.data.frame(t(as.matrix(data1$BCT$group1)))
+)
+
+lapply(imputed_test, dim) ## Check dimension
+
+# write.csv(imputed$SO %>% rownames_to_column("Features"), paste0(results_dir_test,"spear_data_",MOFA_name_test,"_SO.csv"), quote = F, row.names = F)
+# write.csv(imputed$PPT %>% rownames_to_column("Features"), paste0(results_dir_test,"spear_data_",MOFA_name_test,"_PPT.csv"), quote = F, row.names = F)
+# write.csv(imputed$PPG %>% rownames_to_column("Features"), paste0(results_dir_test,"spear_data_",MOFA_name_test,"_PPG.csv"), quote = F, row.names = F)
+# write.csv(imputed$PMG %>% rownames_to_column("Features"), paste0(results_dir_test,"spear_data_",MOFA_name_test,"_PMG.csv"), quote = F, row.names = F)
+# write.csv(imputed$PGX %>% rownames_to_column("Features"), paste0(results_dir_test,"spear_data_",MOFA_name_test,"_PGX.csv"), quote = F, row.names = F)
+# write.csv(imputed$BCT %>% rownames_to_column("Features"), paste0(results_dir_test,"spear_data_",MOFA_name_test,"_BCT.csv"), quote = F, row.names = F)
+
+```
+```{r}
+clinical_data_spear_test <- clinical_data_test %>% 
+                          dplyr::filter(event_id %in% rownames(imputed_test$SO)) %>%
+                          dplyr::arrange(match(event_id, rownames(imputed_test$SO))) %>%
+                          dplyr::select(event_id, participant_id, event_type, pro_group_labels, pro_2_groups, sex, discretized_admit_age_quantile) %>%
+                          dplyr::distinct()
+
+#write.csv(clinical_data_spear, paste0(results_dir_test,"spear_metadata_",MOFA_name_test,".csv"), quote = F, row.names = F)
+```
+
+```{r}
+convalescent_imputed <- list(train = imputed_train, test=imputed_test, clinical_train = clinical_data_spear_train, clinical_test = clinical_data_spear_test)
+
+saveRDS(convalescent_imputed, "/scratch/data-fullcohort/spear/convalescent_preprocessed_data/convalescent_preprocessed_imputed_data.rds")
+```
+
+# Tools versions
+
+```{r}
+sessionInfo()
+```
+

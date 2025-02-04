@@ -1,0 +1,683 @@
+---
+title: "Clinical features association analysis"
+author: "Gisela Gabernet (gisela.gabernet@yale.edu)"
+subtitle: PGX, SO, PMG, PPT, PPG, BCT
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+params:
+  results_dir: "associate_clinical_features/"
+  spear_object: "/scratch/data-fullcohort/spear_model/results/020624/032124_spearphysical_finalscores_allsamples.rds"
+  partition: "all"
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r}
+library(data.table)
+#install.packages("RColorBrewer")
+library(RColorBrewer)
+library(ggplot2)
+library(tidyverse)
+#install.packages("psych")
+library(psych)
+library(dplyr)
+# Additional libraries for mixed effect models
+#BiocManager::install("qvalue")
+library(qvalue)
+library(lme4)
+library(ordinal)
+library(nlme)
+library(gamm4)
+library(mgcv)
+library(ggsignif)
+library(kableExtra)
+library(corrplot)
+library(ggeffects)
+library(ggfortify)
+library(grid)
+library(pheatmap)
+
+#install.packages("ggvenn")
+library(ggvenn)
+
+#install.packages("msigdbr")
+library(msigdbr)
+
+knitr::opts_chunk$set(warning = F, message=F)
+
+print_kable <- function(table, kable_height = "500px", kable_width = "100%") {
+  kable(table, digits=3) %>%
+    kable_styling("striped") #%>%
+    #scroll_box(height = kable_height, width = kable_width)
+  
+}
+
+# save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
+#    stopifnot(!missing(x))
+#    stopifnot(!missing(filename))
+#    pdf(filename, width=width, height=height)
+#    grid::grid.newpage()
+#    grid::grid.draw(x$gtable)
+#    dev.off()
+# }
+
+```
+
+# Running parameters
+
+Running with parameters:
+- features:
+  - spear: get spear top features with joint probability >0.95
+  - hallmark: get core set from hallmark heme metabolism pathway
+- partition:
+  - all: use all data for association
+  - test: use the test dataset for association (with and without PROMIS PHY values)
+  - PRO_PHY_NA_TEST: use all test dataset for association (with and without PROMIS PHY values, and the train dataset without PROMIS PHY values available)
+- Spear object: spear object containing factor scores, and joint probabilities for extracting features.
+- results_dir: name of results dir, will be created.
+
+Example command to execute using an R script:
+
+```{r eval=F}
+# rmarkdown::render("associate_top_spear_features.Rmd",
+#                   output_file="associate_top_spear_features_promis_physical_Factor1.html",
+#                   params=list(
+#                     results_dir = "associate_top_spear_features_promis_physical_Factor1/",
+#                     spear_object = "/scratch/data-fullcohort/spear_model/results/factor_scores/031124_spearphysical_finalscores.rds",
+#                     partition = "all",
+#                     features = "spear"
+#                   ))
+```
+
+
+# Explore Spear results
+
+## Explore Feature correlation and variance explained
+
+```{r fig.height=5, fig.width=10}
+
+spear_object <- readRDS(params$spear_object)
+
+
+#results_dir <- "./associate_spear_factor_promis_physical_train/"
+results_dir <- params$results_dir
+dir.create(results_dir)
+
+figures_dir <- "./Figures_associate_clinical_features"
+dir.create(figures_dir)
+
+
+path_to_codebase <- "~/repos/impacc-full-cohort/Analysis/IMPACC_data_analysis_codebase.R"
+source(path_to_codebase)
+
+#selected_factor_name <- "Factor1"
+```
+
+
+## Get clinical data
+
+```{r}
+data_env_train <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_train_Feb_11_2024.RDS")
+clinical_data_train <- data_env_train$clinical_data
+data_env_test <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_test_Feb_11_2024.RDS")
+clinical_data_test <- data_env_test$clinical_data
+
+clinical_data_all <- bind_rows(clinical_data_train, clinical_data_test)
+
+# Load clinical data (acute phase)
+data_env_acute_train <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_acute_data_env_train_Mar_23_2024.RDS")
+clinical_data_acute_train <- data_env_acute_train$clinical_data
+data_env_acute_test <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_acute_data_env_test_Mar_23_2024.RDS")
+clinical_data_acute_test <- data_env_acute_test$clinical_data
+
+clinical_data_acute_all <- bind_rows(clinical_data_acute_train, clinical_data_acute_test)
+
+# Add additional symptom groups to metadata
+symptom_groups <- read_csv("/scratch/clinical/current/impacc_conv_symptoms.csv", show_col_types = F)
+PRO_scores <- read_csv("/scratch/clinical/current/PRO_scores_dates_updated_29Aug23.csv", show_col_types = F)
+
+
+
+```
+
+# Associate all clinical features with the recovery factor
+
+```{r}
+factor_scores <- as.data.frame(rbind(spear_object$Train, 
+                                     spear_object$TrainNoPhysical_Overlap, 
+                                     spear_object$TrainNoPhysical_NoOverlap,
+                                     spear_object$Test,
+                                     spear_object$TestNoPhysical))
+
+spear_factors <- as.data.frame(factor_scores)
+
+selected_factor_names <- c("Factor1")
+
+# Additional clinical variables
+clinical_additional <- read.csv("/scratch/data-fullcohort/clinical_data_supplements/longitudinal_multiomics_lab_clinical_supplement.csv")
+clinical_additional <- clinical_additional %>%
+  dplyr::rename(participant_id = studyid)
+
+clinical_data_filtered <- clinical_data_all %>%
+  left_join(clinical_additional %>% select(participant_id, baseline_lab_hgb, baseline_lab_ferritin, 
+                                           baseline_lab_hct, ever_nsaids, baseline_lab_bili
+  ), by = join_by(participant_id)) %>%
+  select(event_id, participant_id, sex, admit_age, discretized_admit_age_quantile, enrollment_site, 
+         race, ethnicity, bmi, baseline_sofa_score_new, los,
+         all_of(starts_with(c("comp_","comorb_","baseline_lab_"))),
+                -symptom_date, -comorb_count, -comorb_countcat, -comp_stroke, 
+         -comp_endo, -comp_othpulm,-comp_mis, ever_steroids, ever_nsaids, ever_immsupp, 
+         -symptom_chestwall, -ever_ever_esc) %>% # comp and sympweren't observed or produce errors during association
+  distinct()
+
+df_association <- factor_scores %>%
+  select(all_of(selected_factor_names)) %>%
+  rownames_to_column("event_id") %>%
+  left_join(clinical_data_filtered, by=join_by("event_id")) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate_at(vars(starts_with("comorb_")), as.factor) %>%
+  mutate_at(vars(starts_with("comp_")), as.factor) %>%
+  mutate_at(vars(starts_with("ever_")), as.factor) %>%
+  mutate_at(vars(race, ethnicity, bmi, baseline_sofa_score_new), as.factor)
+
+
+# Split columns by type
+split_df_association <- df_association %>% 
+  split.default(sapply(., class))
+
+# Access the split dataframes
+factor_df_association <- cbind(df_association[,c(selected_factor_names),drop=F],
+                               split_df_association$factor)
+numeric_df_association <- cbind(df_association[,c("event_id", "participant_id", "sex", "discretized_admit_age_quantile", "enrollment_site"),drop=F], 
+                                split_df_association$numeric, 
+                                split_df_association$integer)
+
+factor_df_association_long <- factor_df_association %>%
+  pivot_longer(-c("event_id", "participant_id", 
+                  "discretized_admit_age_quantile", 
+                  "enrollment_site", all_of(selected_factor_names))) %>%
+  left_join(df_association %>% select(event_id, sex) %>% distinct(), by = join_by("event_id"))
+
+numeric_df_association_long <- numeric_df_association %>%
+   pivot_longer(-c("event_id", "participant_id", 
+                   "sex", "discretized_admit_age_quantile", 
+                   "enrollment_site", all_of(selected_factor_names)))
+  
+```
+
+Here we will use a mixed linear model to associate features with outcomes
+
+```{r}
+
+out.p <- data.frame(matrix(nrow = 0, ncol=5))
+
+for (data in list(factor_df_association_long, numeric_df_association_long)){
+  for(active_factor in selected_factor_names){
+    for(active_name in unique(data$name)){
+      tmp <- data %>%
+        filter(name == active_name) %>%
+        filter(!is.na(value)) %>%
+        filter(value != 999)
+      
+      if(active_name == "sex"){
+        lme.formula.test <- formula(paste0(active_factor, " ~", "value + discretized_admit_age_quantile"))
+        fit <- lme(fixed = lme.formula.test,
+                   random = ~1|enrollment_site/participant_id, data = tmp)
+        tmp.coef <- fit$coefficients$fixed[2]
+        coef.note <- "Coefficient for Male Sex"
+      } else if(active_name == "admit_age"){
+        lme.formula.test <- formula(paste0(active_factor, " ~", "value + sex"))
+        fit <- lme(fixed = lme.formula.test,
+                   random = ~1|enrollment_site/participant_id, data = tmp)
+        tmp.coef <- fit$coefficients$fixed[2]
+        coef.note <- NA
+       } else {
+        lme.formula.test <- formula(paste0(active_factor, " ~", "value + sex+ discretized_admit_age_quantile"))
+        fit <- lme(fixed = lme.formula.test,
+                   random = ~1|enrollment_site/participant_id, data = tmp)
+        tmp.coef <- fit$coefficients$fixed[2]
+        coef.note <- NA
+      }
+      
+      out.p <- rbind.data.frame(out.p, data.frame("clinical_feature" = active_name,
+                                                  "Factor" = active_factor,
+                                                  "p_val" = anova(fit, type = "marginal")$`p-value`[2],
+                                                  "coefficient" =tmp.coef,
+                                                  "coefficient_notes" = coef.note))
+      rm(coef.note)
+      
+    }
+    
+  }
+}
+
+df_corr <- out.p %>%
+  mutate(adj_pval = p.adjust(as.numeric(p_val), "fdr")) %>%
+  mutate(sign = if_else(coefficient>=0, 1, -1))
+
+
+```
+
+```{r fig.height=3, fig.width=8}
+
+clin.order <- c(
+  "admit_age", "sex", "bmi", "los", "baseline_sofa_score_new", 
+  "comorb_htn", "comorb_isaric_dm", "comorb_isaric_cardiac", "comorb_isaric_ckd", "comorb_isaric_neoplasm", "comorb_neuro", "comorb_isaric_liver", "comorb_hxtrans", "comorb_eversmkvape",
+"comorb_isaric_asthma", "comorb_anyresp_noasthma", "comorb_anysubstance", "comorb_hiv2", "comorb_count",
+ "comp_anemia", "ever_steroids", "ever_nsaids", "ever_immsupp",
+"baseline_lab_hgb", "baseline_lab_hct", "baseline_lab_bili", "baseline_lab_ferritin", "baseline_crp_abn",
+"baseline_lab_cr", "baseline_lab_platelets"
+)
+
+clin.labs <- c(
+  "Age", "Sex", "BMI", "Length of hospital stay", "SOFA score",
+  "Hypertension", "Diabetes", "Chronic Cardiac Disease", "Chronic Kidney Disease", "Malignant Neoplasm", 
+  "Chronic Neurological Disorder", "Liver Disfunction/Failure", "Solid Organ/BM Transplant", "Smoking/Vaping", "Asthma", "Other Respiratory Disease", "Substance Use", "HIV",  "Comorbidity Count",
+ "Anemia", "Steroids", "NSAIDs", "Immunosupressants",
+"Hemoglobin", "Hematocrit", "Bilirubin", "Ferritin", "C-Reactive Protein", "Creatinine", "Platelets"
+)
+
+
+df_corr_filt <- df_corr %>%
+  filter(adj_pval < 0.05) %>%
+  mutate(adjpval_annot = if_else(adj_pval < 0.05, "*", ""),
+         adjpval_annot = if_else(adj_pval < 0.01, "**", adjpval_annot),
+         adjpval_annot = if_else(adj_pval < 0.001, "***", adjpval_annot),
+         signed_adjpval = sign * -log10(adj_pval + 1e-13)
+         ) %>%
+  remove_rownames()
+
+clin.order.filt <- clin.order[clin.order %in% df_corr_filt$clinical_feature]
+clin.labs.filt <- clin.labs[clin.order %in% df_corr_filt$clinical_feature]
+
+df_corr_ordered <- df_corr_filt
+df_corr_ordered$clinical_feature <- factor(df_corr_ordered$clinical_feature, levels = clin.order.filt)
+
+clinical_features <- ggplot(df_corr_ordered) +
+  geom_point(aes(x = clinical_feature, y = Factor, fill = sign * -log10(adj_pval + 1e-13), size = -log10(adj_pval + 1e-13)), shape = 21) +
+  scale_fill_gradient2(low = "darkblue", high = "darkred") +
+  coord_equal() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 270, hjust = 0, vjust = .5)) +
+  labs(fill = "Signed -log10(p-value)") +
+  guides(size = "none") +
+  scale_x_discrete(labels = clin.labs.filt, position = "top") +
+  scale_y_discrete(labels = c("Recovery factor")) +
+  xlab(NULL) +
+  ylab(NULL) +
+  theme(axis.text.x = element_text(angle = 45),
+        panel.grid = element_blank(),
+        legend.position = "bottom",
+        plot.margin = margin(r = 50, unit = "pt")) +
+  geom_vline(xintercept = c(1:54) + .5, color = "grey80", linewidth = .5) +
+  geom_hline(yintercept = c(1) + .5, color = "grey80", linewidth = .5) +
+  geom_vline(xintercept = c(4, 12, 16) + .5, linewidth = .5)
+
+saveRDS(clinical_features, file.path(figures_dir, "all_clinical_features_association.rds"))
+
+clinical_features
+```
+
+# Associate the features used in the clinical model with the recovery factor
+
+```{r}
+# Load clinical data
+
+# # Selecting clinical data from integration manuscript
+# clinical_vars <- c("sex","race", "ethnicity", "discretized_admit_age_quantile", "bmi")
+# include_vars_comorb <- c("comorb_htn", "comorb_isaric_dm", "comorb_anyresp_noasthma", "comorb_isaric_asthma", "comorb_isaric_cardiac", 
+#                          "comorb_isaric_ckd", "comorb_isaric_neoplasm", "comorb_neuro", "comorb_isaric_liver", "comorb_hxtrans", 
+#                          "comorb_hiv2", "comorb_eversmkvape", "comorb_anysubstance", "comorb_count", "comorb_countcat")
+# include_vars_baseline <- c("baseline_img_infil", "baseline_lymph_abn", "baseline_platelets_abn", "baseline_alt_abn", "baseline_cr_abn",    
+#                            "baseline_crp_abn", "baseline_ddimer_abn", "baseline_trop_abn" )
+# all_clinical_vars <- c("event_id", clinical_vars, include_vars_comorb, include_vars_baseline)
+# 
+# # Clinical data train
+# clinical_vars_train <- clinical_data_train %>%
+#   dplyr::select(all_of(all_clinical_vars)) %>%
+#   distinct() %>%
+#   column_to_rownames("event_id")
+
+
+# Read assays that are included in clinical model
+antibody_titers_acute_env <- readRDS("/scratch/data-fullcohort/batch-effects/preprocessed_assay_antibody_titers_acute_20240701.rds")
+
+nasal_viral_load_acute <- readRDS("/scratch/data-fullcohort/batch-effects/nasal_viral_load_acute_20240701.rds")
+
+#Include vars average of acute time point of SPIKE IgG titers, N1-CT viral load
+nasal_viral_load_acute_participant_mean <- nasal_viral_load_acute %>%
+  select(participant_id, event_id, N1_CT) %>%
+  pivot_longer(cols = -c(event_id, participant_id), names_to = "feature", values_to = "value") %>%
+  group_by(participant_id, feature) %>%
+  summarize(mean_value = mean(value, na.rm=T)) %>%
+  pivot_wider(id_cols = participant_id, names_from = feature, values_from = mean_value)
+
+antibody_titers_acute_participant_mean <- as.data.frame(antibody_titers_acute_env$preprocessed_data$serum_rbd_abtiters) %>%
+  select(`AUC Spike IgG`) %>%
+  rownames_to_column("sample_id") %>%
+  left_join(clinical_data_acute_all %>%
+              select(sample_id,event_id,participant_id), by = join_by(sample_id)) %>%
+  select(-c(sample_id)) %>%
+  filter(!is.na(event_id)) %>%
+  pivot_longer(cols = -c(event_id, participant_id), names_to = "feature", values_to = "value") %>%
+  group_by(participant_id, feature) %>%
+  summarize(mean_value = mean(value, na.rm=T)) %>%
+  pivot_wider(id_cols = participant_id, names_from = feature, values_from = mean_value)
+  
+
+# Selecting clinical data from subtyping manuscript
+clinical_vars_subtyping <- c("sex","discretized_admit_age_quantile", "admit_age", "bmi", "los", "baseline_sofa_score_new", "enrollment_site")
+include_vars_comorb_subtyping <- c("comorb_htn", "comorb_isaric_dm", "comorb_anyresp_noasthma", "comorb_isaric_asthma", "comorb_isaric_cardiac", 
+                         "comorb_isaric_ckd", "comorb_isaric_neoplasm", "comorb_neuro", "comorb_isaric_liver", "comorb_hxtrans", 
+                         "comorb_hiv2", "comorb_eversmkvape", "comorb_anysubstance", "comorb_count")
+
+all_clinical_vars_subtyping <- c("event_id", clinical_vars_subtyping, include_vars_comorb_subtyping)
+
+# Clinical data train
+clinical_vars_subtyping_train <- clinical_data_all %>%
+  dplyr::select(all_of(all_clinical_vars_subtyping), participant_id) %>%
+  distinct() %>%
+  left_join(nasal_viral_load_acute_participant_mean, by=join_by(participant_id)) %>%
+  left_join(antibody_titers_acute_participant_mean, by=join_by(participant_id)) %>%
+  select(-participant_id) %>%
+  distinct() %>%
+  column_to_rownames("event_id")
+
+# Additional clinical variables
+clinical_additional <- read.csv("/scratch/data-fullcohort/clinical_data_supplements/longitudinal_multiomics_lab_clinical_supplement.csv")
+clinical_additional <- clinical_additional %>%
+  dplyr::rename(participant_id = studyid)
+
+clinical_vars_additional <- clinical_data_all %>%
+  select(event_id, participant_id, baseline_crp_abn, comp_anemia, ever_steroids) %>%
+  distinct() %>%
+  left_join(clinical_additional %>% select(participant_id, baseline_lab_hgb, baseline_lab_ferritin, 
+                                           baseline_lab_hct, ever_nsaids, baseline_lab_bili
+  ), by = join_by(participant_id))
+
+clinical_subtyping_with_additional <- as.data.frame(clinical_vars_subtyping_train) %>%
+  rownames_to_column("event_id") %>%
+  left_join(clinical_vars_additional, by=join_by("event_id"))
+
+```
+
+### Association clinical variables subtyping with additional
+```{r}
+
+factor_scores <- as.data.frame(rbind(spear_object$Train, 
+                                     spear_object$TrainNoPhysical_Overlap, 
+                                     spear_object$TrainNoPhysical_NoOverlap,
+                                     spear_object$Test,
+                                     spear_object$TestNoPhysical))
+
+spear_factors <- as.data.frame(factor_scores)
+
+selected_factor_names <- c("Factor1")
+
+df_association <- factor_scores %>%
+  select(all_of(selected_factor_names)) %>%
+  rownames_to_column("event_id") %>%
+  left_join(clinical_subtyping_with_additional, by=join_by("event_id")) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate_at(vars(starts_with("comorb_")), as.factor) %>%
+  mutate_at(vars(starts_with("comp_")), as.factor) %>%
+  mutate_at(vars(starts_with("ever_")), as.factor) 
+
+
+# Split columns by type
+split_df_association <- df_association %>% 
+  split.default(sapply(., class))
+
+# Access the split dataframes
+factor_df_association <- cbind(df_association[,c(selected_factor_names),drop=F],
+                               split_df_association$factor)
+numeric_df_association <- cbind(df_association[,c("event_id", "participant_id", "sex", "discretized_admit_age_quantile", "enrollment_site"),drop=F], 
+                                split_df_association$numeric, 
+                                split_df_association$integer)
+
+factor_df_association_long <- factor_df_association %>%
+  pivot_longer(-c("event_id", "participant_id", 
+                  "discretized_admit_age_quantile", 
+                  "enrollment_site", all_of(selected_factor_names))) %>%
+  left_join(df_association %>% select(event_id, sex) %>% distinct(), by = join_by("event_id"))
+
+numeric_df_association_long <- numeric_df_association %>%
+   pivot_longer(-c("event_id", "participant_id", 
+                   "sex", "discretized_admit_age_quantile", 
+                   "enrollment_site", all_of(selected_factor_names)))
+  
+```
+
+Here we will use a mixed linear model to associate features with outcomes
+
+```{r}
+
+out.p <- data.frame(matrix(nrow = 0, ncol=5))
+
+for (data in list(factor_df_association_long, numeric_df_association_long)){
+  for(active_factor in selected_factor_names){
+    for(active_name in unique(data$name)){
+      tmp <- data %>%
+        filter(name == active_name) %>%
+        filter(!is.na(value))
+      
+      if(active_name == "sex"){
+        lme.formula.test <- formula(paste0(active_factor, " ~", "value + discretized_admit_age_quantile"))
+        fit <- lme(fixed = lme.formula.test,
+                   random = ~1|enrollment_site/participant_id, data = tmp)
+        tmp.coef <- fit$coefficients$fixed[2]
+        coef.note <- "Coefficient for Male Sex"
+      } else if(active_name == "admit_age"){
+        lme.formula.test <- formula(paste0(active_factor, " ~", "value + sex"))
+        fit <- lme(fixed = lme.formula.test,
+                   random = ~1|enrollment_site/participant_id, data = tmp)
+        tmp.coef <- fit$coefficients$fixed[2]
+        coef.note <- NA
+       } else {
+        lme.formula.test <- formula(paste0(active_factor, " ~", "value + sex+ discretized_admit_age_quantile"))
+        fit <- lme(fixed = lme.formula.test,
+                   random = ~1|enrollment_site/participant_id, data = tmp)
+        tmp.coef <- fit$coefficients$fixed[2]
+        coef.note <- NA
+      }
+      
+      out.p <- rbind.data.frame(out.p, data.frame("clinical_feature" = active_name,
+                                                  "Factor" = active_factor,
+                                                  "p_val" = anova(fit, type = "marginal")$`p-value`[2],
+                                                  "coefficient" =tmp.coef,
+                                                  "coefficient_notes" = coef.note))
+      rm(coef.note)
+      
+    }
+    
+  }
+}
+
+df_corr <- out.p %>%
+  mutate(adj_pval = p.adjust(as.numeric(p_val), "fdr")) %>%
+  mutate(sign = if_else(coefficient>=0, 1, -1))
+
+
+```
+
+```{r fig.height=3, fig.width=8}
+
+all_vars_subtyping <- c(clinical_vars_subtyping, include_vars_comorb_subtyping, "N1_CT", "AUC Spike IgG")
+
+df_corr_subtyping <- df_corr %>% filter(clinical_feature %in% all_vars_subtyping)
+
+clin.order <- c(
+  "admit_age", "sex", "bmi", "los", "baseline_sofa_score_new", 
+  "comorb_htn", "comorb_isaric_dm", "comorb_isaric_cardiac", "comorb_isaric_ckd", "comorb_isaric_neoplasm", "comorb_neuro", "comorb_isaric_liver", "comorb_hxtrans", "comorb_eversmkvape",
+"comorb_isaric_asthma", "comorb_anyresp_noasthma", "comorb_anysubstance", "comorb_hiv2", "comorb_count",
+"N1_CT",  "AUC Spike IgG"
+)
+
+clin.labs <- c(
+  "Age", "Sex", "BMI", "Length of hospital stay", "SOFA score",
+  "Hypertension", "Diabetes", "Chronic Cardiac Disease", "Chronic Kidney Disease", "Malignant Neoplasm", "Chronic Neurological Disorder", "Liver Disfunction/Failure", "Solid Organ/BM Transplant", "Smoking/Vaping", "Asthma", "Other Respiratory Disease", "Substance Use", "HIV",  "Comorbidity Count",
+  "N1 CT", "Spike IgG titer"
+)
+
+df_corr_subtyping <- df_corr_subtyping %>%
+  mutate(adjpval_annot = if_else(adj_pval < 0.05, "*", ""),
+         adjpval_annot = if_else(adj_pval < 0.01, "**", adjpval_annot),
+         adjpval_annot = if_else(adj_pval < 0.001, "***", adjpval_annot),
+         signed_adjpval = sign * -log10(adj_pval + 1e-13)
+         ) %>%
+  remove_rownames() %>%
+  column_to_rownames("clinical_feature")
+
+df_corr_ordered <- df_corr_subtyping[clin.order, ]
+
+
+heatmap1 <- ComplexHeatmap::pheatmap(t(as.matrix(df_corr_ordered[,"signed_adjpval"])),
+        column_names_side = c("top"),
+        row_names_side = c("left"),
+        angle_col = "45",
+         cellwidth = 15,
+         cellheight = 15,
+         display_numbers = t(as.matrix(df_corr_ordered[,"adjpval_annot"])),
+         fontsize_number = 10,
+         fontsize = 8,
+         number_color = "black",
+         cluster_rows = F, 
+         cluster_cols = F,
+         labels_col = clin.labs,
+         labels_row = c("Recovery factor"),
+         show_rownames = T,
+         color = colorRampPalette(c("darkblue", "white", "darkred"))(100),
+         #breaks = breaklist,
+        gaps_col = c(5, 19),
+        heatmap_legend_param = list(
+        title = "Signed -log10 adj. p",
+        direction = "horizontal",
+        position = "bottom"
+        ))
+p1 <- draw(heatmap1, heatmap_legend_side = "bottom")
+
+# clinical_features <- ggplot(df_corr) +
+#   geom_point(aes(x = clinical_feature, y = Factor, fill = sign * -log10(adj_pval + 1e-13), size = -log10(adj_pval + 1e-13)), shape = 21) +
+#   scale_fill_gradient2(low = "darkblue", high = "darkred") +
+#   coord_equal() +
+#   theme_bw() +
+#   theme(axis.text.x = element_text(angle = 270, hjust = 0, vjust = .5)) +
+#   labs(fill = "Signed -log10(p-value)") +
+#   guides(size = "none") +
+#   scale_x_discrete(labels = clin.labs, position = "top") +
+#   scale_y_discrete(labels = c("Recovery factor")) +
+#   xlab(NULL) +
+#   ylab(NULL) +
+#   theme(axis.text.x = element_text(angle = 45),
+#         panel.grid = element_blank(),
+#         legend.position = "bottom",
+#         plot.margin = margin(r = 50, unit = "pt")) +
+#   geom_vline(xintercept = c(1:54) + .5, color = "grey80", size = .5) +
+#   geom_hline(yintercept = c(1) + .5, color = "grey80", size = .5) +
+#   geom_vline(xintercept = c(2, 16, 22) + .5, size = .5)
+
+saveRDS(p1, file.path(figures_dir, "clinical_subtyping_features_association.rds"))
+```
+
+```{r fig.height=3, fig.width=8}
+
+
+df_corr_subtyping_additional <- df_corr
+
+# clin.order.subtyping.additional <- c(
+#   "admit_age", "sex", "comorb_htn", "comorb_isaric_dm", "comorb_isaric_cardiac", "comorb_isaric_ckd", "comorb_isaric_neoplasm", "comorb_neuro", "comorb_isaric_liver", "comorb_hxtrans", "comorb_eversmkvape",
+# "comorb_isaric_asthma", "comorb_anyresp_noasthma", "comorb_anysubstance", "comorb_hiv2", "comorb_count",
+# "bmi", "los", "baseline_sofa_score_new", "comp_anemia", "ever_steroids", "ever_nsaids",
+# "baseline_lab_hgb", "baseline_lab_hct", "baseline_lab_bili", "baseline_lab_ferritin", "baseline_crp_abn"
+# )
+# 
+# clin.labs.subtyping.additional <- c(
+#   "Age", "Sex", 
+#   "Hypertension", "Diabetes", "Chronic Cardiac Disease", "Chronic Kidney Disease", "Malignant Neoplasm", "Chronic Neurological Disorder", "Liver Disfunction/Failure", "Solid Organ/BM Transplant", "Smoking/Vaping", "Asthma", "Other Respiratory Disease", "Substance Use", "HIV",  "Comorbidity Count", 
+# "BMI", "Length of hospital stay", "SOFA score", "Anemia", "Steroids", "NSAIDs",
+# "Hemoglobin", "Hematocrit", "Bilirubin", "Ferritin", "C-Reactive Protein"
+# )
+
+clin.order <- c(
+  "admit_age", "sex", "bmi", 
+  "los", "baseline_sofa_score_new", 
+  "comorb_htn", "comorb_isaric_dm", "comorb_isaric_cardiac", "comorb_isaric_ckd", "comorb_isaric_neoplasm", "comorb_neuro", "comorb_isaric_liver", "comorb_hxtrans", "comorb_eversmkvape",
+"comorb_isaric_asthma", "comorb_anyresp_noasthma", "comorb_anysubstance", "comorb_hiv2", "comorb_count", 
+"N1_CT", "AUC Spike IgG",
+"comp_anemia", "ever_steroids", "ever_nsaids", "baseline_lab_hgb", "baseline_lab_hct", "baseline_lab_bili", "baseline_lab_ferritin", "baseline_crp_abn"
+)
+
+clin.labs <- c(
+  "Age", "Sex", "BMI", "Length of hospital stay", "SOFA score",
+  "Hypertension", "Diabetes", "Chronic Cardiac Disease", "Chronic Kidney Disease", "Malignant Neoplasm", "Chronic Neurological Disorder", "Liver Disfunction/Failure", "Solid Organ/BM Transplant", "Smoking/Vaping", "Asthma", "Other Respiratory Disease", "Substance Use", "HIV",  "Comorbidity Count",
+"N1 CT", "Spike IgG titer",
+"Anemia", "Steroids", "NSAIDs", "Hemoglobin", "Hematocrit", "Bilirubin", "Ferritin", "C-Reactive Protein"
+)
+
+df_corr_subtyping_additional <- df_corr_subtyping_additional %>%
+  mutate(adjpval_annot = if_else(adj_pval < 0.05, "*", ""),
+         adjpval_annot = if_else(adj_pval < 0.01, "**", adjpval_annot),
+         adjpval_annot = if_else(adj_pval < 0.001, "***", adjpval_annot),
+         signed_adjpval = sign * -log10(adj_pval + 1e-13)
+         ) %>%
+  remove_rownames() %>%
+  column_to_rownames("clinical_feature")
+
+df_corr_ordered <- df_corr_subtyping_additional[clin.order, ]
+
+
+heatmap1 <- ComplexHeatmap::pheatmap(t(as.matrix(df_corr_ordered[,"signed_adjpval"])),
+        column_names_side = c("top"),
+        row_names_side = c("left"),
+        angle_col = "45",
+         cellwidth = 15,
+         cellheight = 15,
+         display_numbers = t(as.matrix(df_corr_ordered[,"adjpval_annot"])),
+         fontsize_number = 10,
+         fontsize = 8,
+         number_color = "black",
+         cluster_rows = F, 
+         cluster_cols = F,
+         labels_col = clin.labs,
+         labels_row = c("Recovery factor"),
+         show_rownames = T,
+         color = colorRampPalette(c("darkblue", "white", "darkred"))(100),
+         #breaks = breaklist,
+        gaps_col = c(5, 19, 21),
+        heatmap_legend_param = list(
+        title = "Signed -log10 adj. p",
+        direction = "horizontal",
+        position = "bottom"
+        ))
+p1 <- draw(heatmap1, heatmap_legend_side = "bottom")
+# clinical_features <- ggplot(df_corr) +
+#   geom_point(aes(x = clinical_feature, y = Factor, fill = sign * -log10(adj_pval + 1e-13), size = -log10(adj_pval + 1e-13)), shape = 21) +
+#   scale_fill_gradient2(low = "darkblue", high = "darkred") +
+#   coord_equal() +
+#   theme_bw() +
+#   theme(axis.text.x = element_text(angle = 270, hjust = 0, vjust = .5)) +
+#   labs(fill = "Signed -log10(p-value)") +
+#   guides(size = "none") +
+#   scale_x_discrete(labels = clin.labs, position = "top") +
+#   scale_y_discrete(labels = c("Recovery factor")) +
+#   xlab(NULL) +
+#   ylab(NULL) +
+#   theme(axis.text.x = element_text(angle = 45),
+#         panel.grid = element_blank(),
+#         legend.position = "bottom",
+#         plot.margin = margin(r = 50, unit = "pt")) +
+#   geom_vline(xintercept = c(1:54) + .5, color = "grey80", size = .5) +
+#   geom_hline(yintercept = c(1) + .5, color = "grey80", size = .5) +
+#   geom_vline(xintercept = c(2, 16, 22) + .5, size = .5)
+
+saveRDS(p1, file.path(figures_dir, "clinical_subtyping_additional_features_association.rds"))
+```

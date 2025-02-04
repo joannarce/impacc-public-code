@@ -1,0 +1,538 @@
+---
+title: "MOFA analysis"
+author: "Gisela Gabernet (gisela.gabernet@yale.edu)"
+subtitle: "PGX, SO, PMG, PPT, PPG, BCT"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+params:
+  spear_object: "/scratch/data-fullcohort/spear_model/results/020624/032124_spearphysical_finalscores_allsamples.rds"
+  results_dir: "enrichment_spear_factors_promis_physical_Factor1/"
+---
+
+```{r}
+
+packages <- c("data.table", "RColorBrewer", "ggplot2", "tidyverse", "psych", "qvalue", "lme4", "ordinal", "nlme", "gamm4", "mgcv", "ggsignif", "kableExtra", "corrplot", "ggeffects", "ggfortify", "grid", "car", "rstatix", "ggpubr", "BiocManager", "stringr", "pheatmap", "ggbeeswarm", "ggvenn", "msigdbr")
+
+new_pkg <- packages[!(packages %in% installed.packages())]
+if (length(new_pkg)>0) {install.packages(new_pkg)}
+
+# list (and install if needed) Bioconductor packages
+packages_bioconductor <- c("qvalue", "MOFA2", "enrichplot", "clusterProfiler")
+new_pkg_bioconductor <- packages_bioconductor[!(packages_bioconductor %in% installed.packages())]
+if (length(new_pkg_bioconductor)>0) {BiocManager::install(new_pkg_bioconductor)}
+
+# load packages
+# load packages
+packages <- sort(append(packages, packages_bioconductor)) # so the list of versions will be in order
+for (n in seq_along(packages)) {
+  suppressPackageStartupMessages(library(packages[n], character.only = TRUE))
+  cat(paste0(packages[n], ": ", packageVersion(packages[n]), "\n")) # print simplified package versions
+}
+
+theme_set(theme_bw())
+
+set.seed = 42
+
+figures_dir <- "Figures_factor_enrichment_analysis"
+dir.create(figures_dir)
+
+```
+
+# Explore Spear Factor results
+
+## Explore Factor correlation and variance explained
+
+```{r fig.height=5, fig.width=10}
+# Read object from file
+spear_object <- readRDS(params$spear_object)
+
+spear_weights <- spear_object$analyte.scores
+
+data_env <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_train_Feb_11_2024.RDS")
+
+intermediate_results_outdir = params$results_dir
+
+dir.create(intermediate_results_outdir)
+
+
+selected_factors_names <- "Factor1"
+number_selected_factors <- n_distinct(selected_factors_names)
+```
+
+## Transform spear object to needed shape
+
+```{r}
+spear_weights_list <- list()
+for (assay in unique(spear_weights$Assay)){
+  spear_weights_assay <- spear_weights %>% 
+                            dplyr::filter(Assay==assay) %>%
+                            dplyr::select(!c(joint.probability, Assay)) %>%
+                            tidyr::pivot_wider(id_cols=Analyte, 
+                                               names_from = Factor,
+                                               values_from = projection.coefficient) %>%
+                            column_to_rownames("Analyte")
+  spear_weights_list[[assay]] <- as.matrix(spear_weights_assay)
+}
+```
+
+# Factor enrichment analysis
+
+## Functions for enrichment
+```{r }
+enrichment_aggregation1 = function(pos_list, neg_list = NULL, thr = 0.2, type = "mhg"){
+  pathway_names = c()
+  max_list = list()
+  if( type == "gsea"){
+    for(j in 1:length(pos_list)){
+    pos_list[[j]] =pos_list[[j]]@result
+    }
+  }
+  for(j in 1:length(pos_list)){
+    rownames(pos_list[[j]]) = pos_list[[j]]$ID
+    pathway_names=c( pathway_names,pos_list[[j]]$ID, neg_list[[j]]$ID)
+    if(!is.null(neg_list)){
+      rownames(neg_list[[j]]) = neg_list[[j]]$ID
+    }
+    pathway_names=c( pathway_names,neg_list[[j]]$ID)
+    
+  }
+  pathway_names = unique(  pathway_names)
+  for(j in 1:length(pos_list)){
+    mat0 =  pos_list[[j]]
+    if(!is.null(neg_list)){
+      mat0$sign = "+"
+      mat1 = neg_list[[j]]
+      for(l in 1:nrow( mat0)){
+        p0 = mat0$ID[l]
+        l1 = which(mat1$ID==p0)
+        if(mat1$pvalue[l1]<(mat0$pvalue[l])){
+          mat0[l,1:ncol(mat1)] = mat1[l1,]
+          mat0$sign[l] = "-"
+        }
+      }
+      #mat0$pvalue =mat0$pvalue*2
+      mat0$pvalue=ifelse(mat0$pvalue>1.0,1.0, mat0$pvalue)
+    }else if(type == "gsea"){
+      mat0$sign = mat0$NES
+    }
+    
+    max_list[[j]] = mat0
+    max_list[[j]] =  max_list[[j]][order( max_list[[j]]$pvalue),]
+    max_list[[j]]$p.adj = p.adjust(max_list[[j]]$pvalue, method = "BH")
+  }
+  names( max_list) = names(pos_list)
+  pval_mat = matrix(NA, ncol = length(pos_list), nrow = length(pathway_names))
+  direction_mat = matrix(NA, ncol = length(pos_list), nrow = length(pathway_names))
+  for(l in 1:length(pathway_names)){
+    p0 = pathway_names[l]
+    for(j in 1:length(max_list)){
+      mat0 = max_list[[j]]
+      j0 = which(rownames(mat0) == p0)
+      if(length(j0)>0){
+        pval0 = mat0$pvalue[j0]
+        pval_mat[l,j] = pval0
+        if(!is.null(mat0$sign)){
+          direction_mat[l,j]=mat0$sign[j0]
+        }
+      }
+    }
+  }
+  pval_mat = data.frame(pval_mat)
+  rownames(pval_mat) = pathway_names
+  colnames(pval_mat) = names(pos_list)
+  direction_mat = data.frame(direction_mat)
+  rownames(direction_mat) = pathway_names
+  colnames(direction_mat) = names(pos_list)
+  pval_mat_rd = pval_mat
+  pval_mat_rd[is.na(pval_mat_rd)] = -1
+  pval_mat_rd[pval_mat_rd>thr] = (thr+1.0)/2
+  pval_mat_rd[pval_mat_rd == -1] = NA
+  pval_tan = tan((0.5- pval_mat_rd) * pi)
+  pval_combine = apply(pval_tan,1,mean, na.rm = T)
+  pval_combine = pcauchy(pval_combine, location = 0, scale = 1, lower.tail = F, log.p = F)
+  pval_combine[is.na(pval_combine)] = 1.0
+  pval_mat$joint = pval_combine
+  pval_mat$joint_adj = p.adjust(pval_mat$joint,method = "BH")
+  return(list(max_list = max_list, pval_mat=pval_mat, direction_mat = direction_mat))
+  
+}
+
+```
+
+## Venn diagram of gene lists
+```{r }
+omics_used = c(
+  "SO" = "serum_olink",
+  "PPT" = "plasma_proteomics_targeted",
+  "PPG" = "plasma_proteomics_global_dda",
+  "PMG" = "plasma_metabolomics_global",
+  "PGX" = "pbmc_transcriptomics",
+  #"NGX" = "nasal_transcriptomics",
+  "BCT" = "blood_cytof"
+)
+omic_short_names = names(omics_used) %>% setNames(omics_used)
+
+# BCT pathways 
+# Get BCT feature names translation
+orig_BCT_names <- as.data.frame(read.table("/scratch/data-fullcohort/spear/imputed_data_MOFA_train_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212/spear_data_MOFA_train_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212_BCT.csv",             
+           head = FALSE,
+           nrows = 1,
+           sep = ",")) %>%
+          column_to_rownames("V1")
+orig_BCT_names_vec <- t(orig_BCT_names)
+
+mod_BCT_names <- colnames(read.csv("/scratch/data-fullcohort/spear/imputed_data_MOFA_train_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212/spear_data_MOFA_train_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212_BCT.csv",header = T))
+mod_BCT_names_unique <- make.unique(mod_BCT_names[2:length(mod_BCT_names)])
+
+BCT_names_translation <- data.frame(original=orig_BCT_names_vec, translated=mod_BCT_names_unique)
+
+# Read BCT set object
+BCT_database <- readRDS(file = "/scratch/data-fullcohort/enrichment/dbs/custom_Tcell_activation_BCT_pathways_orignames.Rds")
+
+# Kegg database copied from: "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds"
+kegg_database = readRDS(file = "/scratch/data-fullcohort/enrichment/dbs/kegg0522.rds")
+names(kegg_database) <- c("PPT", "PPG", "SO", "PMG", "PGX")
+
+# Hallmark database copied from: "/scratch/data-integration/pipelines/Interpretation/remapped_databases/hallmark0522.rds"
+hallmark_database = readRDS( file = "/scratch/data-fullcohort/enrichment/dbs/hallmark0522.rds")
+names(hallmark_database) <- c("PPT", "PPG", "SO", "PGX")
+
+# HPO databse downloaded from MSigDB resource on Nov 9 2024
+wp_database_gmt = clusterProfiler::read.gmt("/scratch/data-fullcohort/enrichment/c2.cp.wikipathways.v2024.1.Hs.symbols.gmt")
+colnames(wp_database_gmt) <- c("description", "gene_name")
+
+wp_database <- list(PPT = wp_database_gmt,
+                     PPG = wp_database_gmt,
+                     PGX = wp_database_gmt,
+                     SO = wp_database_gmt)
+
+metabolite_row_DF = data_env$plasma_metabolomics_global_rowfeature
+subpath_databse = list()
+subpath_databse[["PMG"]] = data.frame(description =metabolite_row_DF[["SUB_PATHWAY"]],
+                                      CHEMICAL_NAME = metabolite_row_DF[["CHEMICAL_NAME"]])
+
+metabolomics_translate <- data.frame(metabolite_id = row.names(metabolite_row_DF),
+                                     CHEMICAL_NAME = metabolite_row_DF[["CHEMICAL_NAME"]])
+```
+
+```{r}
+gene_ensembl_PGX <- data_env$pbmc_transcriptomics_rowfeature %>%
+                    rownames_to_column("ensembl_gene_id") %>%
+                    dplyr::select(ensembl_gene_id, gene_name)
+
+PGX_gene_name <- as.data.frame(spear_weights_list[["PGX"]]) %>%
+                  rownames_to_column("ensembl_gene_id") %>%
+                  inner_join(gene_ensembl_PGX, by=c("ensembl_gene_id")) %>%
+                  dplyr::select(-ensembl_gene_id) %>%
+                  column_to_rownames("gene_name")
+
+spear_weights_list[["PGX"]] <- as.matrix(PGX_gene_name)
+
+PMG_metabolite_name <- as.data.frame(spear_weights_list[["PMG"]]) %>%
+                        rownames_to_column("metabolite_id") %>%
+                        inner_join(metabolomics_translate, by=c("metabolite_id")) %>%
+                        dplyr::select(-metabolite_id) %>%
+                        column_to_rownames("CHEMICAL_NAME")
+spear_weights_list[["PMG"]] <- as.matrix(PMG_metabolite_name)
+
+BCT_analyte_name <- as.data.frame(spear_weights_list[["BCT"]]) %>%
+                    rownames_to_column("analyte_id") %>%
+                    left_join(BCT_names_translation, by=join_by(analyte_id == translated)) %>%
+                    dplyr::select(-analyte_id) %>%
+                    column_to_rownames("Features")
+spear_weights_list[["BCT"]] <- as.matrix(BCT_analyte_name)
+```
+
+Venn diagram gene intersects per omics
+
+```{r}
+for (omic in c("SO",  "PPT", "PPG", "PGX")){
+
+  genes_weights <- row.names(spear_weights_list[[omic]])
+  
+  
+  ppt_genes <- list( analytes = genes_weights,
+                   Hallmark = unique(hallmark_database[[omic]]$gene_name),
+                   KEGG = unique(kegg_database[[omic]]$gene_name),
+                   WP = unique(wp_database[[omic]]$gene_name))
+
+  vennplot <- ggvenn(ppt_genes,
+         fill_color = c("#0073C2FF", "#EFC000FF", "#CD534CFF", "lightgreen"),
+         set_name_size = 3,
+         show_percentage = F,
+         text_size = 5
+         ) +
+    ggtitle(omic)
+  print(vennplot)
+  ggsave(filename = paste0(intermediate_results_outdir, "venn_",omic,".pdf"), plot = vennplot, device = "pdf")
+}
+
+for (omic in c("PMG")){
+  genes_weights <- row.names(spear_weights_list[[omic]])
+  
+  
+  ppt_genes <- list( analytes = genes_weights,
+                   KEGG = unique(kegg_database[[omic]]$CHEMICAL_NAME),
+                   subpath = unique(subpath_databse[[omic]]$CHEMICAL_NAME))
+
+  vennplot <- ggvenn(ppt_genes,
+         fill_color = c("#0073C2FF", "#EFC000FF", "#CD534CFF"),
+         set_name_size = 3,
+         show_percentage = F,
+         text_size = 5
+         ) +
+    ggtitle(omic)
+  print(vennplot)
+  ggsave(filename = paste0(intermediate_results_outdir, "venn_",omic,".pdf"), plot = vennplot, device = "pdf")
+}
+
+for (omic in c("BCT")){
+  genes_weights <- row.names(spear_weights_list[[omic]])
+  
+  bct_analytes <- list(analytes = genes_weights,
+                       Custom_pathways = unique(BCT_database[[omic]]$gene_name))
+  vennplot <- ggvenn(bct_analytes, fill_color = c("#0073C2FF", "#EFC000FF"),
+                     set_name_size = 2,
+                     show_percentage = F,
+                     text_size = 5) + ggtitle(omic)
+  print(vennplot)
+  ggsave(filename = paste0(intermediate_results_outdir, "venn_",omic,".pdf"), plot = vennplot, device = "pdf")
+}
+
+```
+
+
+## Enrichment with ClusterProfiler
+
+```{r enrichment}
+
+runGSEA_mofa = function(projection_coef, Term2GeneList, factor){
+    gsea_result = list()
+    for(j in 1:length(projection_coef)){
+      if(names(projection_coef)[j] %in% names(Term2GeneList)){
+        geneList = projection_coef[[j]][,factor]
+        names(geneList) = rownames(projection_coef[[j]])
+        geneList = sort(geneList, decreasing = T)
+        Term2Gene = Term2GeneList[[names(projection_coef)[j]]]
+        Term2Gene=Term2Gene[Term2Gene[,2]%in%names(geneList),]
+        gsea_result[[names(projection_coef)[j]]] = clusterProfiler::GSEA(geneList = geneList,
+                              minGSSize = 3,
+                              maxGSSize = 500,
+                              pvalueCutoff = 2,
+                              TERM2GENE = Term2Gene)
+      }
+    }
+    return(gsea_result)
+}
+
+```
+
+```{r, warning=F, message=F}
+enrichment_gsea_list = list()
+enrichment_gsea_list[["kegg"]] = list()
+enrichment_gsea_list[["hallmark"]] = list()
+enrichment_gsea_list[["subpath"]] = list()
+enrichment_gsea_list[["custom_BCT"]] = list()
+enrichment_gsea_list[["wikipathways"]] = list()
+
+for (mod_id in seq_along(selected_factors_names)){
+  factor <- selected_factors_names[mod_id]
+  print(paste0("###########################", factor, "################################"))
+  
+  print("Hallmark database")
+  #Hallmark database
+  enrichment_gsea_list[["hallmark"]][[mod_id]] <- runGSEA_mofa(spear_weights_list, hallmark_database, factor=factor)
+  lapply(seq_along(enrichment_gsea_list[["hallmark"]][[mod_id]]), 
+         function(z) write.table( enrichment_gsea_list[["hallmark"]][[mod_id]][[z]]@result,
+                                paste0(intermediate_results_outdir, "GSEA_hallmark_",
+                                       selected_factors_names[mod_id],"_",
+                                       names(enrichment_gsea_list[["hallmark"]][[mod_id]])[z],
+                                       "_results.tsv"),
+                                 row.names=F, quote=F, sep = "\t"))
+
+  print("KEGG database")
+  #KEGG
+  enrichment_gsea_list[["kegg"]][[mod_id]] <- runGSEA_mofa(spear_weights_list, kegg_database, factor=factor)
+    lapply(seq_along(enrichment_gsea_list[["kegg"]][[mod_id]]), 
+         function(z) write.table( enrichment_gsea_list[["kegg"]][[mod_id]][[z]]@result,
+                                paste0(intermediate_results_outdir, "GSEA_kegg_",
+                                       selected_factors_names[mod_id],"_",
+                                       names(enrichment_gsea_list[["kegg"]][[mod_id]])[z],"_results.tsv"),
+                                row.names=F,quote=F, sep = "\t"))
+  
+  print("Subpathway database")
+  #Subpathway
+  enrichment_gsea_list[["subpath"]][[mod_id]] <- runGSEA_mofa(spear_weights_list, subpath_databse, factor=factor)
+  lapply(seq_along(enrichment_gsea_list[["subpath"]][[mod_id]]), 
+       function(z) write.table( enrichment_gsea_list[["subpath"]][[mod_id]][[z]]@result,
+                              paste0(intermediate_results_outdir, "GSEA_subpath_",
+                                     selected_factors_names[mod_id],"_",
+                                     names(enrichment_gsea_list[["subpath"]][[mod_id]])[z],"_results.tsv"),
+                              row.names=F,quote=F, sep = "\t"))
+  
+  print("Wikipathways database")
+  #Subpathway
+  enrichment_gsea_list[["wikipathways"]][[mod_id]] <- runGSEA_mofa(spear_weights_list, wp_database, factor=factor)
+  lapply(seq_along(enrichment_gsea_list[["wikipathways"]][[mod_id]]), 
+       function(z) write.table( enrichment_gsea_list[["wikipathways"]][[mod_id]][[z]]@result,
+                              paste0(intermediate_results_outdir, "GSEA_wikipathways_",
+                                     selected_factors_names[mod_id],"_",
+                                     names(enrichment_gsea_list[["wikipathways"]][[mod_id]])[z],"_results.tsv"),
+                              row.names=F,quote=F, sep = "\t"))
+  
+  print("Custom BCT")
+  #Custom BCT
+  enrichment_gsea_list[["custom_BCT"]][[mod_id]] <- runGSEA_mofa(spear_weights_list, BCT_database, factor=factor)
+  lapply(seq_along(enrichment_gsea_list[["custom_BCT"]][[mod_id]]), 
+       function(z) write.table( enrichment_gsea_list[["custom_BCT"]][[mod_id]][[z]]@result,
+                              paste0(intermediate_results_outdir, "GSEA_customBCT_",
+                                     selected_factors_names[mod_id],"_",
+                                     names(enrichment_gsea_list[["custom_BCT"]][[mod_id]])[z],"_results.tsv"),
+                              row.names=F,quote=F, sep = "\t"))
+  
+}
+
+
+```
+
+## Aggregation across all databases
+```{r }
+aggregated_list = list()
+for(mod_id in seq_along(selected_factors_names)){
+  print(paste0("##############", mod_id, "###################"))
+  tmp0 =list()
+  tmp0[[1]] = enrichment_aggregation1(pos_list=enrichment_gsea_list[["kegg"]][[mod_id]], neg_list = NULL, thr = 0.2, type = "gsea")
+  tmp0[[2]] = enrichment_aggregation1(pos_list=enrichment_gsea_list[["hallmark"]][[mod_id]], neg_list = NULL, thr = 0.2, type = "gsea")
+  tmp0[[3]] = enrichment_aggregation1(pos_list=enrichment_gsea_list[["subpath"]][[mod_id]], neg_list = NULL, thr = 0.2, type = "gsea")
+  tmp0[[4]] = enrichment_aggregation1(pos_list = enrichment_gsea_list[["custom_BCT"]][[mod_id]], neg_list = NULL, thr = 0.2, type = "gsea")
+  tmp0[[5]] = enrichment_aggregation1(pos_list = enrichment_gsea_list[["wikipathways"]][[mod_id]], neg_list = NULL, thr = 0.2, type = "gsea")
+  tmp=list()
+  for(j in 1:5){
+    tmp0[[j]]$pval_mat = -log(tmp0[[j]]$pval_mat, base = 10)
+    tmp0[[j]]$pval_mat[,!(colnames(tmp0[[j]]$pval_mat)%in%c("joint", "joint_adj"))] =   tmp0[[j]]$pval_mat[,!(colnames(tmp0[[j]]$pval_mat)%in%c("joint", "joint_adj"))]*sign(tmp0[[j]]$direction_mat)
+    
+    tmp[[j]] = data.frame(matrix(NA, nrow = nrow(tmp0[[j]]$pval_mat), ncol = length(omic_short_names)+2))
+    colnames(tmp[[j]]) = c(omic_short_names,c("joint", "joint_adj"))
+    tmp[[j]][,colnames(tmp0[[j]]$pval_mat)] = tmp0[[j]]$pval_mat
+    tmp[[j]]$pathway = rownames(tmp0[[j]]$pval_mat)
+    rownames( tmp[[j]]) = rownames(tmp0[[j]]$pval_mat)
+  }
+  tmp[[1]]$database = "KEGG"; tmp[[2]]$database = "Hallmark"; tmp[[3]]$database = "Subpath"; tmp[[4]]$database = "custom_BCT"; tmp[[5]]$database = "WP"
+  aggregated_list[[mod_id]] = rbind(rbind(tmp[[1]],tmp[[2]]),tmp[[3]],tmp[[4]], tmp[[5]])
+  aggregated_list[[mod_id]]=aggregated_list[[mod_id]][order(-aggregated_list[[mod_id]]$joint),]
+  
+  # Filter joint p-val < 0.05 (-log10 pval > 1.3)
+  aggregated_list[[mod_id]] =  aggregated_list[[mod_id]][aggregated_list[[mod_id]]$joint_adj>1.3,]
+  print(dim(aggregated_list[[mod_id]]))
+  print(head(aggregated_list[[mod_id]][,-ncol(aggregated_list[[mod_id]])+1], n = 10))
+}
+```
+
+```{r fig.height=3, fig.width=6}
+K=80
+for (mod_id in seq_along(selected_factors_names)){
+  res_df = aggregated_list[[mod_id]]
+  if(nrow(res_df)>=80){
+    res_df=res_df[1:K,]
+  }
+  if(nrow(res_df)>0){
+    res_df = gather(res_df, key = "dataset", value = "log10.sig.val", -joint,  -pathway, -database)
+    res_df = res_df[!is.na(res_df$log10.sig.val),]
+    res_df$direction = NA
+    res_df$direction[res_df$log10.sig.val>0] = "pos"
+    res_df$direction[res_df$log10.sig.val<0] = "neg"
+    res_df$direction[res_df$dataset == "joint_adj"] = "unsigned"
+    res_df$log10.sig.val = abs(res_df$log10.sig.val)
+    thr = 0.1; plot_title = selected_factors_names[mod_id]
+    res_df$pathway = factor(res_df$pathway, levels = aggregated_list[[mod_id]]$pathway[length(aggregated_list[[mod_id]]$pathway):1])
+    # Make a plot
+    res_df$dataset = factor(res_df$dataset, levels = c(omic_short_names, "joint_adj"))
+    
+    res_df <- res_df %>%
+      dplyr::mutate(pathway = str_replace_all(pathway, "_"," "),
+              pathway = toupper(pathway))
+    
+    p = ggplot(data = res_df, aes(x = dataset, y = pathway, size=log10.sig.val, col = direction)) +
+      geom_point(color="white") + 
+      geom_point(shape=1) + 
+      geom_point(data=. %>% dplyr::filter(log10.sig.val > -log10(thr) ) ) + 
+      theme_classic() +
+      theme(panel.grid.major = element_line(color="grey", linewidth=0.1), 
+            #axis.text.x = element_text(angle=45, hjust=1),
+            axis.text = element_text(color = "black"))    + 
+      scale_color_manual(values = c("pos" ="#d00000", "neg" ="#386fa4",
+                                    "unsigned"= "black")) +
+      scale_x_discrete(limits=c(omic_short_names, "joint_adj")) +
+      labs(x="", y="", title="", color="Direction", size = "-log10 p-val")
+    print(p)
+    ggsave(paste0(intermediate_results_outdir,"gsea_",plot_title,".pdf"), plot = p, device = "pdf")
+  }
+  write.csv(res_df, paste0(intermediate_results_outdir,"gsea_",plot_title,".csv"), row.names = F, col.names = T)
+}
+
+GSEA_multiomics <- p
+```
+
+## GSEA plot
+
+```{r, fig.height=3, fig.width=5}
+
+gene_set <- enrichment_gsea_list[["hallmark"]][[1]]$PGX
+
+#title = str_replace(gene_set$Description[1], "HALLMARK_","")
+title = str_replace_all(gene_set$Description[1],"_"," ")
+
+heme <- gseaplot(gene_set, 
+         by = "runningScore",
+         color.line = "#386fa4",
+         color.vline = "gray30",
+         title = title, geneSetID = 1) +
+  theme(plot.margin = margin(0.5,0.5,0.5,0.5, "cm"),
+        plot.title = element_text(hjust = 0, size = 10)) +
+  labs(x="Gene rank", y = "Enrichment Score")
+
+heme
+
+```
+
+```{r, fig.height=3, fig.width=5}
+
+gene_set <- enrichment_gsea_list[["subpath"]][[1]]$PMG
+
+andro <- gseaplot(gene_set, 
+         by = "runningScore",
+         color.line = "#d00000",
+         color.vline = "gray30",
+         title = toupper(str_replace_all(gene_set$Description[1],"_"," ")), geneSetID = 1) +
+  theme(plot.margin = margin(0.5,0.5,0.5,0.5, "cm"), 
+        plot.title = element_text(hjust = 0, size = 10)) +
+  labs(x="Gene rank", y = "Enrichment Score")
+
+andro
+
+```
+## Fig3A
+
+```{r, fig.height=5, fig.width=7}
+GSEA  <- ggarrange(GSEA_multiomics + labs(title = "Recovery Factor GSEA") + 
+                                      theme(plot.title = element_text(hjust = 0.5, size =14),
+                                            legend.text = element_text(size = 8),
+                                            legend.title = element_text(size = 8),
+                                            axis.text.y = element_text(size =10)),
+          ggarrange(heme,andro, ncol=2, widths = c(1,1)), nrow=2, ncol = 1, 
+          heights = c(1,1), labels = c("",""))
+GSEA
+
+saveRDS(GSEA , file = file.path(figures_dir,"GSEA_analysis.rds"))
+
+```
+

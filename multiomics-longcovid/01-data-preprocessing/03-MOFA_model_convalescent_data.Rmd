@@ -1,0 +1,2266 @@
+---
+title: "MOFA analysis"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 5
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+author: Gisela Gabernet (gisela.gabernet@yale.edu)
+date: "`r format(Sys.time(), '%b %d %Y')`"
+---
+
+```{r}
+library(MOFA2)
+#library(MOFAdata)
+library(data.table)
+library(ggplot2)
+library(tidyverse)
+#install.packages("psych")
+library(psych)
+library(dplyr)
+# Additional libraries for mixed effect models
+library(tibble)
+library(qvalue)
+library(lme4)
+library(ordinal)
+library(nlme)
+library(gamm4)
+library(mgcv)
+library(ggsignif)
+library(kableExtra)
+
+print_kable <- function(table, kable_height = "500px", kable_width = "100%") {
+  kable(table, digits=3) %>%
+    kable_styling("striped") #%>%
+    #scroll_box(height = kable_height, width = kable_width)
+  
+}
+
+figures_dir <- "~/repos/impacc-full-cohort/Analysis/convalescent-project/Figures"
+dir.create(figures_dir)
+
+```
+
+
+# Read data
+
+Read stored pre-processed omics layers
+
+```{r}
+# Specify directory for saving MOFA object
+processed_files <- "/scratch/data-fullcohort/MOFA_factors/"
+
+data_env_train <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_train_Feb_11_2024.RDS")
+data_env_test <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_test_Feb_11_2024.RDS")
+data_env_all <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_all_Feb_11_2024.RDS")
+preprocessed_assays_train <- readRDS("/scratch/data-fullcohort/batch-effects/preprocessed_assays_train_Feb_11_2024.RDS")
+preprocessed_assays_test <- readRDS("/scratch/data-fullcohort/batch-effects/preprocessed_assays_test_Feb_11_2024.RDS")
+
+mofa_model_name_train <- "MOFA_train_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212.rds"
+mofa_model_name_test <- "MOFA_test_set_250_factors_SO_PPT_PPG_PMG_PGX_BCT_20240212.rds"
+
+```
+
+```{r}
+
+# Change this to the location where the Bitbucket has been cloned in your home directory (~):
+path_to_bitbucket <- "~/repos/impacc-full-cohort"
+path_to_codebase <- paste0(path_to_bitbucket,
+                           "/Analysis/IMPACC_data_analysis_codebase.R")
+
+source(path_to_codebase)
+```
+
+# Train test split evaluation
+
+```{r train-test split}
+clinical_data <- data_env_all$clinical_data %>% dplyr::select(!c(event_after_first_vaccine_dose_NA,
+                                                          event_after_first_vaccine_dose,
+                                                          event_date_relative_to_first_dose,
+                                                          event_date_relative_to_second_dose,
+                                                          event_date_relative_to_booster_dose,
+                                                          event_date_3weeks_after_first_dose,
+                                                          event_date_3weeks_after_second_dose,
+                                                          event_date_3weeks_after_booster,
+                                                          event_date_3weeks_after_dose_NA,
+                                                          event_date_3weeks_after_dose,
+                                                          date_anyfirstdose)
+                                                          )
+clinical_data_train <- data_env_train$clinical_data
+clinical_data_test <- data_env_test$clinical_data
+
+#Add vaccine data
+vaccine_data <- read.csv("~/repos/impacc-full-cohort/Analysis/convalescent-project/vaccination/Convalescent_vaccination_data_with_event_dates.csv")
+
+clinical_data <- left_join(clinical_data, vaccine_data, by=join_by("participant_id"==id))
+
+clinical_data <- clinical_data %>% 
+  rowwise() %>%
+  mutate(event_after_first_vaccine_dose_NA = 
+        dplyr::if_else(event_date >= date_anydose,
+                       "yes",
+                       "no"),
+        event_after_first_vaccine_dose = dplyr::if_else(vac_reported_corrected=="No", 
+                                                        "no", 
+                                                        event_after_first_vaccine_dose_NA),
+        event_date_relative_to_first_dose = event_date - date_anyfirstdose,
+        event_date_relative_to_second_dose = event_date - date_second_dose,
+        event_date_relative_to_booster_dose = event_date - date_booster,
+        event_date_3weeks_after_first_dose = ifelse((event_date_relative_to_first_dose >= 0 && 
+                                                       event_date_relative_to_first_dose <= 21),
+                                        1, 0),
+        event_date_3weeks_after_second_dose = ifelse((event_date_relative_to_second_dose >= 0 &&
+                                                       event_date_relative_to_second_dose <= 21),
+                                        1, 0),
+        event_date_3weeks_after_booster = ifelse((event_date_relative_to_booster_dose >= 0 &&
+                                                       event_date_relative_to_booster_dose <= 21),
+                                        1, 0),
+        event_date_3weeks_after_dose_NA = ifelse(( event_date_3weeks_after_first_dose |  event_date_3weeks_after_second_dose | event_date_3weeks_after_booster ), "yes", "no"),
+        event_date_3weeks_after_dose = ifelse(is.na(event_date_3weeks_after_dose_NA),
+                                                    ifelse(event_after_first_vaccine_dose == "no", "no", event_date_3weeks_after_dose_NA),
+                                                    event_date_3weeks_after_dose_NA),
+        event_date_3weeks_after_dose = ifelse(is.na(event_date_3weeks_after_dose),
+                                                    ifelse(vaccinated == "No", "no", event_date_3weeks_after_dose),
+                                                    event_date_3weeks_after_dose)
+        )
+
+
+event_id_train <- clinical_data %>% filter(partition == "train") %>% pull(event_id)
+train <- clinical_data %>% filter(partition == "train") %>% dplyr::select(participant_id, pro_group_labels) %>% distinct()
+event_id_test <- clinical_data %>% filter(partition == "test") %>% pull(event_id)
+test <- clinical_data %>% filter(partition == "test") %>% dplyr::select(participant_id, pro_group_labels) %>% distinct()
+
+data_env_train_event_id_train <- clinical_data_train %>% filter(partition == "train") %>% pull(event_id)
+data_env_test_event_id_test <- clinical_data_test %>% filter(partition == "test") %>% pull(event_id)
+stopifnot(unique(event_id_train) == unique(data_env_train_event_id_train))
+stopifnot(unique(event_id_test) == unique(data_env_test_event_id_test))
+```
+
+Train set (% participants per group)
+
+```{r}
+sum_train <- train %>% dplyr::group_by(pro_group_labels) %>%
+          dplyr::mutate(count = n()) %>%
+          dplyr::select(-participant_id) %>%
+          dplyr::distinct() %>%
+          dplyr::arrange(count) %>%
+          dplyr::mutate(percentage = count/nrow(train)*100)
+
+print_kable(sum_train)
+```
+
+Test set (% participants per group)
+
+```{r}
+sum_test <- test %>% dplyr::group_by(pro_group_labels) %>%
+          dplyr::mutate(count = n()) %>%
+          dplyr::select(-participant_id) %>%
+          dplyr::distinct() %>%
+          dplyr::arrange(count) %>%
+          dplyr::mutate(percentage = count/nrow(test)*100)
+
+print_kable(sum_test)
+```
+
+
+# Prepare MOFA training data
+
+## Prepare training data
+
+```{r}
+omic_name <- c()
+dim_samples <- c()
+dim_features <- c()
+
+sample_event <- clinical_data_train %>% dplyr::select(sample_id, event_id) %>% distinct()
+
+# Get list of event_ids across modalities
+pbmc_transcriptomics <- preprocessed_assays_train$preprocessed_data$pbmc_transcriptomics %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "pbmc_transcriptomics")
+dim_samples <- append(dim_samples, nrow(pbmc_transcriptomics))
+dim_features <- append(dim_features, ncol(pbmc_transcriptomics)-1)
+
+plasma_proteomics_targeted <- preprocessed_assays_train$preprocessed_data$plasma_proteomics_targeted %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+
+omic_name <- append(omic_name, "plasma_proteomics_targeted")
+dim_samples <- append(dim_samples, nrow(plasma_proteomics_targeted))
+dim_features <- append(dim_features, ncol(plasma_proteomics_targeted)-1)
+
+# Filter out features from serum olink and plasma proteomics global that are already in plasma proteomics targeted
+rm_dups_ppt <- colnames(preprocessed_assays_train$preprocessed_data$plasma_proteomics_global_dda) %in% colnames(plasma_proteomics_targeted)
+
+rm_dups_so <- colnames(preprocessed_assays_train$preprocessed_data$plasma_proteomics_global_dda) %in% colnames(preprocessed_assays_train$preprocessed_data$serum_olink)
+
+dups_names_ppt <- colnames(preprocessed_assays_train$preprocessed_data$plasma_proteomics_global_dda)[rm_dups_ppt]
+dups_names_so <- colnames(preprocessed_assays_train$preprocessed_data$plasma_proteomics_global_dda)[rm_dups_so]
+
+plasma_proteomics_global <- preprocessed_assays_train$preprocessed_data$plasma_proteomics_global_dda %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id) %>%
+                          dplyr::select(-all_of(c(dups_names_ppt, dups_names_so)))
+omic_name <- append(omic_name, "plasma_proteomics_global")
+dim_samples <- append(dim_samples, nrow(plasma_proteomics_global))
+dim_features <- append(dim_features, ncol(plasma_proteomics_global)-1)
+
+plasma_metabolomics_global <- preprocessed_assays_train$preprocessed_data$plasma_metabolomics_global %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "plasma_metabolomics_global")
+dim_samples <- append(dim_samples, nrow(plasma_metabolomics_global))
+dim_features <- append(dim_features, ncol(plasma_metabolomics_global)-1)
+
+serum_olink <- preprocessed_assays_train$preprocessed_data$serum_olink %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "serum_olink")
+dim_samples <- append(dim_samples, nrow(serum_olink))
+dim_features <- append(dim_features, ncol(serum_olink)-1)
+
+bld_msi_cytof <- preprocessed_assays_train$preprocessed_data$bld_msi_cytof %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "bld_msi_cytof")
+dim_samples <- append(dim_samples, nrow(bld_msi_cytof))
+dim_features <- append(dim_features, ncol(bld_msi_cytof)-1)
+
+all_event_ids_train <- unique(c(pbmc_transcriptomics$event_id,
+                           plasma_proteomics_targeted$event_id,
+                           plasma_proteomics_global$event_id,
+                           plasma_metabolomics_global$event_id,
+                           serum_olink$event_id,
+                            bld_msi_cytof$event_id
+                           ))
+
+all_sample_ids_train <- unique(c(row.names(preprocessed_assays_train$preprocessed_data$pbmc_transcriptomics),
+                           row.names(preprocessed_assays_train$preprocessed_data$plasma_proteomics_targeted),
+                           row.names(preprocessed_assays_train$preprocessed_data$plasma_proteomics_global),
+                           row.names(preprocessed_assays_train$preprocessed_data$plasma_metabolomics_global),
+                           row.names(preprocessed_assays_train$preprocessed_data$serum_olink),
+                           row.names(preprocessed_assays_train$bld_msi_cytof)
+                           ))
+
+pbmc_transcriptomics <- pbmc_transcriptomics %>%
+  complete(event_id = all_event_ids_train) %>% 
+  column_to_rownames("event_id")
+
+plasma_proteomics_targeted <- plasma_proteomics_targeted %>%
+  complete(event_id = all_event_ids_train) %>% 
+  column_to_rownames("event_id")
+
+plasma_proteomics_global <- plasma_proteomics_global %>%
+  complete(event_id = all_event_ids_train) %>% 
+  column_to_rownames("event_id")
+
+plasma_metabolomics_global <- plasma_metabolomics_global %>%
+  complete(event_id = all_event_ids_train) %>% 
+  column_to_rownames("event_id")
+
+serum_olink <- serum_olink %>%
+  complete(event_id = all_event_ids_train) %>% 
+  column_to_rownames("event_id")
+
+bld_msi_cytof <- bld_msi_cytof %>%
+  complete(event_id = all_event_ids_train) %>%
+  column_to_rownames("event_id")
+
+
+df_dims <- data.frame(omic_name, dim_samples, dim_features)
+print_kable(df_dims)
+```
+
+## Check matrix dimensions
+
+Train sample dimensions
+
+```{r}
+train_data = list(
+  SO = t(as.matrix(serum_olink %>% filter(rownames(serum_olink) %in% event_id_train))),
+  PPT = t(as.matrix(plasma_proteomics_targeted %>% filter(rownames(plasma_proteomics_targeted) %in% event_id_train))),
+  PPG = t(as.matrix(plasma_proteomics_global %>% filter(rownames(plasma_proteomics_global) %in% event_id_train))),
+  PMG = t(as.matrix(plasma_metabolomics_global %>% filter(rownames(plasma_metabolomics_global) %in% event_id_train))),
+  PGX = t(as.matrix(pbmc_transcriptomics %>% filter(rownames(pbmc_transcriptomics) %in% event_id_train))),
+  BCT = t(as.matrix(bld_msi_cytof %>% filter(rownames(bld_msi_cytof) %in% event_id_train)))
+)
+
+
+lapply(train_data,dim)
+```
+
+## Check pre-processed matrix data dynamic range
+
+```{r echo=F}
+plasma_metabolomics_long <- plasma_metabolomics_global %>%
+                                    pivot_longer(everything(),
+                                                 values_to = "value",
+                                                 names_to="feature") %>%
+                                    rownames_to_column("sample") %>%
+                                    mutate(omics = "PMG")
+plasma_proteomics_global_long <- plasma_proteomics_global %>%
+                                    pivot_longer(everything(),
+                                                 values_to = "value",
+                                                 names_to="feature") %>%
+                                    rownames_to_column("sample") %>%
+                                    mutate(omics = "PPG")
+plasma_proteomics_targeted_long <- plasma_proteomics_targeted %>%
+                                    pivot_longer(everything(),
+                                                 values_to = "value",
+                                                 names_to="feature") %>%
+                                    rownames_to_column("sample") %>%
+                                    mutate(omics = "PPT")
+serum_olink_long <- serum_olink %>%
+                                    pivot_longer(everything(),
+                                                 values_to = "value",
+                                                 names_to="feature") %>%
+                                    rownames_to_column("sample") %>%
+                                    mutate(omics = "SO")
+pbmc_transcriptomics_long <- pbmc_transcriptomics %>%
+                                    pivot_longer(everything(),
+                                                 values_to = "value",
+                                                 names_to="feature") %>%
+                                    rownames_to_column("sample") %>%
+                                    mutate(omics = "PGX")
+
+bld_msi_cytof_long <- bld_msi_cytof %>%
+                                    pivot_longer(everything(),
+                                                 values_to = "value",
+                                                 names_to="feature") %>%
+                                    rownames_to_column("sample") %>%
+                                    mutate(omics = "BCT")
+
+
+all_assays_long <- list(plasma_metabolomics_long,
+                        plasma_proteomics_global_long,
+                        plasma_proteomics_targeted_long,
+                        serum_olink_long,
+                        pbmc_transcriptomics_long,
+                        bld_msi_cytof_long)
+
+
+all_assays_integrated <- bind_rows(all_assays_long)
+
+ggplot(all_assays_integrated, aes(x=value, color=omics)) +
+  #geom_jitter() +
+  geom_density() +
+  facet_grid(cols=vars(omics))
+
+ggplot(all_assays_integrated, aes(x=value, color=omics)) +
+  #geom_jitter() +
+  geom_density()
+
+ggplot(all_assays_integrated, aes(x=value, y=omics, fill=omics)) +
+  geom_violin()
+
+
+```
+
+
+
+
+# MOFA model test data
+
+## Prepare test data
+
+```{r}
+omic_name <- c()
+dim_samples <- c()
+dim_features <- c()
+
+sample_event <- clinical_data_test %>% dplyr::select(sample_id, event_id) %>% distinct()
+
+# Get list of event_ids across modalities
+# check that they are the same features as for training data
+
+# PGX
+stopifnot(ncol(preprocessed_assays_test$preprocessed_data$pbmc_transcriptomics) == ncol(preprocessed_assays_train$preprocessed_data$pbmc_transcriptomics))
+
+stopifnot(sum(colnames(preprocessed_assays_test$preprocessed_data$pbmc_transcriptomics ) == colnames(preprocessed_assays_train$preprocessed_data$pbmc_transcriptomics)) == ncol(preprocessed_assays_test$processed_data$pbmc_transcriptomic))
+
+pbmc_transcriptomics <- preprocessed_assays_test$preprocessed_data$pbmc_transcriptomics %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "pbmc_transcriptomics")
+dim_samples <- append(dim_samples, nrow(pbmc_transcriptomics))
+dim_features <- append(dim_features, ncol(pbmc_transcriptomics)-1)
+
+
+# PPT
+
+stopifnot(ncol(preprocessed_assays_test$preprocessed_data$plasma_proteomics_targeted ) == ncol(preprocessed_assays_train$preprocessed_data$plasma_proteomics_targeted))
+
+stopifnot(sum(colnames(preprocessed_assays_test$preprocessed_data$plasma_proteomics_targeted) == colnames(preprocessed_assays_train$preprocessed_data$plasma_proteomics_targeted)) == ncol(preprocessed_assays_test$preprocessed_data$plasma_proteomics_targeted))
+
+plasma_proteomics_targeted <- preprocessed_assays_test$preprocessed_data$plasma_proteomics_targeted %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+
+omic_name <- append(omic_name, "plasma_proteomics_targeted")
+dim_samples <- append(dim_samples, nrow(plasma_proteomics_targeted))
+dim_features <- append(dim_features, ncol(plasma_proteomics_targeted)-1)
+
+
+## PPG
+# Overlapping features in PPG + PPT training data were removed so they have to be removed there as well
+
+plasma_proteomics_global_test <- preprocessed_assays_test$preprocessed_data$plasma_proteomics_global_dda %>%
+                          dplyr::select(any_of(colnames(plasma_proteomics_global))) %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+
+omic_name <- append(omic_name, "plasma_proteomics_global")
+dim_samples <- append(dim_samples, nrow(plasma_proteomics_global_test))
+dim_features <- append(dim_features, ncol(plasma_proteomics_global_test)-1)
+
+## PMG
+
+#stopifnot(ncol(preprocessed_assays_test$preprocessed_data$plasma_metabolomics_global ) == ncol(preprocessed_assays_train$preprocessed_data$plasma_metabolomics_global))
+
+#stopifnot(sum(colnames(preprocessed_assays_test$preprocessed_data$plasma_metabolomics_global) == colnames(preprocessed_assays_train$preprocessed_data$plasma_metabolomics_global)) == ncol(preprocessed_assays_test$preprocessed_data$plasma_metabolomics_global))
+
+
+plasma_metabolomics_global <- preprocessed_assays_test$preprocessed_data$plasma_metabolomics_global %>%
+                          dplyr::select(any_of(colnames(preprocessed_assays_train$preprocessed_data$plasma_metabolomics_global))) %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "plasma_metabolomics_global")
+dim_samples <- append(dim_samples, nrow(plasma_metabolomics_global))
+dim_features <- append(dim_features, ncol(plasma_metabolomics_global)-1)
+
+#SO
+stopifnot(ncol(preprocessed_assays_test$preprocessed_data$serum_olink ) == ncol(preprocessed_assays_train$preprocessed_data$serum_olink))
+
+stopifnot(sum(colnames(preprocessed_assays_test$preprocessed_data$serum_olink) == colnames(preprocessed_assays_train$preprocessed_data$serum_olink)) == ncol(preprocessed_assays_test$preprocessed_data$serum_olink))
+
+serum_olink <- preprocessed_assays_test$preprocessed_data$serum_olink %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "serum_olink")
+dim_samples <- append(dim_samples, nrow(serum_olink))
+dim_features <- append(dim_features, ncol(serum_olink)-1)
+
+#BCT
+stopifnot(ncol(preprocessed_assays_test$preprocessed_data$bld_msi_cytof ) == ncol(preprocessed_assays_train$preprocessed_data$bld_msi_cytof))
+
+stopifnot(sum(colnames(preprocessed_assays_test$preprocessed_data$bld_msi_cytof) == colnames(preprocessed_assays_train$preprocessed_data$bld_msi_cytof)) == ncol(preprocessed_assays_test$preprocessed_data$bld_msi_cytof))
+
+bld_msi_cytof <- preprocessed_assays_test$preprocessed_data$bld_msi_cytof %>%
+                          rownames_to_column("sample_id") %>%
+                          left_join(sample_event, by="sample_id") %>%
+                          dplyr::select(-sample_id)
+omic_name <- append(omic_name, "bld_msi_cytof")
+dim_samples <- append(dim_samples, nrow(bld_msi_cytof))
+dim_features <- append(dim_features, ncol(bld_msi_cytof)-1)
+
+
+all_event_ids_test <- unique(c(pbmc_transcriptomics$event_id,
+                           plasma_proteomics_targeted$event_id,
+                           plasma_proteomics_global_test$event_id,
+                           plasma_metabolomics_global$event_id,
+                           serum_olink$event_id,
+                           bld_msi_cytof$event_id
+                           ))
+
+all_sample_ids_test <- unique(c(row.names(preprocessed_assays_test$preprocessed_data$pbmc_transcriptomics),
+                           row.names(preprocessed_assays_test$preprocessed_data$plasma_proteomics_targeted),
+                           row.names(preprocessed_assays_test$preprocessed_data$plasma_proteomics_global),
+                           row.names(preprocessed_assays_test$preprocessed_data$plasma_metabolomics_global),
+                           row.names(preprocessed_assays_test$preprocessed_data$serum_olink),
+                           row.names(preprocessed_assays_test$preprocessed_data$bld_msi_cytof)
+                           ))
+
+pbmc_transcriptomics <- pbmc_transcriptomics %>%
+  complete(event_id = all_event_ids_test) %>% 
+  column_to_rownames("event_id")
+
+plasma_proteomics_targeted <- plasma_proteomics_targeted %>%
+  complete(event_id = all_event_ids_test) %>% 
+  column_to_rownames("event_id")
+
+plasma_proteomics_global_test <- plasma_proteomics_global_test %>%
+  complete(event_id = all_event_ids_test) %>% 
+  column_to_rownames("event_id")
+
+plasma_metabolomics_global <- plasma_metabolomics_global %>%
+  complete(event_id = all_event_ids_test) %>% 
+  column_to_rownames("event_id")
+
+serum_olink <- serum_olink %>%
+  complete(event_id = all_event_ids_test) %>% 
+  column_to_rownames("event_id")
+
+bld_msi_cytof <- bld_msi_cytof %>%
+  complete(event_id = all_event_ids_test) %>%
+  column_to_rownames("event_id")
+
+
+df_dims <- data.frame(omic_name, dim_samples, dim_features)
+print_kable(df_dims)
+```
+
+## Check matrix dimensions
+
+Test sample dimensions
+
+```{r}
+test_data = list(
+  SO = t(as.matrix(serum_olink %>% filter(rownames(serum_olink) %in% event_id_test))),
+  PPT = t(as.matrix(plasma_proteomics_targeted %>% filter(rownames(plasma_proteomics_targeted) %in% event_id_test))),
+  PPG = t(as.matrix(plasma_proteomics_global_test %>% filter(rownames(plasma_proteomics_global_test) %in% event_id_test))),
+  PMG = t(as.matrix(plasma_metabolomics_global %>% filter(rownames(plasma_metabolomics_global) %in% event_id_test))),
+  PGX = t(as.matrix(pbmc_transcriptomics %>% filter(rownames(pbmc_transcriptomics) %in% event_id_test))),
+  BCT = t(as.matrix(bld_msi_cytof %>% filter(rownames(bld_msi_cytof) %in% event_id_test)))
+)
+
+
+lapply(test_data,dim)
+```
+
+## Check pre-processed matrix data dynamic range
+
+```{r echo=F}
+plasma_metabolomics_long <- plasma_metabolomics_global %>%
+                                    pivot_longer(everything(),
+                                                 values_to = "value",
+                                                 names_to="feature") %>%
+                                    rownames_to_column("sample") %>%
+                                    mutate(omics = "PMG")
+plasma_proteomics_global_long <- plasma_proteomics_global_test %>%
+                                    pivot_longer(everything(),
+                                                 values_to = "value",
+                                                 names_to="feature") %>%
+                                    rownames_to_column("sample") %>%
+                                    mutate(omics = "PPG")
+plasma_proteomics_targeted_long <- plasma_proteomics_targeted %>%
+                                    pivot_longer(everything(),
+                                                 values_to = "value",
+                                                 names_to="feature") %>%
+                                    rownames_to_column("sample") %>%
+                                    mutate(omics = "PPT")
+serum_olink_long <- serum_olink %>%
+                                    pivot_longer(everything(),
+                                                 values_to = "value",
+                                                 names_to="feature") %>%
+                                    rownames_to_column("sample") %>%
+                                    mutate(omics = "SO")
+pbmc_transcriptomics_long <- pbmc_transcriptomics %>%
+                                    pivot_longer(everything(),
+                                                 values_to = "value",
+                                                 names_to="feature") %>%
+                                    rownames_to_column("sample") %>%
+                                    mutate(omics = "PGX")
+
+bld_msi_cytof_long <- bld_msi_cytof %>%
+                                    pivot_longer(everything(),
+                                                 values_to = "value",
+                                                 names_to="feature") %>%
+                                    rownames_to_column("sample") %>%
+                                    mutate(omics = "BCT")
+
+
+all_assays_long <- list(plasma_metabolomics_long,
+                        plasma_proteomics_global_long,
+                        plasma_proteomics_targeted_long,
+                        serum_olink_long,
+                        pbmc_transcriptomics_long,
+                        #nasal_transcriptomics_long,
+                        bld_msi_cytof_long)
+
+
+all_assays_integrated <- bind_rows(all_assays_long)
+
+ggplot(all_assays_integrated, aes(x=value, color=omics)) +
+  #geom_jitter() +
+  geom_density() +
+  facet_grid(cols=vars(omics))
+
+ggplot(all_assays_integrated, aes(x=value, color=omics)) +
+  #geom_jitter() +
+  geom_density()
+
+ggplot(all_assays_integrated, aes(x=value, y=omics, fill=omics)) +
+  geom_violin()
+
+
+features_ir_os <- unique(bld_msi_cytof_long %>% filter(grepl("Ir", feature) | grepl("Os", feature)) %>% pull(feature))
+```
+
+# Check final train-test split distribution
+
+```{r Subset convalescent, echo=FALSE, fig.height=6, fig.width=10, warning=FALSE}
+### Color scheme for pro_group
+pro_group_levels <- unique( sort( clinical_data$pro_group_labels ) )
+
+color_pro_group <- c("#639A21", "#6371AD", "#FFC20A", "#7D2D17")
+#color_pro_group <- c("#639A21", "#6371AD", "#BD7D31", "#9C3418")
+names(color_pro_group) <- c("MIN", "COG", "PHY", "MLT")
+
+## Color scheme for MINvsOTHER group
+pro_2_group_levels <- unique(sort(clinical_data$pro_2_groups))
+color_pro_2_groups <- c("#639A21", "#781B6C")
+names(color_pro_2_groups) <- c("MIN", "OTHER")
+
+### Color scheme for visits (adapted so that Visit 10 comes after Visit 9)
+all_visits <- c("Visit 7",
+             "Visit 8",
+             "Visit 9",
+             "Visit 10")
+
+clinical_data$event_type <- factor(clinical_data$event_type, levels=all_visits)
+visit_levels <- levels(clinical_data$event_type)
+color_event_type <- get_ordinal_color_vector( visit_levels )
+
+# Compute discretized bmi (from publication)
+clinical_data <- clinical_data %>%
+                  mutate( discretized_bmi = case_when(
+                    bmi<=25 ~ "Normal",
+                    bmi<30 ~ "Overweight",
+                    bmi<40 ~ "Obese (1-2)",
+                    bmi>=40 ~ "Obese (3)"
+                  )
+                )
+
+### Color scheme for phases
+phase_levels <- unique(sort(clinical_data$phase))
+color_phase <- get_ordinal_color_vector(phase_levels)
+
+# Color scheme for vaccines
+vaccine_levels <- unique(sort(clinical_data$vaccinated))
+color_vaccinated <- get_categorical_color_vector(vaccine_levels)
+
+# Color scheme for event after first vaccine
+event_after_vaccine_levels <- unique(sort(clinical_data$event_after_first_vaccine_dose))
+color_event_after_vaccine_levels <- c("lightblue", "navy")
+
+# Color scheme for event 3 weeks after dose
+event_3weeks_after_dose_levels <- unique(sort(clinical_data$event_date_3weeks_after_dose))
+color_event_3weeks_after_dose <-  c("lightblue", "navy")
+
+# Color scheme for traj groups
+traj_group_levels <- unique(sort(as.factor(clinical_data$trajectory_group)))
+color_traj_group <- c(
+          '#639A21',
+          '#39828C',
+          '#6371AD',
+          '#BD7D31'#,
+          #'#9C3418' # No traj 5 participants in convalescent cohort
+        )
+
+# Color scheme for enrollment site
+enrollment_levels <- unique(sort(as.factor(clinical_data$enrollment_site)))
+color_enrollment_site <- get_categorical_color_vector(enrollment_levels)
+
+# Transform comorb yes no
+clinical_data <- clinical_data %>%
+  dplyr::mutate(comorb_neuro = case_match(comorb_neuro, 0 ~ "no", 1 ~ "yes"),
+                comorb_anyresp_noasthma = case_match(comorb_anyresp_noasthma, 0 ~ "no", 1 ~ "yes"),
+                comorb_isaric_cardiac = case_match(comorb_isaric_cardiac,  0 ~ "no", 1 ~ "yes"))
+
+# Color scheme for comorb_neuro
+neuro_levels <- unique(sort(as.factor(clinical_data$comorb_neuro)))
+color_neuro <- c("gray80", "black")
+
+# Color scheme for comorb_resp
+resp_levels <- unique(sort(as.factor(clinical_data$comorb_anyresp_noasthma)))
+color_resp <- c("gray80", "black")
+
+# Color scheme for comorb_cardiac
+cardiac_levels <- unique(sort(as.factor(clinical_data$comorb_isaric_cardiac)))
+color_cardiac <- c("gray80", "black")
+
+
+
+# Color scheme for race
+race_levels <- unique(sort(as.factor(clinical_data$race)))
+start <- 10
+color_race <- pals::alphabet(26)[start:(length(race_levels)+start-1)] %>% setNames(race_levels)
+
+# Color scheme for age
+age_levels <- unique(sort(as.factor(clinical_data$discretized_admit_age_quantile)))
+color_age <- get_categorical_color_vector(age_levels)
+
+# Color scheme for bmi
+bmi_levels <- unique(sort(as.factor(clinical_data$discretized_bmi)))
+color_bmi <- get_categorical_color_vector(bmi_levels)
+
+# load other color schemes
+color_sex <- data_env_all$color_sex
+color_event_type <- data_env_all$color_event_type
+color_na <- "gray80"
+color_sample_type <- data_env_all$color_sample_type
+
+```
+
+### FigS1
+
+```{r check train-test split, fig.height=10,fig.width=12}
+# Check available event IDs
+PPG_event_id <- clinical_data %>%
+                  dplyr::select(event_id, sample_id) %>%
+                  dplyr::filter(sample_id %in% c(row.names(preprocessed_assays_test$preprocessed_data$plasma_proteomics_global_dda),
+                                                 row.names(preprocessed_assays_train$preprocessed_data$plasma_proteomics_global_dda))) %>%
+                  pull(event_id)
+PPT_event_id <- clinical_data %>%
+                  dplyr::select(event_id, sample_id) %>%
+                  dplyr::filter(sample_id %in% c(row.names(preprocessed_assays_test$preprocessed_data$plasma_proteomics_targeted),
+                                                 row.names(preprocessed_assays_train$preprocessed_data$plasma_proteomics_targeted))) %>%
+                  pull(event_id)
+PMG_event_id <- clinical_data %>%
+                  dplyr::select(event_id, sample_id) %>%
+                  dplyr::filter(sample_id %in% c(row.names(preprocessed_assays_test$preprocessed_data$plasma_metabolomics_global),
+                                                 row.names(preprocessed_assays_train$preprocessed_data$plasma_metabolomics_global))) %>%
+                  pull(event_id)
+SO_event_id <- clinical_data %>%
+                  dplyr::select(event_id, sample_id) %>%
+                  dplyr::filter(sample_id %in% c(row.names(preprocessed_assays_test$preprocessed_data$serum_olink),
+                                                 row.names(preprocessed_assays_train$preprocessed_data$serum_olink))) %>%
+                  pull(event_id)
+BCT_event_id <- clinical_data %>%
+                  dplyr::select(event_id, sample_id) %>%
+                  dplyr::filter(sample_id %in% c(row.names(preprocessed_assays_test$preprocessed_data$bld_msi_cytof),
+                                                 row.names(preprocessed_assays_train$preprocessed_data$bld_msi_cytof))) %>%
+                  pull(event_id)
+PGX_event_id <- clinical_data %>%
+                  dplyr::select(event_id, sample_id) %>%
+                  dplyr::filter(sample_id %in% c(row.names(preprocessed_assays_test$preprocessed_data$pbmc_transcriptomics),
+                                                 row.names(preprocessed_assays_train$preprocessed_data$pbmc_transcriptomics))) %>%
+                  pull(event_id)
+
+# Check available PROMIS scale scores
+promis_scale_scores <- read.csv("/scratch/multiomic_factors_PRO_scores_testing/20240229_PRO_Scores_Cleaned.csv") %>%
+                          dplyr::select(!participant_id)
+
+# Problem that some event_ids have different phase annotation depending on the assay, examples can be found here:
+clinical_event_phase <- clinical_data %>%  dplyr::select(event_id, phase) %>%  dplyr::distinct() %>%  dplyr::group_by(event_id) %>%  dplyr::summarize(count = n()) %>%  dplyr::filter(count>1)
+
+# Taking the majority phase annotation for these cases
+phase_corrected <- clinical_data %>% dplyr::group_by(event_id) %>% dplyr::count(phase, sort=T) %>%
+                                              dplyr::slice(1) %>% dplyr::select(-n)
+
+clinical_data_phase_corrected <- clinical_data %>% 
+                                      dplyr::select(-phase) %>% 
+                                      dplyr::distinct() %>%
+                                      dplyr::left_join(phase_corrected, by="event_id")
+
+event_data <- clinical_data_phase_corrected %>%
+                dplyr::filter(sample_id %in% c(all_sample_ids_train, all_sample_ids_test), 
+                              event_id %in% c(all_event_ids_train, all_event_ids_test)) %>%
+                dplyr::left_join(promis_scale_scores) %>%
+                dplyr::mutate(PGX_avail=if_else(event_id %in% PGX_event_id, "yes", "no"),
+                              PPT_avail=if_else(event_id %in% PPT_event_id, "yes","no"),
+                              PMG_avail=if_else(event_id %in% PMG_event_id, "yes","no"),
+                              PPG_avail=if_else(event_id %in% PPG_event_id, "yes","no"),
+                              SO_avail=if_else(event_id %in% SO_event_id, "yes","no"),
+                              BCT_avail=if_else(event_id %in% BCT_event_id, "yes","no"),
+                              PROMIS_Physical_avail=if_else(!is.na(PROMIS_Physical_score),"yes","no"),
+                              PROMIS_Dyspnea_avail=if_else(!is.na(PROMIS_Dyspnea_score), "yes","no"),
+                              PROMIS_Impact_avail=if_else(!is.na(PROMIS_Impact_score), "yes","no"),
+                              PROMIS_Mental_avail=if_else(!is.na(PROMIS_Mental_score),"yes","no"),
+                              PROMIS_Psycho_avail=if_else(!is.na(PROMIS_Psycho_score), "yes","no"),
+                              PROMIS_EQ_avail=if_else(!is.na(eq5d5l_score), "yes","no"),
+                              PROMIS_health_avail=if_else(!is.na(health_score), "yes","no")
+                              ) %>%
+                dplyr::select(participant_id, event_id, sex, trajectory_group, 
+                              pro_group_labels, pro_2_groups, event_type, phase,
+                              event_after_first_vaccine_dose, event_date_3weeks_after_dose,
+                              discretized_admit_age_quantile, partition, enrollment_site,
+                              comorb_anyresp_noasthma, comorb_neuro, comorb_isaric_cardiac, discretized_bmi, race,
+                              PGX_avail, PPG_avail, PPT_avail, PMG_avail, SO_avail, BCT_avail,
+                              PROMIS_Physical_avail, PROMIS_Dyspnea_avail, PROMIS_Impact_avail, 
+                              PROMIS_Mental_avail, PROMIS_Psycho_avail, PROMIS_EQ_avail, PROMIS_health_avail) %>%
+                dplyr::distinct()
+                
+
+  
+  avail_levels <- unique(sort(as.factor(event_data$PGX_avail)))
+  color_avail <- c("gray80","black")
+  names(color_avail) <- c("no","yes")
+  event_data$pro_group_labels <- factor(event_data$pro_group_labels, levels=names(color_pro_group))
+
+  # Distribution of samples by sex
+  bar_sex <- event_data %>% group_by(partition) %>% dplyr::count(sex) %>% 
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill=sex) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_sex ) + theme_classic() + 
+    labs(x="", y="% Events", title = "Sex", fill="")
+
+  bar_trajectory_group <- event_data %>% group_by(partition) %>% dplyr::count(trajectory_group) %>% 
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor( trajectory_group ) ) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_traj_group, na.value = color_na ) + theme_classic() + 
+    labs(x="", y="% Events", title = "Trajectory group", fill="")
+  
+  # Distribution of samples by PRO group
+  bar_PRO_group <- event_data %>% group_by(partition) %>% dplyr::count(pro_group_labels) %>% 
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = pro_group_labels) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_pro_group, na.value = color_na ) + theme_classic() + 
+    labs(x="", y="% Events", title = "PRO group", fill="")
+  
+  # Distribution of samples by PRO group
+  bar_PRO_2_groups <- event_data %>% group_by(partition) %>% dplyr::count(pro_2_groups) %>% 
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor( pro_2_groups ) ) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_pro_2_groups, na.value = color_na ) + theme_classic() + 
+    labs(x="", y="% Events", title = "PRO group", fill="")
+  
+  # Adapt factor of clinical data event type so Visit 10 comes after Visit 9
+  
+  # Distribution of samples by visit
+  bar_visit <- event_data %>% group_by(partition) %>% dplyr::count(event_type) %>%
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor( event_type ) ) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_event_type, na.value = color_na ) + theme_classic() + 
+    labs(x="", y="% Events", title = "Visit", fill="")
+  
+  # Distribution of samples by phase
+  bar_phase <- event_data %>% group_by(partition) %>% dplyr::count(phase) %>%
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor( phase ))) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_phase, na.value = color_na ) + theme_classic() + 
+    labs(x="", y="% Events", title = "Phase", fill="")
+  
+  bar_event_after_first_vaccine <- event_data %>% group_by(partition) %>% dplyr::count(event_after_first_vaccine_dose) %>%
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor(event_after_first_vaccine_dose)) ) +
+    geom_bar(position="stack", stat = "identity") +
+    scale_fill_manual( values = color_event_after_vaccine_levels, na.value = color_na) + theme_classic() +
+    labs(x="", y="% Events", title = "After first vac dose", fill="")
+  
+  bar_event_3weeks_after_dose <- event_data %>% group_by(partition) %>% dplyr::count(event_date_3weeks_after_dose) %>%
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor(event_date_3weeks_after_dose)) ) +
+    geom_bar(position="stack", stat = "identity") +
+    scale_fill_manual( values = color_event_3weeks_after_dose, na.value = color_na) + theme_classic() +
+    labs(x="", y="% Events", title = "3w after vac dose", fill="")
+  
+  bar_age <- event_data %>% group_by(partition) %>% dplyr::count(discretized_admit_age_quantile) %>%
+              mutate(per = n/sum(n)*100) %>%
+              ggplot( aes(x=partition, y=per, fill = as.factor(discretized_admit_age_quantile)) ) +
+              geom_bar(position="stack", stat = "identity") +
+              scale_fill_manual( values = color_age, na.value = color_na) +
+              theme_classic() +
+              labs(x="", y="% Events", title = "Discretized age", fill="")
+  
+  bar_enrollment <- event_data %>% group_by(partition) %>% dplyr::count(enrollment_site) %>%
+              mutate(per = n/sum(n)*100) %>%
+              ggplot( aes(x=partition, y=per, fill = as.factor(enrollment_site)) ) +
+              geom_bar(position="stack", stat = "identity") +
+              scale_fill_manual( values = color_enrollment_site, na.value = color_na) +
+              theme_classic() + theme(legend.position = "none") +
+              labs(x="", y="% Events", title = "Site", fill="")
+              
+  bar_bmi <- event_data %>% group_by(partition) %>% dplyr::count(discretized_bmi) %>%
+              mutate(per = n/sum(n)*100) %>%
+              ggplot( aes(x=partition, y=per, fill = as.factor(discretized_bmi)) ) +
+              geom_bar(position="stack", stat = "identity") +
+              scale_fill_manual( values = color_bmi, na.value = color_na) +
+              theme_classic() +
+              labs(x="", y="% Events", title = "BMI", fill="")
+  
+  bar_race <- event_data %>% group_by(partition) %>% dplyr::count(race) %>%
+              mutate(per = n/sum(n)*100) %>%
+              ggplot( aes(x=partition, y=per, fill = as.factor(race)) ) +
+              geom_bar(position="stack", stat = "identity") +
+              scale_fill_manual( values = color_race, na.value = color_na) +
+              theme_classic() +
+              labs(x="", y="% Events", title = "Race", fill="")
+  
+  bar_comorb_neuro <- event_data %>% group_by(partition) %>% dplyr::count(comorb_neuro) %>%
+            mutate(per = n/sum(n)*100) %>%
+            ggplot( aes(x=partition, y=per, fill = as.factor(comorb_neuro)) ) +
+            geom_bar(position="stack", stat = "identity") +
+            scale_fill_manual( values = color_neuro, na.value = color_na, name="") +
+            theme_classic() +
+            labs(x="", y="% Events", title = "Comorb. Neuro", fill="")
+            
+  bar_comorb_cardiac <- event_data %>% group_by(partition) %>% dplyr::count(comorb_isaric_cardiac) %>%
+            mutate(per = n/sum(n)*100) %>%
+            ggplot( aes(x=partition, y=per, fill = as.factor(comorb_isaric_cardiac)) ) +
+            geom_bar(position="stack", stat = "identity") +
+            scale_fill_manual( values = color_cardiac, na.value = color_na, name="") +
+            theme_classic() +
+            labs(x="", y="% Events", title = "Comorb. Cardiac", fill="")
+            
+  bar_comorb_resp <- event_data %>% group_by(partition) %>% dplyr::count(comorb_anyresp_noasthma) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(comorb_anyresp_noasthma)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_resp, na.value = color_na, name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", title = "Comorb. resp", fill="")
+  
+  bar_PGX_avail <- event_data %>% group_by(partition) %>% dplyr::count(PGX_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(PGX_avail)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", title = "PGX available", fill="")
+  
+  bar_PPT_avail <- event_data %>% group_by(partition) %>% dplyr::count(PPT_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(PPT_avail)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", title = "PPT available", fill="")
+  
+  bar_PPG_avail <- event_data %>% group_by(partition) %>% dplyr::count(PPG_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(PPG_avail)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", title = "PPG available", fill="")
+  
+  bar_PMG_avail <- event_data %>% group_by(partition) %>% dplyr::count(PMG_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(PMG_avail)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", title = "PMG available", fill="")
+  
+  bar_SO_avail <- event_data %>% group_by(partition) %>% dplyr::count(SO_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(SO_avail)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", title = "SO available", fill="")
+  
+  bar_BCT_avail <- event_data %>% group_by(partition) %>% dplyr::count(BCT_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(BCT_avail) )) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", title = "BCT available", fill="")
+  
+  bar_PROMIS_PHY_avail <- event_data %>% group_by(partition) %>% dplyr::count(PROMIS_Physical_avail) %>%
+        mutate(per = n/sum(n)*100) %>%
+        ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_Physical_avail) )) +
+        geom_bar(position="stack", stat = "identity") +
+        scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+        theme_classic() +
+        labs(x="", y="% Events", title = "PROMIS Physical", fill="")
+  
+  bar_PROMIS_DYSP_avail <- event_data %>% group_by(partition) %>% dplyr::count(PROMIS_Dyspnea_avail) %>%
+        mutate(per = n/sum(n)*100) %>%
+        ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_Dyspnea_avail) )) +
+        geom_bar(position="stack", stat = "identity") +
+        scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+        theme_classic() +
+        labs(x="", y="% Events", title = "PROMIS Dyspnea", fill="")
+  
+  bar_PROMIS_IMP_avail <- event_data %>% group_by(partition) %>% dplyr::count(PROMIS_Impact_avail) %>%
+        mutate(per = n/sum(n)*100) %>%
+        ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_Impact_avail) )) +
+        geom_bar(position="stack", stat = "identity") +
+        scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+        theme_classic() +
+        labs(x="", y="% Events", title = "PROMIS Impact", fill="")
+  
+  bar_PROMIS_MENT_avail <- event_data %>% group_by(partition) %>% dplyr::count(PROMIS_Mental_avail) %>%
+        mutate(per = n/sum(n)*100) %>%
+        ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_Mental_avail) )) +
+        geom_bar(position="stack", stat = "identity") +
+        scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+        theme_classic() +
+        labs(x="", y="% Events", title = "PROMIS Mental", fill="")
+  
+  bar_PROMIS_PSYCHO_avail <- event_data %>% group_by(partition) %>% dplyr::count(PROMIS_Psycho_avail) %>%
+        mutate(per = n/sum(n)*100) %>%
+        ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_Psycho_avail) )) +
+        geom_bar(position="stack", stat = "identity") +
+        scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+        theme_classic() +
+        labs(x="", y="% Events", title = "PROMIS Cognitive", fill="")
+  
+  bar_EQ_score <- event_data %>% group_by(partition) %>% dplyr::count(PROMIS_EQ_avail) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_EQ_avail) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Events", title = "EQ-5D-5L score", fill="")
+  
+  bar_health_score <- event_data %>% group_by(partition) %>% dplyr::count(PROMIS_health_avail) %>%
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_health_avail) )) +
+    geom_bar(position="stack", stat = "identity") +
+    scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+    theme_classic() +
+    labs(x="", y="% Events", title = "Health score", fill="")
+      
+
+
+FigS1 <-  ggarrange(ggarrange(bar_PRO_group, bar_sex, bar_trajectory_group,  bar_visit, bar_phase, bar_enrollment, ncol = 6, widths = c(1,1.1,1,1.1,1,0.7)),
+            ggarrange(bar_age, bar_bmi, bar_race, bar_event_3weeks_after_dose, NULL, ncol = 5, widths = c(1,1.2,1.8,1,0.3)),
+            ggarrange(bar_comorb_neuro, bar_comorb_cardiac, bar_comorb_resp, NULL, NULL, NULL, ncol =6),
+            ggarrange(bar_PGX_avail, bar_PPT_avail, bar_PPG_avail, bar_SO_avail, bar_PMG_avail, bar_BCT_avail, 
+                       ncol = 6),
+            ggarrange(bar_PROMIS_PHY_avail, bar_PROMIS_PSYCHO_avail, bar_PROMIS_MENT_avail, bar_PROMIS_IMP_avail,  bar_PROMIS_DYSP_avail,  ncol = 6),
+            ggarrange(bar_EQ_score, bar_health_score, ncol=6),
+            labels = c("A",
+                       "",
+                       "B",
+                       "C",
+                       "D",
+                       ""), nrow = 6)
+
+FigS1
+ggsave(file.path(figures_dir, "FigS1/FigureS1.pdf"), FigS1, height=10, width=12)
+ggsave(file.path(figures_dir, "FigS1/FigureS1.png"), FigS1, height=10, width = 12)
+
+```
+
+Check vaccination info per visit
+
+```{r}
+bar_vacc_3w_visit <- event_data %>% group_by(event_type) %>% dplyr::count(event_date_3weeks_after_dose) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=event_type, y=per, fill = as.factor(event_date_3weeks_after_dose) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_event_3weeks_after_dose, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Events", title = "3w after vac. dose", fill="")
+
+bar_aftervacc_visit <- event_data %>% group_by(event_type) %>% dplyr::count(event_after_first_vaccine_dose) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=event_type, y=per, fill = as.factor(event_after_first_vaccine_dose) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_event_after_vaccine_levels, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Events", title = "after first vac. dose", fill="")
+
+ggarrange(bar_vacc_3w_visit, bar_aftervacc_visit,
+            labels = c("B", "C"), ncol = 2, nrow = 2)
+
+saveRDS(bar_vacc_3w_visit, file.path("../vaccination/Figures/perc_event_3w_after_vac.rds"))
+saveRDS(bar_aftervacc_visit, file.path("../vaccination/Figures/perc_event_after_vac.rds"))
+```
+
+```{r}
+bar_vacc_3w_visit <- event_data %>% group_by(event_type) %>% dplyr::count(event_date_3weeks_after_dose) %>%
+      #mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=event_type, y=n, fill = as.factor(event_date_3weeks_after_dose) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_event_3weeks_after_dose, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="Number Events", title = "3w after vac. dose", fill="")
+
+bar_aftervacc_visit <- event_data %>% group_by(event_type) %>% dplyr::count(event_after_first_vaccine_dose) %>%
+      #mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=event_type, y=n, fill = as.factor(event_after_first_vaccine_dose) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_event_after_vaccine_levels, na.value = color_na, labels=c("no","yes","NA"),name = "") +
+      theme_classic() +
+      labs(x="", y="Number Events", title = "after first vac. dose", fill="")
+
+ggarrange(bar_vacc_3w_visit, bar_aftervacc_visit,
+            labels = c("B", "C"), ncol = 2, nrow = 2)
+
+saveRDS(bar_vacc_3w_visit, file.path("../vaccination/Figures/num_event_3w_after_vac.rds"))
+saveRDS(bar_aftervacc_visit, file.path("../vaccination/Figures/num_event_after_vac.rds"))
+```
+
+```{r}
+bar_PROMIS_PHY_visit <- event_data %>% group_by(event_type) %>% dplyr::count(PROMIS_Physical_avail) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=event_type, y=n, fill = as.factor(PROMIS_Physical_avail) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="Number Events", title = "PROMIS PHY avail", fill="")
+
+bar_PROMIS_PHY_visit_per <- event_data %>% group_by(event_type) %>%dplyr::count(PROMIS_Physical_avail) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=event_type, y=per, fill = as.factor(PROMIS_Physical_avail) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Events", title = "PROMIS PHY avail", fill="")
+
+ggarrange(bar_PROMIS_PHY_visit, bar_PROMIS_PHY_visit_per,
+            labels = c("A", "B"), ncol = 2, nrow = 2)
+```
+
+```{r}
+bar_PROMIS_PHY_PRO <- event_data %>% group_by(pro_group_labels) %>% dplyr::count(PROMIS_Physical_avail) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=pro_group_labels, y=n, fill = as.factor(PROMIS_Physical_avail) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="Number Events", title = "PROMIS PHY avail", fill="")
+
+bar_PROMIS_PHY_PRO_per <- event_data %>% group_by(pro_group_labels) %>% dplyr::count(PROMIS_Physical_avail) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=pro_group_labels, y=per, fill = as.factor(PROMIS_Physical_avail) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Events", title = "PROMIS PHY avail", fill="")
+
+ggarrange(bar_PROMIS_PHY_PRO, bar_PROMIS_PHY_PRO_per,
+            labels = c("A", "B"), ncol = 2, nrow = 2)
+```
+
+```{r}
+bar_PROMIS_PHY_PRO <- event_data %>% group_by(pro_2_groups) %>% dplyr::count(PROMIS_Physical_avail) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=pro_2_groups, y=n, fill = as.factor(PROMIS_Physical_avail) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="Number Events", title = "PROMIS PHY avail", fill="")
+
+bar_PROMIS_PHY_PRO_per <- event_data %>% group_by(pro_2_groups) %>% dplyr::count(PROMIS_Physical_avail) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=pro_2_groups, y=per, fill = as.factor(PROMIS_Physical_avail) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Events", title = "PROMIS PHY avail", fill="")
+
+ggarrange(bar_PROMIS_PHY_PRO, bar_PROMIS_PHY_PRO_per,
+            labels = c("A", "B"), ncol = 3, nrow = 2)
+```
+
+Check sex distribution within each PRO group
+
+```{r fig.width=6, fig.height=4}
+bar_sex_PRO <- event_data %>% group_by(pro_2_groups) %>% dplyr::count(sex) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=pro_2_groups, y=per, fill = as.factor(sex) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_sex, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Events", title = "Sex per group", fill="")
+
+bar_sex_PRO_groups <- event_data %>% group_by(pro_group_labels) %>% dplyr::count(sex) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=pro_group_labels, y=per, fill = as.factor(sex) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_sex, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Events", title = "Sex per PRO group", fill="")
+
+ggarrange(bar_sex_PRO, bar_sex_PRO_groups,
+            labels = c("A", "B"), ncol = 2, nrow = 2, widths = c(1,1.4))
+```
+
+Check % participant distribution
+
+```{r fig.width=6, fig.height=4}
+bar_sex_PRO <- event_data %>% 
+                dplyr::select(c("participant_id", "pro_2_groups", "sex")) %>%
+                distinct() %>%
+                group_by(pro_2_groups) %>% dplyr::count(sex) %>%
+                mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=pro_2_groups, y=per, fill = as.factor(sex) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_sex, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Participants", title = "Sex per group", fill="")
+
+bar_sex_PRO_groups <- event_data %>% 
+                dplyr::select(c("participant_id", "pro_group_labels", "sex")) %>%
+                distinct() %>%
+                group_by(pro_group_labels) %>% dplyr::count(sex) %>%
+                mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=pro_group_labels, y=per, fill = as.factor(sex) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_sex, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Participants", title = "Sex per group", fill="")
+
+ggarrange(bar_sex_PRO, bar_sex_PRO_groups,
+            labels = c("A", "B"), ncol = 2, nrow = 2, widths = c(1,1.4))
+```
+
+## Check % participant sex distribution
+
+```{tables}
+event_data %>% 
+                dplyr::select(c("participant_id", "pro_2_groups", "sex")) %>%
+                distinct() %>%
+                group_by(sex) %>% dplyr::count(pro_2_groups) %>%
+                mutate(per = n/sum(n)*100)
+```
+
+```{r fig.width=12, fig.height=3}
+bar_sex_PRO <- event_data %>% 
+                dplyr::select(c("participant_id", "pro_2_groups", "sex")) %>%
+                distinct() %>%
+                group_by(sex) %>% dplyr::count(pro_2_groups) %>%
+                mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=sex, y=per, fill = pro_2_groups )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_pro_2_groups, labels = c("MIN", "LC"), na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Participants", title = "", fill="")
+
+bar_sex_PRO_num <- event_data %>% 
+                dplyr::select(c("participant_id", "pro_2_groups", "sex")) %>%
+                distinct() %>%
+                group_by(sex) %>% dplyr::count(pro_2_groups) %>%
+                mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=sex, y=n, fill = pro_2_groups )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_pro_2_groups, labels = c("MIN", "LC"), na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="Participant number", title = "", fill="")
+
+bar_sex_PRO_groups <- event_data %>% 
+                dplyr::select(c("participant_id", "pro_group_labels", "sex")) %>%
+                distinct() %>%
+                group_by(sex) %>% dplyr::count(pro_group_labels) %>%
+                mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=sex, y=per, fill = pro_group_labels )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_pro_group, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Participants", title = "", fill="")
+
+bar_sex_PRO_groups_num <- event_data %>% 
+                dplyr::select(c("participant_id", "pro_group_labels", "sex")) %>%
+                distinct() %>%
+                group_by(sex) %>% dplyr::count(pro_group_labels) %>%
+                mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=sex, y=n, fill = pro_group_labels )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_pro_group, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="Participant number", title = "", fill="")
+
+sex_groups_participants <- ggarrange(bar_sex_PRO, bar_sex_PRO_num, bar_sex_PRO_groups, bar_sex_PRO_groups_num,
+            ncol = 4, nrow = 1)
+saveRDS(sex_groups_participants, file.path(figures_dir, "FigS6/sex_endpoint_events_participants.rds"))
+```
+
+Check number of participants for train and test sets
+
+```{r fig.width=6, fig.height=4}
+DT::datatable( event_data %>% 
+                dplyr::select(c("participant_id", "partition")) %>%
+                distinct() %>%
+                dplyr::count(partition) )
+
+```
+
+Check number of events per train and test set
+
+```{r fig.width=6, fig.height=4}
+DT::datatable( event_data %>% 
+                dplyr::select(c("event_id", "partition")) %>%
+                distinct() %>%
+                dplyr::count(partition) )
+```
+
+# Check train-test split distribution PROMIS Phy available
+
+```{r}
+event_data_phy <- event_data %>% dplyr::filter(PROMIS_Physical_avail == "yes")
+
+```
+
+Check number of events
+
+```{r fig.width=6, fig.height=4}
+DT::datatable( event_data_phy %>% 
+                dplyr::select(c("event_id", "partition")) %>%
+                distinct() %>%
+               dplyr::count(partition) )
+```
+
+Check number of participants
+
+```{r fig.width=6, fig.height=4}
+DT::datatable( event_data_phy%>% 
+                dplyr::select(c("participant_id", "partition")) %>%
+                distinct() %>%
+               dplyr::count(partition) )
+```
+
+### FigS3 physical avail
+
+```{r fig.height=10,fig.width=12}
+  # Distribution of samples by sex
+  bar_sex <- event_data_phy %>% group_by(partition) %>% dplyr::count(sex) %>% 
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill=sex) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_sex ) + theme_classic() + 
+    labs(x="", y="% Events", title = "Sex", fill="")
+
+  bar_trajectory_group <- event_data_phy %>% group_by(partition) %>% dplyr::count(trajectory_group) %>% 
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor( trajectory_group ) ) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_traj_group, na.value = color_na ) + theme_classic() + 
+    labs(x="", y="% Events", title = "Trajectory group", fill="")
+  
+  # Distribution of samples by PRO group
+  bar_PRO_group <- event_data_phy %>% group_by(partition) %>% dplyr::count(pro_group_labels) %>% 
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor( pro_group_labels ) ) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_pro_group, na.value = color_na ) + theme_classic() + 
+    labs(x="", y="% Events", title = "PRO group", fill="")
+  
+  # Distribution of samples by PRO group
+  bar_PRO_2_groups <- event_data_phy %>% group_by(partition) %>% dplyr::count(pro_2_groups) %>% 
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor( pro_2_groups ) ) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_pro_2_groups, na.value = color_na ) + theme_classic() + 
+    labs(x="", y="% Events", title = "PRO group", fill="")
+  
+  # Adapt factor of clinical data event type so Visit 10 comes after Visit 9
+  
+  # Distribution of samples by visit
+  bar_visit <- event_data_phy %>% group_by(partition) %>% dplyr::count(event_type) %>%
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor( event_type ) ) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_event_type, na.value = color_na ) + theme_classic() + 
+    labs(x="", y="% Events", title = "Visit", fill="")
+  
+  # Distribution of samples by phase
+  bar_phase <- event_data_phy %>% group_by(partition) %>% dplyr::count(phase) %>%
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor( phase ))) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_phase, na.value = color_na ) + theme_classic() + 
+    labs(x="", y="% Events", title = "Phase", fill="")
+  
+  bar_event_after_first_vaccine <- event_data_phy %>% group_by(partition) %>% dplyr::count(event_after_first_vaccine_dose) %>%
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor(event_after_first_vaccine_dose)) ) +
+    geom_bar(position="stack", stat = "identity") +
+    scale_fill_manual( values = color_event_after_vaccine_levels, na.value = color_na) + theme_classic() +
+    labs(x="", y="% Events", title = "After first vac dose", fill="")
+  
+  bar_event_3weeks_after_dose <- event_data_phy %>% group_by(partition) %>% dplyr::count(event_date_3weeks_after_dose) %>%
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor(event_date_3weeks_after_dose)) ) +
+    geom_bar(position="stack", stat = "identity") +
+    scale_fill_manual( values = color_event_3weeks_after_dose, na.value = color_na) + theme_classic() +
+    labs(x="", y="% Events", title = "3w after vac dose", fill="")
+  
+  bar_age <- event_data_phy %>% group_by(partition) %>% dplyr::count(discretized_admit_age_quantile) %>%
+              mutate(per = n/sum(n)*100) %>%
+              ggplot( aes(x=partition, y=per, fill = as.factor(discretized_admit_age_quantile)) ) +
+              geom_bar(position="stack", stat = "identity") +
+              scale_fill_manual( values = color_age, na.value = color_na) +
+              theme_classic() +
+              labs(x="", y="% Events", title = "Discretized age", fill="")
+  
+  bar_enrollment <- event_data_phy %>% group_by(partition) %>% dplyr::count(enrollment_site) %>%
+              mutate(per = n/sum(n)*100) %>%
+              ggplot( aes(x=partition, y=per, fill = as.factor(enrollment_site)) ) +
+              geom_bar(position="stack", stat = "identity") +
+              scale_fill_manual( values = color_enrollment_site, na.value = color_na) +
+              theme_classic() + theme(legend.position = "none") +
+              labs(x="", y="% Events", title = "Site", fill="")
+              
+  bar_bmi <- event_data_phy %>% group_by(partition) %>% dplyr::count(discretized_bmi) %>%
+              mutate(per = n/sum(n)*100) %>%
+              ggplot( aes(x=partition, y=per, fill = as.factor(discretized_bmi)) ) +
+              geom_bar(position="stack", stat = "identity") +
+              scale_fill_manual( values = color_bmi, na.value = color_na) +
+              theme_classic() +
+              labs(x="", y="% Events", title = "BMI", fill="")
+  
+  bar_race <- event_data_phy %>% group_by(partition) %>% dplyr::count(race) %>%
+              mutate(per = n/sum(n)*100) %>%
+              ggplot( aes(x=partition, y=per, fill = as.factor(race)) ) +
+              geom_bar(position="stack", stat = "identity") +
+              scale_fill_manual( values = color_race, na.value = color_na) +
+              theme_classic() +
+              labs(x="", y="% Events", title = "Race", fill="")
+  
+  bar_comorb_neuro <- event_data_phy %>% group_by(partition) %>% dplyr::count(comorb_neuro) %>%
+            mutate(per = n/sum(n)*100) %>%
+            ggplot( aes(x=partition, y=per, fill = as.factor(comorb_neuro)) ) +
+            geom_bar(position="stack", stat = "identity") +
+            scale_fill_manual( values = color_neuro, na.value = color_na, name="") +
+            theme_classic() +
+            labs(x="", y="% Events", title = "Comorb. Neuro", fill="")
+            
+  bar_comorb_cardiac <- event_data_phy %>% group_by(partition) %>% dplyr::count(comorb_isaric_cardiac) %>%
+            mutate(per = n/sum(n)*100) %>%
+            ggplot( aes(x=partition, y=per, fill = as.factor(comorb_isaric_cardiac)) ) +
+            geom_bar(position="stack", stat = "identity") +
+            scale_fill_manual( values = color_cardiac, na.value = color_na, name="") +
+            theme_classic() +
+            labs(x="", y="% Events", title = "Comorb. Cardiac", fill="")
+            
+  bar_comorb_resp <- event_data_phy %>% group_by(partition) %>% dplyr::count(comorb_anyresp_noasthma) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(comorb_anyresp_noasthma)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_resp, na.value = color_na, name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", title = "Comorb. resp", fill="")
+  
+  bar_PGX_avail <- event_data_phy %>% group_by(partition) %>% dplyr::count(PGX_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(PGX_avail)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", title = "PGX available", fill="")
+  
+  bar_PPT_avail <- event_data_phy %>% group_by(partition) %>% dplyr::count(PPT_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(PPT_avail)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", title = "PPT available", fill="")
+  
+  bar_PPG_avail <- event_data_phy %>% group_by(partition) %>% dplyr::count(PPG_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(PPG_avail)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", title = "PPG available", fill="")
+  
+  bar_PMG_avail <- event_data_phy %>% group_by(partition) %>% dplyr::count(PMG_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(PMG_avail)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", title = "PMG available", fill="")
+  
+  bar_SO_avail <- event_data_phy %>% group_by(partition) %>% dplyr::count(SO_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(SO_avail)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", title = "SO available", fill="")
+  
+  bar_BCT_avail <- event_data_phy %>% group_by(partition) %>% dplyr::count(BCT_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(BCT_avail) )) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", title = "BCT available", fill="")
+  
+  bar_PROMIS_PHY_avail <- event_data_phy %>% group_by(partition) %>% dplyr::count(PROMIS_Physical_avail) %>%
+        mutate(per = n/sum(n)*100) %>%
+        ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_Physical_avail) )) +
+        geom_bar(position="stack", stat = "identity") +
+        scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+        theme_classic() +
+        labs(x="", y="% Events", title = "PROMIS Physical", fill="")
+  
+  bar_PROMIS_DYSP_avail <- event_data_phy %>% group_by(partition) %>% dplyr::count(PROMIS_Dyspnea_avail) %>%
+        mutate(per = n/sum(n)*100) %>%
+        ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_Dyspnea_avail) )) +
+        geom_bar(position="stack", stat = "identity") +
+        scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+        theme_classic() +
+        labs(x="", y="% Events", title = "PROMIS Dyspnea", fill="")
+  
+  bar_PROMIS_IMP_avail <- event_data_phy %>% group_by(partition) %>% dplyr::count(PROMIS_Impact_avail) %>%
+        mutate(per = n/sum(n)*100) %>%
+        ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_Impact_avail) )) +
+        geom_bar(position="stack", stat = "identity") +
+        scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+        theme_classic() +
+        labs(x="", y="% Events", title = "PROMIS Impact", fill="")
+  
+  bar_PROMIS_MENT_avail <- event_data_phy %>% group_by(partition) %>% dplyr::count(PROMIS_Mental_avail) %>%
+        mutate(per = n/sum(n)*100) %>%
+        ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_Mental_avail) )) +
+        geom_bar(position="stack", stat = "identity") +
+        scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+        theme_classic() +
+        labs(x="", y="% Events", title = "PROMIS Mental", fill="")
+  
+  bar_PROMIS_PSYCHO_avail <- event_data_phy %>% group_by(partition) %>% dplyr::count(PROMIS_Psycho_avail) %>%
+        mutate(per = n/sum(n)*100) %>%
+        ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_Psycho_avail) )) +
+        geom_bar(position="stack", stat = "identity") +
+        scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+        theme_classic() +
+        labs(x="", y="% Events", title = "PROMIS Cognitive", fill="")
+  
+  bar_EQ_score <- event_data_phy %>% group_by(partition) %>% dplyr::count(PROMIS_EQ_avail) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_EQ_avail) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Events", title = "EQ-5D-5L score", fill="")
+  
+  bar_health_score <- event_data_phy %>% group_by(partition) %>% dplyr::count(PROMIS_health_avail) %>%
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_health_avail) )) +
+    geom_bar(position="stack", stat = "identity") +
+    scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+    theme_classic() +
+    labs(x="", y="% Events", title = "Health score", fill="")
+      
+
+
+FigS3_phyavail <-  ggarrange(ggarrange(bar_PRO_group, bar_sex, bar_trajectory_group,  bar_visit, bar_phase, bar_enrollment, ncol = 6, widths = c(1,1.1,1,1.1,1,0.7)),
+            ggarrange(bar_age, bar_bmi, bar_race, bar_event_3weeks_after_dose, NULL, ncol = 5, widths = c(1,1.2,1.8,1,0.3)),
+            ggarrange(bar_comorb_neuro, bar_comorb_cardiac, bar_comorb_resp, NULL, NULL, NULL, ncol =6),
+            ggarrange(bar_PGX_avail, bar_PPT_avail, bar_PPG_avail, bar_SO_avail, bar_PMG_avail, bar_BCT_avail, 
+                       ncol = 6),
+            ggarrange(bar_PROMIS_PHY_avail, bar_PROMIS_PSYCHO_avail, bar_PROMIS_MENT_avail, bar_PROMIS_IMP_avail,  bar_PROMIS_DYSP_avail,  ncol = 6),
+            ggarrange(bar_EQ_score, bar_health_score, ncol=6),
+            labels = c("A",
+                       "",
+                       "B",
+                       "C",
+                       "D",
+                       ""), nrow = 6)
+
+FigS3_phyavail
+ggsave(file.path(figures_dir, "FigS3/FigureS3_phyavail.pdf"), FigS3_phyavail, height=10, width=12)
+ggsave(file.path(figures_dir, "FigS3/FigureS3_phyavail.png"), FigS3_phyavail, height=10, width=12)
+
+```
+
+Check vaccination info per visit
+
+```{r}
+bar_vacc_3w_visit <- event_data_phy %>% group_by(event_type) %>% dplyr::count(event_date_3weeks_after_dose) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=event_type, y=per, fill = as.factor(event_date_3weeks_after_dose) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_event_3weeks_after_dose, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Events", title = "3w after vac. dose", fill="")
+
+bar_aftervacc_visit <- event_data_phy %>% group_by(event_type) %>% dplyr::count(event_after_first_vaccine_dose) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=event_type, y=per, fill = as.factor(event_after_first_vaccine_dose) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_event_after_vaccine_levels, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Events", title = "after first vac. dose", fill="")
+
+ggarrange(bar_vacc_3w_visit, bar_aftervacc_visit,
+            labels = c("A", "B"), ncol = 2, nrow = 2)
+```
+
+```{r}
+bar_vacc_3w_visit <- event_data_phy %>% group_by(event_type) %>% dplyr::count(event_date_3weeks_after_dose) %>%
+      #mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=event_type, y=n, fill = as.factor(event_date_3weeks_after_dose) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_event_3weeks_after_dose, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="Number Events", title = "3w after vac. dose", fill="")
+
+bar_aftervacc_visit <- event_data_phy %>% group_by(event_type) %>% dplyr::count(event_after_first_vaccine_dose) %>%
+      #mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=event_type, y=n, fill = as.factor(event_after_first_vaccine_dose) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_event_after_vaccine_levels, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="Number Events", title = "after first vac. dose", fill="")
+
+ggarrange(bar_vacc_3w_visit, bar_aftervacc_visit,
+            labels = c("A", "B"), ncol = 2, nrow = 2)
+```
+
+Check sex distribution event_id within each PRO group
+
+```{r fig.width=6, fig.height=4}
+bar_sex_PRO <- event_data_phy %>% group_by(pro_2_groups) %>% dplyr::count(sex) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=pro_2_groups, y=per, fill = as.factor(sex) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_sex, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Events", title = "Sex per group", fill="")
+
+bar_sex_PRO_groups <- event_data_phy %>% group_by(pro_group_labels) %>% dplyr::count(sex) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=pro_group_labels, y=per, fill = as.factor(sex) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_sex, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Events", title = "Sex per PRO group", fill="")
+
+ggarrange(bar_sex_PRO, bar_sex_PRO_groups,
+            labels = c("A", "B"), ncol = 2, nrow = 2, widths = c(1,1.4))
+```
+
+Check sex % participant distribution
+
+```{r fig.width=6, fig.height=4}
+bar_sex_PRO <- event_data_phy %>% 
+                dplyr::select(c("participant_id", "pro_2_groups", "sex")) %>%
+                distinct() %>%
+                group_by(pro_2_groups) %>% dplyr::count(sex) %>%
+                mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=pro_2_groups, y=per, fill = as.factor(sex) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_sex, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Participants", title = "Sex per group", fill="")
+
+bar_sex_PRO_groups <- event_data_phy %>% 
+                dplyr::select(c("participant_id", "pro_group_labels", "sex")) %>%
+                distinct() %>%
+                group_by(pro_group_labels) %>% dplyr::count(sex) %>%
+                mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=pro_group_labels, y=per, fill = as.factor(sex) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_sex, na.value = color_na, name = "") +
+      theme_classic() +
+      labs(x="", y="% Participants", title = "Sex per group", fill="")
+
+ggarrange(bar_sex_PRO, bar_sex_PRO_groups,
+            labels = c("A", "B"), ncol = 2, nrow = 2, widths = c(1,1.4))
+```
+
+Check distribution of PROMIS PHY scores over PRO groups
+
+```{r, fig.width = 6, fig.height=3}
+event_data_scores <- clinical_data_phase_corrected %>%
+                dplyr::filter(sample_id %in% c(all_sample_ids_train, all_sample_ids_test), 
+                              event_id %in% c(all_event_ids_train, all_event_ids_test)) %>%
+                dplyr::left_join(promis_scale_scores)
+event_data_scores$pro_group_labels <- factor(event_data_scores$pro_group_labels, levels=names(color_pro_group))
+event_data_scores$partition <- factor(event_data_scores$partition, levels=c("train","test"))
+
+library(ggbeeswarm)
+pointplot <- ggplot(event_data_scores, aes(x=pro_group_labels,y=PROMIS_Physical_score,
+                                           fill=pro_group_labels)) +
+              ggbeeswarm::geom_quasirandom(aes(fill=pro_group_labels),shape=21,width=.2, dodge.width = 0.75) +
+              geom_boxplot(alpha=0.6, color="black", outlier.shape=NA) +
+              scale_fill_manual(values = color_pro_group) +
+              theme_classic() +
+              facet_grid(~partition) +
+              labs(x="", y="PROMIS Physical score", colour="PRO group")
+pointplot
+```
+
+```{r, fig.width = 6, fig.height=5}
+pointplot <- ggplot(event_data_scores, aes(x=pro_group_labels,y=PROMIS_Physical_score,
+                                           fill=pro_group_labels)) +
+              ggbeeswarm::geom_quasirandom(aes(fill=pro_group_labels),shape=21,width=.2, dodge.width = 0.75) +
+              geom_boxplot(alpha=0.6, color="black", outlier.shape=NA) +
+              scale_fill_manual(values = color_pro_group) +
+              theme_classic() +
+              facet_grid(cols=vars(sex), rows=vars(partition)) +
+              labs(x="", y="PROMIS Physical score", colour="PRO group")
+pointplot
+```
+
+
+```{r, fig.height=3, fig.width=4}
+event_data_phy_female <- event_data_phy %>% filter(sex =="Female") %>%
+                            dplyr::select(pro_group_labels, partition, event_id) %>%
+                            dplyr::distinct() %>%
+                            dplyr::group_by(pro_group_labels, partition) %>%
+                             dplyr::summarize(count=n())
+ggplot(data = event_data_phy_female, aes(x = pro_group_labels, y = partition)) +
+  geom_tile(aes(fill = count)) +
+  geom_text(aes(label = count), color = "black", size = 4) +
+  scale_x_discrete(expand = c(0,0))+
+  scale_y_discrete(expand = c(0,0)) +
+  scale_fill_gradient("Counts Legend \n", low = "#FCEEF0", high = "#DC2543") +
+  theme_bw() + 
+  labs(x = "\n PRO groups", y = "Partition", 
+       title = "Number of events per group in Females \n",
+       fill = "Answer \n") +
+  theme(legend.position = "None")
+
+```
+```{r, fig.height=3, fig.width=4}
+event_data_phy_female <- event_data_phy %>%  dplyr::filter(sex =="Female") %>%
+                             dplyr::select(pro_2_groups, partition, event_id) %>%
+                             dplyr::distinct() %>%
+                             dplyr::group_by(pro_2_groups, partition) %>%
+                             dplyr::summarize(count=n())
+ggplot(data = event_data_phy_female, aes(x = pro_2_groups, y = partition)) +
+  geom_tile(aes(fill = count)) +
+  geom_text(aes(label = count), color = "black", size = 4) +
+  scale_x_discrete(expand = c(0,0))+
+  scale_y_discrete(expand = c(0,0)) +
+  scale_fill_gradient("Counts Legend \n", low = "#FCEEF0", high = "#DC2543") +
+  theme_bw() + 
+  labs(x = "", y = "Partition", 
+       title = "Number of events per group in Females \n")
+
+```
+
+```{r, fig.height=3, fig.width=4}
+event_data_phy_male <- event_data_phy %>%  dplyr::filter(sex =="Male") %>%
+                             dplyr::select(pro_group_labels, partition, event_id) %>%
+                             dplyr::distinct() %>%
+                             dplyr::group_by(pro_group_labels, partition) %>%
+                             dplyr::summarize(count=n())
+ggplot(data = event_data_phy_male, aes(x = pro_group_labels, y = partition)) +
+  geom_tile(aes(fill = count)) +
+  geom_text(aes(label = count), color = "black", size = 4) +
+  scale_x_discrete(expand = c(0,0))+
+  scale_y_discrete(expand = c(0,0)) +
+  scale_fill_gradient("Counts Legend \n", low = "#DDF6F8", high = "#156066") +
+  theme_bw() + 
+  labs(x = "\n PRO groups", y = "Partition", 
+       title = "Number of events per group in Males \n",
+       fill = "Answer \n") +
+  theme(legend.position = "None")
+
+```
+
+```{r, fig.height=3, fig.width=4}
+event_data_phy_male <- event_data_phy %>%  dplyr::filter(sex =="Male") %>%
+                             dplyr::select(pro_2_groups, partition, event_id) %>%
+                             dplyr::distinct() %>%
+                             dplyr::group_by(pro_2_groups, partition) %>%
+                             dplyr::summarize(count=n())
+ggplot(data = event_data_phy_male, aes(x = pro_2_groups, y = partition)) +
+  geom_tile(aes(fill = count)) +
+  geom_text(aes(label = count), color = "black", size = 4) +
+  scale_x_discrete(expand = c(0,0))+
+  scale_y_discrete(expand = c(0,0)) +
+  scale_fill_gradient("Counts Legend \n", low = "#DDF6F8", high = "#156066") +
+  theme_bw() + 
+  labs(x = "", y = "Partition", 
+       title = "Number of events per group in Males \n")
+
+```
+
+Train set (% events per group)
+
+```{r}
+event_train <- event_data %>% filter(partition == "train")
+sum_train <- event_train %>%
+          dplyr::select(event_id, pro_group_labels) %>%
+          dplyr::distinct() %>%
+          dplyr::group_by(pro_group_labels) %>%
+          dplyr::mutate(count = n()) %>%
+          dplyr::select(-event_id) %>%
+          dplyr::distinct() %>%
+          dplyr::arrange(count) %>%
+          dplyr::mutate(percentage = count/n_distinct(event_train$event_id)*100)
+
+print_kable(sum_train)
+```
+
+Test set (% events per group)
+
+```{r}
+event_test <- event_data %>% filter(partition == "test")
+sum_test <- event_test %>%
+          dplyr::select(event_id, pro_group_labels) %>%
+          dplyr::distinct() %>%
+          dplyr::group_by(pro_group_labels) %>%
+          dplyr::mutate(count = n()) %>%
+          dplyr::select(-event_id) %>%
+          dplyr::distinct() %>%
+          dplyr::arrange(count) %>%
+          dplyr::mutate(percentage = count/n_distinct(event_test$event_id)*100)
+
+print_kable(sum_test)
+```
+
+# Check train-extended test split distribution (for association)
+
+```{r}
+events_train_phy <- event_data_phy[which(event_data_phy$partition=="train"),]$event_id
+participants_train_phy <- event_data_phy[which(event_data_phy$partition=="train"),]$participant_id
+events_test_phy <- event_data_phy[which(event_data_phy$partition=="test"),]$event_id
+events_train_nophy_nooverlap <- event_data %>%
+  dplyr::filter(partition == "train") %>%
+  dplyr::filter(PROMIS_Physical_avail == "no") %>%
+  dplyr::filter(!participant_id %in% participants_train_phy) %>% pull(event_id)
+events_extended_test <- c(events_test_phy,events_train_nophy_nooverlap)
+
+event_data_extendedtest <- event_data %>%
+  dplyr::mutate(partition = if_else(event_id %in% events_train_phy, "train", 
+                                         if_else(event_id %in% events_extended_test, "test", NA))) %>%
+  dplyr::filter(!is.na(partition))
+
+```
+
+
+```{r fig.width=6, fig.height=4}
+DT::datatable( event_data_extendedtest %>% 
+                dplyr::select(c("participant_id", "partition")) %>%
+                distinct() %>%
+                dplyr::count(partition) )
+```
+
+```{r fig.width=6, fig.height=4}
+DT::datatable( event_data_extendedtest %>% 
+                dplyr::select(c("event_id", "partition")) %>%
+                distinct() %>%
+                dplyr::count(partition) )
+```
+
+### FigS3
+
+```{r fig.height=10,fig.width=12}
+theme_set(theme_classic() + theme(plot.title = element_text(hjust=0)))
+  bar_sex <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(sex) %>% 
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill=sex) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_sex )  + 
+    labs(x="", y="% Events", title = "Sex", fill="")
+
+  bar_trajectory_group <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(trajectory_group) %>% 
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor( trajectory_group ) ) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_traj_group, na.value = color_na )  + 
+    labs(x="", y="% Events", title = "Trajectory group", fill="")
+  
+  # Distribution of samples by PRO group
+  bar_PRO_group <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(pro_group_labels) %>% 
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor( pro_group_labels ) ) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_pro_group, na.value = color_na )  + 
+    labs(x="", y="% Events", title = "PRO group", fill="")
+  
+  # Distribution of samples by PRO group
+  bar_PRO_2_groups <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(pro_2_groups) %>% 
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor( pro_2_groups ) ) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_pro_2_groups, na.value = color_na )  + 
+    labs(x="", y="% Events", title = "PRO group", fill="")
+  
+  # Adapt factor of clinical data event type so Visit 10 comes after Visit 9
+  
+  # Distribution of samples by visit
+  bar_visit <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(event_type) %>%
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor( event_type ) ) ) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_event_type, na.value = color_na )  + 
+    labs(x="", y="% Events", title = "Visit", fill="")
+  
+  # Distribution of samples by phase
+  bar_phase <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(phase) %>%
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor( phase ))) + 
+    geom_bar(position="stack", stat="identity") + 
+    scale_fill_manual( values = color_phase, na.value = color_na )  + 
+    labs(x="", y="% Events", title = "Phase", fill="")
+  
+  bar_event_after_first_vaccine <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(event_after_first_vaccine_dose) %>%
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor(event_after_first_vaccine_dose)) ) +
+    geom_bar(position="stack", stat = "identity") +
+    scale_fill_manual( values = color_event_after_vaccine_levels, na.value = color_na)  +
+    labs(x="", y="% Events", title = "After first vac dose", fill="")
+  
+  bar_event_3weeks_after_dose <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(event_date_3weeks_after_dose) %>%
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor(event_date_3weeks_after_dose)) ) +
+    geom_bar(position="stack", stat = "identity") +
+    scale_fill_manual( values = color_event_3weeks_after_dose, na.value = color_na)  +
+    labs(x="", y="% Events", title = "3w after vac dose", fill="")
+  
+  bar_age <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(discretized_admit_age_quantile) %>%
+              mutate(per = n/sum(n)*100) %>%
+              ggplot( aes(x=partition, y=per, fill = as.factor(discretized_admit_age_quantile)) ) +
+              geom_bar(position="stack", stat = "identity") +
+              scale_fill_manual( values = color_age, na.value = color_na) +
+              labs(x="", y="% Events", title = "Discretized age", fill="")
+  
+  bar_enrollment <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(enrollment_site) %>%
+              mutate(per = n/sum(n)*100) %>%
+              ggplot( aes(x=partition, y=per, fill = as.factor(enrollment_site)) ) +
+              geom_bar(position="stack", stat = "identity") +
+              scale_fill_manual( values = color_enrollment_site, na.value = color_na) +
+               theme(legend.position = "none") +
+              labs(x="", y="% Events", title = "Site", fill="")
+              
+  bar_bmi <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(discretized_bmi) %>%
+              mutate(per = n/sum(n)*100) %>%
+              ggplot( aes(x=partition, y=per, fill = as.factor(discretized_bmi)) ) +
+              geom_bar(position="stack", stat = "identity") +
+              scale_fill_manual( values = color_bmi, na.value = color_na) +
+              labs(x="", y="% Events", title = "BMI", fill="")
+  
+  bar_race <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(race) %>%
+              mutate(per = n/sum(n)*100) %>%
+              ggplot( aes(x=partition, y=per, fill = as.factor(race)) ) +
+              geom_bar(position="stack", stat = "identity") +
+              scale_fill_manual( values = color_race, na.value = color_na) +
+              labs(x="", y="% Events", title = "Race", fill="")
+  
+  bar_comorb_neuro <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(comorb_neuro) %>%
+            mutate(per = n/sum(n)*100) %>%
+            ggplot( aes(x=partition, y=per, fill = as.factor(comorb_neuro)) ) +
+            geom_bar(position="stack", stat = "identity") +
+            scale_fill_manual( values = color_neuro, na.value = color_na, name="") +
+            labs(x="", y="% Events", title = "Comorb. Neuro", fill="")
+            
+  bar_comorb_cardiac <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(comorb_isaric_cardiac) %>%
+            mutate(per = n/sum(n)*100) %>%
+            ggplot( aes(x=partition, y=per, fill = as.factor(comorb_isaric_cardiac)) ) +
+            geom_bar(position="stack", stat = "identity") +
+            scale_fill_manual( values = color_cardiac, na.value = color_na, name="") +
+            labs(x="", y="% Events", title = "Comorb. Cardiac", fill="")
+            
+  bar_comorb_resp <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(comorb_anyresp_noasthma) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(comorb_anyresp_noasthma)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_resp, na.value = color_na, name = "") +
+          labs(x="", y="% Events", title = "Comorb. resp", fill="")
+  
+  bar_PGX_avail <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(PGX_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(PGX_avail)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          labs(x="", y="% Events", title = "PGX available", fill="")
+  
+  bar_PPT_avail <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(PPT_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(PPT_avail)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          labs(x="", y="% Events", title = "PPT available", fill="")
+  
+  bar_PPG_avail <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(PPG_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(PPG_avail)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          labs(x="", y="% Events", title = "PPG available", fill="")
+  
+  bar_PMG_avail <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(PMG_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(PMG_avail)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          labs(x="", y="% Events", title = "PMG available", fill="")
+  
+  bar_SO_avail <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(SO_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(SO_avail)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          labs(x="", y="% Events", title = "SO available", fill="")
+  
+  bar_BCT_avail <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(BCT_avail) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=partition, y=per, fill = as.factor(BCT_avail) )) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+          labs(x="", y="% Events", title = "BCT available", fill="")
+  
+  bar_PROMIS_PHY_avail <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(PROMIS_Physical_avail) %>%
+        mutate(per = n/sum(n)*100) %>%
+        ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_Physical_avail) )) +
+        geom_bar(position="stack", stat = "identity") +
+        scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+        labs(x="", y="% Events", title = "PROMIS Physical", fill="")
+  
+  bar_PROMIS_DYSP_avail <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(PROMIS_Dyspnea_avail) %>%
+        mutate(per = n/sum(n)*100) %>%
+        ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_Dyspnea_avail) )) +
+        geom_bar(position="stack", stat = "identity") +
+        scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+        labs(x="", y="% Events", title = "PROMIS Dyspnea", fill="")
+  
+  bar_PROMIS_IMP_avail <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(PROMIS_Impact_avail) %>%
+        mutate(per = n/sum(n)*100) %>%
+        ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_Impact_avail) )) +
+        geom_bar(position="stack", stat = "identity") +
+        scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+        labs(x="", y="% Events", title = "PROMIS Impact", fill="")
+  
+  bar_PROMIS_MENT_avail <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(PROMIS_Mental_avail) %>%
+        mutate(per = n/sum(n)*100) %>%
+        ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_Mental_avail) )) +
+        geom_bar(position="stack", stat = "identity") +
+        scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+        labs(x="", y="% Events", title = "PROMIS Mental", fill="")
+  
+  bar_PROMIS_PSYCHO_avail <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(PROMIS_Psycho_avail) %>%
+        mutate(per = n/sum(n)*100) %>%
+        ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_Psycho_avail) )) +
+        geom_bar(position="stack", stat = "identity") +
+        scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+        labs(x="", y="% Events", title = "PROMIS Cognitive", fill="")
+  
+  bar_EQ_score <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(PROMIS_EQ_avail) %>%
+      mutate(per = n/sum(n)*100) %>%
+      ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_EQ_avail) )) +
+      geom_bar(position="stack", stat = "identity") +
+      scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+      labs(x="", y="% Events", title = "EQ-5D-5L score", fill="")
+  
+  bar_health_score <- event_data_extendedtest %>% group_by(partition) %>% dplyr::count(PROMIS_health_avail) %>%
+    mutate(per = n/sum(n)*100) %>%
+    ggplot( aes(x=partition, y=per, fill = as.factor(PROMIS_health_avail) )) +
+    geom_bar(position="stack", stat = "identity") +
+    scale_fill_manual( values = color_avail, na.value = color_na, name = "") +
+    labs(x="", y="% Events", title = "Health score", fill="")
+      
+
+
+FigS3 <-  ggarrange(ggarrange(bar_PRO_group, bar_sex, bar_trajectory_group,  bar_visit, bar_phase, bar_enrollment, ncol = 6, widths = c(1,1.1,1,1.1,1,0.7)),
+            ggarrange(bar_age, bar_bmi, bar_race, bar_event_3weeks_after_dose, NULL, ncol = 5, widths = c(1,1.2,1.8,1,0.3)),
+            ggarrange(bar_comorb_neuro, bar_comorb_cardiac, bar_comorb_resp, NULL, NULL, NULL, ncol =6),
+            ggarrange(bar_PGX_avail, bar_PPT_avail, bar_PPG_avail, bar_SO_avail, bar_PMG_avail, bar_BCT_avail, 
+                       ncol = 6),
+            ggarrange(bar_PROMIS_PHY_avail, bar_PROMIS_PSYCHO_avail, bar_PROMIS_MENT_avail, bar_PROMIS_IMP_avail,  bar_PROMIS_DYSP_avail,  ncol = 6),
+            ggarrange(bar_EQ_score, bar_health_score, ncol=6),
+            labels = c("A",
+                       "",
+                       "B",
+                       "C",
+                       "D",
+                       ""), nrow = 6)
+
+FigS3
+          
+ggsave(file.path(figures_dir, "FigS3/FigureS3.pdf"), FigS3, height=10, width=12)
+ggsave(file.path(figures_dir, "FigS3/FigureS3.png"), FigS3, height=10, width=12)
+
+```
+
+
+# Check PROMIS scale values per group
+
+## FigS2A
+
+```{r fig.width = 13, fig.height = 3}
+event_data_PROMIS <- event_data_scores %>% 
+  tidyr::pivot_longer(cols = ends_with("score"),
+                      names_to = "PROMIS_scale",
+                      values_to = "PROMIS_scale_value")
+event_data_PROMIS$PROMIS_scale <- factor(event_data_PROMIS$PROMIS_scale, 
+                                         levels = c("PROMIS_Physical_score",
+                                                    "PROMIS_Psycho_score",
+                                                    "PROMIS_Mental_score",
+                                                    "PROMIS_Impact_score",
+                                                    "PROMIS_Dyspnea_score",
+                                                    "eq5d5l_score",
+                                                    "health_score"))
+PROMIS_names <- c("PROMIS_Physical_score" = "PROMIS Physical score",
+                    "PROMIS_Psycho_score" = "PROMIS Cognitive score",
+                    "PROMIS_Mental_score" = "PROMIS Mental score",
+                    "PROMIS_Impact_score" = "PROMIS Impact score",
+                    "PROMIS_Dyspnea_score" = "PROMIS Dyspnea score",
+                    "eq5d5l_score" = "EQ-5D-5L score",
+                    "health_score" = "Health score")
+
+stat.test <- event_data_PROMIS %>%
+    group_by(PROMIS_scale) %>%
+    wilcox_test(PROMIS_scale_value ~ pro_group_labels) %>%
+    adjust_pvalue(method = "hochberg") %>%
+    dplyr::filter(group1 == "MIN") %>%
+    add_xy_position(x="pro_group_labels")
+
+print_kable(stat.test)
+```
+
+```{r fig.width = 13, fig.height = 3}
+FigS2A <- ggplot(event_data_PROMIS, aes(x=pro_group_labels, y=PROMIS_scale_value, fill=pro_group_labels)) +
+  ggbeeswarm::geom_quasirandom(aes(fill=pro_group_labels),shape=21,width=.2, dodge.width = 0.75) +
+  geom_boxplot(alpha=0.6, color="black", outlier.shape=NA) +
+  scale_fill_manual(values = color_pro_group) +
+  theme_bw() + theme(strip.background = element_rect(fill="white")) +
+  facet_wrap(~PROMIS_scale, scales = "free", nrow = 1, labeller = as_labeller(PROMIS_names)) +
+  labs(x="", y="PRO score", colour="PRO group") +
+  theme(legend.position = "None")
+
+FigS2A
+saveRDS(FigS2A, file = file.path(figures_dir, "FigS2/FigS2A.rds"))
+```
+
+```{r fig.width = 10, fig.height = 3}
+FigS2A <- ggplot(event_data_PROMIS %>% dplyr::filter(!PROMIS_scale %in% c("eq5d5l_score", "health_score")), aes(x=pro_group_labels, y=PROMIS_scale_value, fill=pro_group_labels)) +
+  ggbeeswarm::geom_quasirandom(aes(fill=pro_group_labels),shape=21,width=.2, dodge.width = 0.75) +
+  geom_boxplot(alpha=0.6, color="black", outlier.shape=NA) +
+  scale_fill_manual(values = color_pro_group) +
+  theme_bw() + theme(strip.background = element_rect(fill="white")) +
+  facet_wrap(~PROMIS_scale, scales = "free", nrow = 1, labeller = as_labeller(PROMIS_names)) +
+  labs(x="", y="PRO score", colour="PRO group") +
+  theme(legend.position = "None")
+
+FigS2A
+ggsave(file.path(figures_dir,"FigS2/FigS2A_promisonly.png"), FigS2A, height = 3, width = 13)
+ggsave(file.path(figures_dir,"FigS2/FigS2A_promisonly.pdf"), FigS2A, height = 3, width = 13)
+saveRDS(FigS2A, file = file.path(figures_dir, "FigS2/FigS2A_promisonly.rds"))
+
+
+```
+
+# Train MOFA training data
+
+```{r fig.height=10, eval=F}
+
+# Defining the multi-group framework to distinguish the visits
+MOFAobject_base <- MOFA2::create_mofa(train_data)
+
+plot_data_overview(MOFAobject_base)
+
+#data options
+data_opts <- get_default_data_options(MOFAobject_base)
+
+# Model options
+model_opts_F300 <- get_default_model_options(MOFAobject_base)
+model_opts_F300$num_factors <- 250
+
+## train options
+train_opts <- get_default_training_options(MOFAobject_base)
+train_opts$convergence_mode <- "fast"
+train_opts$seed <- 42
+
+# Automatically drop factors that explain less than 1% of variance in all omics
+train_opts$drop_factor_threshold <- 0.01
+
+
+```
+
+## Run MOFA train
+
+
+```{r use_basilisk = TRUE, eval=F}
+MOFAobject_f300 <- prepare_mofa(MOFAobject_base,
+  data_options = data_opts,
+  model_options = model_opts_F300,
+  training_options = train_opts
+)
+
+MOFAobject_f300 <- run_mofa(MOFAobject_f300, use_basilisk = TRUE)
+
+```
+
+
+```{r eval=F}
+correlation_metadata <- clinical_data_train %>%
+  dplyr::select(event_id, resp_status_v1, sex, admit_age, event_after_first_vaccine_dose,
+                race, enrollment_site, event_date, comorb_anyresp_noasthma,
+                event_date_3weeks_after_dose, pro_group_labels, event_type,
+                discretized_admit_age_quantile, participant_id, partition)  %>%
+  dplyr::distinct() %>%
+  dplyr::mutate(sample = event_id) %>%
+  filter(sample %in% samples_metadata(MOFAobject_f300)$sample)
+
+freq = correlation_metadata %>%
+  group_by(sample) %>%
+  summarise(n = n())
+
+correlation_metadata_join <- samples_metadata(MOFAobject_f300) %>%
+  left_join(correlation_metadata, by="sample")
+
+samples_metadata(MOFAobject_f300) <- correlation_metadata_join
+
+# Save MOFA object
+saveRDS(MOFAobject_f300, file = paste0(processed_files, mofa_model_name_train))
+
+```
+
+## Get factors and variance explained MOFA object
+```{r }
+MOFAobject_f300 <- readRDS(paste0(processed_files,mofa_model_name_train))
+r2 <- calculate_variance_explained(MOFAobject_f300)
+
+factors <- get_factors(MOFAobject_f300, factors = "all")
+lapply(factors,dim)
+```
+
+# Train MOFA test data
+
+```{r fig.height=10, eval=F}
+
+# Defining the multi-group framework to distinguish the visits
+MOFAobject_base <- MOFA2::create_mofa(test_data)
+
+plot_data_overview(MOFAobject_base)
+
+```
+
+## Run MOFA test
+
+```{r use_basilisk = TRUE, eval=F}
+MOFAobject_f300 <- prepare_mofa(MOFAobject_base,
+  data_options = data_opts,
+  model_options = model_opts_F300,
+  training_options = train_opts
+)
+
+MOFAobject_f300 <- run_mofa(MOFAobject_f300, use_basilisk = TRUE)
+
+## Add metadata to MOFA object
+correlation_metadata <- clinical_data_test %>%
+  dplyr::select(event_id, resp_status_v1, sex, admit_age, event_after_first_vaccine_dose,
+                race, enrollment_site, event_date, comorb_anyresp_noasthma,
+                event_date_3weeks_after_dose, pro_group_labels, event_type,
+                discretized_admit_age_quantile, participant_id, partition)  %>%
+  dplyr::distinct() %>%
+  dplyr::mutate(sample = event_id) %>%
+  filter(sample %in% samples_metadata(MOFAobject_f300)$sample)
+
+freq = correlation_metadata %>%
+  group_by(sample) %>%
+  summarise(n = n())
+
+correlation_metadata_join <- samples_metadata(MOFAobject_f300) %>%
+  left_join(correlation_metadata, by="sample")
+
+samples_metadata(MOFAobject_f300) <- correlation_metadata_join
+
+
+# Save MOFA object
+saveRDS(MOFAobject_f300, file = paste0(processed_files, mofa_model_name_test))
+
+```
+
+## Get factors and variance explained MOFA object
+```{r }
+MOFAobject_f300 <- readRDS(paste0(processed_files,mofa_model_name_test))
+r2 <- calculate_variance_explained(MOFAobject_f300)
+
+factors <- get_factors(MOFAobject_f300, factors = "all")
+lapply(factors,dim)
+```
+
+```{r}
+sessionInfo()
+```
+

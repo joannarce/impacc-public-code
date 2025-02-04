@@ -1,0 +1,123 @@
+---
+title: "PRO Scale data cleaning and preparation"
+author: "Jessica Maciuch"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+workDir <- "~/impacc-full-cohort/Analysis/convalescent-project/Spear/clinical_associations/"
+setwd(workDir) # For troubleshooting in the command line
+knitr::opts_knit$set(root.dir = workDir)
+
+library(tidyverse)
+library(magrittr)
+```
+
+# Prepare PRO Scales
+
+For explanation of PRO variables, see /scratch/clinical/current/PRO_scores_dates_updated_29Aug23_README.txt
+
+Needed to convert all PRO columns to numeric because of conflicting data type issues in the original file.
+
+**Expect an "NAs induced by coercion" warning because some NA values were input as the character string "#N/A".**
+
+There are 76 observations in the data with duplicate event IDs where the PROMIS Physical Scores and PROMIS Psycho Scores appear to have been input separately from the rest of the PRO scores. Since these duplicate event IDs are non-overlapping, all values for the same event ID were merged, and the "survey date"/"diff date" columns were eliminated in the wide-form document to avoid merging conflicts (since they were different between duplicate event IDs in some cases). 
+
+```{r Prepare PRO Scores}
+
+# Load PRO_scores
+  PRO_scores <- read.csv("/data/clinical/current/2023-01-01-locked/PRO_scores_dates_updated.csv")
+
+# Make sure scores are numeric to avoid datatype issues down the line
+# NOTE: this will generate an "NAs induced by coercion" warning
+  PRO_scores %<>% mutate(across(PROMIS_Dyspnea_score:PROMIS_Psycho_score, as.numeric))
+  
+# Change name of participant ID variable to align with clinical data
+  names(PRO_scores)[names(PRO_scores) == "PID"] <- "participant_id"
+  
+# Merge duplicate event ID scores
+  # Separate each score
+  PRO_scores_separated <- PRO_scores %>% select(PROMIS_Dyspnea_score:PROMIS_Psycho_score) %>% as.list()
+  
+  # Append event ID to each separated list 
+  create_df <- function(scores, score_name) {
+    df <- data.frame(PRO_scores$participant_id,
+                     PRO_scores$event_id,
+                     scores)
+    
+    colnames(df) <- c("participant_id", "event_id", score_name)
+    
+    df %<>% filter(!is.na(.data[[score_name]]))
+    return(df)
+  }
+  
+  PRO_scores_separated <- list(PRO_scores_separated, names(PRO_scores_separated)) |>  purrr::pmap(\(scores, score_name) create_df(scores, score_name))
+  
+  PRO_scores <- PRO_scores_separated |> purrr::reduce(full_join, by = c("participant_id", "event_id"), na_matches = "na")
+  
+# Save output as csv
+  write_csv(PRO_scores, file = "~/impacc-full-cohort/Analysis/convalescent-project/Spear/clinical_associations/PRO_score_preprocessing/20240229_PRO_Scores_Cleaned.csv")
+
+```
+
+# Long form version with updated names for manuscript
+
+```{r}
+
+# Load PRO_scores
+  PRO_scores <- read.csv("/data/clinical/current/2023-01-01-locked/PRO_scores_dates_updated.csv")
+
+# Make sure scores are numeric to avoid datatype issues down the line
+# NOTE: this will generate an "NAs induced by coercion" warning
+  PRO_scores %<>% mutate(across(PROMIS_Dyspnea_score:PROMIS_Psycho_score, as.numeric))
+  
+# Convert to long form
+  PRO_scores %<>% pivot_longer(cols = PROMIS_Dyspnea_score:PROMIS_Psycho_score,
+                               names_to = "PRO_scale")
+    
+# Remove missing scores
+  PRO_scores %<>% filter(!is.na(value))
+  
+# Drop participant ID to prevent merging conflicts
+  PRO_scores %<>% select(-c(PID))
+```
+
+# Append readable names
+
+```{r}
+
+# Generate dictionary for PRO scale names
+  PRO_dict <- data.frame("PRO_scale" = unique(PRO_scores$PRO_scale))
+
+  PRO_dict %<>% mutate(PRO_scale_manuscript = case_match(PRO_scale,
+                                                         "PROMIS_Physical_score" ~ "PROMIS Physical Score",
+                                                         "PROMIS_Dyspnea_score" ~ "PROMIS Dyspnea Score",
+                                                         "PROMIS_Mental_score" ~ "PROMIS Mental Score",
+                                                         "PROMIS_Impact_score" ~ "PROMIS Psychosocial Impact Score",
+                                                         "PROMIS_Psycho_score" ~ "PROMIS Cognitive Score",
+                                                         "health_score" ~ "Health Score",
+                                                         "eq5d5l_score" ~ "EQ-5D-5L Score"))
+  
+# Order PRO scales
+  PRO_dict$PRO_scale_manuscript %<>% factor(., levels = c("PROMIS Physical Score",
+                                                          "EQ-5D-5L Score",
+                                                          "PROMIS Mental Score",
+                                                          "PROMIS Psychosocial Impact Score",
+                                                          "PROMIS Cognitive Score",
+                                                          "PROMIS Dyspnea Score",
+                                                          "Health Score"))
+  
+# Combine with all scores
+  PRO_scores %<>% left_join(x = .,
+                            y = PRO_dict,
+                            by = "PRO_scale")
+  
+# Order scores 
+  PRO_scores %<>% arrange(PRO_scale_manuscript)
+  
+# Save long form
+  write_csv(PRO_scores, file = "./PRO_score_preprocessing/20240913_PRO_Scores_long.csv")
+```

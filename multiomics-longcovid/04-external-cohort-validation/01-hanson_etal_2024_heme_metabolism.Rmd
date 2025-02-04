@@ -1,0 +1,210 @@
+---
+title: "Heme metabolism geometric mean in Hanson et al. (2024)"
+author: "Jessica Maciuch"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+workDir <- getwd()
+
+library(tidyverse)
+library(magrittr)
+library(edgeR)
+library(limma)
+  
+# Load codebase functions
+  source("~/impacc-full-cohort/Analysis/IMPACC_data_analysis_codebase.R")
+
+```
+
+Reference: 
+Hanson, A.L., Mulè, M.P., Ruffieux, H. et al. Iron dysregulation and inflammatory stress erythropoiesis associates with long-term outcome of COVID-19. Nat Immunol 25, 471–482 (2024). https://doi.org/10.1038/s41590-024-01754-8
+
+# Load DGE list from Hanson et al.
+
+```{r}
+
+hanson_data <- readRDS("~/impacc-full-cohort/Analysis/convalescent-project/Spear/heme_metabolism_Hansonetal./Hanson_PAXRNASeq_FilteredDGEList.rds")
+
+symptom_groups <- read_csv("~/impacc-full-cohort/Analysis/convalescent-project/Spear/heme_metabolism_Hansonetal./Hanson_PASCSymptomGroups.csv")
+```
+
+# Data prep
+
+```{r}
+
+# CPM normalization
+  norm_counts <- hanson_data %>% cpm()
+
+# Log transform
+  norm_counts %<>% apply(MARGIN = 2, FUN = \(x) log2(x + 1))
+
+# Scale each feature
+  norm_counts %<>% apply(MARGIN = 1, scale)
+  norm_counts %<>% t()
+
+# Change column names
+  colnames(norm_counts) <- hanson_data$samples$sampleID
+
+# Add age quantile variable
+  admit_age_levels <- sort(unique(hanson_data$samples$age))
+  admit_age_levels_tiles <- ntile(admit_age_levels, 5)
+  
+  label_df_tmp <- data.frame(admit_age_levels_tiles, admit_age_levels) %>% 
+    group_by(admit_age_levels_tiles) %>% 
+    summarize(min=min(admit_age_levels), max=max(admit_age_levels)) %>% 
+    mutate(labels = paste0("[",min, ",", max, "]")) 
+  
+  label_df_tmp %<>% left_join(x = .,
+                              y = data.frame(admit_age_levels_tiles = admit_age_levels_tiles),
+                              by = "admit_age_levels_tiles")
+  label_df_tmp$age <- admit_age_levels
+  label_df_tmp %<>% dplyr::rename("discretized_admit_age_quantile" = "labels")
+    
+  hanson_data$samples %<>% left_join(x = .,
+                                     y = label_df_tmp %>% 
+                                       select(age, discretized_admit_age_quantile),
+                                     by = "age")
+```
+
+# Heme metabolism signature
+
+```{r}
+
+# Load heme metabolism GSEA results
+  file <- "~/impacc-full-cohort/Analysis/convalescent-project/Spear/enrichment_spear_factors_promis_physical_Factor1/GSEA_hallmark_Factor1_PGX_results.tsv"
+
+  heme_sig <- read_delim(file, delim = "\t")
+  
+# Pull pathway leading edge
+  heme_sig %<>% filter(Description == "HALLMARK_HEME_METABOLISM")
+  heme_sig <- str_split_i(heme_sig$core_enrichment, pattern = "\t", i = -1)
+  heme_sig %<>% str_split_1(pattern = "/")
+  
+# Convert into ensembl ID
+  PGX_dict <- read_csv("/data/pbmc-transcriptomics/current/pbmc-transcriptomics-RowFeature.csv", skip = 1)
+  heme_sig <- data.frame(gene_name = heme_sig)
+  heme_sig %<>% left_join(x = .,
+                          y = PGX_dict,
+                          by = "gene_name")
+  
+# Load spear model
+  spear <- readRDS("/scratch/data-fullcohort/spear_model/results/020624/032124_spearphysical_finalscores_allsamples.rds")
+  
+  spear_coef <- spear$analyte.scores
+  
+# Combine with spear model coefficient
+  join <- join_by("gene_id" == "Analyte")
+  heme_sig %<>% left_join(x = .,
+                          y = spear_coef,
+                          by = join)
+  
+# Determine direction
+  heme_sig$direction <- sign(heme_sig$projection.coefficient)
+```
+
+# Calculate geometric mean
+
+```{r}
+
+# Check that all features are in the same direction in spear projection coefficient
+  table(heme_sig$direction)
+
+# Take only features in pathway
+  norm_counts %<>% .[which(rownames(.) %in% heme_sig$gene_id),]
+  
+# Calculate mean per sample
+  geom_mean <- colMeans(norm_counts)
+  
+# Append sample information
+  geom_mean <- data.frame(sampleID = names(geom_mean),
+                          value = geom_mean)
+  
+  geom_mean %<>% left_join(x = .,
+                           y = hanson_data$samples,
+                           by = "sampleID")
+  
+# Add symptom group
+  join <- join_by("sampleID" == "SAMPLE_ID")
+  geom_mean %<>% left_join(x = .,
+                           y = symptom_groups %>% select(SAMPLE_ID, symptom.group),
+                           by = join)
+  
+# Remove ppts without symptom group
+  geom_mean %<>% filter(!is.na(symptom.group))
+```
+
+# Calculate p-val
+
+```{r}
+
+# Take only first three time points
+  bins <- c("(0,14]",
+            "(14,30]",
+            "(30,90]")
+
+  geom_mean %<>% filter(bin_custom %in% bins)
+  
+# Generate readable time point names
+  bins <- data.frame(bin_custom = bins, 
+                     Day = c("0-14", "15-30", "31-90"))
+  
+  geom_mean %<>% left_join(x = .,
+                           y = bins, 
+                           by = "bin_custom")
+  
+# Order timepoints for plotting
+  geom_mean$Day %<>% factor(., levels = bins$Day)
+  
+# Format endpoint variables
+  geom_mean %<>% dplyr::rename("endpoints" = "symptom.group")
+  geom_mean$endpoints %<>% factor(., levels = c("NPS", "PS"))
+  geom_mean$name <- "HAllMARK Heme Metabolism"
+  
+# Calculate global pval with mixed_pairwise function
+  terms <- c("Day",
+             "gender",
+             "discretized_admit_age_quantile",
+             "(1|recordID)")
+  terms %<>% paste(collapse = "+")
+  formula.0 <- paste("value ~", terms)
+  formula.1 <- paste(formula.0, "endpoints", sep = "+")
+  
+  results <- mixed_pairwise(formula.0, formula.1, geom_mean)
+
+```
+
+# Plot geometric means by timepoint
+
+```{r}
+
+# Define cols from Hanson et al.
+  cols <- c("NPS" = "#00cd66",
+            "PS" = "#ff6347")
+
+# Generate boxplot
+  ggplot(geom_mean, aes(x = Day, y = value)) +
+    ggbeeswarm::geom_quasirandom(aes(fill = endpoints),
+                                 shape = 21,
+                                 width = .15, 
+                                 dodge.width = 0.75) +
+    geom_boxplot(aes(fill = endpoints),
+                 alpha = 0.6, 
+                 color = "black", 
+                 outlier.shape = NA) +
+    theme_bw() + 
+    scale_color_manual(values = cols) +
+    scale_fill_manual(values = cols) +
+    labs(y = "Geometric Mean", 
+         fill = "",
+         title = "HALLMARK Heme Metabolism scores in Hanson et al. (2024)",
+         subtitle = paste("p-val =", signif(results$res_table, digits = 2))) +
+    # Add buffer room on y-axis so sig labels don't get cut off
+    scale_y_continuous(expand = expansion(mult = c(0.1))) + 
+    theme(plot.title = element_text(hjust = 0.5),
+          plot.subtitle = element_text(hjust = 0.5)) -> plot
+
+```

@@ -1,0 +1,279 @@
+ ---
+title: "PRO scales associations with Spear Factor1"
+author: "Jessica Maciuch"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Set working directory
+  workDir <- "~/impacc-full-cohort/Analysis/convalescent-project/Spear/clinical_associations"
+  setwd(workDir) # For troubleshooting in the command line
+  knitr::opts_knit$set(root.dir = workDir)
+
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(magrittr)
+  library(ggeffects)
+  library(lme4)
+  library(patchwork)})
+
+# Initialize list of variables to exclude from downstream environment cleaning
+  keep_vars <- "keep_vars"
+```
+
+# Prepare environment
+
+## Helper Functions
+
+```{r}
+
+## Helper function to create a formula for a regression model function
+# predictor = name of variable predicting outcome var in df
+# fixed_vars = character vector of covariate names in df
+# outcome_var = name of outcome variable for model
+# df = a data frame containing all variables in parameter_list, all random and fixed vars, and outcome_var
+# interaction_term = default NULL, do not change
+  create_formula <- function(predictor, fixed_vars, outcome_var, df) {
+    terms <-paste0(c(predictor, fixed_vars), collapse = " + ")
+    
+    formula <- paste(outcome_var, 
+                     " ~ ", 
+                     terms,
+                     " + (1|enrollment_site/participant_id)",
+                     sep = "") %>% as.formula()
+    return(formula)
+  }
+
+## Helper function to return linear model from list of parameters and an outcome variable
+# predictor = name of variable predicting outcome var in df
+# fixed_vars = character vector of covariate names in df
+# outcome_var = name of outcome variable for model
+# df = a data frame containing all variables in parameter_list and outcome_var
+  run_model <- function(predictor, fixed_vars, outcome_var, df) {
+    
+    formula <- create_formula(predictor = predictor,
+                              fixed_vars = fixed_vars,
+                              outcome_var = outcome_var,
+                              df = df)
+    
+    model <- lmer(formula = formula, data = df)
+    return(model)
+  }
+  
+## Helper function to calculate p-val of covariate
+# predictor = name of variable predicting outcome var in df
+# fixed_vars = character vector of covariate names in df
+# outcome_var = name of outcome variable for model
+# df = a data frame containing all variables in parameter_list and outcome_var
+  calculate_predictor_pval <- function(outcome_var, 
+                                       predictor, 
+                                       fixed_vars, 
+                                       df) {
+    # Generate model
+    model <- run_model(predictor = predictor,
+                       fixed_vars = fixed_vars,
+                       outcome_var = outcome_var,
+                       df = df)
+    
+    # Generate reference model for anova
+    model.0 <- run_model(predictor = NULL,
+                         fixed_vars = fixed_vars,
+                         outcome_var = outcome_var,
+                         df = df)
+    
+    # Calculate p-val for predictor
+    pval <- anova(model.0, model)$`Pr(>Chisq)`[2]
+    
+    return(pval)
+  }
+
+# Function to generate plot with model visualization
+  PRO_scale_plot <- function(outcome_var, 
+                             predictor, 
+                             fixed_vars, 
+                             df) {
+    # Generate model
+    model <- run_model(predictor = predictor,
+                       fixed_vars = fixed_vars,
+                       outcome_var = outcome_var,
+                       df = df)
+    
+    # Calculate predicted values and CI
+    pred <- ggpredict(model, c("value"), type = "fixed",
+                      ci.lvl = 0.95)
+    
+    # Generate plot
+    plot <- ggplot(df, aes(x = value, y = Factor1)) +
+      geom_point() +
+      geom_ribbon(data = pred, 
+                  aes(x = x, 
+                      ymin = pred$conf.low, 
+                      ymax = pred$conf.high),
+                  alpha = 0.3,
+                  inherit.aes = F,
+                  fill = "orange2") +
+      geom_line(data = pred, 
+                aes(x = x, y = predicted),
+                linewidth = 1.5,
+                inherit.aes = F,
+                color = "orange2") +
+      labs(color = "",
+           fill = "",
+           x = unique(df$PRO_scale_manuscript), 
+           y = "") +
+      theme_bw() +
+      theme(plot.title = element_text(hjust = 0.5),
+            text = element_text(size = 14))
+    
+    return(plot)
+  }
+
+# Clean environment
+  keep_vars <- ls() # Add all current named functions to exclusion list
+```
+
+## Load clinical data
+
+```{r}
+
+# Load clinical data for acute and convalescent ppts
+  data_env_conv <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_all_Feb_11_2024.RDS")
+  clinical_data <- data_env_conv$clinical_data
+    
+# Select variables
+  clinical_data %<>% 
+    select(all_of(c("participant_id", 
+                    "event_id", 
+                    "event_type",
+                    "event_date",
+                    "enrollment_site", 
+                    "discretized_admit_age_quantile",
+                    "sex",
+                    "pro_2_groups"))) %>% 
+    distinct()
+
+# Transform variables into factors
+  factor_vars <- c("enrollment_site", 
+                   "discretized_admit_age_quantile", 
+                   "sex", 
+                   "event_type", 
+                   "participant_id")
+  clinical_data %<>% mutate(across(all_of(factor_vars), as.factor))
+  
+  clinical_data %<>% mutate(pro_2_groups = if_else(pro_2_groups == "MIN", "MIN", "LC") %>% 
+                              factor(., levels = c("MIN", "LC")))
+  
+# Clean environment
+  keep_vars %<>% c("clinical_data")
+  rm(list = setdiff(ls(), keep_vars))
+  gc()
+```
+
+## Load Spear factors
+
+```{r}
+
+# Load spear factors
+  spear_promis_phys <- readRDS("/scratch/data-fullcohort/spear_model/results/020624/032124_spearphysical_finalscores_allsamples.rds")
+
+# Select projected test partition scores
+  spear_scores <- rbind(spear_promis_phys$Test,
+                        spear_promis_phys$TestNoPhysical,
+                        spear_promis_phys$TrainNoPhysical_NoOverlap)
+    
+# Add event_id as explicit column for downstream merging
+  spear_scores %<>% 
+    as.data.frame() %>% 
+    mutate(event_id = rownames(.)) %>% 
+    select(event_id, Factor1)
+
+# Clean environment
+  keep_vars %<>% c("spear_scores")
+  rm(list = setdiff(ls(), keep_vars))
+  gc()
+```
+
+## Load PRO Scales
+
+```{r}
+
+# Load cleaned PRO scales
+  PRO_scales <- read_csv("./PRO_score_preprocessing/20240913_PRO_Scores_long.csv")
+  
+# Make sure PRO scale name is ordered factor
+  PRO_scales$PRO_scale_manuscript %<>% factor(., levels = unique(.))
+  
+# Drop extraneous columns
+  PRO_scales %<>% select(event_id, PRO_scale_manuscript, value)
+
+# Clean environment
+  keep_vars %<>% c("PRO_scales")
+  rm(list = setdiff(ls(), keep_vars))
+  gc()
+```
+
+# Generate plots
+
+```{r}
+
+# Combine Spear factors, clinical data, and PRO scores
+  spear_clinical_PRO <- list(spear_scores %>% select(event_id, Factor1),
+                             PRO_scales,
+                             clinical_data) |>
+    reduce(left_join, by = "event_id") 
+  
+# Split by PRO scale
+  df_list <- spear_clinical_PRO %>% split(f = .[["PRO_scale_manuscript"]])
+  
+# Calculate p-vals
+  pvals <- df_list |> map(\(df) calculate_predictor_pval(outcome_var = "Factor1",
+                                                         predictor = "value",
+                                                         fixed_vars <- c("sex", 
+                                                                         "discretized_admit_age_quantile",
+                                                                         "event_type"),
+                                                         df))
+  
+# P-value adjustment
+  adj_pvals <- qvalue::qvalue(as.numeric(pvals), fdr.level = 0.05, pi0 = 1)$qvalues
+
+# Generate plots
+  plots <- df_list |> map(\(df) PRO_scale_plot(outcome_var = "Factor1",
+                                               predictor = "value",
+                                               fixed_vars <- c("sex", 
+                                                               "discretized_admit_age_quantile",
+                                                               "event_type"),
+                                               df))
+  
+# Add p-values to plots
+  pval_labels <- list(pvals, adj_pvals) |> pmap(\(p, padj) paste("p=", 
+                                                 signif(p, digits = 2),
+                                                 "\nadj. p=",
+                                                 signif(padj, digits = 2),
+                                                 sep = ""))
+  
+  plots <- list(plots, pval_labels) |> pmap(\(plot, pval_label) plot <- plot + 
+                                            annotate("label",  
+                                                     x=Inf, 
+                                                     y=Inf, 
+                                                     label = pval_label, 
+                                                     vjust=1, 
+                                                     hjust=1, 
+                                                     size = 4, 
+                                                     label.r = unit(0, "pt")) +
+  scale_y_continuous(expand = expansion(mult = c(0.1, 0.25))))
+  
+# Combine plots
+  plots %<>% wrap_plots(ncol = 4)
+  
+# Manually adjust axis labels
+  for (p in c(1, 5)) {
+    plots[[p]] <- plots[[p]] + labs(y = "Recovery Factor")
+  }
+    
+# Save plots
+  filename <- paste(workDir, "/plot_objects/plots_for_figures/PRO_scales_Factor1_associations.Rds", sep = "")
+  saveRDS(plots, file = filename)
+```

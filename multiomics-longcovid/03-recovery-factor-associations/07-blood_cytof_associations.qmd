@@ -1,0 +1,550 @@
+---
+title: "Bootstrap Blood CyTOF Recovery Factor Association"
+author: "John Moore"
+format: html
+editor: visual
+---
+
+```{r, include= False}
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(dtplyr)
+library(tidyr)
+library(nlme)
+library(patchwork)
+library(pheatmap)
+library(tibble)
+library(ggeffects)
+library(forcats)
+library(RColorBrewer)
+library(colorspace)
+library(gt)
+library(circlize)
+library(lmerTest)
+set.seed(1234567)
+```
+
+### Functions
+
+```{r}
+sig_level_shape <- function(x, ns_shape= "") {
+  x = as.numeric(x)
+  y= ifelse(x < 0.001, "***", ifelse(x < 0.01, "**", ifelse(x < 0.05, "*", ns_shape)))
+  return(y)
+}
+
+
+model_cell_pop_random_effect = function(tmp.long, active_factor = 'Factor1'){
+  out.p <- data.frame()
+  for(active_name in unique(tmp.long$name)){
+    
+    tmp <- tmp.long %>% dplyr::filter(name == active_name) 
+    
+    lme.formula.test <- formula(paste0(active_factor, " ~", "value + sex + discretized_admit_age_quantile"))
+
+    fit <- lme(fixed = lme.formula.test,
+               random =  ~1|enrollment_site/participant_id, data = tmp %>% as.data.frame()) 
+    
+    out.p<- rbind.data.frame(out.p, data.frame("Feature" = active_name,
+                                               "Factor" = active_factor,
+                                               coefficient = fit$coefficients$fixed[2],
+                                               "p.model" =  anova(fit, type = "marginal")$`p-value`[2]))
+  }
+  return(out.p)
+}
+
+
+make_celltype_circos <- function(base_obj, impacc_data, BCT_factor, event_factor, plot_dir = "/scratch/data-fullcohort/BCT/full_cohort_tmp/plots/", plot_name= NULL) {
+  
+  bct_md = impacc_data[["bld_cytof_metadata"]] %>% 
+    tibble::rownames_to_column("sample_id") %>% 
+    left_join(impacc_data[["clinical_data"]] %>% dplyr::select(sample_id, event_id, pro_group_labels), by= "sample_id") %>%
+    add_count(event_id) %>% 
+    filter(n < 2) %>% 
+      ## Remove duplicate event_id 
+    as.data.frame()
+  rownames(bct_md) = NULL
+  
+  # Make prep data 
+  bct_parent <- as.data.frame(fread("/data/bld-cytof/current/bld-cytof-RowFeature.csv"))
+  bct_parent <- bct_parent[,1:2]
+  colnames(bct_parent) <- c("cell_type", "parent")
+  row.names(bct_parent) = NULL
+  bct_parent = bct_parent %>% 
+    tibble::column_to_rownames("cell_type") %>% 
+    dplyr::rename(`Broad Parent Population` = parent) 
+
+
+  bct_norm_parent = base_obj$others$bld_cytof$CyTOF_normalize(
+    counts       = impacc_data[["bld_cytof_counts"]],
+    population   = "parent",
+    granulocytes = TRUE,
+    rowfeature   = bct_parent, 
+    log1p        = TRUE  
+  )
+  
+  
+  mf_f = event_factor %>%
+    dplyr::rename(FOI = !!sym(BCT_factor)) %>% # Factor of interest
+    mutate(FOI = qqnorm(FOI, plot.it = FALSE)$x) %>% 
+    inner_join(bct_md %>% dplyr::select(event_id, sample_id), 
+               by = "event_id") %>% 
+    dplyr::select(event_id, sample_id, FOI)
+  
+  prep.data <- inner_join(mf_f, 
+                          bct_norm_parent %>% rownames_to_column("sample_id"), 
+                          by = "sample_id") %>% 
+                as.data.frame()
+
+  
+  source("/users/jmoore/repos/impacc/Analysis/data-integration/scripts/public-code/0.Codebase/class_structures.R", 
+         local=FALSE, chdir=TRUE)
+  
+  active_factor= "FOI"
+  
+  ##---------------------------
+  # Correlate parent cell types 
+  ##---------------------------
+  parent_cor_res <- cor_loop(mat1 = prep.data[, active_factor, drop = FALSE],
+                             mat2 = prep.data[, colnames(prep.data) %in% colnames(bct_norm_parent)])
+  
+  parent_cor_res <- parent_cor_res[match(c("B Cell", "CD4 T Cell", "CD8 T Cell",
+                             "gd T Cell", "NK Cell", "ILC",
+                             "Hematopoetic progenitor Cell",
+                             "Monocytes", "Neutrophil", "Eosinophil",
+                             "Basophil", "Conventional DC",
+                             "Plasmacytoid DC"), parent_cor_res$Feature), ]
+    # Change order of cell types 
+
+  # Make long data for model_cell_pop
+  parent_long <- prep.data %>%
+    pivot_longer(cols = -c(event_id, FOI, sample_id)) %>%
+    left_join(impacc_data$clinical_data %>% 
+              dplyr::select(event_id, sample_id, sex, discretized_admit_age_quantile, enrollment_site, participant_id),
+              by = c("event_id", "sample_id")) %>%
+      # Need to add these md columns for lme model used by model_cell_pop()
+    mutate(sex = as.factor(sex), 
+          discretized_admit_age_quantile = as.factor(discretized_admit_age_quantile), 
+          enrollment_site = as.factor(enrollment_site)) %>% 
+    filter(!is.na(value)) 
+  
+  parent_p_val = model_cell_pop_random_effect(parent_long, active_factor = "FOI")
+  
+  parent_cor_res <- parent_cor_res %>% 
+    dplyr::select(-p.adj) %>%
+    left_join(parent_p_val %>% dplyr::select(-Factor)) %>% 
+    mutate(p.adj = p.adjust(as.numeric(p.model), "fdr")) %>%
+    mutate(p.adj.star = ifelse(p.adj <= 0.001, "***",
+                               ifelse(p.adj <= 0.01, "**", 
+                                      ifelse(p.adj <= 0.05, "*", "")))) %>%
+    mutate(p.adj.star = ifelse(is.na(p.adj), "", p.adj.star)) %>%
+    mutate(coefficient_s = scale_tidy(coefficient))
+      ## qqnorm of coefficients to get them on same scale
+  
+  
+  ##--------------------------
+  # Correlate child cell types 
+  ##--------------------------
+  bct_norm_child = base_obj$others$bld_cytof$CyTOF_normalize(
+    counts       = impacc_data[["bld_cytof_counts"]],
+    population   = "children",
+    granulocytes = TRUE,
+    rowfeature   = bct_parent,
+    log1p        = TRUE  
+  )
+  
+  child_prep_data <- inner_join(mf_f, 
+                                bct_norm_child %>% rownames_to_column("sample_id"), 
+                                by = "sample_id") %>% 
+    as.data.frame()
+  
+  child_cor_res <- cor_loop(mat1 = child_prep_data[, active_factor, drop=FALSE],
+                            mat2 = child_prep_data[colnames(child_prep_data) %in% colnames(bct_norm_child)])
+  
+  child_long <- child_prep_data %>%
+    pivot_longer(cols = -c(event_id, FOI, sample_id)) %>% 
+    left_join(impacc_data$clinical_data %>% 
+              dplyr::select(event_id, sample_id, sex, discretized_admit_age_quantile, enrollment_site, participant_id),
+              by = c("event_id", "sample_id")) %>% 
+    filter(!is.na(value)) %>%
+    mutate(sex = as.factor(sex), 
+          discretized_admit_age_quantile = as.factor(discretized_admit_age_quantile), 
+          enrollment_site = as.factor(enrollment_site))
+  
+  child_p_val <- model_cell_pop_random_effect(child_long, active_factor = "FOI")
+   
+  child_cor_res <- child_cor_res %>% 
+    dplyr::select(-p.adj) %>%
+    left_join(child_p_val %>% dplyr::select(-Factor)) %>%
+    mutate(p.adj = p.adjust(as.numeric(p.model), "fdr")) %>%
+    mutate(p.adj.star = ifelse(p.adj <= 0.001, "***",
+                               ifelse(p.adj <= 0.01, "**", 
+                                      ifelse(p.adj <= 0.05, "*", "")))) %>%
+    mutate(p.adj.star = ifelse(is.na(p.adj), "", p.adj.star)) %>%
+    mutate(coefficient_s = scale_tidy(coefficient))
+    
+    heatdf <- child_cor_res %>%
+    left_join(bct_parent %>% rownames_to_column("Feature"), by= "Feature") %>%
+    mutate(p.adj = ifelse(p.adj <= 0.001, "***", ifelse(p.adj <= 0.01, "**", ifelse(p.adj <= 0.05, "*", "")))) %>%
+    mutate(p.adj = ifelse(is.na(p.adj), "", p.adj)) %>%
+    arrange(`Broad Parent Population`) %>%
+    left_join(parent_cor_res %>% 
+              mutate(Feature = ifelse(Feature == "CD4 T Cell", "CD4+ T Cell", 
+                                      ifelse(Feature == "CD8 T Cell", "CD8+ T Cell", Feature))), 
+              by = c("Broad Parent Population" = "Feature")) %>%
+    filter(!grepl("Undefined", Feature)) %>%
+    mutate(p.adj.y = ifelse(p.adj.y <= 0.001, "***", ifelse(p.adj.y <= 0.01, "**", 
+                                   ifelse(p.adj.y <= 0.05, "*", ""))))  %>%
+    mutate(`Broad Parent Population` = gsub("Plasmacytoid ", "p", gsub("Conventional ", "c", gsub("Hematopoetic progenitor Cell", "HPC", `Broad Parent Population`))))
+  
+  ## Reorder the factor so I can get the relevant populations next to one another in the circle
+  heatdf <- heatdf %>%
+    mutate(`Broad Parent Population` = factor(`Broad Parent Population`, 
+                                              levels = c("B Cell", "CD4+ T Cell", "CD8+ T Cell", "gd T Cell", "NK Cell",
+                                                         "ILC", "HPC", "Monocytes", "pDC", "cDC",
+                                                         "Neutrophil", "Eosinophil", "Basophil"))) %>%
+    arrange(`Broad Parent Population`)
+  
+  ##--------------------
+  # Construct Cicos plot
+  ##--------------------
+  
+  ## Declaring the track height, this is global setting that applies to all tracks
+  circos.par("track.height" = 0.05)
+  ## Define color palette for the rings
+  col_fun = colorRamp2(c(-3, 0, 3), c("blue", "white", "red"))
+  circos.clear()
+  pdf(file.path(plot_dir, plot_name), width=8, height=6)
+  
+  ## Generate simplified dataframe ensuring variables are proper data types
+  heat_circle <- heatdf %>%
+    mutate(Feature = ifelse(Feature == "CD4+ Treg (naive)", "Treg Naive", Feature)) %>%
+    mutate(Feature = gsub(".*\\(", "", gsub(")", "", Feature))) %>%
+    mutate(Feature = ifelse(`Broad Parent Population` %in% c("CD8+ T Cell",
+                                                           "B Cell"),
+                            ifelse(`Broad Parent Population` %in% c("B Cell"),
+                                   paste0(Feature, " B"), paste0("T8 ", Feature)), Feature)) %>%
+    column_to_rownames("Feature") %>%
+    dplyr::select(coefficient_s.x, p.adj.x) %>%
+    mutate(coefficient_s.x = as.numeric(coefficient_s.x)) %>%
+    as.data.frame() 
+  
+  ## Define splitting vector which is used for grouping child populations by their parents
+  split <- factor(heatdf$`Broad Parent Population`)
+  circos.heatmap(heat_circle %>% dplyr::select(coefficient_s.x), col = col_fun, cluster = F, split = split, #show.sector.labels =T,
+                 rownames.side = "outside", bg.border = "black", cell.border = "black",
+                 rownames.cex = 0.6, cell.lwd = 0.2, track.height = 0.1)
+  
+  ## Again generate a simplified dataframe for plotting, but for the parent populations this time
+  heatdf_p <- heatdf %>% dplyr::select(coefficient_s.y, p.adj.y)
+  heatdf_p_stars <- heatdf %>%
+    distinct(`Broad Parent Population`, p.adj.y) %>%
+    dplyr::select(p.adj.y)
+  
+  split_parent <- factor(heatdf_p$coefficient_s.y)
+  circos.heatmap(heatdf_p %>% dplyr::select(coefficient_s.y),
+                 cluster = F, col = col_fun, split = split_parent,
+                 bg.border = "black", track.height = 0.1)
+  
+  ## Annotate significance of parent populations
+  circos.track(ylim = c(0, 1), track.index = 3, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$cell.ylim[2] + convert_y(0, "mm"), 
+                paste0(heatdf_p_stars$p.adj.y[CELL_META$sector.numeric.index]),
+                facing = "clockwise", cex = 0.5,
+                adj = c(1.5,0.5), niceFacing = TRUE)
+  }, bg.border = NA)
+  
+  ## Annotate parent population text labels inside the ring
+  circos.track(ylim = c(0, 1), track.index = 3, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$cell.ylim[2] + convert_y(-13, "mm"), 
+                paste0(levels(split)[CELL_META$sector.numeric.index]),
+                facing = "bending.outside", cex = 0.5,
+                adj = c( 0.5, 1), niceFacing = TRUE)
+  }, bg.border = NA)
+  
+  ## Add a legend to the top right of the figure
+  lgd = Legend(title = "Rho", col_fun = col_fun)
+  draw(lgd, x = unit(0.95, "npc"), y = unit(0.85, "npc"), just = c("right", "top"))
+  dev.off()
+  
+  return(heatdf)
+}
+
+
+```
+
+## Acute testing
+
+#### Data preprocessing
+
+```{r}
+base_obj = readRDS("/scratch/data-fullcohort/BCT/full_cohort_tmp/mod1_interpretation_base.rds")
+plot_dir = "/scratch/data-fullcohort/BCT/full_cohort_tmp/plots/"
+rds_dir= "/scratch/data-fullcohort/batch-effects/"
+
+impacc_data = readRDS(paste0(rds_dir, "impacc_acute_data_env_allcohort_all_Aug_12_2024.RDS"))
+
+bct_md = impacc_data[["bld_cytof_metadata"]] %>% 
+    tibble::rownames_to_column("sample_id") %>% 
+    dplyr::left_join(impacc_data[["clinical_data"]] %>% dplyr::select(sample_id, event_id, event_date, pro_group_labels, event_date,discretized_admit_age_quantile, sex, enrollment_site, event_type), by= "sample_id") %>%
+    dplyr::add_count(event_id) %>% 
+    dplyr::filter(n < 2) %>% 
+    as.data.frame()
+rownames(bct_md) = NULL
+  
+
+bct_parent <- as.data.frame(fread("/data/bld-cytof/current/bld-cytof-RowFeature.csv"))
+bct_parent <- bct_parent[,1:2]
+colnames(bct_parent) <- c("cell_type", "parent")
+row.names(bct_parent) = NULL
+bct_parent = bct_parent %>% 
+  dplyr::filter(!grepl("Multiplet|Debris|Tier", cell_type)) %>% # Remove less interpretable cell types
+  tibble::column_to_rownames("cell_type") %>% 
+  dplyr::rename(`Broad Parent Population` = parent)
+  
+# Get normalized parent counts  
+bct_norm_parent = base_obj$others$bld_cytof$CyTOF_normalize(
+    counts       = impacc_data[["bld_cytof_counts"]],
+    population   = "parent",
+    granulocytes = TRUE,
+    rowfeature   = bct_parent, 
+    log1p        = TRUE  
+  )
+  
+bct_norm_parent = dplyr::left_join(bct_norm_parent %>% tibble::rownames_to_column("sample_id"), bct_md, by= "sample_id") %>% 
+  filter(!is.na(event_date)) # Some samples seem to lack clinical data
+  
+# Use bct_norm_parent to plot parent cell types over time for each PRO group. 
+# Would it be instructive after this to plot the cell type counts by the Factor 1 score? I think it would. This can be a statistical model. 
+source("/users/jmoore/repos/impacc/Analysis/data-integration/scripts/public-code/0.Codebase/class_structures.R", 
+         local=FALSE, chdir=TRUE)
+  
+# Get normalized child counts
+bct_norm_child = base_obj$others$bld_cytof$CyTOF_normalize(
+    counts       = impacc_data[["bld_cytof_counts"]],
+    population   = "children",
+    granulocytes = TRUE,
+    rowfeature   = bct_parent,
+    log1p        = TRUE  
+)
+bct_norm_child = dplyr::left_join(bct_norm_child %>% tibble::rownames_to_column("sample_id"), 
+                                  bct_md, by= "sample_id") %>%
+  dplyr::filter(!is.na(event_date))
+
+parent_children_key = bct_parent %>% 
+  tibble::rownames_to_column("child") %>%  
+  dplyr::rename(parent = `Broad Parent Population`) %>% 
+  dplyr::filter(!(child %in% c("Platelets", "RBC"))) %>%  
+  dplyr::mutate(parent = gsub("\\(|\\)", "", gsub("\\-", "neg", gsub("\\+", "pos", gsub(" ", "_", parent))))) %>% 
+  dplyr::mutate(child = gsub("\\(|\\)", "", gsub("\\-", "neg", gsub("\\+", "pos", gsub(" ", "_", child))))) 
+
+##------------------
+# Spear PHY Factor 1
+##------------------
+PHY_spear = readRDS("/scratch/data-fullcohort/spear_model/results/020624/032124_spearphysical_finalscores_allsamples.rds")
+
+acute_PHY_F1= PHY_spear[["Acute"]]  %>%
+  as.data.frame() %>% 
+  dplyr::select(Factor1) %>% 
+  tibble::rownames_to_column("event_id")
+
+acute_child_F1 = dplyr::left_join(acute_PHY_F1, bct_norm_child, by= "event_id") %>% 
+  setNames(nm = gsub("\\(|\\)", "", gsub("\\-", "neg", gsub("\\+", "pos", gsub(" ", "_", colnames(.)))))) %>% 
+  dplyr::filter(!is.na(event_date)) %>% # not all test has md
+  dplyr::select(-contains("Undefined")) %>% 
+  # Convert variables to factors for the modeling 
+  dplyr::mutate(pro_group_labels= factor(pro_group_labels, levels= c("MIN", "PHY", "COG", "MLT")),
+                sex = as.factor(sex), 
+                enrollment_site= as.factor(enrollment_site),
+                participant_id = as.factor(participant_id),
+                discretized_admit_age_quantile = factor(discretized_admit_age_quantile,
+                                                        levels = c("[18,35]","[36,49]", "[50,63]", "[64,77]", "[78,94]"))) %>% 
+  as.data.frame()
+
+acute_parent_F1 = dplyr::left_join(acute_PHY_F1, bct_norm_parent, by= "event_id") %>% 
+  setNames(nm = gsub("\\(|\\)", "", gsub("\\-", "neg", gsub("\\+", "pos", gsub(" ", "_", colnames(.)))))) %>% 
+  dplyr::filter(!is.na(event_date)) %>% # not all test has md 
+  # Convert variables to factors for the modeling 
+  dplyr::mutate(pro_group_labels= factor(pro_group_labels, levels= c("MIN", "PHY", "COG", "MLT")),
+                sex = as.factor(sex), 
+                enrollment_site= as.factor(enrollment_site),
+                participant_id = as.factor(participant_id),
+                discretized_admit_age_quantile = factor(discretized_admit_age_quantile,
+                                                        levels = c("[18,35]","[36,49]", "[50,63]", "[64,77]", "[78,94]"))) %>% 
+  as.data.frame()
+```
+
+#### Modeling
+
+```{r}
+part_id_acute = make_celltype_circos(
+  base_obj = base_obj, 
+  impacc_data = impacc_data, 
+  BCT_factor = "Factor1", 
+  event_factor = acute_parent_F1 %>% dplyr::select(event_id, Factor1), 
+  plot_dir = "/scratch/data-fullcohort/BCT/full_cohort_tmp/plots/",
+  plot_name= "acute_full_cohort_SPEAR_factor1_nested_participant_id_enrollment_site_random_intercept_2024-12-15.pdf"
+)
+
+fwrite(x= part_id_acute, 
+       file = "/scratch/data-fullcohort/BCT/full_cohort_tmp/acute_full_cohort_SPEAR_factor1_nested_participant_enrollment_site_random_intercept_2024-12-15.csv",
+       row.names = FALSE)
+```
+
+## Convalescent testing
+
+#### Data preprocessing
+
+```{r}
+base_obj = readRDS("/scratch/data-fullcohort/BCT/full_cohort_tmp/mod1_interpretation_base.rds")
+plot_dir = "/scratch/data-fullcohort/BCT/full_cohort_tmp/plots/"
+rds_dir= "/scratch/data-fullcohort/batch-effects/"
+
+
+impacc_data = readRDS(paste0(rds_dir, "impacc_convalescent_data_env_all_Feb_11_2024.RDS"))
+
+bct_md = impacc_data[["bld_cytof_metadata"]] %>% 
+    tibble::rownames_to_column("sample_id") %>% 
+    dplyr::left_join(impacc_data[["clinical_data"]] %>% dplyr::select(sample_id, event_id, event_date, pro_group_labels, event_date,discretized_admit_age_quantile, sex, enrollment_site, event_type), by= "sample_id") %>%
+    dplyr::add_count(event_id) %>% 
+    dplyr::filter(n < 2) %>% 
+    as.data.frame()
+rownames(bct_md) = NULL
+  
+
+bct_parent <- as.data.frame(fread("/data/bld-cytof/current/bld-cytof-RowFeature.csv"))
+bct_parent <- bct_parent[,1:2]
+colnames(bct_parent) <- c("cell_type", "parent")
+row.names(bct_parent) = NULL
+bct_parent = bct_parent %>% 
+  dplyr::filter(!grepl("Multiplet|Debris|Tier", cell_type)) %>% 
+  # Remove less interpretable cell types
+  tibble::column_to_rownames("cell_type") %>% 
+  dplyr::rename(`Broad Parent Population` = parent)
+  
+# Get normalized parent counts  
+bct_norm_parent = base_obj$others$bld_cytof$CyTOF_normalize(
+    counts       = impacc_data[["bld_cytof_counts"]],
+    population   = "parent",
+    granulocytes = TRUE,
+    rowfeature   = bct_parent, 
+    log1p        = TRUE  
+  )
+  
+bct_norm_parent = dplyr::left_join(bct_norm_parent %>% tibble::rownames_to_column("sample_id"), bct_md, by= "sample_id") %>% 
+  filter(!is.na(event_date)) # Some samples lack clinical data
+  
+source("/users/jmoore/repos/impacc/Analysis/data-integration/scripts/public-code/0.Codebase/class_structures.R", 
+         local=FALSE, chdir=TRUE)
+  
+# Get normalized child counts
+bct_norm_child = base_obj$others$bld_cytof$CyTOF_normalize(
+    counts       = impacc_data[["bld_cytof_counts"]],
+    population   = "children",
+    granulocytes = TRUE,
+    rowfeature   = bct_parent,
+    log1p        = TRUE  
+)
+
+bct_norm_child = dplyr::left_join(bct_norm_child %>% tibble::rownames_to_column("sample_id"), 
+                                  bct_md, by= "sample_id") %>%
+  dplyr::filter(!is.na(event_date))
+
+parent_children_key = bct_parent %>% 
+  tibble::rownames_to_column("child") %>%  
+  dplyr::rename(parent = `Broad Parent Population`) %>% 
+  dplyr::filter(!(child %in% c("Platelets", "RBC"))) %>%  
+  dplyr::mutate(parent = gsub("\\(|\\)", "", gsub("\\-", "neg", gsub("\\+", "pos", gsub(" ", "_", parent))))) %>% 
+  dplyr::mutate(child = gsub("\\(|\\)", "", gsub("\\-", "neg", gsub("\\+", "pos", gsub(" ", "_", child))))) 
+
+##------------------
+# Spear PHY Factor 1
+##------------------
+PHY_spear = readRDS("/scratch/data-fullcohort/spear_model/results/020624/032124_spearphysical_finalscores_allsamples.rds")
+
+# Train
+train_PHY_F1= PHY_spear[["Train"]] %>%
+  as.data.frame() %>% 
+  dplyr::select(Factor1) %>% 
+  tibble::rownames_to_column("event_id")
+
+train_child_F1 = dplyr::left_join(train_PHY_F1, bct_norm_child, by= "event_id") %>% 
+  setNames(nm = gsub("\\(|\\)", "", gsub("\\-", "neg", gsub("\\+", "pos", gsub(" ", "_", colnames(.)))))) %>% 
+  dplyr::filter(!is.na(event_date)) %>% # not all train has md
+  dplyr::select(-contains("Undefined")) %>% 
+  # Convert variables to factors for the modeling 
+  dplyr::mutate(pro_group_labels= factor(pro_group_labels, levels= c("MIN", "PHY", "COG", "MLT")),
+                sex = as.factor(sex), 
+                enrollment_site= as.factor(enrollment_site),
+                participant_id = as.factor(participant_id),
+                discretized_admit_age_quantile = factor(discretized_admit_age_quantile,
+                                                        levels = c("[18,35]","[36,49]", "[50,63]", "[64,77]", "[78,94]"))) %>% 
+  as.data.frame()
+
+train_parent_F1 = dplyr::left_join(train_PHY_F1, bct_norm_parent, by= "event_id") %>% 
+  setNames(nm = gsub("\\(|\\)", "", gsub("\\-", "neg", gsub("\\+", "pos", gsub(" ", "_", colnames(.)))))) %>% 
+  dplyr::filter(!is.na(event_date)) %>% # not all train has md 
+  # Convert variables to factors for the modeling 
+  dplyr::mutate(pro_group_labels= factor(pro_group_labels, levels= c("MIN", "PHY", "COG", "MLT")),
+                sex = as.factor(sex), 
+                enrollment_site= as.factor(enrollment_site),
+                participant_id = as.factor(participant_id),
+                discretized_admit_age_quantile = factor(discretized_admit_age_quantile,
+                                                        levels = c("[18,35]","[36,49]", "[50,63]", "[64,77]", "[78,94]"))) %>% 
+  as.data.frame()
+
+# Test 
+test_PHY_F1= rbind(PHY_spear[["Test"]], PHY_spear[["TestNoPhysical"]], PHY_spear[["TrainNoPhysical_NoOverlap"]]) %>%
+  as.data.frame() %>% 
+  dplyr::select(Factor1) %>% 
+  tibble::rownames_to_column("event_id")
+
+test_child_F1 = dplyr::left_join(test_PHY_F1, bct_norm_child, by= "event_id") %>% 
+  setNames(nm = gsub("\\(|\\)", "", gsub("\\-", "neg", gsub("\\+", "pos", gsub(" ", "_", colnames(.)))))) %>% 
+  dplyr::filter(!is.na(event_date)) %>% # not all test has md
+  dplyr::select(-contains("Undefined")) %>% 
+  # Convert variables to factors for the modeling 
+  dplyr::mutate(pro_group_labels= factor(pro_group_labels, levels= c("MIN", "PHY", "COG", "MLT")),
+                sex = as.factor(sex), 
+                enrollment_site= as.factor(enrollment_site),
+                participant_id = as.factor(participant_id),
+                discretized_admit_age_quantile = factor(discretized_admit_age_quantile,
+                                                        levels = c("[18,35]","[36,49]", "[50,63]", "[64,77]", "[78,94]"))) %>% 
+  as.data.frame()
+
+test_parent_F1 = dplyr::left_join(test_PHY_F1, bct_norm_parent, by= "event_id") %>% 
+  setNames(nm = gsub("\\(|\\)", "", gsub("\\-", "neg", gsub("\\+", "pos", gsub(" ", "_", colnames(.)))))) %>% 
+  dplyr::filter(!is.na(event_date)) %>% # not all test has md 
+  # Convert variables to factors for the modeling 
+  dplyr::mutate(pro_group_labels= factor(pro_group_labels, levels= c("MIN", "PHY", "COG", "MLT")),
+                sex = as.factor(sex), 
+                enrollment_site= as.factor(enrollment_site),
+                participant_id = as.factor(participant_id),
+                discretized_admit_age_quantile = factor(discretized_admit_age_quantile,
+                                                        levels = c("[18,35]","[36,49]", "[50,63]", "[64,77]", "[78,94]"))) %>% 
+  as.data.frame()
+
+# Fine to combine model train and test b/c blood CyTOF counts weren't used in the model construction 
+fc_parent_F1 = rbind(train_parent_F1, test_parent_F1)
+fc_child_F1 = rbind(train_child_F1, test_child_F1)
+```
+
+#### Modeling
+
+```{r}
+part_id_conv = make_celltype_circos(
+  base_obj = base_obj, 
+  impacc_data = impacc_data, 
+  BCT_factor = "Factor1", 
+  event_factor = fc_parent_F1 %>% dplyr::select(event_id, Factor1), 
+  plot_dir = "/scratch/data-fullcohort/BCT/full_cohort_tmp/plots/",
+  plot_name= "conv_full_cohort_SPEAR_factor1_nested_participant_id_enrollment_site_random_intercept_2024-12-15.pdf"
+)
+
+fwrite(x= part_id_conv, 
+       file = "/scratch/data-fullcohort/BCT/full_cohort_tmp/conv_full_cohort_SPEAR_factor1_nested_participant_enrollment_site_random_intercept_2024-12-15.csv",
+       row.names = FALSE)
+```
+
+

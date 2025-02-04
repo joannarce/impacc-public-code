@@ -1,0 +1,902 @@
+---
+title: "Vaccination data analysis with PRO groups"
+author: "Gisela Gabernet (gisela.gabernet@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+```{r setup, include=FALSE}
+library(utils)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(pheatmap)
+library(RColorBrewer)
+library(cowplot)
+library(kableExtra)
+
+
+theme_set(theme_bw())
+
+figures_dir <- "./Figures"
+dir.create(figures_dir)
+
+```
+
+## Participant number checks
+
+Data from the vaccination annotation table shared by email on (05/02) (`/scratch/data-fullcohort/vaccination/June2023_vaccine_dataset.csv`).
+To calculate the overlap with patients from the convalescent phase, patients were considered to be part of the convalescent phase if they had any annotation for visits V7-V10.
+
+```{r }
+vaccination_data <- read.csv("/scratch/data-fullcohort/vaccination/June2023_vaccine_dataset.csv", header = T)
+
+```
+
+Number of participants in vaccination data table:
+```{r number_pat}
+vac_patients <- unique(vaccination_data$studyid)
+length(vac_patients)
+```
+
+Total number of participants in convalescent phase was copied from the convalescent paper bitbucket account: `impacc-public-code/convalescent_manuscript/impacc-convalescent.csv`. This file was substituted on June 9th by the one at `/scratch/clinical/current/impacc-convalescent.csv` as the vaccination annotations were added here. The clinical events visits were filtered for events that had at least a sample entry in the `sample locked file`.
+
+```{r number_conv}
+
+clinical_event_data <- read.csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-event-locked.csv")
+
+clinical_samples_data <- read.csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-sample-locked.csv")
+clinical_samples_data$sample_type <- as.factor(clinical_samples_data$sample_type)
+
+clinical_samples_data_events <- unique(clinical_samples_data$event_id)
+
+# Filtering events by those events that have at least one associated sample
+clinical_event_data <- clinical_event_data %>% dplyr::filter(event_type == "Discharge" | event_id %in% clinical_samples_data_events)
+
+# Clinical table from convalescent cohort with PRO group annotations
+conv_participants_table <- read.csv("/scratch/clinical/current/impacc-convalescent.csv")
+
+conv_patients <- unique(conv_participants_table$participant_id)
+length(conv_patients)
+```
+
+Intersection of convalescent participants with participants in vaccination data table:
+```{r intersect}
+inter_vac_conv <- intersect(conv_patients, vac_patients)
+length(inter_vac_conv)
+```
+
+
+```{r merge_tabs}
+clinical_individual_data <- read.csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-locked.csv")
+```
+
+Checking that "yes" annotations in vaccination table match the "yes" annotations in the convalescent metadata file.
+Summary of annotations in the convalescent metadata file:
+
+```{r check_match}
+summary(as.factor(conv_participants_table$vaccinated))
+
+```
+
+Vaccination data table column `vaccine` summary:
+
+```{r check_match2}
+summary(as.factor(vaccination_data$vaccine))
+
+```
+
+Participants with a reported vaccination (yes survey answer) but without exact date known:
+
+```{r check_3}
+vac_reported_yes <- vaccination_data %>% filter(vacc_reported == "Yes")
+
+vac_reported_yes_unknown_exact_date <- vac_reported_yes %>% 
+  dplyr::select(studyid, vaccine, 
+         date_first_dose, date_second_dose, date_booster, date_JJ, 
+         eventid_first_date, eventid_second_date, eventid_booster_date, eventid_JJ_date,
+         Visit_7_vacc:Visit_10_vacc, vacc_reported) %>% 
+  dplyr::filter_at(vars(date_first_dose, date_second_dose, date_booster, date_JJ), all_vars(is.na(.)))
+
+kbl(vac_reported_yes_unknown_exact_date) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+
+Participants with vac_reported No (answered no to all available visit surveys) but with vaccine information:
+
+```{r check_4}
+vac_reported_no <- vaccination_data %>% filter(vacc_reported == "No")
+
+vac_reported_no_with_vaccine_info <- vac_reported_no %>% 
+  dplyr::select(studyid, vaccine, 
+         date_first_dose, date_second_dose, date_booster, date_JJ, 
+         eventid_first_date, eventid_second_date, eventid_booster_date, eventid_JJ_date,
+         Visit_7_vacc:Visit_10_vacc, vacc_reported) %>% 
+  filter_at(vars(date_first_dose, date_second_dose, date_booster, date_JJ, eventid_first_date, eventid_second_date, 
+                 eventid_booster_date, eventid_JJ_date), any_vars(!is.na(.)))
+kbl(vac_reported_no_with_vaccine_info) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+
+```
+Adding additional column `vac_reported_corrected` to mark as Yes, those that have reported any vaccine date instead of No.
+
+Number of participants that did not report vaccination and answered No to all available surveys:
+
+```{r }
+vaccination_data <- vaccination_data %>% 
+                      mutate(vac_reported_corrected = if_else(studyid %in% vac_reported_no_with_vaccine_info, "Yes", vacc_reported))
+
+vac_reported_corrected_no <- vaccination_data %>% filter(vac_reported_corrected == "No")
+nrow(vac_reported_corrected_no)
+```
+
+
+## Vaccine types
+
+```{r}
+vaccination_data$all_vaccines <- paste(vaccination_data$First.dose, vaccination_data$Second.dose, vaccination_data$Johnson...Johnson, vaccination_data$Booster,sep = "_")
+
+vaccination_groups <- vaccination_data %>% dplyr::group_by(all_vaccines) %>% dplyr::summarise(total = dplyr::n_distinct(studyid)) %>% dplyr::arrange(total)
+
+```
+
+```{r vaccination_group_plot}
+vaccination_groups$all_vaccines <- factor(vaccination_groups$all_vaccines, 
+                                          levels = vaccination_groups$all_vaccines)
+
+# vaccination_groups %>% dplyr::case_match(all_vaccines,
+#                             c("Pfizer_Pfizer_NA_NA") ~ "2x Pfizer",
+#                             c("Moderna_Moderna_NA_NA") ~ "2x Moderna",
+#                             c("Pfizer_Pfizer_NA_Pfizer") ~ "3x Pfizer",
+#                             c("Pfizer_NA_NA_NA") ~ "1x Pfizer",
+#                             c("Moderna_Moderna_NA_Moderna") ~ "3x Moderna",
+#                             c("Moderna_NA_NA_NA") ~ "1x Moderna",
+#                             c("NA_NA_Johnson & Johnson_NA") ~ "1x J&J",
+#                             c("Pfizer_NA_NA_Pfizer") ~ "1x Pfizer + Boost Pfizer",
+#                             c("Pfizer_Pfizer_NA_Moderna") ~ "2x Pfizer + 1x Moderna",
+#                             c("NA_NA_NA_Moderna") ~ "Boost Moderna",
+#                             c("Pfizer_NA_NA_Moderna") ~ "1x Pfizer + Boost Moderna",
+#                             c("Pfizer_NA_Johnson & Johnson_NA") ~ "1xPfizer 1xJ&J",
+#                             c("Other_NA_NA_NA") ~ "1xOther",
+#                             c("NA_NA_NA_Pfizer") ~ "Boost Pfizer",
+#                             c("Moderna_Moderna_NA_Pfizer") ~ "2xModerna + Boost Pfizer",
+#                             c("Pfizer_Moderna_NA_NA") ~ "1xPfizer 1xModerna",
+#                             c("Other_NA_Johnson & Johnson_NA")
+#                            ))
+vaccination_groups %>%
+ggplot(aes(y=all_vaccines, x=total)) +
+  geom_bar(stat = "identity")
+```
+
+## Timeline of visits and vaccination events for convalescent cohort
+
+
+```{r transform_data}
+# Adding data for day 0
+vaccination_day0 <- data.frame(id=conv_patients,
+                               vaccinated="No",
+                               day = 0,
+                               dose = NA)
+
+#vaccination first dose
+vaccination_first_dose <- vaccination_data %>% dplyr::rename( id=studyid, 
+                                                              vaccinated=vaccine,
+                                                              day=date_first_dose) %>% 
+                                          dplyr::select( id, vaccinated, day) %>%
+                                          dplyr::distinct() %>%
+                                          dplyr::mutate(dose="First")
+
+#vaccination johnson&johnson
+vaccination_jj <- vaccination_data %>% dplyr::rename( id=studyid, 
+                                                      vaccinated=vaccine,
+                                                      day=date_JJ) %>% 
+                                          dplyr::select( id, vaccinated, day) %>%
+                                          dplyr::distinct() %>%
+                                          dplyr::mutate(dose="J&J")
+
+#vaccination second dose
+vaccination_second_dose <- vaccination_data %>% dplyr::rename(id=studyid, 
+                                                              vaccinated=vaccine) %>%
+                                                dplyr::mutate(day=dplyr::coalesce(date_second_dose, eventid_second_date)) %>% 
+                                          dplyr::select( id, vaccinated, day) %>%
+                                          dplyr::distinct() %>%
+                                          dplyr::mutate(dose="Second")
+
+
+#vaccination booster
+vaccination_booster <- vaccination_data %>% dplyr::rename(id=studyid, 
+                                                              vaccinated=vaccine) %>%
+                                            dplyr::mutate(day=dplyr::coalesce(date_booster, eventid_booster_date)) %>% 
+                                          dplyr::select( id, vaccinated, day) %>%
+                                          dplyr::distinct() %>%
+                                          dplyr::mutate(dose="Booster")
+
+# patient lists vaccinated after each of the visits
+vaccination_date_anydose <- vaccination_data %>% 
+                #Both first dose and JJ are first doses
+                dplyr::mutate(date_anyfirstdose = dplyr::if_else(is.na(date_first_dose), 
+                                                         date_JJ, 
+                                                         date_first_dose)) %>%
+                #Add date_JJ if this is earlier than date_first_dose
+                dplyr::mutate(date_anyfirstdose = dplyr::if_else(!is.na(date_JJ) & !is.na(date_first_dose) & (date_JJ < date_first_dose),
+                                                         date_JJ,
+                                                         date_anyfirstdose)) %>%
+                #Include reports of vaccine date at event without exact date
+                dplyr::mutate(date_anyfirstdose = dplyr::if_else(is.na(date_anyfirstdose),
+                                                            if_else(is.na(eventid_first_date),
+                                                                 eventid_JJ_date,
+                                                                 eventid_first_date),
+                                                            date_anyfirstdose)) %>%
+                #Include reports of any vaccine dose
+                dplyr::mutate(date_anydose = dplyr::if_else(is.na(date_anyfirstdose),
+                                                         date_second_dose, 
+                                                         date_anyfirstdose)) %>%
+                dplyr::mutate(date_anydose = dplyr::if_else(is.na(date_anydose),
+                                                         date_booster, 
+                                                         date_anydose)) %>%
+                dplyr::mutate(eventid_vac = dplyr::coalesce(eventid_first_date,
+                                                            eventid_second_date)) %>%
+                dplyr::mutate(date_anydose = dplyr::if_else(is.na(date_anydose),
+                                                            eventid_vac,
+                                                            date_anydose)) %>%
+               dplyr::select(studyid, date_anyfirstdose, 
+                              date_anydose, Visit_7_vacc, Visit_8_vacc, 
+                             Visit_9_vacc, Visit_10_vacc, vac_reported_corrected) %>%
+               dplyr::rename(participant_id=studyid)
+
+vaccination_date_anydose_NA <- vaccination_date_anydose %>% 
+                                  dplyr::filter(is.na(date_anydose))
+
+#participants for which we know the date of any first dose
+vaccination_date_anyfirstdose <- vaccination_date_anydose %>% dplyr::filter(!is.na(date_anyfirstdose))
+
+
+# Add Visit 6 data
+visit_6_data <- clinical_event_data %>% dplyr::filter(event_type=="Visit 6")
+visit_6_data <- dplyr::left_join(visit_6_data, vaccination_date_anydose, by="participant_id")
+
+visit_6_df <- visit_6_data %>%
+                           dplyr::mutate(id=participant_id,
+                                         day=event_date,
+                                         vaccinated=dplyr::if_else(date_anydose <= event_date, 
+                                                                   "Yes", "No"),
+                                         vaccinated=dplyr::if_else(vac_reported_corrected=="No" & is.na(date_anydose), "No", vaccinated),
+                                         V6="V06") %>%
+                          dplyr::select(id,day,vaccinated,V6) %>%
+                          dplyr::filter(id %in% conv_patients)
+
+# Add Visit 7 data
+visit_7_data <- clinical_event_data %>% dplyr::filter(event_type=="Visit 7") 
+visit_7_data <- dplyr::left_join(visit_7_data, vaccination_date_anydose, by="participant_id")
+
+
+visit_7_df <- visit_7_data %>%
+                           dplyr::mutate(id=participant_id,
+                                         day=event_date,
+                                         vaccinated=dplyr::if_else(date_anydose <= event_date, 
+                                                                   "Yes", "No"),
+                                         vaccinated=dplyr::if_else(vac_reported_corrected=="No" & is.na(date_anydose), "No", vaccinated),
+                                         V7="V07") %>%
+                          dplyr::select(id,day,vaccinated,V7) %>%
+                          dplyr::filter(id %in% conv_patients)
+
+# Add Visit 8 data
+visit_8_data <- clinical_event_data %>% dplyr::filter(event_type=="Visit 8") 
+visit_8_data <- dplyr::left_join(visit_8_data, vaccination_date_anydose, by="participant_id")
+
+visit_8_df <- visit_8_data %>%
+                           dplyr::mutate(id=participant_id,
+                                         day=event_date,
+                                         vaccinated=dplyr::if_else(date_anydose <= event_date, 
+                                                                   "Yes", "No"),
+                                         vaccinated=dplyr::if_else(vac_reported_corrected=="No" & is.na(date_anydose), "No", vaccinated),
+                                         V8="V08") %>%
+                          dplyr::select(id,day,vaccinated,V8) %>%
+                          dplyr::filter(id %in% conv_patients)
+
+# Add Visit 9 data
+visit_9_data <- clinical_event_data %>% dplyr::filter(event_type=="Visit 9") 
+visit_9_data <- dplyr::left_join(visit_9_data, vaccination_date_anydose, by="participant_id")
+
+
+visit_9_df <- visit_9_data %>%
+                           dplyr::mutate(id=participant_id,
+                                         day=event_date,
+                                         vaccinated=dplyr::if_else(date_anydose <= event_date, 
+                                                                   "Yes", "No"),
+                                         vaccinated=dplyr::if_else(vac_reported_corrected=="No" & is.na(date_anydose), "No", vaccinated),
+                                         V9="V09") %>%
+                          dplyr::select(id,day,vaccinated,V9) %>%
+                          dplyr::filter(id %in% conv_patients)
+
+# Add Visit 10 data
+visit_10_data <- clinical_event_data %>% dplyr::filter(event_type=="Visit 10") 
+visit_10_data <- dplyr::left_join(visit_10_data, vaccination_date_anydose, by="participant_id")
+
+
+visit_10_df <- visit_10_data %>%
+                           dplyr::mutate(id=participant_id,
+                                         day=event_date,
+                                         vaccinated=dplyr::if_else(date_anydose <= event_date, 
+                                          "Yes", "No"),
+                                         vaccinated=dplyr::if_else(vac_reported_corrected=="No" & is.na(date_anydose), "No", vaccinated),
+                                         V10="V10") %>%
+                          dplyr::select(id,day,vaccinated,V10) %>%
+                          dplyr::filter(id %in% conv_patients)
+
+# Add Discharge event
+discharge_data <- clinical_event_data %>% dplyr::filter(event_type=="Discharge")
+discharge_data <- dplyr::left_join(discharge_data, vaccination_date_anydose, by="participant_id")
+
+discharge_df <- discharge_data %>%
+                          dplyr::mutate(id=participant_id,
+                                        day=event_date,
+                                        vaccinated=dplyr::if_else(date_anydose <= event_date, 
+                                          "Yes", "No"),
+                                        vaccinated=dplyr::if_else(vac_reported_corrected=="No" & is.na(date_anydose), "No", vaccinated),
+                                        D="Discharge") %>%
+                          dplyr::select(id, day, vaccinated, D) %>%
+                          dplyr::filter(id %in% conv_patients)
+
+# Add final time point
+final_timepoint_data <- vaccination_date_anydose %>%
+                          dplyr::mutate(id = participant_id,
+                                        day = max(visit_10_df$day) + 1,
+                                        vaccinated=dplyr::if_else(date_anydose <= day, "Yes", "No"),
+                                        Fin="Final") %>%
+                          dplyr::select(id,day,vaccinated,Fin) %>%
+                          dplyr::filter(id %in% conv_patients)
+
+
+# Vaccination 
+
+# Join vaccination data
+vaccination_long <- dplyr::bind_rows(vaccination_day0, 
+                                     vaccination_first_dose, 
+                                     vaccination_jj, 
+                                     vaccination_second_dose,
+                                     vaccination_booster,
+                                     visit_6_df,
+                                     visit_7_df,
+                                     visit_8_df,
+                                     visit_9_df,
+                                     visit_10_df,
+                                     discharge_df,
+                                     final_timepoint_data) %>%
+                    #dplyr::filter(day>=0|is.na(day)) %>%
+                    dplyr::mutate(dose=as.factor(dose)) %>%
+                    dplyr::filter(id %in% conv_patients)
+```
+
+
+
+```{r fig.height=12, fig.width=5, warning=F}
+# define colors for all geometries with a color argument
+cols <- c("First"="black", # navy - vaccine dose
+          "Second"="black", # navy - vaccine dose
+          "J&J"="black",#  navy - vaccine dose
+          "Booster" ="black",
+          "No"="lightblue",#"lightgray", # lighter blue - not vaccinated
+          "Yes" ="navy",#"gray20", # navy - vaccinated
+          "V06"="#9a348e",
+          "V07"="#db7c26",
+          "V08"="#f7b538",
+          "V09"="#d8572a",
+          "V10"="#a7c957",
+          "Discharge"="#c32f27"
+          )
+
+# Ordered by vaccination first dose, regardless if two-dose vaccine or J&J vaccine
+#vaccination_first_dose_JJ <- dplyr::full_join(vaccination_first_dose, vaccination_jj, by="id") %>%
+#                              dplyr::mutate(any_first_dose_day=dplyr::if_else(is.na(day.x),day.y,day.x))
+# Add also samples without vaccination information in the end
+#ids_ordered_by_first_dose_day <- vaccination_first_dose_JJ %>% dplyr::arrange(any_first_dose_day)
+
+# Order samples by any first vaccination dose
+ordered_anydose <- vaccination_date_anydose %>% dplyr::arrange(date_anydose)
+ids_not_in_vaccination_table <- conv_patients[!(conv_patients %in% ordered_anydose$participant_id)]
+all_ids_ordered <- append(ordered_anydose$participant_id, ids_not_in_vaccination_table)
+
+# Apply ordering
+vaccination_long$id <- factor(vaccination_long$id, levels=all_ids_ordered)
+
+vaccination_plot <- vaccination_long %>% 
+  dplyr::filter(id %in% conv_patients ) %>% # Filter by convalescent participants
+  dplyr::filter(day>=0|is.na(day)) %>% # Filter by positive day events only for plotting
+  dplyr::mutate(dplyr::across(-c(day), factor)) #%>%
+  #filter(id == "008-0043")
+
+vac_plot <- vaccination_plot %>%
+  ggplot(aes(x=day, y=id, color=vaccinated, group=id)) +
+  geom_line() +
+  geom_point(aes(day, id, color=dose, shape=dose)) +
+  geom_point(aes(day, id, color=V6 ), shape=4, size=1) +
+  geom_point(aes(day, id, color=V7 ), shape=4, size=1) +
+  geom_point(aes(day, id, color=V8 ), shape=4, size=1) +
+  geom_point(aes(day, id, color=V9 ), shape=4, size=1) +
+  geom_point(aes(day, id, color=V10 ), shape=4, size=1) +
+  geom_point(aes(day, id, color=D ), shape=18, size=1) +
+  theme_bw() + 
+  theme(axis.text.y = element_blank(), 
+        axis.ticks.y = element_blank()) +
+  scale_color_manual(aesthetics = "colour", values = cols, name="Participant Status", na.value = "transparent") +
+  scale_x_continuous(limits = c(0,NA), breaks = c(0,28,90,180,270,365,450), expand = expansion(mult=c(0,0.0005))) +
+  ylab("Participants") +
+  xlab("Days from Admission")
+
+vac_plot
+saveRDS(vac_plot,file.path(figures_dir,"vaccination_timeline.rds"))
+ggsave(file.path(figures_dir, "vaccination_timeline.pdf"), vac_plot, height=12, width=5)
+ggsave(file.path(figures_dir, "vaccination_timeline.png"), vac_plot, height=12, width=5)
+```
+
+The previous plot includes these many participants :
+```{r plot_check}
+length(unique(vaccination_plot$id))
+```
+
+
+## Filtering by certain vaccination status
+
+Criteria:
+
+* Keeping only participants for which vaccination first dose is known 
+(e.g. if only second dose or booster is reported, we cannot know when the first dose was given)
+* Vaccination status no: keeping participants for which vaccination 
+report answer was always NO and did not report any vaccination.
+
+```{r fig.height=10, fig.width=5, warning=F}
+vaccination_certain <- vaccination_long %>% 
+  dplyr::filter(id %in% conv_patients ) %>% # Filter by convalescent participants
+  # Filter by vaccinated participants for which we know the date of the first dose or the Visit at which they reported first dose, 
+  # or participants for which no vaccine information was reported and they answered that they did not receive vaccine in all surveys
+  dplyr::filter((id %in% vaccination_date_anyfirstdose$participant_id) | (id %in% vac_reported_corrected_no$studyid)) %>%
+  dplyr::filter(day>=0|is.na(day)) %>% # Filter by positive day events only for plotting
+  dplyr::mutate(dplyr::across(-c(day), factor))
+```
+
+After this filtering we are left with these many participants :
+```{r plot_check_2}
+length(unique(vaccination_certain$id))
+```
+
+Participant IDs that were excluded according to these criteria:
+```{r }
+setdiff(unique(vaccination_plot$id), unique(vaccination_certain$id))
+```
+
+Number of participants excluded according to these criteria:
+```{r }
+length(setdiff(unique(vaccination_plot$id), unique(vaccination_certain$id)))
+```
+
+```{r fig.height=12, fig.width=5, warning=F}
+vaccination_certain %>%
+  ggplot(aes(x=day, y=id, color=vaccinated, group=id)) +
+  geom_line() +
+  geom_point(aes(day, id, color=dose, shape=dose)) +
+  geom_point(aes(day, id, color=V6 ), shape=4, size=1) +
+  geom_point(aes(day, id, color=V7 ), shape=4, size=1) +
+  geom_point(aes(day, id, color=V8 ), shape=4, size=1) +
+  geom_point(aes(day, id, color=V9 ), shape=4, size=1) +
+  geom_point(aes(day, id, color=V10 ), shape=4, size=1) +
+  geom_point(aes(day, id, color=D ), shape=18, size=1) +
+  theme_bw() + 
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
+  scale_color_manual(aesthetics = "colour", values = cols, name="Participant Status", na.value = "transparent") +
+  scale_x_continuous(limits = c(0,NA), breaks = c(0,28,90,180,270,365), expand = expansion(mult=c(0,0.0005))) +
+  ylab("Participants") +
+  xlab("Days post admission")
+
+```
+
+
+
+## Separation by PRO groups
+
+Converting PRO group cluster numbers to PRO groups as described in paper and 
+communicated via teams:
+
+  - Clusters 1,3,4: MIN
+  - Cluster 2: PHY
+  - Cluster 5: COG
+  - Cluster 6: MLT
+  
+Number and percentage of all of the convalescent participants in each of the groups:
+
+
+```{r vaccination_pro}
+# Convert PRO group cluster numbers to PRO groups as described in paper
+# This mapping was communicated by Leying Guan via Teams on May 15th as the 
+# original table is unclear about the exact PRO groups mappings
+
+conv_participants_matching_PRO <- conv_participants_table %>% 
+                                      dplyr::mutate( pro_group = case_match( 
+                                                              conv_cluster6, 
+                                                              c(1,3,4) ~ "MIN",
+                                                              c(2) ~ "PHY",
+                                                              c(5) ~ "COG",
+                                                              c(6) ~ "MLT"
+                                                              )) %>%
+                                      dplyr::rename(id=participant_id) %>%
+                                      dplyr::select(id, pro_group)
+
+#Checking that there are no NAs
+#conv_participants_table[is.na(conv_participants_table_PRO$pro_group),]
+
+# Check number of patients in each of the groups
+total_participants <- length(unique(conv_participants_matching_PRO$id))
+
+pro_group_n <- conv_participants_matching_PRO %>%
+    dplyr::group_by(pro_group) %>% 
+    dplyr::summarise(total = dplyr::n_distinct(id), 
+                     percentage = dplyr::n_distinct(id)/total_participants*100)
+kbl(pro_group_n) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+
+```
+
+Number and percentage of all of the convalescent participants for which vaccine status is certain in each of the groups:
+
+```{r vaccination_certain_pro}
+# Convert PRO group cluster numbers to PRO groups as described in paper
+# This mapping was communicated by Leying Guan via Teams on May 15th as the 
+# original table is unclear about the exact PRO groups mappings
+
+conv_participants_matching_PRO_vac_certain <- conv_participants_matching_PRO %>% 
+                                      filter(id %in% vaccination_certain$id)
+
+
+# Check number of patients in each of the groups
+total_participants <- length(unique(conv_participants_matching_PRO_vac_certain$id))
+
+pro_group_n <- conv_participants_matching_PRO_vac_certain %>%
+    dplyr::group_by(pro_group) %>% 
+    dplyr::summarise(total = dplyr::n_distinct(id), 
+                     percentage = dplyr::n_distinct(id)/total_participants*100)
+kbl(pro_group_n) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+
+COG_total <- pro_group_n[pro_group_n$pro_group=="COG",2][[1]]
+MIN_total <- pro_group_n[pro_group_n$pro_group=="MIN",2][[1]]
+MLT_total <- pro_group_n[pro_group_n$pro_group=="MLT",2][[1]]
+PHY_total <- pro_group_n[pro_group_n$pro_group=="PHY",2][[1]]
+
+```
+
+```{r}
+#Adding pro group information in vaccination table
+vaccination_certain_pro <- dplyr::left_join(vaccination_certain, 
+                                         conv_participants_matching_PRO_vac_certain, by="id")
+```
+
+```{r fig.height=10, fig.width=5, warning=F}
+vaccination_plot <- vaccination_certain_pro %>% 
+  dplyr::filter(id %in% conv_patients ) %>% # Filter by convalescent participants
+  dplyr::mutate(dplyr::across(-c(day), factor))
+
+# Apply ordering
+vaccination_plot$id <- factor(vaccination_plot$id, levels=all_ids_ordered)
+
+vaccination_plot %>%
+  dplyr::filter(day>=0|is.na(day)) %>%
+  ggplot(aes(x=day, y=id, col=vaccinated, group=id)) +
+  geom_line() +
+  geom_point(aes(day, id, col=dose, shape=dose)) +
+  geom_point(aes(day, id, col=V6 ), shape=4, size=1) +
+  geom_point(aes(day, id, col=V7 ), shape=4, size=1) +
+  geom_point(aes(day, id, col=V8 ), shape=4, size=1) +
+  geom_point(aes(day, id, col=V9 ), shape=4, size=1) +
+  geom_point(aes(day, id, col=V10 ), shape=4, size=1) +
+  geom_point(aes(day, id, col=D ), shape=18, size=1) +
+  theme_bw() + 
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
+  scale_color_manual(values = cols, name="Participant Status", na.value="transparent") +
+  scale_x_continuous(limits = c(0,NA), breaks = c(0,28,90,180,270,365), expand = expansion(mult=c(0,0.0005))) +
+  facet_grid(rows = vars(pro_group), scales = "free") +
+  ylab("Participants") +
+  xlab("Days post admission")
+
+```
+
+```{r }
+vaccination_date_anydose_id <- vaccination_date_anydose %>% dplyr::rename(id=participant_id)
+
+# vaccination table group in wide format
+vaccination_wide_pro <- vaccination_certain_pro %>% 
+                        dplyr::mutate(event=dplyr::coalesce(dose,V6,V7,V8,V9,V10)) %>%
+                        dplyr::filter(is.na(D)) %>%
+                        dplyr::filter_at(vars(dose,V6,V7,V8,V9,V10,D), 
+                                         any_vars(!is.na(.))) %>% # Filter rows that have NA at all these cols (day0 entries)
+                        dplyr::select(id, pro_group, event, day) %>%
+                        tidyr::pivot_wider(names_from = event, values_from = day) %>%
+                        dplyr::left_join(vaccination_date_anydose_id, by=join_by(id)) 
+
+write.csv(vaccination_wide_pro, 
+          file = "Convalescent_vaccination_data_with_event_dates.csv", 
+          quote=F, row.names = F)
+
+
+```
+
+### Participants vaccinated before V6
+
+Total number of patients vaccinated before V6
+```{r }
+vaccination_wide_pre_V6 <- vaccination_wide_pro %>% dplyr::filter(date_anydose <= V06)
+
+id_vac_at_v6 <- unique(vaccination_wide_pre_V6$id)
+
+kbl(vaccination_wide_pre_V6 %>%
+              dplyr::summarise(vaccinated=dplyr::n_distinct(id), total = total_participants, percentage = n_distinct(id)/total_participants * 100)) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+
+
+
+```
+
+Some of the participants have negative values for 1st or posterior doses, and that is why they are marked as being vaccinated before V6.
+
+```{r}
+kbl(vaccination_wide_pre_V6) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+
+write.csv(vaccination_wide_pre_V6, file = "Convalescent_vaccination_data_with_event_dates_vac_before_V6.csv", quote = F, row.names = F)
+
+```
+
+
+Subplot of participants with vaccination date before visit 6. Some of the participants have negative values for the first vaccine dose day, or the second vaccine dose day (some very negative some just a few days).
+
+```{r fig.height=6, fig.width=5, warning=F}
+
+vaccination_long %>% 
+  dplyr::filter(id %in% unique(vaccination_data$studyid)) %>%
+  dplyr::filter(id %in% vaccination_wide_pre_V6$id) %>%
+  dplyr::mutate(dplyr::across(-c(day), factor)) %>%
+  ggplot(aes(x=day, y=id, col=vaccinated, group=id)) +
+  geom_line() +
+  geom_point(aes(day, id, col=dose, shape=dose)) +
+  geom_point(aes(day, id, col=V6 ), shape=4) +
+  geom_point(aes(day, id, col=V7 ), shape=4) +
+  geom_point(aes(day, id, col=V8 ), shape=4) +
+  geom_point(aes(day, id, col=V9 ), shape=4) +
+  geom_point(aes(day, id, col=V10 ), shape=4) +
+  geom_point(aes(day, id, col=D ), shape=18, size=1) +
+  theme_bw() + 
+  #theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
+  scale_color_manual(values = cols, name="Patient Status", na.value = "transparent") +
+  ylab("Participants") +
+  xlab("Time (days)")
+
+```
+
+Number of patients vaccinated at V6 per group:
+```{r }
+kbl(vaccination_wide_pro %>% dplyr::filter(date_anydose <= V06 ) %>%
+                          dplyr::group_by(pro_group) %>% 
+                          dplyr::summarise(total = dplyr::n_distinct(id)) %>%
+                          dplyr::left_join(pro_group_n[,c("pro_group","total")], by="pro_group", suffix=c("_vaccinated","_participants")) %>%
+                          dplyr::mutate(percentage=total_vaccinated/total_participants*100)) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+### Participants vaccinated at V7
+
+Total number of participants vaccinated at V7
+```{r }
+vac_at_v7 <- vaccination_wide_pro %>% dplyr::filter(date_anydose <= V07)
+id_vac_at_v7 <- unique(append(vac_at_v7$id, id_vac_at_v6))
+
+kbl(vaccination_wide_pro %>% dplyr::filter(id %in% id_vac_at_v7 ) %>%
+                          dplyr::summarise(vaccinated=dplyr::n_distinct(id), total = total_participants, percentage = n_distinct(id)/total_participants * 100)) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+Number of patients vaccinated at V7 per group:
+```{r }
+kbl(vaccination_wide_pro %>% dplyr::filter(id %in% id_vac_at_v7) %>%
+                          dplyr::group_by(pro_group) %>% 
+                          dplyr::summarise(total = dplyr::n_distinct(id)) %>%
+                          dplyr::left_join(pro_group_n[,c("pro_group","total")], by="pro_group", suffix=c("_vaccinated","_participants")) %>%
+                          dplyr::mutate(percentage=total_vaccinated/total_participants*100)) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+### Participants vaccinated at V8
+
+
+Total number of patients vaccinated at V8
+```{r }
+vac_at_v8 <- vaccination_wide_pro %>% dplyr::filter(date_anydose <= V08)
+id_vac_at_v8 <- unique(append(vac_at_v8$id, id_vac_at_v7))
+
+kbl(vaccination_wide_pro %>% dplyr::filter(id %in% id_vac_at_v8 ) %>%
+                          dplyr::summarise(vaccinated=dplyr::n_distinct(id), total = total_participants, percentage = n_distinct(id)/total_participants * 100)) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+Number of patients vaccinated at V8 per group:
+```{r }
+kbl(vaccination_wide_pro %>% dplyr::filter(id %in% id_vac_at_v8 ) %>%
+                          dplyr::group_by(pro_group) %>% 
+                          dplyr::summarise(total = dplyr::n_distinct(id)) %>%
+                          dplyr::left_join(pro_group_n[,c("pro_group","total")], by="pro_group", suffix=c("_vaccinated","_participants")) %>%
+                          dplyr::mutate(percentage=total_vaccinated/total_participants*100)) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+### Participants vaccinated at V9
+
+Total number of patients vaccinated at V9
+```{r }
+vac_at_v9 <- vaccination_wide_pro %>% dplyr::filter(date_anydose <= V09)
+id_vac_at_v9 <- unique(append(vac_at_v9$id, id_vac_at_v8))
+
+kbl(vaccination_wide_pro %>% dplyr::filter(id %in% id_vac_at_v9 ) %>%
+                          dplyr::summarise(vaccinated=dplyr::n_distinct(id), total = total_participants, percentage = n_distinct(id)/total_participants * 100)) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+
+```
+
+
+
+Number of patients vaccinated at V9 per group:
+```{r }
+kbl(vaccination_wide_pro %>% dplyr::filter(id %in% id_vac_at_v9) %>%
+                          dplyr::group_by(pro_group) %>% 
+                          dplyr::summarise(total = dplyr::n_distinct(id)) %>%
+                          dplyr::left_join(pro_group_n[,c("pro_group","total")], by="pro_group", suffix=c("_vaccinated","_participants")) %>%
+                          dplyr::mutate(percentage=total_vaccinated/total_participants*100)) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+### Participants vaccinated at V10
+
+Total number of patients vaccinated at V10
+```{r }
+vac_at_v10 <- vaccination_wide_pro %>% dplyr::filter(date_anydose <= V10)
+id_vac_at_v10 <- unique(append(vac_at_v10$id, id_vac_at_v9))
+
+kbl(vaccination_wide_pro %>% dplyr::filter(id %in% id_vac_at_v10 ) %>%
+                          dplyr::summarise(vaccinated=dplyr::n_distinct(id), total = total_participants, percentage = n_distinct(id)/total_participants * 100)) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+Number of patients vaccinated before V10 per group:
+```{r }
+kbl(vaccination_wide_pro %>% dplyr::filter(id %in% id_vac_at_v10 ) %>%
+                          dplyr::group_by(pro_group) %>% 
+                          dplyr::summarise(total = dplyr::n_distinct(id)) %>%
+                          dplyr::left_join(pro_group_n[,c("pro_group","total")], by="pro_group", suffix=c("_vaccinated","_participants")) %>%
+                          dplyr::mutate(percentage=total_vaccinated/total_participants*100)) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+### Participants vaccinated at any time point (with date) (until day 3000)
+
+Total number of patients vaccinated before day 3000
+```{r }
+kbl(vaccination_wide_pro %>% dplyr::filter(date_anydose <= 3000) %>%
+                          dplyr::summarise(vaccinated=dplyr::n_distinct(id), total = total_participants, percentage = n_distinct(id)/total_participants * 100)) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+
+Number of patients vaccinated before day 3000 per group:
+```{r }
+kbl(vaccination_wide_pro %>% dplyr::filter(date_anydose <= 3000 ) %>%
+                          dplyr::group_by(pro_group) %>% 
+                          dplyr::summarise(total = dplyr::n_distinct(id)) %>%
+                          dplyr::left_join(pro_group_n[,c("pro_group","total")], by="pro_group", suffix=c("_vaccinated","_participants")) %>%
+                          dplyr::mutate(percentage=total_vaccinated/total_participants*100)) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+### Participants in convalescent cohort vaccinated at any time point
+
+```{r}
+kbl(vaccination_wide_pro %>% dplyr::filter(id %in% conv_patients) %>%
+                          dplyr::filter(date_anydose <= 3000 ) %>%
+                          dplyr::group_by(pro_group) %>% 
+                          dplyr::summarise(total = dplyr::n_distinct(id)) %>%
+                          dplyr::left_join(pro_group_n[,c("pro_group","total")], by="pro_group", suffix=c("_vaccinated","_participants")) %>%
+                          dplyr::mutate(percentage=total_vaccinated/total_participants*100)) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+
+## Check according to train-test split of integration paper
+
+Loading object from the integration convalescent analysis under `/scratch/data-integration/public_code_results/flipped_impacc_analysis_record_innerfold10.rds`:
+
+```{r }
+int_obj <- readRDS("/scratch/data-integration/public_code_results/flipped_impacc_analysis_record_innerfold10.rds")
+
+```
+
+Participant IDs of participants in convalescent groups:
+
+```{r }
+participants_test <- unique(int_obj$clin.test$participant_id)
+participants_train <- unique(int_obj$clin.train$participant_id)
+```
+
+Number of participants in train set of integration paper:
+```{r}
+length(participants_train)
+```
+
+Number of participants in test set of integration paper:
+```{r}
+length(participants_test)
+```
+
+Distribution of participants in train and test sets in convalescent set:
+```{r}
+conv_participants_PRO_sets <- conv_participants_matching_PRO %>% 
+                                dplyr::mutate(test = dplyr::if_else(id %in% participants_train,1,0),
+                                              train = dplyr::if_else(id %in% participants_test,1,0))
+kbl(conv_participants_PRO_sets %>%
+                dplyr::summarise(train_count = sum(train), test_count=sum(test))) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+Distribution of participants in train and test set within PRO groups:
+```{r}
+kbl(conv_participants_PRO_sets %>% 
+              dplyr::group_by(pro_group) %>%
+              dplyr::summarise(train_count = sum(train), 
+                               test_count=sum(test),
+                               train_percentage = sum(train)/dplyr::n_distinct(id)*100,
+                               test_percentage = sum(test)/dplyr::n_distinct(id)*100)) %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+Vaccination plot according to vaccination status and train-test set:
+```{r fig.height=10, fig.width=5, warning=F}
+conv_participants_PRO_sets <- conv_participants_matching_PRO %>% 
+                                dplyr::mutate(train = dplyr::if_else(id %in% participants_train,"train",NA),
+                                              test = dplyr::if_else(id %in% participants_test,"test",NA),
+                                              set = dplyr::coalesce(train,test))
+
+#Adding train group information in vaccination table
+vaccination_long_pro_set <- dplyr::left_join(vaccination_long, conv_participants_PRO_sets, by="id")
+
+vaccination_plot <- vaccination_long_pro_set %>% 
+  dplyr::filter(id %in% conv_patients ) %>% # Filter by convalescent participants
+  dplyr::mutate(dplyr::across(-c(day), factor))
+
+# Apply ordering
+vaccination_plot$id <- factor(vaccination_plot$id, levels=all_ids_ordered)
+
+vaccination_plot %>%
+  dplyr::filter(day>=0|is.na(day)) %>%
+  ggplot(aes(x=day, y=id, col=vaccinated, group=id)) +
+  geom_line() +
+  geom_point(aes(day, id, col=dose, shape=dose)) +
+  geom_point(aes(day, id, col=V6 ), shape=4) +
+  geom_point(aes(day, id, col=V7 ), shape=4) +
+  geom_point(aes(day, id, col=V8 ), shape=4) +
+  geom_point(aes(day, id, col=V9 ), shape=4) +
+  geom_point(aes(day, id, col=V10 ), shape=4) +
+  geom_point(aes(day, id, col=D ), shape=18, size=1) +
+  theme_bw() + 
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
+  scale_color_manual(values = cols, name="Participant Status", na.value="transparent") +
+  facet_grid(rows = vars(set), scales = "free") +
+  ylab("Participants") +
+  xlab("Time (days)")
+
+```
+
+Vaccination plot according to PRO groups, vaccination status and train-test set:
+```{r fig.height=10, fig.width=5, warning=F}
+vaccination_plot %>%
+  dplyr::filter(day>=0|is.na(day)) %>%
+  ggplot(aes(x=day, y=id, col=vaccinated, group=id)) +
+  geom_line() +
+  geom_point(aes(day, id, col=dose, shape=dose)) +
+  geom_point(aes(day, id, col=V6 ), shape=4) +
+  geom_point(aes(day, id, col=V7 ), shape=4) +
+  geom_point(aes(day, id, col=V8 ), shape=4) +
+  geom_point(aes(day, id, col=V9 ), shape=4) +
+  geom_point(aes(day, id, col=V10 ), shape=4) +
+  geom_point(aes(day, id, col=D ), shape=18, size=1) +
+  theme_bw() + 
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
+  scale_color_manual(values = cols, name="Participant Status", na.value="transparent") +
+  facet_grid(rows = vars(pro_group, set), scales = "free") +
+  ylab("Participants") +
+  xlab("Time (days)")
+
+```

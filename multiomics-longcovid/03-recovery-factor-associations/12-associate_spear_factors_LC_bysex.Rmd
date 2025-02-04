@@ -1,0 +1,2268 @@
+---
+title: "Spear factor association analysis"
+author: "Gisela Gabernet (gisela.gabernet@yale.edu)"
+subtitle: PGX, SO, PMG, PPT, PPG, BCT
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+params:
+  fold: "test_train_nophy_nooverlap"
+  results_dir: "associate_spear_factors_promis_physical_test_Factor1_bysex/"
+  spear_object: "/scratch/data-fullcohort/spear_model/results/020624/032124_spearphysical_finalscores_allsamples.rds"
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r}
+library(data.table)
+#install.packages("RColorBrewer")
+library(RColorBrewer)
+library(ggplot2)
+library(tidyverse)
+#install.packages("psych")
+library(psych)
+library(dplyr)
+# Additional libraries for mixed effect models
+#BiocManager::install("qvalue")
+library(qvalue)
+library(lme4)
+library(ordinal)
+library(nlme)
+library(gamm4)
+library(mgcv)
+library(ggsignif)
+library(kableExtra)
+library(corrplot)
+library(ggeffects)
+library(ggfortify)
+library(grid)
+library(pheatmap)
+library(ggpubr)
+library(ggplotify)
+library(ggbeeswarm)
+library(pheatmap)
+library(rstatix)
+
+
+
+#install.packages("ggvenn")
+library(ggvenn)
+
+#install.packages("msigdbr")
+library(msigdbr)
+
+knitr::opts_chunk$set(warning = F, message=F)
+
+print_kable <- function(table, kable_height = "500px", kable_width = "100%") {
+  kable(table, digits=3) %>%
+    kable_styling("striped")
+  
+}
+
+```
+
+# Running parameters
+
+Running with parameters
+
+
+# Explore Spear results
+
+## Explore Factor correlation and variance explained
+
+```{r fig.height=5, fig.width=10}
+# Read object from file
+
+# binomial w1 object
+#spear_object <- readRDS("/scratch/data-fullcohort/spear_model/results/factor_scores/022224_spearw1.rds")
+
+# object with all spear models but old promis physical
+#spear_object <- readRDS("/scratch/data-fullcohort/spear_model/results/factor_scores/022224_allspearfactors.rds")
+
+#object with new promis physical (some participants were omitted in last model)
+#spear_object <- readRDS("/scratch/data-fullcohort/spear_model/results/factor_scores/031124_spearphysical_finalscores.rds")
+
+spear_object <- readRDS(params$spear_object)
+
+data_env <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_all_Feb_11_2024.RDS")
+#results_dir <- "./associate_spear_factor_promis_physical_train/"
+results_dir <- params$results_dir
+dir.create(results_dir)
+
+figures_dir <- "~/repos/impacc-full-cohort/Analysis/convalescent-project/Spear/Figures_spear_factors_association_sex/"
+dir.create(figures_dir)
+
+
+path_to_codebase <- "~/repos/impacc-full-cohort/Analysis/IMPACC_data_analysis_codebase.R"
+source(path_to_codebase)
+
+selected_factors_names <- "Factor1"
+
+```
+
+
+## Get clinical data
+
+```{r}
+clinical_data <- data_env$clinical_data
+
+# Add additional symptom groups to metadata
+symptom_groups <- read_csv("/scratch/clinical/current/impacc_conv_symptoms.csv", show_col_types = F)
+PRO_scores <- read_csv("/scratch/clinical/current/PRO_scores_dates_updated_29Aug23.csv", show_col_types = F)
+
+# old spear models with all promis scores
+#spear_factor_scores_pro_group_train <- spear_object$pro_group$train
+#spear_factor_scores_pro_group_test <- spear_object$pro_group$test
+#spear_factor_scores_pro_group_cv <- spear_object$pro_group$cv
+#spear_factor_scores_promis_physical_train <- spear_object$promis$physical$train
+#spear_factor_scores_promis_physical_test <- spear_object$promis$physical$test
+#spear_factor_scores_promis_physical_cv <- spear_object$promis$physical$cv
+
+if (params$fold == "train_phy") {
+  factor_scores <- spear_object$Train
+} else if (params$fold == "test_train_nophy_nooverlap") {
+  factor_scores <- rbind(spear_object$Test, spear_object$TestNoPhysical, spear_object$TrainNoPhysical_NoOverlap)
+} else if (params$fold == "cv") {
+  factor_scores <- spear_object$CV
+} else {
+  stop("Params fold unrecognized, it should be one of: train_phy, test_train_nophy_nooverlap, cv.")
+}
+
+```
+
+# Associate factors with outcomes
+
+Here we will use a mixed linear model to associate factors with outcomes
+
+## Prepare metadata
+
+```{r prepare the metadata for mixed linear model analysis, echo= FALSE, warning= FALSE}
+
+correlation_metadata <- clinical_data %>%
+  dplyr::select(event_id, resp_status_v1, sex, admit_age, event_after_first_vaccine_dose, 
+                race, enrollment_site, event_date,
+                event_date_3weeks_after_dose, pro_group_labels, event_type, 
+                discretized_admit_age_quantile, participant_id)  %>%
+  dplyr::mutate(pro_2_groups = 
+      case_match( pro_group_labels,
+      "MIN" ~ "MIN",
+      c("PHY", "COG", "MLT")  ~ "OTHER"
+      )
+  ) %>%
+  dplyr::distinct() %>%
+  filter(event_id %in% rownames(factor_scores))
+
+clinical_subsets_all <- as.data.frame(correlation_metadata)
+rownames(clinical_subsets_all) <- clinical_subsets_all$event_id
+
+
+endpoint_coefficients_all <- data.frame(matrix(nrow=ncol(factor_scores), ncol = 0))
+rownames(endpoint_coefficients_all) <- colnames(factor_scores)
+```
+
+Get factor scores
+
+```{r }
+spear_factors <- as.data.frame(factor_scores)
+```
+
+## Functions for association
+
+```{r}
+
+factor_name = "Recovery Factor"
+
+pro_min_colors <- c("#639A21", "#781B6C")
+names(pro_min_colors) <- c("MIN", "OTHER")
+
+pro_min_labels <- c("MIN", "LC")
+names(pro_min_labels) <- c("MIN", "OTHER")
+
+#original
+#pro_colors <- c("#639A21", "#6371AD", "#FFC20A", "#9C3418")
+pro_colors <- c("#639A21", "#6371AD", "#FFC20A", "#7D2D17")
+
+#pro_colors <- c("#3CE0B3", "#0072B2", "#F0E438", "#D55E00" )
+names(pro_colors) <- c("MIN", "COG", "PHY", "MLT")
+
+scaleFUN <- function(x) sprintf("%.2e",x)
+violin_plot_visits <- function(data, colors, limits=NULL, ncol=5) {
+  p <- ggplot(data, aes(x=endpoints, y=value, fill=endpoints)) +
+    geom_violin(draw_quantiles = c(0.25,0.5,0.75)) +
+    facet_wrap(~Factor, drop = T, ncol = ncol, scales = "free_y") +
+    theme_bw() + theme(legend.position = "none")
+  if(!(is.null(limits))){
+    p <- p + scale_y_continuous(limits = limits)
+  } else {
+    p <- p + scale_y_continuous(labels = scaleFUN)
+  }
+  if(!(missing(colors))){
+    p <- p + scale_color_manual(values=colors)
+    p <- p + scale_fill_manual(values=colors)
+  }
+  return(p)
+}
+
+pairwise_association_visit_nosex <- function(clinical_subsets_all, 
+                                       spear_factors, 
+                                       visit_id, 
+                                       selected_factors_names, 
+                                       endpoint_var = "pro_2_groups",
+                                       ordered_endpoint_var = c("MIN","OTHER"),
+                                       colors = pro_min_colors
+                                       ){
+  cur_visit <- visit_id
+
+  visit_row_ids = rownames(clinical_subsets_all[clinical_subsets_all$event_type == cur_visit,])
+  
+  # Use the visit7_row_ids to only get samples from 'Visit 7':
+  factors_filtered = spear_factors[visit_row_ids , selected_factors_names, drop=F]
+  clinical_subsets = clinical_subsets_all[visit_row_ids ,]
+  
+  data_use = factors_filtered
+  
+  # Add the respiratory_status_day14 as $endpoints
+  data_use$endpoints = factor(clinical_subsets[[endpoint_var]], levels=ordered_endpoint_var)
+  
+  # Add the enrollment_site as $sites
+  data_use$sites = clinical_subsets$enrollment_site
+  data_use$age =  clinical_subsets$discretized_admit_age_quantile
+  data_use$sex =  clinical_subsets$sex
+  
+  # Add the $control, needs to be different for each sample
+  # required for clmm (always requires some random effect)
+  data_use$control =  factor(1:nrow(data_use))
+  
+  # Set module names:
+  factor_names = colnames(factors_filtered)
+  
+  # Only use samples that have valid endpoints (not NA/missing)
+  data_use = data_use[!is.na(data_use$endpoints),]
+
+  for(j in 1:length(factor_names)){
+    #print(j)
+    my.formula0 = paste0(factor_names[j],"~ (1|sites) + age")
+    my.formula1 = paste0(factor_names[j],"~ endpoints + (1|sites)+age")
+    if(j == 1){
+      tmp = mixed_pairwise(my.formula0, my.formula1, data_use)
+      res_table_pairwise = data.frame(matrix(0, ncol = length(tmp$res_table), nrow = length(factor_names)))
+      coef_endpoint_pairwise = data.frame(matrix(0, ncol= length(tmp$coef_endpoint), nrow=length(factor_names)))
+      res_table_pairwise[j,] = tmp$res_table
+      coef_endpoint_pairwise[j,] = tmp$coef_endpoint
+      colnames(res_table_pairwise) = names(tmp$res_table)
+      colnames(coef_endpoint_pairwise) = names(tmp$coef_endpoint)
+    }else{
+      tmp = mixed_pairwise(my.formula0, my.formula1, data_use)
+      res_table_pairwise[j,] = tmp$res_table
+      coef_endpoint_pairwise[j,] = tmp$coef_endpoint
+    }
+  }
+  
+  if (length(ordered_endpoint_var) > 2) {
+      coef_endpoint_pairwise <- coef_endpoint_pairwise[,1:3]
+      res_table_pairwise <- res_table_pairwise[,1:3]
+  }
+  coef_endpoint_pairwise$factor <- factor_names
+  coef_endpoint_pairwise$visit <- cur_visit
+  
+  if (nrow(res_table_pairwise)>1) {
+    res_table_pairwise_adj_df <- qvalue::qvalue(res_table_pairwise, fdr.level = 0.05, pi0=1)$qvalues
+  } else {
+    res_table_pairwise_adj_df <- res_table_pairwise
+  }
+
+  res_table_pairwise_adj_df$factor <- factor_names
+  res_table_pairwise_adj_df$visit <- cur_visit
+  
+  plot_df <- data_use %>% dplyr::select(starts_with("Factor"), endpoints) %>%
+            pivot_longer(!endpoints, names_to = "Factor", values_to = "value")
+  plot_df$Factor <- factor(plot_df$Factor, levels=selected_factors_names)
+  
+  p <- violin_plot_visits(plot_df, colors = colors) + ggtitle(visit_id)
+  
+  res_list <- list(coefs_df = coef_endpoint_pairwise, 
+                   res_df = res_table_pairwise_adj_df,
+                   violin_plot = p)
+  
+  return(res_list)
+}
+
+global_mixed_pairwise_nosex <- function(clinical_subsets_all, 
+                                   spear_factors,
+                                   selected_factor_name, 
+                                   endpoint_var = "pro_2_groups",
+                                   ordered_endpoint_var = c("MIN","OTHER")
+                                       ){
+  
+  if(length(selected_factor_name) > 1) {
+    stop("Global mixed pairwise can only be calculated one factor at a time!")
+  }
+
+  # Get selected factors
+  factors_filtered = spear_factors[, selected_factor_name, drop=F]
+
+  data_use = factors_filtered %>%
+    rownames_to_column("event_id") %>%
+    left_join(clinical_subsets_all, by="event_id")
+  
+  # Add the endpoint variable as endpoints
+  data_use$endpoints = factor(data_use[[endpoint_var]], levels=ordered_endpoint_var)
+  
+  # Add the $control, needs to be different for each sample
+  # required for clmm (always requires some random effect)
+  data_use$control =  factor(1:nrow(data_use))
+  
+  # Only use samples that have valid endpoints (not NA/missing)
+  data_use = data_use[!is.na(data_use$endpoints),]
+
+  data_use$value <- data_use[[selected_factor_name]]
+  
+  # Generate formulas for mixed_pairwise function
+  var_list <- c("discretized_admit_age_quantile",
+                "event_type",
+                "(1|enrollment_site/participant_id)")
+  terms <- paste(var_list, collapse = "+")
+  formula.0 <- formula(paste("value~", terms, sep = ""))
+  var_list <- append(var_list, "endpoints")
+  terms <- paste(var_list, collapse = "+")
+  formula.1 <- formula(paste("value~", terms, sep = ""))
+  res_table <- mixed_pairwise(formula.0, formula.1, data_use)
+  
+  return(res_table$res_table)
+}
+
+# computed significance of sex term in model (with specified endpoint)
+pairwise_association_visit_sex_significance <- function(clinical_subsets_all, 
+                                       spear_factors, 
+                                       visit_id, 
+                                       selected_factors_names, 
+                                       endpoint_var = "pro_2_groups",
+                                       ordered_endpoint_var = c("MIN","OTHER"),
+                                       colors = pro_min_colors
+                                       ){
+  cur_visit <- visit_id
+
+  visit_row_ids = rownames(clinical_subsets_all[clinical_subsets_all$event_type == cur_visit,])
+  
+  # Use the visit7_row_ids to only get samples from 'Visit 7':
+  factors_filtered = spear_factors[visit_row_ids , selected_factors_names, drop=F]
+  clinical_subsets = clinical_subsets_all[visit_row_ids ,]
+  
+  data_use = factors_filtered
+  
+  # Add the respiratory_status_day14 as $endpoints
+  data_use$endpoints = factor(clinical_subsets[[endpoint_var]], levels=ordered_endpoint_var)
+  
+  # Add the enrollment_site as $sites
+  data_use$sites = clinical_subsets$enrollment_site
+  data_use$age =  clinical_subsets$discretized_admit_age_quantile
+  data_use$sex =  clinical_subsets$sex
+  
+  # Add the $control, needs to be different for each sample
+  # required for clmm (always requires some random effect)
+  data_use$control =  factor(1:nrow(data_use))
+  
+  # Set module names:
+  factor_names = colnames(factors_filtered)
+  
+  # Only use samples that have valid endpoints (not NA/missing)
+  data_use = data_use[!is.na(data_use$endpoints),]
+
+  for(j in 1:length(factor_names)){
+    #print(j)
+    my.formula0 = paste0(factor_names[j],"~ (1|sites) + endpoints + age")
+    my.formula1 = paste0(factor_names[j],"~ sex + endpoints + (1|sites) + age")
+    if(j == 1){
+      tmp = mixed_pairwise(my.formula0, my.formula1, data_use)
+      res_table_pairwise = data.frame(matrix(0, ncol = length(tmp$res_table), nrow = length(factor_names)))
+      coef_endpoint_pairwise = data.frame(matrix(0, ncol= length(tmp$coef_endpoint), nrow=length(factor_names)))
+      res_table_pairwise[j,] = tmp$res_table
+      coef_endpoint_pairwise[j,] = tmp$coef_endpoint
+      colnames(res_table_pairwise) = names(tmp$res_table)
+      colnames(coef_endpoint_pairwise) = names(tmp$coef_endpoint)
+    }else{
+      tmp = mixed_pairwise(my.formula0, my.formula1, data_use)
+      res_table_pairwise[j,] = tmp$res_table
+      coef_endpoint_pairwise[j,] = tmp$coef_endpoint
+    }
+  }
+  
+  if (length(ordered_endpoint_var) > 2) {
+      coef_endpoint_pairwise <- coef_endpoint_pairwise[,1:3]
+      res_table_pairwise <- res_table_pairwise[,1:3]
+  }
+  coef_endpoint_pairwise$factor <- factor_names
+  coef_endpoint_pairwise$visit <- cur_visit
+  
+  if (nrow(res_table_pairwise)>1) {
+    res_table_pairwise_adj_df <- qvalue::qvalue(res_table_pairwise, fdr.level = 0.05, pi0=1)$qvalues
+  } else {
+    res_table_pairwise_adj_df <- res_table_pairwise
+  }
+
+  res_table_pairwise_adj_df$factor <- factor_names
+  res_table_pairwise_adj_df$visit <- cur_visit
+  
+  plot_df <- data_use %>% dplyr::select(starts_with("Factor"), endpoints) %>%
+            pivot_longer(!endpoints, names_to = "Factor", values_to = "value")
+  plot_df$Factor <- factor(plot_df$Factor, levels=selected_factors_names)
+  
+  p <- violin_plot_visits(plot_df, colors = colors) + ggtitle(visit_id)
+  
+  res_list <- list(coefs_df = coef_endpoint_pairwise, 
+                   res_df = res_table_pairwise_adj_df,
+                   violin_plot = p)
+  
+  return(res_list)
+}
+
+global_mixed_pairwise_sex_significance <- function(clinical_subsets_all, 
+                                   spear_factors,
+                                   selected_factor_name, 
+                                   endpoint_var = "pro_2_groups",
+                                   ordered_endpoint_var = c("MIN","OTHER")
+                                       ){
+  
+  if(length(selected_factor_name) > 1) {
+    stop("Global mixed pairwise can only be calculated one factor at a time!")
+  }
+
+  # Get selected factors
+  factors_filtered = spear_factors[, selected_factor_name, drop=F]
+
+  data_use = factors_filtered %>%
+    rownames_to_column("event_id") %>%
+    left_join(clinical_subsets_all, by="event_id")
+  
+  # Add the endpoint variable as endpoints
+  data_use$endpoints = factor(data_use[[endpoint_var]], levels=ordered_endpoint_var)
+  
+  # Add the $control, needs to be different for each sample
+  # required for clmm (always requires some random effect)
+  data_use$control =  factor(1:nrow(data_use))
+  
+  # Only use samples that have valid endpoints (not NA/missing)
+  data_use = data_use[!is.na(data_use$endpoints),]
+
+  data_use$value <- data_use[[selected_factor_name]]
+  
+  # Generate formulas for mixed_pairwise function
+  var_list <- c("discretized_admit_age_quantile",
+                "endpoints",
+                "event_type",
+                "(1|enrollment_site/participant_id)")
+  terms <- paste(var_list, collapse = "+")
+  formula.0 <- formula(paste("value~", terms, sep = ""))
+  var_list <- append(var_list, "sex")
+  terms <- paste(var_list, collapse = "+")
+  formula.1 <- formula(paste("value~", terms, sep = ""))
+  res_table <- mixed_pairwise(formula.0, formula.1, data_use)
+  
+  return(res_table$res_table)
+}
+
+```
+
+## Functions for better pheatmap
+
+```{r}
+## Edit body of pheatmap:::draw_colnames, customizing it to your liking
+draw_colnames_45 <- function (coln, ...) {
+    m = length(coln)
+    x = (1:m)/m - 1/2/m
+    grid.text(coln, x = x, y = unit(0.96, "npc"), vjust = .5, 
+        hjust = 1, rot = 45, gp = gpar(...)) ## Was 'hjust=0' and 'rot=270'
+}
+
+## For pheatmap_1.0.8 and later:
+draw_colnames_45 <- function (coln, gaps, ...) {
+    coord = pheatmap:::find_coordinates(length(coln), gaps)
+    x = coord$coord - 0.5 * coord$size
+    res = textGrob(coln, x = x, y = unit(1, "npc") - unit(3,"bigpts"), vjust = 0.5, hjust = 1, rot = 45, gp = gpar(...))
+    return(res)}
+
+## 'Overwrite' default draw_colnames with your own version 
+assignInNamespace(x="draw_colnames", value="draw_colnames_45",
+ns=asNamespace("pheatmap"))
+
+p_val_only_palette <- colorRampPalette(brewer.pal(9,"Reds"))(10)
+
+breaklist = seq(0,3,0.3)
+
+```
+
+
+## Check significance of sex term instead of endpoint
+
+### Globally (MIN vs OTHER)
+
+```{r}
+clinical_subsets_all$sex <- as.factor(clinical_subsets_all$sex)
+
+pval_df <- global_mixed_pairwise_sex_significance(clinical_subsets_all=clinical_subsets_all,
+                                          spear_factors=spear_factors,
+                                          selected_factor_name = "Factor1",
+                                          endpoint_var = "pro_2_groups")
+pval_df
+```
+
+### Per visit (MIN vs OTHER)
+
+```{r}
+endpoint_coefficients_all <- data.frame()
+res_table_pairwise_adj_all <- data.frame()
+
+for (visit_id in c("Visit 7", "Visit 8", "Visit 9", "Visit 10")){
+  print(paste("Computing associations for visit:", visit_id))
+  res_list <- pairwise_association_visit_sex_significance(clinical_subsets_all=clinical_subsets_all, 
+                                          spear_factors=spear_factors, 
+                                          visit_id=visit_id, 
+                                          selected_factors_names = selected_factors_names,
+                                          endpoint_var = "pro_2_groups")
+
+  endpoint_coefficients_all <- bind_rows(endpoint_coefficients_all,
+                                         res_list$coefs_df)
+  res_table_pairwise_adj_all <- bind_rows(res_table_pairwise_adj_all, 
+                                          res_list$res_df)
+}
+
+res_table_pairwise_adj_all
+
+```
+
+### Globally (PRO GROUPS)
+
+```{r}
+pval_df <- global_mixed_pairwise_sex_significance(clinical_subsets_all=clinical_subsets_all,
+                                          spear_factors=spear_factors,
+                                          selected_factor_name = "Factor1",
+                                          endpoint_var = "pro_group_labels",
+                                          ordered_endpoint_var = names(pro_colors)
+                                          )
+pval_df
+```
+
+### Per visit (PRO GROUPS)
+
+```{r}
+endpoint_coefficients_all <- data.frame()
+res_table_pairwise_adj_all <- data.frame()
+
+for (visit_id in c("Visit 7", "Visit 8", "Visit 9", "Visit 10")){
+  print(paste("Computing associations for visit:", visit_id))
+  res_list <- pairwise_association_visit_sex_significance(clinical_subsets_all=clinical_subsets_all, 
+                                          spear_factors=spear_factors, 
+                                          visit_id=visit_id, 
+                                          selected_factors_names = selected_factors_names,
+                                          endpoint_var = "pro_group_labels",
+                                          ordered_endpoint_var = names(pro_colors))
+
+  endpoint_coefficients_all <- bind_rows(endpoint_coefficients_all,
+                                         res_list$coefs_df)
+  res_table_pairwise_adj_all <- bind_rows(res_table_pairwise_adj_all, 
+                                          res_list$res_df)
+}
+
+res_table_pairwise_adj_all
+
+```
+
+## Association MIN vs OTHER for each visit - Females
+
+```{r fig.width=2, fig.height=2}
+clinical_subsets_all_female <- clinical_subsets_all %>% filter(sex == "Female")
+
+endpoint_coefficients_all <- data.frame()
+res_table_pairwise_adj_all <- data.frame()
+
+for (visit_id in c("Visit 7", "Visit 8", "Visit 9", "Visit 10")){
+  print(paste("Computing associations for visit:", visit_id))
+  res_list <- pairwise_association_visit_nosex(clinical_subsets_all=clinical_subsets_all_female, 
+                                          spear_factors=spear_factors, 
+                                          visit_id=visit_id, 
+                                          selected_factors_names = selected_factors_names,
+                                          endpoint_var = "pro_2_groups")
+
+  endpoint_coefficients_all <- bind_rows(endpoint_coefficients_all,
+                                         res_list$coefs_df)
+  res_table_pairwise_adj_all <- bind_rows(res_table_pairwise_adj_all, 
+                                          res_list$res_df)
+}
+
+
+```
+
+### Adj p-val all visits
+
+```{r fig.height=2.5, fig.width=10}
+res_table_pairwise_adj_all_plot <- res_table_pairwise_adj_all %>%
+                                      pivot_wider(names_from = factor,
+                                                  values_from = "MIN|OTHER") %>%
+                                      column_to_rownames("visit")
+
+print_kable(res_table_pairwise_adj_all_plot)
+write.csv(res_table_pairwise_adj_all_plot, paste0(results_dir, "Female_Adj_pval_all_visits_min_vs_other.csv"))
+```
+
+### Log p-value plot with coefficient sign
+
+```{r fig.asp=0.5, fig.width=4}
+endpoint_coefficient_plot <- endpoint_coefficients_all %>%
+                              mutate(sign = if_else(`MIN|OTHER`>0, 1, -1)) %>%
+                              dplyr::select(factor, visit, sign)
+
+df_plot <- res_table_pairwise_adj_all %>%
+              mutate(log10_adjpval = -log10(`MIN|OTHER`)) %>%
+              inner_join(endpoint_coefficient_plot, by=c("factor", "visit")) %>%
+              mutate(signed_adjp = log10_adjpval * sign)
+
+df_plot$factor <- factor(df_plot$factor, levels = selected_factors_names)
+df_plot$visit <- factor(df_plot$visit, levels = unique(df_plot$visit))
+df_plot <- df_plot %>% 
+            mutate(annot =
+                case_when(
+                 abs(log10_adjpval) >= -log10(0.001) ~ "***",
+                 abs(log10_adjpval) >= -log10(0.01) ~ "**",
+                 abs(log10_adjpval) >= -log10(0.05) ~ "*",
+                 .default = as.character("")
+                 ))
+
+thr <- 0.05
+plot_title <- "Adj p-value factor association"
+
+
+convert_df <- df_plot %>% 
+              dplyr::select(factor, visit, signed_adjp) %>%
+              pivot_wider(id_cols = c(visit), 
+                          names_from = factor, 
+                          values_from = signed_adjp) %>%
+              column_to_rownames("visit")
+
+convert_annot <- df_plot %>%
+              dplyr::select(factor, visit, annot) %>%
+              pivot_wider(id_cols = c(visit),
+                          names_from = factor,
+                          values_from = annot) %>%
+              column_to_rownames("visit")
+
+mat <- as.matrix(convert_df)
+mat_annot <- as.matrix(convert_annot)
+
+palette_length <- 50
+abs_max <- max(abs(min(mat)), abs(max(mat)), 1.3)
+breaks_list <- c(seq(-abs_max, 0, length.out=ceiling(palette_length/2) + 1), 
+              seq(abs_max/palette_length, abs_max, length.out=floor(palette_length/2)))
+
+pdf(file = paste0(results_dir, "Adj_pval_all_visits_min_vs_other_plot.pdf"), width = 12, height = 6)
+p <- pheatmap(mat,
+         cluster_cols = F, cluster_rows = F,
+         cellwidth = 15, cellheight = 15,
+         color = colorRampPalette(rev(brewer.pal(9,"RdBu")))(palette_length),
+         breaks = breaks_list,
+         display_numbers = mat_annot,
+         number_color = "black",
+         fontsize_number = 10
+         )
+p
+dev.off()
+
+pval_visit_minother_female <- p
+pval_visit_minother_table_female <- res_table_pairwise_adj_all
+#save_pheatmap_pdf(p, paste0(results_dir,"Adj_pval_all_visits_min_vs_other_plot.pdf"), width = 12, height = 6)
+
+```
+
+### Violin plots all visits - Female
+
+```{r }
+
+factors_filtered = spear_factors[, selected_factors_names, drop=F]
+clinical_subsets = clinical_subsets_all_female[rownames(spear_factors),]
+  
+
+data_use = factors_filtered 
+
+data_use$endpoints = as.factor(clinical_subsets$pro_2_groups)
+
+# Add the enrollment_site as $sites
+data_use$sites = clinical_subsets$enrollment_site
+data_use$age =  clinical_subsets$discretized_admit_age_quantile
+data_use$sex =  clinical_subsets$sex
+data_use$visit = clinical_subsets$event_type
+
+# Add the $control, needs to be different for each sample
+# required for clmm (always requires some random effect)
+data_use$control =  factor(1:nrow(data_use))
+
+# Set module names:
+factor_names = colnames(factors_filtered)
+
+# Only use samples that have valid endpoints (not NA/missing)
+data_use = data_use[!is.na(data_use$endpoints),]
+```
+
+Violin plots for all factors, values from all visits
+
+```{r fig.width=2, fig.height=2}
+
+plot_df <- data_use %>% 
+    dplyr::select(starts_with("Factor"), endpoints) %>%
+            pivot_longer(!endpoints, names_to = "Factor", values_to = "value")
+  plot_df$Factor <- factor(plot_df$Factor, levels=selected_factors_names)
+
+p <- ggplot(plot_df, aes(x=endpoints, y=value, fill=endpoints)) +
+  ggbeeswarm::geom_quasirandom(aes(fill=endpoints), shape=21, width=.3) +
+  geom_boxplot(alpha=0.6, color="black", outlier.shape=NA) +
+  #scale_y_continuous(labels = scaleFUN) +
+  theme_bw() + theme(legend.position = "none") +
+  #scale_color_manual(values=pro_min_colors) +
+  scale_fill_manual(values=pro_min_colors) +
+  facet_wrap(~Factor, drop = T, scales = "free_y", ncol = 4)
+p
+```
+
+Violin plots for all factors, values per visit
+
+```{r fig.height=2, fig.width=6}
+plot_df <- data_use %>% 
+        dplyr::select(starts_with("Factor"), endpoints, visit) %>%
+        pivot_longer(!c(endpoints,visit), names_to = "Factor", values_to = "value")
+plot_df$Factor <- factor(plot_df$Factor, levels=selected_factors_names)
+ordered_visits <- c("Visit 7", "Visit 8", "Visit 9", "Visit 10")
+plot_df$visit <- factor(plot_df$visit, levels=ordered_visits)
+
+res_table_pairwise_adj_all
+pval_comparisons_minother <- list(c("MIN", "OTHER"))
+
+for (factor in selected_factors_names) {
+  plot_df_fact <- plot_df %>% filter(Factor == factor)
+  
+  p <- ggplot(plot_df_fact, aes(x=visit, y=value, fill=endpoints)) +
+  ggbeeswarm::geom_quasirandom(aes(fill=endpoints),shape=21,width=.15, dodge.width = 0.75) +
+  geom_boxplot(alpha=0.6, color="black", outlier.shape=NA) +
+  #scale_y_continuous(labels = scaleFUN) +
+  theme_bw() + 
+  scale_color_manual(values=pro_min_colors, labels = pro_min_labels) +
+  scale_fill_manual(values=pro_min_colors, labels = pro_min_labels) +
+  #facet_wrap(~visit, drop = T, ncol = 4) +
+  labs( x="", y=factor, fill="")
+  print(p)
+}
+
+factor_visits_min_other_female <- p
+
+```
+
+### Violin plots all visits with pval
+
+```{r}
+pval_df <- global_mixed_pairwise_nosex(clinical_subsets_all=clinical_subsets_all_female,
+                                          spear_factors=spear_factors,
+                                          selected_factor_name = "Factor1",
+                                          endpoint_var = "pro_2_groups")
+pval_annot <- paste0("MIN vs LC p=", format(pval_df,scientific=F, digits=1))
+```
+
+```{r fig.height=2, fig.width=6}
+
+for (factor in selected_factors_names) {
+  plot_df_fact <- plot_df %>% filter(Factor == factor)
+  
+  format_corrected_pval <- res_table_pairwise_adj_all %>% 
+    pivot_longer(cols=-c(factor,visit), names_to = "comparison", values_to = "adj_pval_sex_age_corrected") %>%
+    dplyr::mutate(group1 = str_extract(comparison, "[^|]+"),
+                  group2 = str_extract(comparison, "[^|]+$")) %>%
+    dplyr::select(-c(comparison,factor))
+  
+  stat.test <- plot_df_fact %>%
+    group_by(visit) %>%
+    wilcox_test(value ~ endpoints) %>%
+    adjust_pvalue(method = "hochberg") %>%
+    left_join(format_corrected_pval, by=join_by(visit,group1,group2)) %>%
+    add_significance("adj_pval_sex_age_corrected") %>%
+    add_xy_position(x = "visit", dodge = 0.75)
+
+  
+  p <- ggplot(plot_df_fact, aes(x=visit, y=value)) +
+    ggbeeswarm::geom_quasirandom(aes(fill=endpoints),shape=21,width=.15, dodge.width = 0.75) +
+    geom_boxplot(aes(fill=endpoints),alpha=0.6, color="black", outlier.shape=NA) +
+    theme_bw() + 
+    scale_color_manual(values=pro_min_colors, labels = pro_min_labels) +
+    scale_fill_manual(values=pro_min_colors, labels = pro_min_labels) +
+    labs( x="", y=factor_name, fill="", title="Female") +
+    theme(plot.title = element_text(hjust = 0.5, size =12)) +
+    annotate("label",  x=Inf, y =Inf,label = pval_annot, vjust=1, hjust=1, size = 3, label.r = unit(0, "pt")) +
+    scale_y_continuous(expand = expansion(mult = c(0.1, 0.2)))
+    
+  print(p)
+  
+  p_pval <- p + stat_pvalue_manual(stat.test, label = "adj_pval_sex_age_corrected.signif", y.position = 0.7, tip.length = 0) +
+    scale_y_continuous(expand = expansion(mult = c(0.1, 0.3)))
+  
+  print(p_pval)
+  
+  
+}
+
+factor_visits_min_other_female_pvals_onlyglobal <- p
+saveRDS(factor_visits_min_other_female_pvals_onlyglobal, file.path(figures_dir,"Factor_visits_min_other_female_pvals_onlyglobal.rds"))
+
+factor_visits_min_other_female_pvals <- p_pval
+saveRDS(factor_visits_min_other_female_pvals, file.path(figures_dir,"Factor_visits_min_other_female_pvals.rds"))
+
+```
+
+## Association MIN vs OTHER for each visit - Males
+
+```{r fig.width=2, fig.height=2}
+clinical_subsets_all_male <- clinical_subsets_all %>% filter(sex == "Male")
+
+endpoint_coefficients_all <- data.frame()
+res_table_pairwise_adj_all <- data.frame()
+
+for (visit_id in c("Visit 7", "Visit 8", "Visit 9", "Visit 10")){
+  print(paste("Computing associations for visit:", visit_id))
+  res_list <- pairwise_association_visit_nosex(clinical_subsets_all=clinical_subsets_all_male, 
+                                          spear_factors=spear_factors, 
+                                          visit_id=visit_id, 
+                                          selected_factors_names = selected_factors_names,
+                                          endpoint_var = "pro_2_groups")
+
+  endpoint_coefficients_all <- bind_rows(endpoint_coefficients_all,
+                                         res_list$coefs_df)
+  res_table_pairwise_adj_all <- bind_rows(res_table_pairwise_adj_all, 
+                                          res_list$res_df)
+}
+
+
+```
+
+### Adj p-val all visits
+
+```{r fig.height=2.5, fig.width=10}
+res_table_pairwise_adj_all_plot <- res_table_pairwise_adj_all %>%
+                                      pivot_wider(names_from = factor,
+                                                  values_from = "MIN|OTHER") %>%
+                                      column_to_rownames("visit")
+
+print_kable(res_table_pairwise_adj_all_plot)
+write.csv(res_table_pairwise_adj_all_plot, paste0(results_dir, "Male_Adj_pval_all_visits_min_vs_other.csv"))
+```
+
+### Log p-value plot with coefficient sign
+
+```{r fig.asp=0.5, fig.width=4}
+endpoint_coefficient_plot <- endpoint_coefficients_all %>%
+                              mutate(sign = if_else(`MIN|OTHER` > 0, 1, -1)) %>%
+                              dplyr::select(factor, visit, sign)
+
+df_plot <- res_table_pairwise_adj_all %>%
+              mutate(log10_adjpval = -log10(`MIN|OTHER`)) %>%
+              inner_join(endpoint_coefficient_plot, by=c("factor", "visit")) %>%
+              mutate(signed_adjp = log10_adjpval * sign)
+
+df_plot$factor <- factor(df_plot$factor, levels = selected_factors_names)
+df_plot$visit <- factor(df_plot$visit, levels = unique(df_plot$visit))
+df_plot <- df_plot %>% 
+            mutate(annot =
+                case_when(
+                 abs(log10_adjpval) >= -log10(0.001) ~ "***",
+                 abs(log10_adjpval) >= -log10(0.01) ~ "**",
+                 abs(log10_adjpval) >= -log10(0.05) ~ "*",
+                 .default = as.character("")
+                 ))
+
+thr <- 0.05
+plot_title <- "Adj p-value factor association"
+
+
+convert_df <- df_plot %>% 
+              dplyr::select(factor, visit, signed_adjp) %>%
+              pivot_wider(id_cols = c(visit), 
+                          names_from = factor, 
+                          values_from = signed_adjp) %>%
+              column_to_rownames("visit")
+
+convert_annot <- df_plot %>%
+              dplyr::select(factor, visit, annot) %>%
+              pivot_wider(id_cols = c(visit),
+                          names_from = factor,
+                          values_from = annot) %>%
+              column_to_rownames("visit")
+
+mat <- as.matrix(convert_df)
+mat_annot <- as.matrix(convert_annot)
+
+palette_length <- 50
+abs_max <- max(abs(min(mat)), abs(max(mat)), 1.3)
+breaks_list <- c(seq(-abs_max, 0, length.out=ceiling(palette_length/2) + 1), 
+              seq(abs_max/palette_length, abs_max, length.out=floor(palette_length/2)))
+
+pdf(file = paste0(results_dir, "Adj_pval_all_visits_min_vs_other_plot.pdf"), width = 12, height = 6)
+p <- pheatmap(mat,
+         cluster_cols = F, cluster_rows = F,
+         cellwidth = 15, cellheight = 15,
+         color = colorRampPalette(rev(brewer.pal(9,"RdBu")))(palette_length),
+         breaks = breaks_list,
+         display_numbers = mat_annot,
+         number_color = "black",
+         fontsize_number = 10
+         )
+p
+dev.off()
+
+pval_visit_minother_male <- p
+#save_pheatmap_pdf(p, paste0(results_dir,"Adj_pval_all_visits_min_vs_other_plot.pdf"), width = 12, height = 6)
+
+```
+
+### Violin plots all visits - male
+
+```{r }
+
+factors_filtered = spear_factors[, selected_factors_names, drop=F]
+clinical_subsets = clinical_subsets_all_male[rownames(spear_factors),]
+  
+
+data_use = factors_filtered 
+
+data_use$endpoints = as.factor(clinical_subsets$pro_2_groups)
+
+# Add the enrollment_site as $sites
+data_use$sites = clinical_subsets$enrollment_site
+data_use$age =  clinical_subsets$discretized_admit_age_quantile
+data_use$sex =  clinical_subsets$sex
+data_use$visit = clinical_subsets$event_type
+
+# Add the $control, needs to be different for each sample
+# required for clmm (always requires some random effect)
+data_use$control =  factor(1:nrow(data_use))
+
+# Set module names:
+factor_names = colnames(factors_filtered)
+
+# Only use samples that have valid endpoints (not NA/missing)
+data_use = data_use[!is.na(data_use$endpoints),]
+```
+
+Violin plots for all factors, values from all visits
+
+```{r fig.width=2, fig.height=2}
+
+plot_df <- data_use %>% 
+    dplyr::filter(sex == "Male") %>%
+    dplyr::select(starts_with("Factor"), endpoints) %>%
+            pivot_longer(!endpoints, names_to = "Factor", values_to = "value")
+  plot_df$Factor <- factor(plot_df$Factor, levels=selected_factors_names)
+
+p <- ggplot(plot_df, aes(x=endpoints, y=value, fill=endpoints)) +
+  ggbeeswarm::geom_quasirandom(aes(fill=endpoints), shape=21, width=.3) +
+  geom_boxplot(alpha=0.6, color="black", outlier.shape=NA) +
+  #scale_y_continuous(labels = scaleFUN) +
+  theme_bw() + theme(legend.position = "none") +
+  #scale_color_manual(values=pro_min_colors) +
+  scale_fill_manual(values=pro_min_colors) +
+  facet_wrap(~Factor, drop = T, scales = "free_y", ncol = 4)
+p
+```
+
+Violin plots for all factors, values per visit
+
+```{r fig.height=2, fig.width=6}
+plot_df <- data_use %>% 
+        dplyr::select(starts_with("Factor"), endpoints, visit) %>%
+        pivot_longer(!c(endpoints,visit), names_to = "Factor", values_to = "value")
+plot_df$Factor <- factor(plot_df$Factor, levels=selected_factors_names)
+ordered_visits <- c("Visit 7", "Visit 8", "Visit 9", "Visit 10" )
+plot_df$visit <- factor(plot_df$visit, levels=ordered_visits)
+
+for (factor in selected_factors_names) {
+  plot_df_fact <- plot_df %>% filter(Factor == factor)
+  
+  p <- ggplot(plot_df_fact, aes(x=visit, y=value, fill=endpoints)) +
+  ggbeeswarm::geom_quasirandom(aes(fill=endpoints),shape=21,width=.15, dodge.width = 0.75) +
+  geom_boxplot(alpha=0.6, color="black", outlier.shape=NA) +
+  #scale_y_continuous(labels = scaleFUN) +
+  theme_bw() + 
+  scale_color_manual(values=pro_min_colors, labels = pro_min_labels) +
+  scale_fill_manual(values=pro_min_colors, labels = pro_min_labels) +
+  #facet_wrap(~visit, drop = T, ncol = 4) +
+  labs( x="", y=factor, fill="")
+  print(p)
+}
+
+factor_visits_min_other_male <- p
+
+```
+
+### Violin plots all visits with pval
+
+```{r}
+pval_df <- global_mixed_pairwise_nosex(clinical_subsets_all=clinical_subsets_all_male,
+                                          spear_factors=spear_factors,
+                                          selected_factor_name = "Factor1",
+                                          endpoint_var = "pro_2_groups")
+pval_annot <- paste0("MIN vs LC p=", format(pval_df,scientific=F, digits=2))
+```
+
+```{r fig.height=2, fig.width=6}
+
+for (factor in selected_factors_names) {
+  plot_df_fact <- plot_df %>% filter(Factor == factor)
+  
+  format_corrected_pval <- res_table_pairwise_adj_all %>% 
+    pivot_longer(cols=-c(factor,visit), names_to = "comparison", values_to = "adj_pval_sex_age_corrected") %>%
+    dplyr::mutate(group1 = str_extract(comparison, "[^|]+"),
+                  group2 = str_extract(comparison, "[^|]+$")) %>%
+    dplyr::select(-c(comparison,factor))
+  
+  stat.test <- plot_df_fact %>%
+    group_by(visit) %>%
+    wilcox_test(value ~ endpoints) %>%
+    adjust_pvalue(method = "hochberg") %>%
+    left_join(format_corrected_pval, by=join_by(visit,group1,group2)) %>%
+    add_significance("adj_pval_sex_age_corrected") %>%
+    add_xy_position(x = "visit", dodge = 0.75)
+
+  
+  p <- ggplot(plot_df_fact, aes(x=visit, y=value)) +
+    ggbeeswarm::geom_quasirandom(aes(fill=endpoints),shape=21,width=.15, dodge.width = 0.75) +
+    geom_boxplot(aes(fill=endpoints),alpha=0.6, color="black", outlier.shape=NA) +
+    theme_bw() + 
+    scale_color_manual(values=pro_min_colors, labels = pro_min_labels) +
+    scale_fill_manual(values=pro_min_colors, labels = pro_min_labels) +
+    labs( x="", y=factor_name, fill="", title="Male") +
+    theme(plot.title = element_text(hjust = 0.5, size =12)) +
+    annotate("label",  x=Inf, y =Inf,label = pval_annot, vjust=1, hjust=1, size = 3, label.r = unit(0, "pt")) +
+    scale_y_continuous(expand = expansion(mult = c(0.1, 0.2)))
+    
+  print(p)
+  
+  p_pval <- p + stat_pvalue_manual(stat.test, label = "adj_pval_sex_age_corrected.signif", y.position = 1.0, tip.length = 0) +
+    scale_y_continuous(expand = expansion(mult = c(0.1, 0.3)))
+  
+  print(p_pval)
+  
+  
+}
+
+factor_visits_min_other_male_pvals_onlyglobal <- p
+saveRDS(factor_visits_min_other_male_pvals_onlyglobal, file.path(figures_dir,"Factor_visits_min_other_male_pvals_onlyglobal.rds"))
+
+factor_visits_min_other_male_pvals <- p_pval
+saveRDS(factor_visits_min_other_male_pvals, file.path(figures_dir,"Factor_visits_min_other_male_pvals.rds"))
+```
+
+## Association MIN vs all other groups - Females
+
+```{r fig.width=2, fig.height=2}
+clinical_subsets_all_female <- clinical_subsets_all %>% filter(sex == "Female")
+
+endpoint_coefficients_all <- data.frame()
+res_table_pairwise_adj_all <- data.frame()
+
+for (visit_id in c("Visit 7", "Visit 8", "Visit 9", "Visit 10")){
+  print(paste("Computing associations for visit:", visit_id))
+  res_list <- pairwise_association_visit_nosex(clinical_subsets_all=clinical_subsets_all_female, 
+                                          spear_factors=spear_factors, 
+                                          visit_id=visit_id, 
+                                          selected_factors_names = selected_factors_names,
+                                          endpoint_var = "pro_group_labels",
+                                          ordered_endpoint_var = names(pro_colors),
+                                          colors = pro_colors
+                                          )
+
+  endpoint_coefficients_all <- bind_rows(endpoint_coefficients_all,
+                                         res_list$coefs_df)
+  res_table_pairwise_adj_all <- bind_rows(res_table_pairwise_adj_all, 
+                                          res_list$res_df)
+}
+
+
+```
+
+### Adj p-val all visits
+
+```{r pairwise_heatmap, fig.height=2.5, fig.width=20}
+res_table_pairwise_adj_all_plot <- res_table_pairwise_adj_all %>% 
+                                    pivot_longer(cols=starts_with("MIN"),
+                                                 values_to="padj",
+                                                 names_to="comp") %>%
+                                    mutate(comp_visit = paste0(comp, "_", visit)) %>%
+                                    dplyr::select(-c(comp)) %>%
+                                    pivot_wider(id_cols = c(comp_visit),
+                                                names_from = factor,
+                                                values_from = padj) %>%
+                                    column_to_rownames("comp_visit")
+print_kable(res_table_pairwise_adj_all_plot)
+write.csv(res_table_pairwise_adj_all_plot, paste0(results_dir, "Female_Adj_pval_all_visits_all_pro_groups.csv"))
+```
+
+
+### Log p-value plot with coefficient sign
+```{r fig.asp=0.8, fig.width=5}
+endpoint_coefficient_plot <- endpoint_coefficients_all %>%
+                              pivot_longer(-c(factor,visit), 
+                                           names_to = "comparison", 
+                                           values_to = "coefficient") %>% 
+                              mutate(sign = if_else(coefficient>0, 1, -1)) %>%
+                              dplyr::select(factor, visit, comparison, sign)
+
+df_plot <- res_table_pairwise_adj_all %>%
+              pivot_longer(-c(factor,visit),
+                           names_to = "comparison",
+                           values_to = "adj_pval") %>%
+              mutate(log10_adjpval = -log10(adj_pval)) %>%
+              inner_join(endpoint_coefficient_plot, 
+                         by=c("factor", "visit", "comparison")) %>%
+              mutate(comp_visit = paste0(comparison, "_", visit)) %>%
+              mutate(signed_adjp = log10_adjpval * sign)
+
+df_plot$factor <- factor(df_plot$factor, levels = selected_factors_names)
+df_plot$comp_visit <- factor(df_plot$comp_visit, levels = unique(df_plot$comp_visit))
+df_plot <- df_plot %>% 
+            mutate(annot =
+                case_when(
+                 abs(log10_adjpval) >= -log10(0.001) ~ "***",
+                 abs(log10_adjpval) >= -log10(0.01) ~ "**",
+                 abs(log10_adjpval) >= -log10(0.05) ~ "*",
+                 .default = as.character("")
+                 ))
+
+thr <- 0.05
+plot_title <- "Adj p-value factor association"
+
+convert_df <- df_plot %>% 
+              dplyr::select(comparison, visit, signed_adjp) %>%
+              pivot_wider(id_cols = c(visit), 
+                          names_from = comparison, 
+                          values_from = signed_adjp) %>%
+              column_to_rownames("visit")
+
+convert_annot <- df_plot %>%
+              dplyr::select(comparison, visit, annot) %>%
+              pivot_wider(id_cols = c(visit),
+                          names_from = comparison,
+                          values_from = annot) %>%
+              column_to_rownames("visit")
+
+mat <- as.matrix(convert_df)
+mat_annot <- as.matrix(convert_annot)
+
+palette_length <- 50
+abs_max <- max(abs(min(mat)), abs(max(mat)), 1.3)
+breaks_list <- c(seq(-abs_max, 0, length.out=ceiling(palette_length/2) + 1), 
+              seq(abs_max/palette_length, abs_max, length.out=floor(palette_length/2)))
+
+pdf(file = paste0(results_dir, "Adj_pval_all_visits_pro_groups_plot.pdf"), width = 12, height = 10)
+p <- pheatmap(mat,
+         cluster_cols = F, cluster_rows = F,
+         cellwidth = 15, cellheight = 15,
+         color = colorRampPalette(rev(brewer.pal(9,"RdBu")))(palette_length),
+         breaks = breaks_list,
+         display_numbers = mat_annot,
+         number_color = "black",
+         fontsize_number = 10,
+         )
+p
+dev.off()
+
+p
+pval_visit_minpro_female <- p
+```
+
+### Violin plots all visits
+
+```{r }
+factors_filtered = spear_factors[, selected_factors_names, drop=F]
+clinical_subsets = clinical_subsets_all_female[rownames(spear_factors),]
+  
+data_use = factors_filtered 
+
+data_use$endpoints = factor(clinical_subsets$pro_group_labels, levels = names(pro_colors))
+
+# Add the enrollment_site as $sites
+data_use$sites = clinical_subsets$enrollment_site
+data_use$age =  clinical_subsets$discretized_admit_age_quantile
+data_use$sex =  clinical_subsets$sex
+data_use$visit = clinical_subsets$event_type
+
+# Add the $control, needs to be different for each sample
+# required for clmm (always requires some random effect)
+data_use$control =  factor(1:nrow(data_use))
+
+# Set module names:
+factor_names = colnames(factors_filtered)
+
+# Only use samples that have valid endpoints (not NA/missing)
+data_use = data_use[!is.na(data_use$endpoints),]
+```
+
+Violin plots for all factors, values from all visits
+
+```{r fig.height=2, fig.width=3}
+
+plot_df <- data_use %>% dplyr::select(starts_with("Factor"), endpoints) %>%
+            pivot_longer(!endpoints, names_to = "Factor", values_to = "value")
+plot_df$Factor <- factor(plot_df$Factor, levels=selected_factors_names)
+
+p <- ggplot(plot_df, aes(x=endpoints, y=value, fill=endpoints)) +
+  ggbeeswarm::geom_quasirandom(aes(fill=endpoints), shape=21, width=.3) +
+  geom_boxplot(alpha=0.6, color="black", outlier.shape=NA) +
+  #scale_y_continuous(labels = scaleFUN) +
+  theme_bw() + theme(legend.position = "none") +
+  #scale_color_manual(values=pro_min_colors) +
+  scale_fill_manual(values=pro_colors) +
+  facet_wrap(~Factor, drop = T, scales = "free_y", ncol = 4)
+p
+```
+
+Violin plots for all factors, values per visit
+
+```{r fig.height=2, fig.width=6}
+plot_df <- data_use %>% dplyr::select(starts_with("Factor"), endpoints, visit) %>%
+            pivot_longer(!c(endpoints,visit), names_to = "Factor", values_to = "value")
+plot_df$Factor <- factor(plot_df$Factor, levels=selected_factors_names)
+ordered_visits <- c("Visit 7", "Visit 8", "Visit 9", "Visit 10" )
+plot_df$visit <- factor(plot_df$visit, levels=ordered_visits)
+
+for (factor in selected_factors_names) {
+  plot_df_fact <- plot_df %>% filter(Factor == factor)
+  p <- ggplot(plot_df_fact, aes(x=visit, y=value, fill=endpoints)) +
+    ggbeeswarm::geom_quasirandom(aes(fill=endpoints),shape=21,width=.1, dodge.width = 0.75) +
+    geom_boxplot(alpha=0.6, color="black", outlier.shape=NA) +
+    #scale_y_continuous(labels = scaleFUN) +
+    theme_bw() + #theme(legend.position = "none") +
+    scale_color_manual(values=pro_colors) +
+    scale_fill_manual(values=pro_colors) +
+    labs(x="", y="Factor1", fill)#+
+    #facet_wrap(~Factor, drop = T, scales = "free_y", ncol = 4)
+  print(p)
+}
+
+factor_visits_min_pro_female <- p
+```
+
+### Violin plots all visits with pval
+
+```{r}
+pval_df <- global_mixed_pairwise_nosex(clinical_subsets_all=clinical_subsets_all_female,
+                                          spear_factors=spear_factors,
+                                          selected_factor_name = "Factor1",
+                                          endpoint_var = "pro_group_labels",
+                                          ordered_endpoint_var = names(pro_colors))
+pval_annot = paste0("MIN vs COG p=", format(pval_df[1],scientific=F, digits=1),
+               "\nMIN vs PHY p=", format(pval_df[2],scientific=F, digits=1),
+               "\nMIN vs MLT p=", format(pval_df[3],scientific=F, digits=1))
+```
+
+```{r fig.height=4, fig.width=6}
+
+for (factor in selected_factors_names) {
+  plot_df_fact <- plot_df %>% filter(Factor == factor)
+  
+  format_corrected_pval <- res_table_pairwise_adj_all %>% 
+    pivot_longer(cols=-c(factor,visit), names_to = "comparison", values_to = "adj_pval_sex_age_corrected") %>%
+    dplyr::mutate(group1 = str_extract(comparison, "[^|]+"),
+                  group2 = str_extract(comparison, "[^|]+$")) %>%
+    dplyr::select(-c(comparison,factor))
+  
+  stat.test <- plot_df_fact %>%
+    group_by(visit) %>%
+    wilcox_test(value ~ endpoints) %>%
+    adjust_pvalue(method = "hochberg") %>%
+    left_join(format_corrected_pval, by=join_by(visit,group1,group2)) %>%
+    add_significance("adj_pval_sex_age_corrected") %>%
+    add_xy_position(x = "visit", dodge = 0.75) %>%
+    filter(adj_pval_sex_age_corrected <= 0.05)
+
+  
+  p <- ggplot(plot_df_fact, aes(x=visit, y=value)) +
+    ggbeeswarm::geom_quasirandom(aes(fill=endpoints),shape=21,width=.1, dodge.width = 0.75) +
+    geom_boxplot(aes(fill=endpoints),alpha=0.6, color="black", outlier.shape=NA) +
+    theme_bw() + 
+    scale_color_manual(values=pro_colors, labels = names(pro_colors)) +
+    scale_fill_manual(values=pro_colors, labels = names(pro_colors)) +
+    labs( x="", y=factor_name, fill="", title = "Female") +
+    annotate("label",  x=Inf, y =Inf, label = pval_annot, vjust=1, hjust=1, size = 3, label.r = unit(0, "pt")) +
+    scale_y_continuous(expand = expansion(mult = c(0.1, 0.5))) +
+    theme(plot.title = element_text(hjust = 0.5, size =12))
+    
+  print(p)
+  
+  p_pval <- p + stat_pvalue_manual(stat.test, label = "adj_pval_sex_age_corrected.signif", tip.length = 0) +
+    scale_y_continuous(expand = expansion(mult = c(0.1, 0.5)))
+  
+  print(p_pval)
+  
+  
+}
+
+factor_visits_progroups_female_pvals_onlyglobal <- p
+saveRDS(factor_visits_progroups_female_pvals_onlyglobal, file.path(figures_dir,"Factor_visits_progroups_female_pvals_onlyglobal.rds"))
+
+factor_visits_progroups_female_pvals <- p_pval
+saveRDS(factor_visits_progroups_female_pvals, file.path(figures_dir,"Factor_visits_progroups_female_pvals.rds"))
+
+```
+
+## Association MIN vs all other groups - Males
+
+```{r fig.width=2, fig.height=2}
+clinical_subsets_all_male <- clinical_subsets_all %>% filter(sex == "Male")
+
+endpoint_coefficients_all <- data.frame()
+res_table_pairwise_adj_all <- data.frame()
+
+for (visit_id in c("Visit 7", "Visit 8", "Visit 9", "Visit 10")){
+  print(paste("Computing associations for visit:", visit_id))
+  res_list <- pairwise_association_visit_nosex(clinical_subsets_all=clinical_subsets_all_male, 
+                                          spear_factors=spear_factors, 
+                                          visit_id=visit_id, 
+                                          selected_factors_names = selected_factors_names,
+                                          endpoint_var = "pro_group_labels",
+                                          ordered_endpoint_var = names(pro_colors),
+                                          colors = pro_colors
+                                          )
+
+  endpoint_coefficients_all <- bind_rows(endpoint_coefficients_all,
+                                         res_list$coefs_df)
+  res_table_pairwise_adj_all <- bind_rows(res_table_pairwise_adj_all, 
+                                          res_list$res_df)
+}
+
+
+```
+
+### Adj p-val all visits
+
+```{r pairwise_heatmap, fig.height=2.5, fig.width=20}
+res_table_pairwise_adj_all_plot <- res_table_pairwise_adj_all %>% 
+                                    pivot_longer(cols=starts_with("MIN"),
+                                                 values_to="padj",
+                                                 names_to="comp") %>%
+                                    mutate(comp_visit = paste0(comp, "_", visit)) %>%
+                                    dplyr::select(-c(comp)) %>%
+                                    pivot_wider(id_cols = c(comp_visit),
+                                                names_from = factor,
+                                                values_from = padj) %>%
+                                    column_to_rownames("comp_visit")
+print_kable(res_table_pairwise_adj_all_plot)
+write.csv(res_table_pairwise_adj_all_plot, paste0(results_dir, "Male_Adj_pval_all_visits_all_pro_groups.csv"))
+```
+
+
+### Log p-value plot with coefficient sign
+```{r fig.asp=0.8, fig.width=5}
+endpoint_coefficient_plot <- endpoint_coefficients_all %>%
+                              pivot_longer(-c(factor,visit), 
+                                           names_to = "comparison", 
+                                           values_to = "coefficient") %>% 
+                              mutate(sign = if_else(coefficient>0, 1, -1)) %>%
+                              dplyr::select(factor, visit, comparison, sign)
+
+df_plot <- res_table_pairwise_adj_all %>%
+              pivot_longer(-c(factor,visit),
+                           names_to = "comparison",
+                           values_to = "adj_pval") %>%
+              mutate(log10_adjpval = -log10(adj_pval)) %>%
+              inner_join(endpoint_coefficient_plot, 
+                         by=c("factor", "visit", "comparison")) %>%
+              mutate(comp_visit = paste0(comparison, "_", visit)) %>%
+              mutate(signed_adjp = log10_adjpval * sign)
+
+df_plot$factor <- factor(df_plot$factor, levels = selected_factors_names)
+df_plot$comp_visit <- factor(df_plot$comp_visit, levels = unique(df_plot$comp_visit))
+df_plot <- df_plot %>% 
+            mutate(annot =
+                case_when(
+                 abs(log10_adjpval) >= -log10(0.001) ~ "***",
+                 abs(log10_adjpval) >= -log10(0.01) ~ "**",
+                 abs(log10_adjpval) >= -log10(0.05) ~ "*",
+                 .default = as.character("")
+                 ))
+
+thr <- 0.05
+plot_title <- "Adj p-value factor association"
+
+convert_df <- df_plot %>% 
+              dplyr::select(comparison, visit, signed_adjp) %>%
+              pivot_wider(id_cols = c(visit), 
+                          names_from = comparison, 
+                          values_from = signed_adjp) %>%
+              column_to_rownames("visit")
+
+convert_annot <- df_plot %>%
+              dplyr::select(comparison, visit, annot) %>%
+              pivot_wider(id_cols = c(visit),
+                          names_from = comparison,
+                          values_from = annot) %>%
+              column_to_rownames("visit")
+
+mat <- as.matrix(convert_df)
+mat_annot <- as.matrix(convert_annot)
+
+palette_length <- 50
+abs_max <- max(abs(min(mat)), abs(max(mat)), 1.3)
+breaks_list <- c(seq(-abs_max, 0, length.out=ceiling(palette_length/2) + 1), 
+              seq(abs_max/palette_length, abs_max, length.out=floor(palette_length/2)))
+
+pdf(file = paste0(results_dir, "Adj_pval_all_visits_pro_groups_plot.pdf"), width = 12, height = 10)
+p <- pheatmap(mat,
+         cluster_cols = F, cluster_rows = F,
+         cellwidth = 15, cellheight = 15,
+         color = colorRampPalette(rev(brewer.pal(9,"RdBu")))(palette_length),
+         breaks = breaks_list,
+         display_numbers = mat_annot,
+         number_color = "black",
+         fontsize_number = 10,
+         )
+p
+dev.off()
+
+p
+pval_visit_minpro_male <- p
+```
+
+### Violin plots all visits
+
+```{r }
+factors_filtered = spear_factors[, selected_factors_names, drop=F]
+clinical_subsets = clinical_subsets_all_male[rownames(spear_factors),]
+  
+data_use = factors_filtered 
+
+data_use$endpoints = factor(clinical_subsets$pro_group_labels, levels = names(pro_colors))
+
+# Add the enrollment_site as $sites
+data_use$sites = clinical_subsets$enrollment_site
+data_use$age =  clinical_subsets$discretized_admit_age_quantile
+data_use$sex =  clinical_subsets$sex
+data_use$visit = clinical_subsets$event_type
+
+# Add the $control, needs to be different for each sample
+# required for clmm (always requires some random effect)
+data_use$control =  factor(1:nrow(data_use))
+
+# Set module names:
+factor_names = colnames(factors_filtered)
+
+# Only use samples that have valid endpoints (not NA/missing)
+data_use = data_use[!is.na(data_use$endpoints),]
+```
+
+Violin plots for all factors, values from all visits
+
+```{r fig.height=2, fig.width=3}
+
+plot_df <- data_use %>% dplyr::select(starts_with("Factor"), endpoints) %>%
+            pivot_longer(!endpoints, names_to = "Factor", values_to = "value")
+plot_df$Factor <- factor(plot_df$Factor, levels=selected_factors_names)
+
+p <- ggplot(plot_df, aes(x=endpoints, y=value, fill=endpoints)) +
+  ggbeeswarm::geom_quasirandom(aes(fill=endpoints), shape=21, width=.3) +
+  geom_boxplot(alpha=0.6, color="black", outlier.shape=NA) +
+  #scale_y_continuous(labels = scaleFUN) +
+  theme_bw() + theme(legend.position = "none") +
+  #scale_color_manual(values=pro_min_colors) +
+  scale_fill_manual(values=pro_colors) +
+  facet_wrap(~Factor, drop = T, scales = "free_y", ncol = 4)
+p
+```
+
+Violin plots for all factors, values per visit
+
+```{r fig.height=2, fig.width=6}
+plot_df <- data_use %>% dplyr::select(starts_with("Factor"), endpoints, visit) %>%
+            pivot_longer(!c(endpoints,visit), names_to = "Factor", values_to = "value")
+plot_df$Factor <- factor(plot_df$Factor, levels=selected_factors_names)
+ordered_visits <- c("Visit 7", "Visit 8", "Visit 9", "Visit 10" )
+plot_df$visit <- factor(plot_df$visit, levels=ordered_visits)
+
+for (factor in selected_factors_names) {
+  plot_df_fact <- plot_df %>% filter(Factor == factor)
+  p <- ggplot(plot_df_fact, aes(x=visit, y=value, fill=endpoints)) +
+    ggbeeswarm::geom_quasirandom(aes(fill=endpoints),shape=21,width=.1, dodge.width = 0.75) +
+    geom_boxplot(alpha=0.6, color="black", outlier.shape=NA) +
+    #scale_y_continuous(labels = scaleFUN) +
+    theme_bw() + #theme(legend.position = "none") +
+    scale_color_manual(values=pro_colors) +
+    scale_fill_manual(values=pro_colors) +
+    labs(x="", y="Factor1", fill)#+
+    #facet_wrap(~Factor, drop = T, scales = "free_y", ncol = 4)
+  print(p)
+}
+
+factor_visits_min_pro_male <- p
+```
+
+### Violin plots all visits with pval
+
+```{r}
+pval_df <- global_mixed_pairwise_nosex(clinical_subsets_all=clinical_subsets_all_male,
+                                          spear_factors=spear_factors,
+                                          selected_factor_name = "Factor1",
+                                          endpoint_var = "pro_group_labels",
+                                          ordered_endpoint_var = names(pro_colors))
+pval_annot = paste0("MIN vs COG p=", format(pval_df[1],scientific=T, digits=2),
+               "\nMIN vs PHY p=", format(pval_df[2],scientific=T, digits=2),
+               "\nMIN vs MLT p=", format(pval_df[3],scientific=T, digits=2))
+```
+
+```{r fig.height=4, fig.width=6}
+
+for (factor in selected_factors_names) {
+  plot_df_fact <- plot_df %>% filter(Factor == factor)
+  
+  format_corrected_pval <- res_table_pairwise_adj_all %>% 
+    pivot_longer(cols=-c(factor,visit), names_to = "comparison", values_to = "adj_pval_sex_age_corrected") %>%
+    dplyr::mutate(group1 = str_extract(comparison, "[^|]+"),
+                  group2 = str_extract(comparison, "[^|]+$")) %>%
+    dplyr::select(-c(comparison,factor))
+  
+  stat.test <- plot_df_fact %>%
+    group_by(visit) %>%
+    wilcox_test(value ~ endpoints) %>%
+    adjust_pvalue(method = "hochberg") %>%
+    left_join(format_corrected_pval, by=join_by(visit,group1,group2)) %>%
+    add_significance("adj_pval_sex_age_corrected") %>%
+    add_xy_position(x = "visit", dodge = 0.75) %>%
+    filter(adj_pval_sex_age_corrected <= 0.05)
+
+  
+  p <- ggplot(plot_df_fact, aes(x=visit, y=value)) +
+    ggbeeswarm::geom_quasirandom(aes(fill=endpoints),shape=21,width=.1, dodge.width = 0.75) +
+    geom_boxplot(aes(fill=endpoints),alpha=0.6, color="black", outlier.shape=NA) +
+    theme_bw() + 
+    scale_color_manual(values=pro_colors, labels = names(pro_colors)) +
+    scale_fill_manual(values=pro_colors, labels = names(pro_colors)) +
+    labs( x="", y=factor_name, fill="", title = "Male") +
+    annotate("label",  x=Inf, y =Inf, label = pval_annot, vjust=1, hjust=1, size = 3, label.r = unit(0, "pt")) +
+    scale_y_continuous(expand = expansion(mult = c(0.1, 0.5))) +
+    theme(plot.title = element_text(hjust = 0.5, size =12))
+    
+  print(p)
+  
+  p_pval <- p + stat_pvalue_manual(stat.test, label = "adj_pval_sex_age_corrected.signif") +
+    scale_y_continuous(expand = expansion(mult = c(0.1, 0.5)))
+  
+  print(p_pval)
+  
+  
+}
+
+factor_visits_progroups_male_pvals_onlyglobal <- p
+saveRDS(factor_visits_progroups_male_pvals_onlyglobal, file.path(figures_dir,"Factor_visits_progroups_male_pvals_onlyglobal.rds"))
+
+factor_visits_progroups_male_pvals <- p_pval
+saveRDS(factor_visits_progroups_male_pvals, file.path(figures_dir,"Factor_visits_progroups_male_pvals.rds"))
+
+```
+
+## Longitudinal analysis
+
+With spear factors
+
+```{r data preparation, echo=TRUE}
+clinical_subsets <- correlation_metadata
+rownames(clinical_subsets) <- clinical_subsets$event_id
+
+row_ids <-rownames(spear_factors)
+clinical_subsets <- clinical_subsets[row_ids,]
+
+
+modules_filtered = spear_factors %>% dplyr::select(all_of(selected_factors_names))
+
+####%%%%%%%% spear Input %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+inputDF <- modules_filtered %>%
+  rownames_to_column(var = "event_id") %>%
+  merge(y = clinical_subsets,
+        by = "event_id") %>%
+  mutate(outcome = pro_2_groups) %>%
+  pivot_longer(cols = -c("event_id", "event_date", "participant_id",
+                        "enrollment_site", "pro_group_labels", "pro_2_groups", "event_type", "outcome",
+                        "sex", "admit_age", "discretized_admit_age_quantile", "resp_status_v1",
+                        "event_after_first_vaccine_dose", "event_date_3weeks_after_dose","race")) %>%
+  dplyr::filter(!is.na(value) & !is.na(pro_2_groups))
+inputDF$names <- factor(inputDF$name, levels=selected_factors_names)
+
+
+## Ensure proper variables are factors
+inputDF$pro_group_labels <- as.factor(inputDF$pro_group_labels)
+inputDF$pro_2_groups <- as.factor(inputDF$pro_2_groups)
+inputDF$sex <- factor(inputDF$sex, levels = c("Female", "Male"))
+inputDF$race <- as.factor(inputDF$race)
+inputDF$outcome <- as.factor(inputDF$outcome)
+inputDF$discretized_admit_age_quantile <- as.factor(inputDF$discretized_admit_age_quantile)
+inputDF$participant_id <- as.factor(inputDF$participant_id)
+inputDF$enrollment_site <- as.factor(inputDF$enrollment_site)
+```
+
+
+## Check distribution male - female for the test set
+
+```{r fig.width=5.5, fig.height=4}
+
+inputDF$pro_2_groups <- factor(inputDF$pro_2_groups, levels = names(pro_min_colors))
+inputDF$pro_group_labels <- factor(inputDF$pro_group_labels, levels=names(pro_colors))
+
+p1 <- inputDF %>% dplyr::group_by(sex) %>% dplyr::count(pro_group_labels) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=sex, y=per, fill = as.factor(pro_group_labels)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = pro_colors, na.value = "gray", name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", fill="")
+
+
+p2 <- inputDF %>% dplyr::group_by(sex) %>% dplyr::count(pro_2_groups) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=sex, y=per, fill = as.factor(pro_2_groups)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = pro_min_colors, labels = pro_min_labels, na.value = "gray", name = "") +
+          theme_classic() +
+          labs(x="", y="% Events", fill="")
+
+
+p3 <- inputDF %>% dplyr::group_by(sex) %>% dplyr::count(pro_group_labels) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=sex, y=n, fill = as.factor(pro_group_labels)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = pro_colors, na.value = "gray", name = "") +
+          theme_classic() +
+          labs(x="", y="Event number", fill="")
+
+
+p4 <- inputDF %>% dplyr::group_by(sex) %>% dplyr::count(pro_2_groups) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=sex, y=n, fill = as.factor(pro_2_groups)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          scale_fill_manual( values = pro_min_colors, labels = pro_min_labels, na.value = "gray", name = "") +
+          theme_classic() +
+          labs(x="", y="Event number", fill="")
+
+p5 <- inputDF %>% dplyr::group_by(sex) %>% dplyr::count(discretized_admit_age_quantile) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=sex, y=n, fill = as.factor(discretized_admit_age_quantile)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          theme_classic() +
+          labs(x="", y="Event number", fill="")
+
+p6 <- inputDF %>% dplyr::group_by(sex) %>% dplyr::count(discretized_admit_age_quantile) %>%
+          mutate(per = n/sum(n)*100) %>%
+          ggplot( aes(x=sex, y=per, fill = as.factor(discretized_admit_age_quantile)) ) +
+          geom_bar(position="stack", stat = "identity") +
+          theme_classic() +
+          labs(x="", y="% Events", fill="")
+
+
+sex_endpoint_events_square <- ggarrange(p2,p4,p1,p3,
+            labels = c("", "", "", ""), ncol = 2, nrow = 2)
+
+sex_endpoint_events_square
+saveRDS(sex_endpoint_events_square, file.path(figures_dir,"sex_endpoint_events_square_extendedtest.rds"))
+```
+
+```{r fig.width=11, fig.height=2}
+sex_endpoint_events_long <- ggarrange(p2,p4,p1,p3,
+            labels = c("", "", "", ""), ncol = 4, nrow = 1)
+
+sex_endpoint_events_long
+saveRDS(sex_endpoint_events_long, file.path(figures_dir,"sex_endpoint_events_long_extendedtest.rds"))
+
+```
+
+### PRO 2 groups - Female
+
+```{r, linear_model_loop, fig.width = 3, fig.height=5}
+## Can use inputDF from either the variable of WGCNA module forms in the previous chunk
+
+inputDF_female <- inputDF %>% filter(sex=="Female")
+
+
+gamm_model_loop_female <- model_loop_nosex(inputDF_female, age = T, 
+                              model_type = "smoothSpline", 
+                              spline_type = "ts", 
+                              endpoint = "pro_2_groups")
+
+gamm_model_loop_plot_female <- gamm_model_loop_female %>% 
+                        dplyr::select(adjp.slope, adjp.intercept)
+
+print_kable(gamm_model_loop_plot_female[selected_factors_names,])
+write.csv(gamm_model_loop_plot_female[selected_factors_names,], paste0(results_dir, "female_global_p_value_longitudinal_pro_2_groups.csv"))
+```
+
+
+```{r, longitudinal_model_loop_pheatmap, fig.width = 3, fig.height=3}
+pdf(file = paste0(results_dir, "female_global_p_value_longitudinal_min_vs_other.pdf"), width = 3, height = 6)
+
+mat_log10pval <- -log10(gamm_model_loop_plot_female[selected_factors_names,])
+mat_annot <- mat_log10pval %>% 
+  mutate(across(everything(), ~ case_when(
+                 abs(.x) >= -log10(0.001) ~ "***",
+                 abs(.x) >= -log10(0.01) ~ "**",
+                 abs(.x) >= -log10(0.05) ~ "*",
+                 .default = as.character("")
+                 )))
+p1 <- pheatmap(as.matrix(mat_log10pval),
+         cellwidth = 15,
+         cellheight = 15,
+         display_numbers = as.matrix(mat_annot),
+         fontsize_number = 10,
+         number_color = "white",
+         cluster_rows = F, 
+         cluster_cols = F, 
+         color = p_val_only_palette,
+         breaks = breaklist)
+p1
+dev.off()
+#save_pheatmap_pdf(p1, paste0(results_dir,"global_p_value_longitudinal_min_vs_other.pdf"), width = 3, height = 6)
+pval_long_minother_female <- p1
+```
+
+```{r, fig.width=8, fig.height=3}
+plots <- list()
+plots_model <- list()
+for (feature_name in selected_factors_names) {
+  plotDF <- inputDF_female %>% filter(name == feature_name)
+  p1 <- plot_model(plotDF, 
+                     gamm_model_loop_female,
+                     age_sex = T,
+                     age_only = T,
+                     model_type = "smoothSpline",
+                     colors = pro_min_colors,
+                     spline_type = "ts",
+                     knot_lines = F,
+                     group_trendline_color = "black",
+                     CI = T,
+                     endpoint = "pro_2_groups") +
+      theme(strip.background = element_rect(fill="white"),
+            strip.text = element_text(color = "black", face = "bold"))
+  plots <- c(plots, list(p1))
+  p2 <- plot_model(plotDF, 
+                   gamm_model_loop_female,
+                   age_sex = T,
+                   age_only = T,
+                   endpoint = "pro_2_groups",
+                   model_type = "smoothSpline",
+                   colors = pro_min_colors,
+                   spline_type = "ts",
+                   knot_lines = F,
+                   individual_trendlines = F,
+                   individual_points = T,
+                   individual_paths = F,
+                   CI = T,
+                   group_trendline_color = "endpoint",
+                   facet = F) + 
+                    scale_color_manual(values = pro_min_colors, labels = pro_min_labels) +
+                    scale_fill_manual(values = pro_min_colors, labels = pro_min_labels) +
+                    labs(color="", fill="") +
+                    theme(legend.position = "right")
+  plots_model <- c(plots_model, list(p2))
+}
+
+pdf(paste0(results_dir,"Factors_longitudinal_MIN_vs_OTHER.pdf"), width = 18, height = 45)
+gridExtra::grid.arrange(grobs = plots, ncol=2)
+dev.off()
+
+png(paste0(results_dir,"Factors_longitudinal_MIN_vs_OTHER.png"), width = 18, height = 50, units="cm", res = 300)
+gridExtra::grid.arrange(grobs = plots, ncol=2)
+dev.off()
+
+pdf(paste0(results_dir,"Factors_longitudinal_MIN_vs_OTHER_model.pdf"), width = 18, height = 45)
+gridExtra::grid.arrange(grobs = plots_model, ncol=2)
+dev.off()
+
+png(paste0(results_dir,"Factors_longitudinal_MIN_vs_OTHER_model.png"), width = 18, height = 50, units="cm", res = 300)
+gridExtra::grid.arrange(grobs = plots_model, ncol=2)
+dev.off()
+
+factor_long_minother_points_female <- plots[[1]]
+saveRDS(factor_long_minother_points_female, file.path(figures_dir, "factor_long_minother_points_female.rds"))
+
+factor_long_minothers_model_female <- plots_model[[1]]
+saveRDS(factor_long_minothers_model_female, file.path(figures_dir, "factor_long_minothers_model_female.rds"))
+
+```
+
+### PRO 2 groups - Male
+
+```{r, linear_model_loop, fig.width = 3, fig.height=5}
+## Can use inputDF from either the variable of WGCNA module forms in the previous chunk
+
+inputDF_male <- inputDF %>% filter(sex=="Male")
+
+
+gamm_model_loop_male <- model_loop_nosex(inputDF_male, age = T, 
+                              model_type = "smoothSpline", 
+                              spline_type = "ts", 
+                              endpoint = "pro_2_groups")
+
+gamm_model_loop_plot_male <- gamm_model_loop_male %>% 
+                        dplyr::select(adjp.slope, adjp.intercept)
+
+print_kable(gamm_model_loop_plot_male[selected_factors_names,])
+write.csv(gamm_model_loop_plot_male[selected_factors_names,], paste0(results_dir, "male_global_p_value_longitudinal_pro_2_groups.csv"))
+```
+
+
+```{r, longitudinal_model_loop_pheatmap, fig.width = 3, fig.height=3}
+pdf(file = paste0(results_dir, "male_global_p_value_longitudinal_min_vs_other.pdf"), width = 3, height = 6)
+
+mat_log10pval <- -log10(gamm_model_loop_plot_male[selected_factors_names,])
+mat_annot <- mat_log10pval %>% 
+  mutate(across(everything(), ~ case_when(
+                 abs(.x) >= -log10(0.001) ~ "***",
+                 abs(.x) >= -log10(0.01) ~ "**",
+                 abs(.x) >= -log10(0.05) ~ "*",
+                 .default = as.character("")
+                 )))
+p1 <- pheatmap(as.matrix(mat_log10pval),
+         cellwidth = 15,
+         cellheight = 15,
+         display_numbers = as.matrix(mat_annot),
+         fontsize_number = 10,
+         number_color = "white",
+         cluster_rows = F, 
+         cluster_cols = F, 
+         color = p_val_only_palette,
+         breaks = breaklist)
+p1
+dev.off()
+#save_pheatmap_pdf(p1, paste0(results_dir,"global_p_value_longitudinal_min_vs_other.pdf"), width = 3, height = 6)
+pval_long_minother_male <- p1
+```
+
+```{r, fig.width=8, fig.height=3}
+plots <- list()
+plots_model <- list()
+for (feature_name in selected_factors_names) {
+  plotDF <- inputDF_male %>% filter(name == feature_name)
+  p1 <- plot_model(plotDF, 
+                     gamm_model_loop_male,
+                     age_sex = T,
+                     age_only = T,
+                     model_type = "smoothSpline",
+                     colors = pro_min_colors,
+                     spline_type = "ts",
+                     knot_lines = F,
+                     group_trendline_color = "black",
+                     CI = T,
+                     endpoint = "pro_2_groups") +
+      theme(strip.background = element_rect(fill="white"),
+            strip.text = element_text(color = "black", face = "bold"))
+  plots <- c(plots, list(p1))
+  p2 <- plot_model(plotDF, 
+                   gamm_model_loop_male,
+                   age_sex = T,
+                   age_only = T,
+                   endpoint = "pro_2_groups",
+                   model_type = "smoothSpline",
+                   colors = pro_min_colors,
+                   spline_type = "ts",
+                   knot_lines = F,
+                   individual_trendlines = F,
+                   individual_points = F,
+                   individual_paths = F,
+                   CI = T,
+                   group_trendline_color = "endpoint",
+                   facet = F) + labs(color="PRO group", fill="PRO group") +
+                    theme(legend.position = "right")
+  plots_model <- c(plots_model, list(p2))
+}
+
+pdf(paste0(results_dir,"Factors_longitudinal_MIN_vs_OTHER_male.pdf"), width = 18, height = 45)
+gridExtra::grid.arrange(grobs = plots, ncol=2)
+dev.off()
+
+png(paste0(results_dir,"Factors_longitudinal_MIN_vs_OTHER_male.png"), width = 18, height = 50, units="cm", res = 300)
+gridExtra::grid.arrange(grobs = plots, ncol=2)
+dev.off()
+
+pdf(paste0(results_dir,"Factors_longitudinal_MIN_vs_OTHER_model_male.pdf"), width = 18, height = 45)
+gridExtra::grid.arrange(grobs = plots_model, ncol=2)
+dev.off()
+
+png(paste0(results_dir,"Factors_longitudinal_MIN_vs_OTHER_model_male.png"), width = 18, height = 50, units="cm", res = 300)
+gridExtra::grid.arrange(grobs = plots_model, ncol=2)
+dev.off()
+
+factor_long_minother_points_male <- plots[[1]]
+saveRDS(factor_long_minother_points_male, file.path(figures_dir, "factor_long_minother_points_male.rds"))
+
+
+factor_long_minothers_model_male <- plots_model[[1]]
+saveRDS(factor_long_minothers_model_male, file.path(figures_dir, "factor_long_minothers_model_male.rds"))
+
+```
+
+### All PRO groups - Female
+
+```{r, linear_model_loop_PRO_groups, fig.width = 3, fig.height=5}
+
+gamm_model_loop_female <- model_loop_nosex(inputDF_female, age = T,
+                              model_type = "smoothSpline",
+                              spline_type = "ts",
+                              endpoint = "pro_group_labels")
+
+gamm_model_loop_plot_female <- gamm_model_loop_female %>% 
+                        dplyr::select(adjp.slope, 
+                               adjp.intercept)
+
+print_kable(gamm_model_loop_plot_female[selected_factors_names,])
+
+write.csv(gamm_model_loop_plot_female[selected_factors_names,], paste0(results_dir, "female_global_p_value_longitudinal_all_pro_groups.csv"))
+```
+
+```{r linear_model_loop_pheatmap_allpro, fig.width = 3, fig.height=3}
+pdf(file = paste0(results_dir, "female_global_p_value_longitudinal_pro_groups.pdf"), width = 3, height = 6)
+mat_log10pval <- -log10(gamm_model_loop_plot_female[selected_factors_names,])
+mat_annot <- mat_log10pval %>% 
+  mutate(across(everything(), ~ case_when(
+                 abs(.x) >= -log10(0.001) ~ "***",
+                 abs(.x) >= -log10(0.01) ~ "**",
+                 abs(.x) >= -log10(0.05) ~ "*",
+                 .default = as.character("")
+                 )))
+p1 <- pheatmap(as.matrix(mat_log10pval),
+         cellwidth = 15,
+         cellheight = 15,
+         display_numbers = as.matrix(mat_annot),
+         fontsize_number = 10,
+         number_color = "white",
+         cluster_rows = F, 
+         cluster_cols = F, 
+         color = p_val_only_palette,
+         breaks = breaklist)
+p1
+dev.off()
+
+p1
+
+pval_long_minpro_female <- p1
+#save_pheatmap_pdf(p1, paste0(results_dir,"global_p_value_longitudinal_pro_groups.pdf"), width = 3, height = 6)
+
+```
+
+```{r, fig.width=10, fig.height=3}
+plots <- list()
+plots_model <- list()
+
+for (feature_name in selected_factors_names) {
+  plotDF <- inputDF_female %>% filter(name == feature_name)
+  plotDF$pro_group_labels <- factor(plotDF$pro_group_labels, levels = names(pro_colors))
+  p1 <- plot_model(plotDF, 
+                     gamm_model_loop_female,
+                     age_sex = T,
+                     age_only = T,
+                     model_type = "smoothSpline", 
+                     spline_type = "ts",
+                     colors = pro_colors,
+                     CI = T,
+                     knot_lines = F,
+                     group_trendline_color = "black",
+                     facet = T,
+                     endpoint = "pro_group_labels") +
+      theme(strip.background = element_rect(fill="white"),
+            strip.text = element_text(color = "black", face = "bold"))
+  plots <- c(plots, list(p1))
+  p2 <- plot_model(plotDF, 
+                   gamm_model_loop_female,
+                   age_sex = T,
+                   age_only = T,
+                   endpoint = "pro_group_labels",
+                   model_type = "smoothSpline",
+                   spline_type = "ts",
+                   knot_lines = F,
+                   colors = pro_colors,
+                   individual_trendlines = F,
+                   individual_points = F,
+                   individual_paths = F,
+                   CI = T,
+                   group_trendline_color = "endpoint",
+                   facet = F) + theme(legend.position = "right") +
+                   labs(color="PRO group", fill="PRO group")
+  plots_model <- c(plots_model, list(p2))
+}
+
+pdf(paste0(results_dir,"Factors_longitudinal_PRO_GROUPS.pdf"), width = 15, height = 50)
+gridExtra::grid.arrange(grobs = plots, ncol=1)
+dev.off()
+
+png(paste0(results_dir,"Factors_longitudinal_PRO_GROUPS.png"), width = 20, height = 60, units="cm", res = 300)
+gridExtra::grid.arrange(grobs = plots, ncol=1)
+dev.off()
+
+pdf(paste0(results_dir,"Factors_longitudinal_PRO_GROUPS_model.pdf"), width = 15, height = 50)
+gridExtra::grid.arrange(grobs = plots_model, ncol=1)
+dev.off()
+
+png(paste0(results_dir,"Factors_longitudinal_PRO_GROUPS_model.png"), width = 20, height = 60, units="cm", res = 300)
+gridExtra::grid.arrange(grobs = plots_model, ncol=1)
+dev.off()
+
+factor_long_minpro_points_female <- plots[[1]]
+saveRDS(factor_long_minpro_points_female, file.path(figures_dir, "factor_long_minpro_points_female.rds"))
+
+factor_long_minpro_model_female <- plots_model[[1]]
+saveRDS(factor_long_minpro_model_female, file.path(figures_dir, "factor_long_minpro_model_female.rds"))
+
+```
+
+#### Longitudinal pairwise comparison
+
+```{r}
+comps <- c("MIN","COG", "PHY", "MLT")
+combs <- combn(comps,2)
+
+df_pairwise_combs <- as.data.frame(gamm_model_loop_plot_female[selected_factors_names,]) %>%
+                        rownames_to_column("Factor")
+df_pairwise_combs$comp <- "ALL_PRO"
+
+for (i in c(1:dim(combs)[2])){
+  combs_name <- paste(combs[,i], collapse="_")
+  inputDF_comb <- inputDF_female %>% filter(pro_group_labels %in% combs[,i])
+  
+  gamm_model_loop <- model_loop_nosex(inputDF_comb, age = T,
+                              model_type = "smoothSpline",
+                              spline_type = "ts",
+                              endpoint = "pro_group_labels")
+
+  gamm_model_loop_plot <- gamm_model_loop %>% 
+                          dplyr::select(adjp.slope, 
+                                 adjp.intercept)
+  
+  gamm_model_loop_plot_sel <- as.data.frame(gamm_model_loop_plot[selected_factors_names,]) %>%
+                                mutate(comp = combs_name) %>%
+                                rownames_to_column("Factor")
+  df_pairwise_combs <- bind_rows(df_pairwise_combs, gamm_model_loop_plot_sel)
+}
+
+```
+
+```{r linear_model_loop_pheatmap_pairwise, fig.width = 3, fig.height=3}
+mat_longitudinal_pairwise <- df_pairwise_combs %>%
+                                         dplyr::select(-Factor, -adjp.slope) %>%
+                                         dplyr::rename(`adj p-val` = adjp.intercept) %>%
+                                         column_to_rownames("comp")
+
+pdf(file = paste0(results_dir, "female_global_p_value_longitudinal_pro_groups_pairwise.pdf"), width = 3, height = 6)
+mat_log10pval <- -log10(mat_longitudinal_pairwise)
+mat_annot <- mat_log10pval %>% 
+  mutate(across(everything(), ~ case_when(
+                 abs(.x) >= -log10(0.001) ~ "***",
+                 abs(.x) >= -log10(0.01) ~ "**",
+                 abs(.x) >= -log10(0.05) ~ "*",
+                 .default = as.character("")
+                 )))
+
+palette_length = 10
+p1 <- pheatmap(as.matrix(mat_log10pval),
+         cellwidth = 15,
+         cellheight = 15,
+         display_numbers = as.matrix(mat_annot),
+         fontsize_number = 10,
+         number_color = "white",
+         cluster_rows = F, 
+         cluster_cols = F, 
+         color = p_val_only_palette,
+         breaks = breaklist)
+p1
+dev.off()
+
+pval_long_minpro_pairwise_female <- p1
+
+```
+
+### All PRO groups - Male
+
+```{r, linear_model_loop_PRO_groups, fig.width = 3, fig.height=5}
+
+gamm_model_loop_male <- model_loop_nosex(inputDF_male, age = T,
+                              model_type = "smoothSpline",
+                              spline_type = "ts",
+                              endpoint = "pro_group_labels")
+
+gamm_model_loop_plot_male <- gamm_model_loop_male %>% 
+                        dplyr::select(adjp.slope, 
+                               adjp.intercept)
+
+print_kable(gamm_model_loop_plot_male[selected_factors_names,])
+
+write.csv(gamm_model_loop_plot_male[selected_factors_names,], paste0(results_dir, "male_global_p_value_longitudinal_all_pro_groups.csv"))
+```
+
+```{r linear_model_loop_pheatmap_allpro, fig.width = 3, fig.height=3}
+pdf(file = paste0(results_dir, "male_global_p_value_longitudinal_pro_groups.pdf"), width = 3, height = 6)
+mat_log10pval <- -log10(gamm_model_loop_plot_male[selected_factors_names,])
+mat_annot <- mat_log10pval %>% 
+  mutate(across(everything(), ~ case_when(
+                 abs(.x) >= -log10(0.001) ~ "***",
+                 abs(.x) >= -log10(0.01) ~ "**",
+                 abs(.x) >= -log10(0.05) ~ "*",
+                 .default = as.character("")
+                 )))
+p1 <- pheatmap(as.matrix(mat_log10pval),
+         cellwidth = 15,
+         cellheight = 15,
+         display_numbers = as.matrix(mat_annot),
+         fontsize_number = 10,
+         number_color = "white",
+         cluster_rows = F, 
+         cluster_cols = F, 
+         color = p_val_only_palette,
+         breaks = breaklist)
+p1
+dev.off()
+
+p1
+
+pval_long_minpro_male <- p1
+#save_pheatmap_pdf(p1, paste0(results_dir,"global_p_value_longitudinal_pro_groups.pdf"), width = 3, height = 6)
+
+```
+
+```{r, fig.width=10, fig.height=3}
+plots <- list()
+plots_model <- list()
+
+for (feature_name in selected_factors_names) {
+  plotDF <- inputDF_male %>% filter(name == feature_name)
+  plotDF$pro_group_labels <- factor(plotDF$pro_group_labels, levels = names(pro_colors))
+  p1 <- plot_model(plotDF, 
+                     gamm_model_loop_male,
+                     age_sex = T,
+                     age_only = T,
+                     model_type = "smoothSpline", 
+                     spline_type = "ts",
+                     colors = pro_colors,
+                     CI = T,
+                     knot_lines = F,
+                     group_trendline_color = "black",
+                     facet = T,
+                     endpoint = "pro_group_labels") +
+      theme(strip.background = element_rect(fill="white"),
+            strip.text = element_text(color = "black", face = "bold"))
+  plots <- c(plots, list(p1))
+  p2 <- plot_model(plotDF, 
+                   gamm_model_loop_male,
+                   age_sex = T,
+                   age_only = T,
+                   endpoint = "pro_group_labels",
+                   model_type = "smoothSpline",
+                   spline_type = "ts",
+                   knot_lines = F,
+                   colors = pro_colors,
+                   individual_trendlines = F,
+                   individual_points = F,
+                   individual_paths = F,
+                   CI = T,
+                   group_trendline_color = "endpoint",
+                   facet = F) + theme(legend.position = "right") +
+                   labs(color="PRO group", fill="PRO group")
+  plots_model <- c(plots_model, list(p2))
+}
+
+pdf(paste0(results_dir,"Factors_longitudinal_PRO_GROUPS.pdf"), width = 15, height = 50)
+gridExtra::grid.arrange(grobs = plots, ncol=1)
+dev.off()
+
+png(paste0(results_dir,"Factors_longitudinal_PRO_GROUPS.png"), width = 20, height = 60, units="cm", res = 300)
+gridExtra::grid.arrange(grobs = plots, ncol=1)
+dev.off()
+
+pdf(paste0(results_dir,"Factors_longitudinal_PRO_GROUPS_model.pdf"), width = 15, height = 50)
+gridExtra::grid.arrange(grobs = plots_model, ncol=1)
+dev.off()
+
+png(paste0(results_dir,"Factors_longitudinal_PRO_GROUPS_model.png"), width = 20, height = 60, units="cm", res = 300)
+gridExtra::grid.arrange(grobs = plots_model, ncol=1)
+dev.off()
+
+factor_long_minpro_points_male <- plots[[1]]
+factor_long_minpro_points_male
+saveRDS(factor_long_minpro_points_male, file.path(figures_dir, "factor_long_minpro_points_male.rds"))
+
+factor_long_minpro_model_male <- plots_model[[1]]
+factor_long_minpro_model_male
+saveRDS(factor_long_minpro_model_male, file.path(figures_dir, "factor_long_minpro_model_male.rds"))
+
+```
+
+#### Longitudinal pairwise comparison
+
+```{r}
+comps <- c("MIN","COG", "PHY", "MLT")
+combs <- combn(comps,2)
+
+df_pairwise_combs <- as.data.frame(gamm_model_loop_plot_male[selected_factors_names,]) %>%
+                        rownames_to_column("Factor")
+df_pairwise_combs$comp <- "ALL_PRO"
+
+for (i in c(1:dim(combs)[2])){
+  combs_name <- paste(combs[,i], collapse="_")
+  inputDF_comb <- inputDF_male %>% filter(pro_group_labels %in% combs[,i])
+  
+  gamm_model_loop <- model_loop_nosex(inputDF_comb, age = T,
+                              model_type = "smoothSpline",
+                              spline_type = "ts",
+                              endpoint = "pro_group_labels")
+
+  gamm_model_loop_plot <- gamm_model_loop %>% 
+                          dplyr::select(adjp.slope, 
+                                 adjp.intercept)
+  
+  gamm_model_loop_plot_sel <- as.data.frame(gamm_model_loop_plot[selected_factors_names,]) %>%
+                                mutate(comp = combs_name) %>%
+                                rownames_to_column("Factor")
+  df_pairwise_combs <- bind_rows(df_pairwise_combs, gamm_model_loop_plot_sel)
+}
+
+```
+
+```{r linear_model_loop_pheatmap_pairwise, fig.width = 3, fig.height=3}
+mat_longitudinal_pairwise <- df_pairwise_combs %>%
+                                         dplyr::select(-Factor, -adjp.slope) %>%
+                                         dplyr::rename(`adj p-val` = adjp.intercept) %>%
+                                         column_to_rownames("comp")
+
+pdf(file = paste0(results_dir, "male_global_p_value_longitudinal_pro_groups_pairwise.pdf"), width = 3, height = 6)
+mat_log10pval <- -log10(mat_longitudinal_pairwise)
+mat_annot <- mat_log10pval %>% 
+  mutate(across(everything(), ~ case_when(
+                 abs(.x) >= -log10(0.001) ~ "***",
+                 abs(.x) >= -log10(0.01) ~ "**",
+                 abs(.x) >= -log10(0.05) ~ "*",
+                 .default = as.character("")
+                 )))
+
+palette_length = 10
+p1 <- pheatmap(as.matrix(mat_log10pval),
+         cellwidth = 15,
+         cellheight = 15,
+         display_numbers = as.matrix(mat_annot),
+         fontsize_number = 10,
+         number_color = "white",
+         cluster_rows = F, 
+         cluster_cols = F, 
+         color = p_val_only_palette,
+         breaks = breaklist)
+p1
+dev.off()
+
+pval_long_minpro_pairwise_male <- p1
+
+```
+
+```{r}
+sessionInfo()
+```

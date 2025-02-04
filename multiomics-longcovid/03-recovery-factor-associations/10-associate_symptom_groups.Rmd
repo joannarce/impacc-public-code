@@ -1,0 +1,270 @@
+ ---
+title: "Symptom Group associations with Spear Factor1"
+author: "Jessica Maciuch"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Set working directory
+  workDir <- "~/impacc-full-cohort/Analysis/convalescent-project/Spear/clinical_associations"
+  setwd(workDir) # For troubleshooting in the command line
+  knitr::opts_knit$set(root.dir = workDir)
+
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(magrittr)
+  library(lme4)
+  library(ggpubr)
+  library(patchwork)
+  library(pheatmap)})
+
+# Load codebase functions
+  source("~/impacc-full-cohort/Analysis/IMPACC_data_analysis_codebase.R")
+
+# Initialize list of variables to exclude from downstream environment cleaning
+  keep_vars <- ls()
+  keep_vars %<>% c("keep_vars")
+```
+
+# Prepare environment
+
+## Helper Functions
+
+```{r}
+
+## Helper function to create a formula for a regression model function
+# predictor = name of variable predicting outcome var in df
+# fixed_vars = character vector of covariate names in df
+# outcome_var = name of outcome variable for model
+# df = a data frame containing all variables in parameter_list, all random and fixed vars, and outcome_var
+# interaction_term = default NULL, do not change
+  create_formula <- function(predictor, fixed_vars, outcome_var, df) {
+    terms <-paste0(c(predictor, fixed_vars), collapse = " + ")
+    
+    formula <- paste(outcome_var, 
+                     " ~ ", 
+                     terms,
+                     " + (1|enrollment_site/participant_id)",
+                     sep = "") %>% as.formula()
+    return(formula)
+  }
+
+## Helper function to return linear model from list of parameters and an outcome variable
+# predictor = name of variable predicting outcome var in df
+# fixed_vars = character vector of covariate names in df
+# outcome_var = name of outcome variable for model
+# df = a data frame containing all variables in parameter_list and outcome_var
+  run_model <- function(predictor, fixed_vars, outcome_var, df) {
+    
+    formula <- create_formula(predictor = predictor,
+                              fixed_vars = fixed_vars,
+                              outcome_var = outcome_var,
+                              df = df)
+    
+    model <- lmer(formula = formula, data = df)
+    return(model)
+  }
+  
+# Helper function to generate p-value for predictor term
+# predictor = name of variable predicting outcome var in df
+# fixed_vars = character vector of covariate names in df
+# outcome_var = name of outcome variable for model
+# df = a data frame containing all variables in parameter_list and outcome_var
+  predictor_pval <- function(predictor, fixed_vars, outcome_var, df) {
+    # Generate model
+    model <- run_model(predictor = predictor,
+                       fixed_vars = fixed_vars,
+                       outcome_var = outcome_var,
+                       df = df)
+    
+    # Generate reference model for anova
+    model.0 <- run_model(predictor = NULL,
+                         fixed_vars = fixed_vars,
+                         outcome_var = outcome_var,
+                         df = df)
+    
+    # Calculate p-val for predictor
+    pval <- anova(model.0, model)$`Pr(>Chisq)`[2]
+    
+    return(pval)
+  }
+
+# Clean environment
+  keep_vars <- ls() # Add all current named functions to exclusion list
+```
+
+## Load clinical data
+
+```{r}
+
+# Load data environments for acute and convalescent
+  data_env_conv <- readRDS("/scratch/data-fullcohort/batch-effects/impacc_convalescent_data_env_all_Feb_11_2024.RDS")
+  
+# Pull clinical data
+  clinical_data <- data_env_conv$clinical_data
+  
+# Select relevant columns
+  clinical_data %<>% 
+    select(all_of(c("participant_id", 
+                    "event_id", 
+                    "event_type",
+                    "event_date",
+                    "enrollment_site", 
+                    "discretized_admit_age_quantile",
+                    "sex"))) %>% 
+    distinct()
+  
+# Clean environment
+  keep_vars %<>% c("clinical_data")
+  rm(list = setdiff(ls(), keep_vars))
+  gc()
+```
+
+## Prepare Spear factors
+
+```{r}
+
+# Load spear factors
+  spear_promis_phys <- readRDS("/scratch/data-fullcohort/spear_model/results/020624/032124_spearphysical_finalscores_allsamples.rds")
+
+# Pull test cohort scores
+  spear_scores <- rbind(spear_promis_phys$Test,
+                        spear_promis_phys$TestNoPhysical,
+                        spear_promis_phys$TrainNoPhysical_NoOverlap)
+    
+# Add event_id as explicit column for downstream merging
+  spear_scores %<>% 
+    as.data.frame() %>% 
+    mutate(event_id = rownames(.)) %>% 
+    select(event_id, Factor1)
+  
+# Combine spear data with clinical data
+  spear_scores %<>% bind_rows(.id = "partition") 
+  spear_scores %<>% left_join(x = .,
+                              y = clinical_data,
+                              by = "event_id")
+    
+# Clean environment
+  keep_vars %<>% c("spear_scores")
+  rm(list = setdiff(ls(), keep_vars))
+  gc()
+```
+
+## Load symptoms data
+
+```{r}
+
+# Load symptoms data
+  symptoms <- read_csv("~/impacc-full-cohort/Analysis/convalescent-project/Spear/clinical_associations/IMPACC_convalescentsymptoms_visit.csv")
+  
+# Remove duplicate entries
+  symptoms <- symptoms[-which(duplicated(symptoms)),]
+  
+# Pull name of symptoms variables to test
+  symptoms_list <- grep(pattern = "conv", x = colnames(symptoms), value = TRUE)
+  
+# Select columns
+  symptoms %<>% select(all_of(c("event_id", symptoms_list)))
+  
+# Provide more readable names for symptom groups
+  symptoms_dict <- data.frame(symptom_group = symptoms_list,
+                              symptom_label = c("Neurological",
+                                                "Cardiopulmonary",
+                                                "Upper Respiratory",
+                                                "Systemic",
+                                                "Gastrointestinal"))
+  symptoms_dict %<>% mutate(symptom_label = factor(symptom_label, levels = symptom_label))
+  
+# Translate data from binary numerical to categorical
+  symptoms[2:ncol(symptoms)] %<>% apply(MARGIN = 2, \(x) factor(if_else(x == 0, "No", "Yes"), levels = c("Yes", "No")))
+  symptoms %<>% as.data.frame() %>% mutate(across(all_of(symptoms_list), as.factor))
+  
+# Clean environment
+  keep_vars %<>% c("symptoms", "symptoms_list", "symptoms_dict")
+  rm(list = setdiff(ls(), keep_vars))
+```
+
+## Symptoms associations with Factor 1
+
+```{r}
+
+# Combine Spear factors, clinical data, and symptoms data
+  spear_clinical_symptoms <- list(spear_scores %>% dplyr::select(event_id, Factor1),
+                                  symptoms,
+                                  clinical_data) |>
+    reduce(left_join, by = "event_id")
+
+# Prepare data frame
+  spear_clinical_symptoms %<>% pivot_longer(cols = all_of(symptoms_list), 
+                                            names_to = "symptom_group",
+                                            values_to = "endpoints")
+  spear_clinical_symptoms$endpoints %<>% factor(., levels = c("Yes", "No"))
+  
+  spear_clinical_symptoms %<>% filter(!is.na(endpoints))
+  
+# Split by symptom
+  spear_clinical_symptoms %<>% split(f = .[["symptom_group"]])
+  
+# Generate pvals
+  results <- spear_clinical_symptoms |> map(\(df) predictor_pval(predictor = "endpoints",
+                                                                 outcome_var = "Factor1",
+                                                                 fixed_vars = c("discretized_admit_age_quantile", "sex", "event_type"),
+                                                                 df))
+  
+# Aggregate results
+  results <- data.frame("symptom_group" = names(results),
+                        "pval" = unlist(results))
+
+# Prepare df for plot
+  spear_clinical_symptoms %<>% 
+    bind_rows(.id = "symptom_group") %>%
+    left_join(x = .,
+              y = symptoms_dict,
+              by = "symptom_group") %>% 
+    filter(!is.na(endpoints))
+  
+# Generate df for stat test (results will be ignored, just need data frame)
+  stat.test <- spear_clinical_symptoms %>%
+    group_by(symptom_group) %>%
+    wilcox_test(Factor1 ~ endpoints) 
+    
+  stat.test %<>% left_join(x = .,
+                           y = results, 
+                           by = "symptom_group")
+  
+  # Add symptom label
+  stat.test %<>% left_join(x = .,
+                           y = symptoms_dict,
+                           by = "symptom_group")
+  
+  # Add plotting parameters
+  stat.test %<>% add_significance("pval") %>%
+    add_xy_position(x = "symptom_label") %>%
+    mutate(pval_label = signif(pval, digits = 2))
+
+# Generate plot
+ggplot(data = spear_clinical_symptoms, aes(x = symptom_label, y = Factor1)) + 
+  ggbeeswarm::geom_quasirandom(aes(fill = endpoints),
+                                   shape = 21,
+                                   width = .15, 
+                                   dodge.width = 0.75) +
+      geom_boxplot(aes(fill = endpoints),
+                   alpha = 0.6, 
+                   color = "black", 
+                   outlier.shape = NA) +
+    labs(x = "Symptom Group",
+         y = "Recovery Factor", 
+         fill = "Symptom Present?") +
+  theme_bw() +
+  theme(text = element_text(size = 14)) +
+  stat_pvalue_manual(stat.test, tip.length = 0.01, label = "pval_label") -> plot
+
+# Save plot 
+  saveRDS(plot, file = "./plot_objects/plots_for_figures/symptom_groups_Factor1_associations.Rds")
+
+# Clean environment
+rm(list = setdiff(ls(), keep_vars))
+```
