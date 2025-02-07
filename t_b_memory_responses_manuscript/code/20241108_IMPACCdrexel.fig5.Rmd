@@ -1,0 +1,436 @@
+---
+title: "IMPACC Drexel Fig5"
+author: "Slim FOURATI"
+date: "`r Sys.Date()`"
+output: github_document
+---
+
+Load required packages
+```{r load-packages}
+suppressPackageStartupMessages(library(package = "knitr"))
+suppressPackageStartupMessages(library(package = "zoo"))
+suppressPackageStartupMessages(library(package = "GSVA"))
+suppressPackageStartupMessages(library(package = "ggalluvial"))
+suppressPackageStartupMessages(library(package = "readxl"))
+suppressPackageStartupMessages(library(package = "ggpubr"))
+suppressPackageStartupMessages(library(package = "tidyverse"))
+```
+
+Set session options
+```{r session-options}
+opts_chunk$set(tidy = FALSE, fig.path = "../figure/")
+workDir <- dirname(getwd())
+impaccDir <- "/data"
+```
+
+Read clinical data
+```{r read-input, message=FALSE}
+# clinical data
+clinical_individ <- read_csv(file = file.path(impaccDir,
+                                              "/clinical/current/2023-01-01-locked",
+                                              "2023-01-01-impacc-clin-individ-locked.csv"))
+clinical_individ_old <- read_csv(file = file.path(impaccDir,
+                                                  "/clinical/legacy/2021-11-11-frozen",
+                                                  "2021-11-11-impacc-clin-individ-frozen.csv"))
+clinical_event <- read_csv(file = file.path(impaccDir,
+                                            "clinical/current/2023-01-01-locked",
+                                            "2023-01-01-impacc-clin-event-locked.csv"))
+clinical_sample <- read_csv(file = file.path(impaccDir,
+                                             "clinical/current/2023-01-01-locked",
+                                             "2023-01-01-impacc-clin-sample-locked.csv"))
+clinical_data <- merge(x   = clinical_sample,
+                       y   = clinical_event,
+                       by  = c("event_id", "participant_id"),
+                       all = TRUE) %>%
+  merge(y     = select(clinical_individ, 
+                       participant_type, 
+                       participant_id, 
+                       enrollment_site, 
+                       admit_age, sex), 
+        by    = "participant_id",
+        all.x = TRUE) %>%
+  merge(y     = distinct(select(clinical_individ_old, participant_id, trajectory_group)),
+        by    = "participant_id",
+        all.x = TRUE) %>%
+  mutate(discretized_admit_age_quantile = case_when(admit_age >= 18 & admit_age <= 35 ~ "[18,35]",
+                                                    admit_age >= 36 & admit_age <= 51 ~ "[36,51]",
+                                                    admit_age >= 52 & admit_age <= 66 ~ "[52,66]",
+                                                    admit_age >= 67 & admit_age <= 81 ~ "[67,81]",
+                                                    admit_age >= 82 & admit_age <= 96 ~ "[82,96]"),
+         discretized_admit_age_quantile = factor(discretized_admit_age_quantile,
+                                                 levels = c("[18,35]", 
+                                                            "[36,51]", 
+                                                            "[52,66]", 
+                                                            "[67,81]", 
+                                                            "[82,96]")))
+```
+
+Read site-specific data
+```{r read-custum-outcome, message=FALSE}
+inputFile <- file.path(workDir,
+                       "input",
+                       "2024_11_01.IMPACC..xlsx")
+cNames <- read_excel(path = inputFile, n_max = 2, col_names = FALSE) %>%
+  as.data.frame()
+cNames[1, ] <- na.locf(unlist(cNames[1, ]))
+cNames <- apply(cNames, MARGIN = 2, FUN = function(x) paste(setdiff(x, NA), collapse = "."))
+outcomeDF <- read_excel(path = inputFile, skip = 2, col_names = cNames) %>%
+  mutate(`Patient ID` = gsub(pattern = "3-0", replacement = "3-00", `Patient ID`))
+```
+
+Read serum Ab data
+```{r read-serum-rbd-spike, message=FALSE}
+serum_rbd_abtiters_counts <- read_csv(file = file.path(impaccDir, "serum-rbd-abtiters/current/serum-rbd-abtiters-Counts.csv")) %>%
+  column_to_rownames(var = "sample_id")
+```
+
+Read Olink data
+```{r read-olink, message=FALSE}
+serum_olink_counts <- read_csv(file = file.path(impaccDir, "serum-olink/current/Olink-Counts.csv")) %>%
+  column_to_rownames(var = "...1")
+```
+
+Read nasal viral load
+```{r read-nasal-vl, message=FALSE}
+nasal_viralload_counts <- read_csv(file = file.path(impaccDir, "nasal-viralload/current/nasal-viralload-Counts.csv")) %>%
+  column_to_rownames(var = "sample_id")
+```
+
+Read PBMC RNAseq
+```{r read-pbmc-rnaseq, eval=FALSE}
+pbmc_transcriptomics_counts <- read_csv(file = file.path(impaccDir, 
+                                                         "pbmc-transcriptomics/current/pbmc-transcriptomics-Counts.csv")) %>%
+  column_to_rownames(var = "sample_id")
+pbmc_transcriptomics_rows <- read_csv(file = file.path(impaccDir,
+                                                       "pbmc-transcriptomics/current/pbmc-transcriptomics-RowFeature.csv"),
+                                      comment = "#")
+
+# voom
+pbmcExprsMat <-  t(pbmc_transcriptomics_counts)
+pbmcVoomElist <- voom(counts = pbmcExprsMat)
+
+# convert ensembl id to gene_name
+pbmcGeneIdMat <- pbmcVoomElist$E
+varDF <- apply(pbmcGeneIdMat, MARGIN = 1, FUN = var) %>%
+  data.frame(sigma2 = .) %>%
+  rownames_to_column(var = "gene_id") %>%
+  merge(y = dplyr::select(pbmc_transcriptomics_rows, 
+                          gene_name, 
+                          "gene_id"),
+        by = "gene_id") %>%
+  arrange(desc(sigma2)) %>%
+  filter(!duplicated(gene_name))
+pbmcGeneMat <- pbmcGeneIdMat %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "gene_id") %>%
+  merge(y = dplyr::select(varDF, -sigma2),
+        by = "gene_id") %>%
+  dplyr::select(-gene_id) %>%
+  column_to_rownames(var = "gene_name") 
+
+# filter on Visit 1/Drexel to accelerate GSVA
+pbmcFData <- clinical_data[match(colnames(pbmcGeneMat), table = clinical_data$sample_id), ]
+pbmcGeneMat <- pbmcGeneMat[, pbmcFData$event_type %in% "Visit 1" & 
+                             pbmcFData$enrollment_site %in% "Drexel/Tower Health"]
+
+hLS <- fgsea::gmtPathways(gmt.file = file.path(impaccDir, "resources/databases/MSigDB/current/msigdb.v7.3.symbols.gmt"))
+hLS <- hLS[grep(pattern = "HALLMARK", names(hLS))]
+
+pbmcGSVA <- gsva(expr = as.matrix(pbmcGeneMat), gset.idx.list = hLS)
+
+save(pbmcGSVA, file = file.path(workDir, "output/drexel.pbmc.gsva.RData"))
+```
+
+```{r load-pbmc, echo=FALSE}
+load(file = file.path(workDir, "output/drexel.pbmc.gsva.RData"))
+```
+
+Extract luminex data from site specific data
+```{r extract-lum}
+luminexDF <- outcomeDF[, c(1, seq(from = which(names(outcomeDF) %in% "Luminex V1")+1, to = which(names(outcomeDF) %in% "V1.Wuhan")-1))]
+
+luminexFData <- data.frame(feature = colnames(luminexDF)[-1]) %>%
+  mutate(gene_symbol = gsub(pattern = " ", replacement = "", feature),
+         gene_symbol = toupper(gene_symbol),
+         gene_symbol = recode(gene_symbol,
+                              ENA78      = "CXCL5",
+                              EOTAXIN    = "CCL11",
+                              FRACTALINE = "CX3CL1",
+                              GROALPHA   = "CXCL1",
+                              IFNY       = "IFNG",
+                              IL8        = "CXCL8",
+                              ITAC       = "CXCL11",
+                              MCP1       = "CCL2",
+                              MCP3       = "CCL7",
+                              MCSF       = "CSF1",
+                              MIG        = "CXCL9",
+                              MIP1B      = "CCL4",
+                              MIP3A      = "CCL20",
+                              NGFB       = "NGF",
+                              SCF        = "KITLG",
+                              TNFA       = "TNF",
+                              TNFB       = "LTA",
+                              TRAIL      = "TNFSF10",
+                              TWEAK      = "TNFSF12"))
+                              #IL12P70   = "IL12A, IL12B"
+                              #IL23      = "IL23A, IL12B"
+
+# not in Olink
+setdiff(sort(luminexFData$gene_symbol), colnames(serum_olink_counts))
+```
+
+Extract Flow cytometry from site specific data
+```{r extract-fcm-mono-dc}
+fcmDF <- outcomeDF %>%
+  select(`Patient ID`, contains(match = "Acute"))
+```
+
+# Fig5A
+```{r calculate-decay-neut-plot1, fig.width=9, fig.height=6.5, warning=FALSE}
+# plot neut
+neutDF <- outcomeDF[, c(1, seq(from = which(names(outcomeDF) %in% "V1.Wuhan"), to = ncol(outcomeDF)))]
+  
+neutDF <- neutDF %>%
+  pivot_longer(cols= -`Patient ID`, 
+               names_to = c("event_type", "strain"), 
+               names_sep = "\\.",
+               values_to = "Titer") %>%
+  #pivot_wider(names_from = "strain", values_from = "Titer") %>%
+  mutate(event_type = gsub(pattern = "^V", replacement = "Visit ", event_type)) %>%
+  merge(y = distinct(select(clinical_data, participant_id, event_type, event_date)),
+        by.x = c("Patient ID", "event_type"),
+        by.y = c("participant_id", "event_type")) %>%
+  mutate(strain = factor(strain, levels = c("Wuhan", 
+                                            "UK",
+                                            "SA")))
+#ggplot(data = neutDF,
+#       mapping = aes(x = event_date, y = Titer)) +
+#  geom_line(mapping = aes(group = `Patient ID`)) +
+#  geom_point() +
+#  scale_y_log10() +
+#  facet_grid(rows = ~strain) +
+#  theme_bw()
+
+# append vax info
+vaxDF <- clinical_data %>%
+  filter(event_type %in% "Visit 10") %>%
+  select(participant_id, event_date) %>%
+  distinct() %>%
+  merge(x = outcomeDF,
+        by.x = "Patient ID",
+        by.y = "participant_id") %>%
+  select(`Patient ID`,
+         `days since vaccination\r\n(at V10)`,
+         `Vaccinated\r\n(At V10)`,
+         event_date) %>%
+  mutate(vax_date = event_date - `days since vaccination\r\n(at V10)`)
+
+#merge(x = neutDF,
+#      y = select(vaxDF, -event_date),
+#      by = "Patient ID") %>%
+#ggplot(mapping = aes(x = event_date, y = Titer)) +
+#  geom_line(mapping = aes(group = `Patient ID`)) +
+#  geom_point(mapping = aes(color = event_date > vax_date)) +
+#  scale_y_log10() +
+#  facet_wrap(facets = strain~`Vaccinated\r\n(At V10)`, labeller = label_both) +
+# theme_bw()
+
+# unvax + event_date before vax
+unvaxDF <- merge(x = neutDF,
+      y = select(vaxDF, -event_date),
+      by = "Patient ID") %>%
+  filter(`Vaccinated\r\n(At V10)` %in% "no" | event_date < vax_date) %>%
+  filter(duplicated(`Patient ID`) | duplicated(`Patient ID`, fromLast = TRUE))
+
+#ggplot(data = filter(unvaxDF, strain %in% "Wuhan" & !is.na(Titer)), 
+#       mapping = aes(x = event_date, y = Titer)) +
+#  geom_line(mapping = aes(group = `Patient ID`)) +
+#  geom_point() +
+#  scale_y_log10() +
+#  facet_wrap(facets = ~`Patient ID`) +
+#  theme_bw()
+
+unvaxDF <- unvaxDF %>%
+  filter(!(`Patient ID` %in% c("003-0050", "003-0084", "003-0088", "003-2004",  "003-2001",
+                               "003-2010"))) %>%
+  filter(!(`Patient ID` %in% c("003-0054", "003-0059", "003-2003") & event_date > 200)) %>%
+  filter(!(`Patient ID` %in% c("003-0063", "003-0072", "003-0078", "003-0086", "003-2008") & 
+             event_date > 100)) %>%
+  filter(!(`Patient ID` %in% c("003-0089", "003-2007") &  event_date > 150))
+#ggplot(data = filter(unvaxDF, !is.na(Titer)), 
+#       mapping = aes(x = event_date, y = Titer)) +
+#  geom_line(mapping = aes(group = interaction(`Patient ID`, strain, drop = TRUE), color = strain)) +
+#  geom_point() +
+#  scale_y_log10() +
+#  facet_wrap(facets = ~`Patient ID`) +
+#  theme_bw()
+
+nt0.5DF <- unvaxDF %>%
+  select(`Patient ID`, event_date, strain, Titer) %>%
+  group_by(`Patient ID`, strain) %>%
+  summarize(pt   = min(Titer),
+            p0   = max(Titer),
+            t    = max(event_date) - min(event_date),
+            k    =  log(pt/p0)/t,
+            t0.5 =  log(0.5)/k,
+            .groups = "drop")
+
+regDF <- unvaxDF %>%
+  group_by(`Patient ID`, strain) %>%
+  do(event_date = seq(from = min(.$event_date), max(.$event_date))) %>%
+  unnest(cols = event_date) %>%
+  merge(y = nt0.5DF, by = c("Patient ID", "strain")) %>%
+  group_by(`Patient ID`, strain) %>%
+  mutate(Titer = p0 * exp(k * (event_date-min(event_date))))
+
+ggplot(data = filter(unvaxDF, `Patient ID` %in% nt0.5DF$`Patient ID`[complete.cases(nt0.5DF)]),
+       mapping = aes(x = event_date, y = Titer)) +
+  geom_point(mapping = aes(shape = strain)) +
+  facet_wrap(facets = ~`Patient ID`, scale = "free_y") +
+  geom_line(data = filter(regDF, `Patient ID` %in% nt0.5DF$`Patient ID`[complete.cases(nt0.5DF)]), 
+            mapping = aes(group = interaction(`Patient ID`, strain, drop = TRUE), 
+                                        color = t0.5,
+                                        linetype = strain)) +
+  scale_color_gradient(low = "orange", high = "red") +
+  theme_bw()
+```
+
+
+```{r rho-neut-thalf, warning=FALSE}
+# olink visit 1 vs neut t0.5
+rhoTemp <- serum_olink_counts %>%
+  rownames_to_column(var = "sample_id") %>%
+  pivot_longer(cols      = -sample_id, 
+               names_to  = "olink.feature",
+               values_to = "olink.value") %>%
+  merge(y = clinical_data, by = "sample_id") %>%
+  filter(event_type %in% "Visit 1") %>%
+  merge(y = select(nt0.5DF, `Patient ID`, strain, `t0.5`),
+        by.x = "participant_id",
+        by.y = "Patient ID") %>%
+  setNames(nm = make.names(names(.))) %>%
+  group_by(olink.feature, strain) %>%
+  do(rho = cor.test(formula = ~olink.value+`t0.5`,
+                    data    = .,
+                    method  = "spearman")$estimate,
+     p   = cor.test(formula = ~olink.value+`t0.5`,
+                    data    = .,
+                    method  = "spearman")$p.value) %>%
+  mutate_if(is.list, unlist)
+
+rhoDF <- filter(rhoTemp, p <= 0.05) %>%
+  mutate(outcome = paste0("t0.5.", strain)) %>%
+  select(-strain) %>%
+  pivot_longer(cols = -c("rho", "p", "outcome")) 
+
+# luminex visit 1 vs neut t0.5
+rhoTemp <- luminexDF %>%
+  mutate(MIF = gsub(pattern = " .+", replacement = "", MIF),
+         MIF = as.numeric(MIF)) %>%
+  pivot_longer(cols      = -`Patient ID`, 
+               names_to  = "luminex.feature", 
+               values_to = "luminex.value") %>%
+  merge(y = select(nt0.5DF, `Patient ID`, strain, `t0.5`),
+        by = "Patient ID") %>%
+  setNames(nm = make.names(names(.))) %>%
+  group_by(luminex.feature, strain) %>%
+  do(rho = cor.test(formula = ~luminex.value+`t0.5`,
+                    data    = .,
+                    method  = "spearman")$estimate,
+     p   = cor.test(formula = ~luminex.value+`t0.5`,
+                    data    = .,
+                    method  = "spearman")$p.value) %>%
+  mutate_if(is.list, unlist)
+
+filter(rhoTemp, p <= 0.05) %>%
+  mutate(outcome = paste0("t0.5.", strain)) %>%
+  select(-strain) %>%
+  pivot_longer(cols = -c("rho", "p", "outcome")) %>%
+  select(all_of(names(rhoDF))) %>%
+  rbind(rhoDF, .) -> rhoDF
+
+# vl visit 1 vs neut t0.5
+rhoTemp <- nasal_viralload_counts %>%
+  rownames_to_column(var = "sample_id") %>%
+  mutate(`-N1_CT` = -1 * N1_CT) %>%
+  select(sample_id, `-N1_CT`) %>%
+  pivot_longer(cols      = -sample_id, 
+               names_to  = "vl.feature",
+               values_to = "vl.value") %>%
+  merge(y = clinical_data, by = "sample_id") %>%
+  filter(event_type %in% "Visit 1") %>%
+  merge(y = select(nt0.5DF, `Patient ID`, strain, `t0.5`),
+        by.x = "participant_id",
+        by.y = "Patient ID") %>%
+  setNames(nm = make.names(names(.))) %>%
+  group_by(vl.feature, strain) %>%
+  do(rho = cor.test(formula = ~vl.value+`t0.5`,
+                    data    = .,
+                    method  = "spearman")$estimate,
+     p   = cor.test(formula = ~vl.value+`t0.5`,
+                    data    = .,
+                    method  = "spearman")$p.value) %>%
+  mutate_if(is.list, unlist)
+
+filter(rhoTemp, p <= 0.05)
+
+# fcm visit 1 vs neut t0.5
+rhoTemp <- fcmDF %>%
+  pivot_longer(cols      = -`Patient ID`, 
+               names_to  = "fcm.feature", 
+               values_to = "fcm.value") %>%
+  merge(y = select(nt0.5DF, `Patient ID`, strain, `t0.5`),
+        by = "Patient ID") %>%
+  setNames(nm = make.names(names(.))) %>%
+  group_by(fcm.feature, strain) %>%
+  do(rho = cor.test(formula = ~fcm.value+`t0.5`,
+                    data    = .,
+                    method  = "spearman")$estimate,
+     p   = cor.test(formula = ~fcm.value+`t0.5`,
+                    data    = .,
+                    method  = "spearman")$p.value) %>%
+  mutate_if(is.list, unlist)
+
+filter(rhoTemp, p <= 0.05) %>%
+  mutate(outcome = paste0("t0.5.", strain)) %>%
+  select(-strain) %>%
+  pivot_longer(cols = -c("rho", "p", "outcome")) %>%
+  select(all_of(names(rhoDF))) %>%
+  rbind(rhoDF, .) -> rhoDF
+
+# pgx visit 1 vs neut t0.5
+rhoTemp <- t(pbmcGSVA) %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "sample_id") %>%
+  pivot_longer(cols      = -sample_id, 
+               names_to  = "pgx.feature",
+               values_to = "pgx.value") %>%
+  merge(y = clinical_data, by = "sample_id") %>%
+  filter(event_type %in% "Visit 1") %>%
+  merge(y = select(nt0.5DF, `Patient ID`, strain, `t0.5`),
+         by.x = "participant_id",
+        by.y = "Patient ID") %>%
+  setNames(nm = make.names(names(.))) %>%
+  group_by(pgx.feature, strain) %>%
+  do(rho = cor.test(formula = ~pgx.value+`t0.5`,
+                    data    = .,
+                    method  = "spearman")$estimate,
+     p   = cor.test(formula = ~pgx.value+`t0.5`,
+                    data    = .,
+                    method  = "spearman")$p.value) %>%
+  mutate_if(is.list, unlist)
+
+filter(rhoTemp, p <= 0.05)
+
+# Fig5B
+rhoDF %>%
+  mutate(value = gsub(pattern = "...Freq.+", replacement = "", value)) %>%
+  select(outcome, name, value, rho, p) %>%
+  kable()
+```
+
+Session info
+```{r session-info}
+sessionInfo()
+```
+
