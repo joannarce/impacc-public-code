@@ -30,26 +30,13 @@ source(paste0(codebase_path,"/codebase_prediction.R"))
 source(paste0(codebase_path,"/codebase_interpretation.R"))
 source(paste0(codebase_path,"/class_structures.R"))
 source(paste0(codebase_path,"/codebase_mod.R"))
-codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
-source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
-source(paste0(codebase_path,"/codebase_basic.R"))
-source(paste0(codebase_path,"/codebase_prediction.R"))
-source(paste0(codebase_path,"/codebase_interpretation.R"))
-source(paste0(codebase_path,"/class_structures.R"))
-source(paste0(codebase_path,"/codebase_mod.R"))
-source("~/impacc/Analysis/molecular_subtyping/preliminary/helpers_LG202301.R")
-source("~/impacc/Analysis/molecular_subtyping/code/ExtendedData6/src/ExtendedData6_helper.R")
-date = "20230726"; inner_folds = 10
-PACS_group = list(physical = c(2), cognitive = c(5), multiple = c(6))
-path_impacc_analysis = "/scratch/data-integration/cleanedup/"
-intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
-organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
-file_mcia = paste0(intermediate_results_outdir_DR,"MCIA_phase123_",date,".rds")
-mcia_results = readRDS(file_mcia)
+source(paste0(codebase_path,"/codebase_subtype.R"))
 
-base_obj = readRDS(file ="/scratch/data-integration/cleanedup/mod1_interpretation_base.rds")
-file_impacc_analysis = paste0(path_impacc_analysis,"impacc_analysis_record_innerfold", inner_folds,".rds")
-impacc_analysis_record=readRDS(file = file_impacc_analysis)
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+mcia_results = readRDS(paste0(intermediate_results_outdir_DR,"MCIA_phase123_20230726.rds"))
+
 data_path <- "/scratch/data-integration/pipelines/processedData/"
 data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
 ```
@@ -260,8 +247,6 @@ post_acute_label = factor(post_acute_label,
 clin_data_patient <- clin_data_aligned[clin_data_aligned$event_type == "Visit 1",]
 demo_data_adjust <- clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
 ww <- ifelse(post_acute_label == "Non-respondent", 1, 0)
-sig_med = names(med_test_logit$p_lr_adj)[med_test_logit$p_lr_adj <= 0.05]
-med_data_adjust = clin_data_patient[, sig_med]
 
 idx_non_resp = which(post_acute_label == "Minimal Deficit" |
                        post_acute_label == "Non-respondent")
@@ -281,8 +266,6 @@ id_pasc = which(!is.na(subtype_hcl$PASC) & subtype_hcl$label != "D")
 ww = ifelse(subtype_hcl$PASC == "minimal", 0, 1)
 clin_data_patient = clin_data_aligned[clin_data_aligned$event_type == "Visit 1", ]
 demo_data_adjust = clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
-sig_med = names(med_test_logit$p_lr_adj)[med_test_logit$p_lr_adj <= 0.05]
-med_data_adjust = clin_data_patient[, sig_med]
 
 any_deficit_demo_adjusted_test <- test_clinical_binomial_demo(
   subtype = subtype_hcl$label[id_pasc],
@@ -297,8 +280,6 @@ heatmap_binomial(any_deficit_demo_adjusted_test, col_name = "Any Deficit")
 full_clust_test = list(); full_clust_test[["PASC"]] = list()
 clin_data_patient = clin_data_aligned[clin_data_aligned$event_type == "Visit 1", ]
 demo_data_adjust = clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
-sig_med = names(med_test_logit$p_lr_adj)[med_test_logit$p_lr_adj <= 0.05]
-med_data_adjust = clin_data_patient[, sig_med]
 
 full_clust_test[["PASC"]][["regression_demo"]] = test_multi_pasc_demo(
   subtype = subtype_hcl$label,
@@ -313,8 +294,6 @@ heatmap_pasc_multi(full_clust_test[["PASC"]][["regression_demo"]],
 ```{r test PASC adjusted for demographics - global test, fig.height=6, fig.width=2}
 clin_data_patient = clin_data_aligned[clin_data_aligned$event_type == "Visit 1", ]
 demo_data_adjust = clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
-sig_med = names(med_test_logit$p_lr_adj)[med_test_logit$p_lr_adj <= 0.05]
-med_data_adjust = clin_data_patient[, sig_med]
 
 global_test_demo = test_global_multi_pasc(
   subtype = subtype_hcl$label,
@@ -323,7 +302,6 @@ global_test_demo = test_global_multi_pasc(
 
 heatmap_multi_global(global_test_demo)
 ```
-
 
 
 

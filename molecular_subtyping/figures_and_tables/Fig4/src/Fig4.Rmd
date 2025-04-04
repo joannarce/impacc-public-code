@@ -20,30 +20,17 @@ source(paste0(codebase_path,"/codebase_prediction.R"))
 source(paste0(codebase_path,"/codebase_interpretation.R"))
 source(paste0(codebase_path,"/class_structures.R"))
 source(paste0(codebase_path,"/codebase_mod.R"))
-codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
-source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
-source(paste0(codebase_path,"/codebase_basic.R"))
-source(paste0(codebase_path,"/codebase_prediction.R"))
-source(paste0(codebase_path,"/codebase_interpretation.R"))
-source(paste0(codebase_path,"/class_structures.R"))
-source(paste0(codebase_path,"/codebase_mod.R"))
-source("~/impacc/Analysis/molecular_subtyping/preliminary/helpers_LG202301.R")
-source("~/impacc/Analysis/molecular_subtyping/interpretation/leying_helpers.R")
-source("~/impacc/Analysis/molecular_subtyping/code/Fig4/src/Fig4_helper.R")
+source(paste0(codebase_path,"/codebase_subtype.R"))
 
-date = "20230726"; inner_folds = 10
-path_impacc_analysis = "/scratch/data-integration/cleanedup/"
-intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
-intermediate_results_outdir_RESULTS = "/scratch/data-integration/molecular_subtyping/Results/"
 organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
-file_mcia = paste0(intermediate_results_outdir_DR,"MCIA_phase123_",date,".rds")
-mcia_results = readRDS(file_mcia)
 
-base_obj = readRDS(file ="/scratch/data-integration/cleanedup/mod1_interpretation_base.rds")
-file_impacc_analysis = paste0(path_impacc_analysis,"impacc_analysis_record_innerfold", inner_folds,".rds")
-impacc_analysis_record=readRDS(file = file_impacc_analysis)
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+mcia_results = readRDS(paste0(intermediate_results_outdir_DR,"MCIA_phase123_20230726.rds"))
+
 data_path <- "/scratch/data-integration/pipelines/processedData/"
 data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+
+base_obj = readRDS(file = "/scratch/data-integration/cleanedup/mod1_interpretation_base.rds")
 ```
 
 # Load preliminary results
@@ -142,8 +129,9 @@ clin_colnames_select = setdiff(colnames(assay_mat), colnames(mcia_factors))
 factor_trajectory_analysis_results = helper_trajectory_data_smooth_spline(
   assay_mat = assay_mat, clin_colnames_select = clin_colnames_select,
   endpoint = "label", use_endpoint_levels = c("A", "B", "C", "E", "F"),
-  max_date = 40)
+  max_date = 40, text_position = 2)
 test_Fig4_factor_traj = factor_trajectory_analysis_results$test_pval_list
+factor_trajectory_analysis_results$test_fig_list$Factor1
 factor_trajectory_analysis_results$test_fig_list$Factor10
 ```
 

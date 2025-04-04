@@ -30,26 +30,13 @@ source(paste0(codebase_path,"/codebase_prediction.R"))
 source(paste0(codebase_path,"/codebase_interpretation.R"))
 source(paste0(codebase_path,"/class_structures.R"))
 source(paste0(codebase_path,"/codebase_mod.R"))
-codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
-source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
-source(paste0(codebase_path,"/codebase_basic.R"))
-source(paste0(codebase_path,"/codebase_prediction.R"))
-source(paste0(codebase_path,"/codebase_interpretation.R"))
-source(paste0(codebase_path,"/class_structures.R"))
-source(paste0(codebase_path,"/codebase_mod.R"))
-source("~/impacc/Analysis/molecular_subtyping/preliminary/helpers_LG202301.R")
-source("~/impacc/Analysis/molecular_subtyping/code/ExtendedData2/src/ExtendedData2_helper.R")
-date = "20230726"; inner_folds = 10
-PACS_group = list(physical = c(2), cognitive = c(5), multiple = c(6))
-path_impacc_analysis = "/scratch/data-integration/cleanedup/"
-intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
-organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
-file_mcia = paste0(intermediate_results_outdir_DR,"MCIA_phase123_",date,".rds")
-mcia_results = readRDS(file_mcia)
+source(paste0(codebase_path,"/codebase_subtype.R"))
 
-base_obj = readRDS(file ="/scratch/data-integration/cleanedup/mod1_interpretation_base.rds")
-file_impacc_analysis = paste0(path_impacc_analysis,"impacc_analysis_record_innerfold", inner_folds,".rds")
-impacc_analysis_record=readRDS(file = file_impacc_analysis)
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+mcia_results = readRDS(paste0(intermediate_results_outdir_DR,"MCIA_phase123_20230726.rds"))
+
 data_path <- "/scratch/data-integration/pipelines/processedData/"
 data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
 ```
@@ -87,7 +74,6 @@ comp_names <- c("num_cardiac" = "Number of Cardiac Complications",
                 "if_pulmo" = "Existence of Pulmonary Complications",
                 "if_renal" = "Existence of Renal Complications")
 ```
-
 
 # Subtype effect on complications adjusted for prior comorbidities (ExtendedData 2A)
 ```{r subtype effect on complications, fig.height=8, fig.width=12}
@@ -336,4 +322,5 @@ heatmap_comp_category_comorb(comp_test_linear_group_comparison_comorb,
                              comp_names, clin_names,
                              adjust_p = TRUE)
 ```
+
 

@@ -12,16 +12,7 @@ source(paste0(codebase_path,"/codebase_prediction.R"))
 source(paste0(codebase_path,"/codebase_interpretation.R"))
 source(paste0(codebase_path,"/class_structures.R"))
 source(paste0(codebase_path,"/codebase_mod.R"))
-codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
-source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
-source(paste0(codebase_path,"/codebase_basic.R"))
-source(paste0(codebase_path,"/codebase_prediction.R"))
-source(paste0(codebase_path,"/codebase_interpretation.R"))
-source(paste0(codebase_path,"/class_structures.R"))
-source(paste0(codebase_path,"/codebase_mod.R"))
-source("~/impacc/Analysis/molecular_subtyping/preliminary/helpers_LG202301.R")
-source("~/impacc/Analysis/molecular_subtyping/interpretation/leying_helpers.R")
-source("~/impacc/Analysis/molecular_subtyping/code/ExtendedData7/src/ExtendedData7_helper.R")
+source(paste0(codebase_path,"/codebase_subtype.R"))
 
 # load subtype assignment and clinical data
 nclust_tree_all = 6
@@ -33,11 +24,12 @@ organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Pre
 # Enrichment preparation
 ```{r enrichment preparation}
 library(clusterProfiler)
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+
 intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
-data_env0 <- readRDS("/scratch/data-integration/pipelines/processedData/data_env_ravi_20220513.RDS")
-date = "20230726"
-file_mcia = paste0(intermediate_results_outdir_DR,"MCIA_phase123_",date,".rds")
-mcia_results = readRDS(file_mcia)
+mcia_results = readRDS(paste0(intermediate_results_outdir_DR,"MCIA_phase123_20230726.rds"))
+
 kegg_database = readRDS(file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds")
 hallmark_database = readRDS( file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/hallmark0522.rds")
 metabolite_row_DF = data_env0$plasma_metabolomics_global_rowfeature
@@ -109,7 +101,8 @@ factor_trajectory_analysis_results = helper_trajectory_data_smooth_spline(
   assay_mat = assay_mat, clin_colnames_select = clin_colnames_select,
   endpoint = "PASC", use_endpoint_levels = c("Minimal Deficit", "Other Deficits"),
   subgroup_cr = c("Other Deficits" = "#9C3418", "Minimal Deficit" = "#39828C"),
-  max_date = 40, legend_name = "PASC", multiple_correction = FALSE)
+  max_date = 40, legend_name = "PASC", multiple_correction = FALSE, 
+  text_position = 2)
 factor_trajectory_analysis_results$test_fig_list$Factor30
 ```
 
@@ -933,7 +926,6 @@ ggplot(plotDF, aes(x = coefficient, y = feature, group = feature, color = sign))
   scale_x_continuous(labels = function(x) abs(x), limits = c(-0.3, 0.3))+
   theme(legend.position = "bottom")
 ```
-
 
 
 

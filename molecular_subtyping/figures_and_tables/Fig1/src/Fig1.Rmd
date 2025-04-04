@@ -30,29 +30,17 @@ source(paste0(codebase_path,"/codebase_prediction.R"))
 source(paste0(codebase_path,"/codebase_interpretation.R"))
 source(paste0(codebase_path,"/class_structures.R"))
 source(paste0(codebase_path,"/codebase_mod.R"))
-codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
-source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
-source(paste0(codebase_path,"/codebase_basic.R"))
-source(paste0(codebase_path,"/codebase_prediction.R"))
-source(paste0(codebase_path,"/codebase_interpretation.R"))
-source(paste0(codebase_path,"/class_structures.R"))
-source(paste0(codebase_path,"/codebase_mod.R"))
-source("~/impacc/Analysis/molecular_subtyping/preliminary/helpers_LG202301.R")
-source("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/Fig1_helper.R")
-date = "20230726"; inner_folds = 10
-PACS_group = list(physical = c(2), cognitive = c(5), multiple = c(6))
-path_impacc_analysis = "/scratch/data-integration/cleanedup/"
-intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
-organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
-file_mcia = paste0(intermediate_results_outdir_DR,"MCIA_phase123_",date,".rds")
-mcia_results = readRDS(file_mcia)
+source(paste0(codebase_path,"/codebase_subtype.R"))
 
-base_obj = readRDS(file ="/scratch/data-integration/cleanedup/mod1_interpretation_base.rds")
-file_impacc_analysis = paste0(path_impacc_analysis,"impacc_analysis_record_innerfold", inner_folds,".rds")
-impacc_analysis_record=readRDS(file = file_impacc_analysis)
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+mcia_results = readRDS(paste0(intermediate_results_outdir_DR,"MCIA_phase123_20230726.rds"))
+
 data_path <- "/scratch/data-integration/pipelines/processedData/"
 data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
 
+PACS_group = list(physical = c(2), cognitive = c(5), multiple = c(6))
 clin_data_all = organized_data$clinical_data[,setdiff(colnames(organized_data$clinical_data), c("sample_id","sample_type", "phase1_2","samples_collected","phase"))]
 clin_data_all = unique(clin_data_all)
 clin_data_aligned = data_frame(event_id=rownames(organized_data$datasets$plasma_proteomics_targeted))
@@ -250,7 +238,7 @@ total_counts2 <- df_summary2 %>%
   summarise(Total = sum(Count))
 df_summary2 <- df_summary2 %>%
   dplyr::group_by(Subtype) %>% 
-  mutate(percent = Count/sum(Count))
+  mutate(percent = Count/sum(Count)*100)
 
 df_summary2$Subtype <- factor(df_summary2$Subtype, 
                               levels = rev(levels(df_summary2$Subtype)))
@@ -259,7 +247,7 @@ ggplot(df_summary2, aes(y = Subtype, x = percent, fill = TG)) +
   geom_bar(stat = "identity") +
   theme_minimal() +
     geom_text(data = total_counts2,
-              aes(y = Subtype, x = -0.06,label = sprintf(" %d", Total)),
+              aes(y = Subtype, x = -6, label = sprintf(" %d", Total)),
             position = position_dodge(width = 0.9),
             inherit.aes = FALSE, size = 7)+
   labs(y = "Subtype",
