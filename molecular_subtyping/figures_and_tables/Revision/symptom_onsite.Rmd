@@ -1,0 +1,298 @@
+---
+title: "Additional Check"
+output: html_notebook
+---
+
+```{r load library}
+require(openxlsx)
+library(factoextra)
+library(cluster)
+require(nlme) # directly provides p-values, unlike lme4
+require(splines)
+require(dplyr)
+library(fgsea)
+library(knitr)
+library(kableExtra)
+library(tidyverse)
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+source(paste0(codebase_path,"/codebase_subtype.R"))
+
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+mcia_results = readRDS(paste0(intermediate_results_outdir_DR,"MCIA_phase123_20230726.rds"))
+
+base_obj = readRDS(file = "/scratch/data-integration/cleanedup/mod1_interpretation_base.rds")
+```
+
+# Load preliminary results
+```{r load subtype assignment and clinical data}
+# load subtype assignment and clinical data
+nclust_tree_all = 6
+subtype_hcl = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_aligned = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+extended_data = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/extended_data.rds")
+```
+
+# Factor trajectory against days from symptom onsite
+```{r factor trajectory against days from symptom onsite, fig.height=6, fig.width=30, warning=FALSE}
+mod_ids = c(1, 2, 3, 10, 30)
+negation = c(-1, 1, 1, 1, 1)
+# negate factors
+mcia_factors = t(t(mcia_results$mcia_factors[,mod_ids]) * negation)
+mcia_factors=apply(mcia_factors,2, function(z) qqnorm(z, plot.it = F)$x)
+mcia_factors = data.frame(mcia_factors,row.names = rownames(organized_data$datasets$plasma_proteomics_targeted))
+mcia_factors = mcia_factors[clin_data_aligned$event_id,]
+colnames(mcia_factors) = paste0("Factor", mod_ids)
+
+assay_mat = mcia_factors
+assay_mat$event_id = rownames(assay_mat)
+assay_mat = cytof_mat_preprocess(cytof_mat = assay_mat, 
+                                 subtype_hcl = subtype_hcl,
+                                 clin_data = clin_data_aligned)
+clin_colnames_select = setdiff(colnames(assay_mat), colnames(mcia_factors))
+# change event date to symptom onsite
+assay_mat$event_date = assay_mat$event_date - assay_mat$symptom_date
+assay_mat = assay_mat[!is.na(assay_mat$event_date),]
+
+factor_trajectory_analysis_results = helper_trajectory_data_smooth_spline(
+  assay_mat = assay_mat, clin_colnames_select = clin_colnames_select,
+  endpoint = "label", use_endpoint_levels = c("A", "B", "C", "E", "F"),
+  max_date = 40, feature_with_ylab = c("Factor1"), 
+  xlabel = "Days from symptom onsite")
+
+ggarrange(plotlist = factor_trajectory_analysis_results$test_fig_list,
+          nrow = 1, common.legend = T, legend = "bottom")
+```
+
+# Load data preprocessing
+```{r load data preprocessing}
+# viral load
+ct_train = data.frame(
+  "event_id" = rownames(base_obj$others$nasal_viralload$train$nasal_viralload_counts),
+  "N1_CT" = base_obj$others$nasal_viralload$train$nasal_viralload_counts$N1_CT,
+  "RP_CT" = base_obj$others$nasal_viralload$train$nasal_viralload_counts$RP_CT)
+ct_test = data.frame(
+  "event_id" = rownames(base_obj$others$nasal_viralload$test$nasal_viralload_counts),
+  "N1_CT" = base_obj$others$nasal_viralload$test$nasal_viralload_counts$N1_CT,
+  "RP_CT" = base_obj$others$nasal_viralload$test$nasal_viralload_counts$RP_CT)
+ct_df = rbind(ct_train, ct_test)
+ct_df = ct_df[order(ct_df$event_id),]
+rownames(ct_df) = ct_df$event_id
+# remove samples with undetected RP_CT values
+ct_df = ct_df[!is.na(ct_df$RP_CT), ]
+# replace NA (undetermined) in N1_CT to 40
+ct_df$N1_CT[is.na(ct_df$N1_CT)] = 40
+# replace values > 40 to 40
+ct_df$N1_CT[ct_df$N1_CT > 40] = 40
+# flip the sign of N1_CT
+ct_df$N1_CT <- -ct_df$N1_CT
+ct_df = subset(ct_df, select = -c(event_id, RP_CT))
+ct_df = as.data.frame(quantileNormalizeNoTies(ct_df))
+ct_df$event_id = rownames(ct_df)
+colnames(ct_df) <- c("negative N1-CT", "event_id")
+# antibody
+auc_train = data.frame(
+  "event_id" = rownames(base_obj$others$serum_rbd_abtiters$train$serum_rbd_abtiters_counts),
+  "log2_AUC" = base_obj$others$serum_rbd_abtiters$train$serum_rbd_abtiters_counts$`AUC RBD IgG`)
+auc_test = data.frame(
+  "event_id" = rownames(base_obj$others$serum_rbd_abtiters$test$serum_rbd_abtiters_counts),
+  "log2_AUC" = base_obj$others$serum_rbd_abtiters$test$serum_rbd_abtiters_counts$`AUC RBD IgG`)
+auc_df = rbind(auc_train, auc_test)
+auc_df = auc_df[order(auc_df$event_id),]
+rownames(auc_df) = auc_df$event_id
+auc_df = subset(auc_df, select = -event_id)
+auc_df = as.data.frame(quantileNormalizeNoTies(auc_df))
+auc_df$event_id = rownames(auc_df)
+colnames(auc_df) <- c("AUC RBD IgG", "event_id")
+
+# cytof parent preprocess
+cytof_parent_mat_train = base_obj$others$bld_cytof$train$bld_cytof_counts
+cytof_parent_mat_train = base_obj$others$bld_cytof$preprocess_bld_cytof_parent_granulo_separate(counts = cytof_parent_mat_train, rowfeature = base_obj$others$bld_cytof$train$bld_cytof_rowfeatures)
+cytof_parent_mat_test = base_obj$others$bld_cytof$test$bld_cytof_counts
+cytof_parent_mat_test = base_obj$others$bld_cytof$preprocess_bld_cytof_parent_granulo_separate(counts = cytof_parent_mat_test, rowfeature = base_obj$others$bld_cytof$test$bld_cytof_rowfeatures)
+
+cytof_parent_mat = rbind(cytof_parent_mat_train, cytof_parent_mat_test)
+cytof_parent_mat$event_id = rownames(cytof_parent_mat)
+cytof_parent_mat <- merge(cytof_parent_mat, 
+                          merge(ct_df, auc_df, by = "event_id"), 
+                          by = "event_id")
+cytof_parent_feature_names = colnames(cytof_parent_mat)[-1]
+cytof_parent_mat <- cytof_parent_mat[,c(2:ncol(cytof_parent_mat),1)]
+
+cytof_parent_mat = cytof_mat_preprocess(
+  cytof_parent_mat, subtype_hcl, clin_data_aligned)
+
+# cytof child preprocess
+cytof_child_mat_train = base_obj$others$bld_cytof$train$bld_cytof_counts
+cytof_child_mat_train = preprocess_bld_cytof_child_seperate_granulo(counts = cytof_child_mat_train)
+cytof_child_mat_test = base_obj$others$bld_cytof$test$bld_cytof_counts
+cytof_child_mat_test = preprocess_bld_cytof_child_seperate_granulo(counts = cytof_child_mat_test)
+
+cytof_child_mat = rbind(cytof_child_mat_train, cytof_child_mat_test)
+cytof_child_feature_names = colnames(cytof_child_mat)
+cytof_child_mat$event_id = rownames(cytof_child_mat)
+
+cytof_child_mat = cytof_mat_preprocess(
+  cytof_child_mat, subtype_hcl, clin_data_aligned)
+
+# cytokine preprocess
+cytokine_mat = organized_data$datasets$serum_olink
+cytokine_feature_names = colnames(cytokine_mat)
+cytokine_mat$event_id = rownames(cytokine_mat)
+cytokine_mat = cytof_mat_preprocess(
+  cytokine_mat, subtype_hcl, clin_data_aligned)
+```
+
+# Selected cytof for speparate analysis as in main figures
+```{r selected cytof}
+select_cytof = c("B Cell", "CD4+ T Cell", "CD8+ T Cell", "Monocytes",
+                 "Plasmacytoid DC", "Basophil", "Neutrophil",
+                 "negative N1-CT", "AUC RBD IgG")
+```
+
+# CyTOF separately for patients enrolled prior to 2020/10
+```{r Cytof parent multi-group comparison prior to 2020/10, fig.width=8.5, fig.height=4.2}
+clin_data_patient <- clin_data_aligned[clin_data_aligned$event_type == "Visit 1",]
+temp = clin_data_aligned[, c("event_id", "admit_month")]
+cytof_parent_mat = left_join(cytof_parent_mat, temp, by = "event_id")
+temp = unique(clin_data_patient[, c("participant_id", "admit_month")])
+sum(temp$admit_month < "2020-10")
+
+cytof_parent_mat_sub = cytof_parent_mat[cytof_parent_mat$admit_month < "2020-10",]
+# scale data
+cytof_parent_mat_sub[,cytof_parent_feature_names] <- 
+  scale(cytof_parent_mat_sub[,cytof_parent_feature_names])
+
+max_cutoff = 0.5
+cytof_parent_test = list()
+cytof_parent_test[["early"]]= multi_group_mixed_test(
+  feature_name = cytof_parent_feature_names, data_mat = cytof_parent_mat_sub, 
+  visit_numbers = c("V1", "V2", "V3"))
+cytof_parent_test[["late"]]= multi_group_mixed_test(
+  feature_name = cytof_parent_feature_names, data_mat = cytof_parent_mat_sub, 
+  visit_numbers = c("V4", "V5", "V6"))
+
+est_mat = cbind(t(cytof_parent_test[["early"]]$est), 
+                t(cytof_parent_test[["late"]]$est))
+pval_mat = cbind(t(cytof_parent_test[["early"]]$pval), 
+                 t(cytof_parent_test[["late"]]$pval))
+rownames(est_mat)[rownames(est_mat) == "CD4 T Cell"] = "CD4+ T Cell"
+rownames(est_mat)[rownames(est_mat) == "CD8 T Cell"] = "CD8+ T Cell"
+rownames(est_mat)[rownames(est_mat) == "Hematopoetic progrenitor Cell"] = 
+  "Hematopoetic progrenitor"
+rownames(pval_mat) = rownames(est_mat)
+adj_p = apply(pval_mat, 2, function(p) p.adjust(p, method = "BH"))
+
+test_type = factor(colnames(est_mat), 
+                   levels = c("EF vs ABC", "F vs E", 
+                              "A vs BC", "B vs AC", "C vs AB"))
+colnames(est_mat) = rep(c("V1-V3","V4-V6"), each = 5)
+colnames(pval_mat) = rep(c("V1-V3","V4-V6"), each = 5)
+est_mat[est_mat > max_cutoff] = max_cutoff
+est_mat[est_mat < -max_cutoff] = -max_cutoff
+
+est_mat = est_mat[select_cytof,]
+adj_p = adj_p[select_cytof,]
+
+cytof_multi_comparison = ComplexHeatmap::Heatmap(
+  as.matrix(est_mat), 
+  col = circlize::colorRamp2(c(-max_cutoff, 0, max_cutoff),
+                             c("#284AA0", "white", "#BC4A4A")),
+  show_heatmap_legend = TRUE, na_col = "grey90", border=T, 
+  column_title_gp = gpar(fontsize = 15), 
+  border_gp = gpar(col = "darkgrey", lwd = 0.5), 
+  rect_gp = gpar(col = "darkgrey", lwd = 0.5),
+  row_names_gp = gpar(fontsize = 15), 
+  column_names_gp = gpar(fontsize = 15),
+  heatmap_legend_param = list(
+    title = "Coefficient    ",
+    direction = "horizontal", title_position = "leftcenter",
+    title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),
+  column_split = test_type, cluster_columns = F,
+  cluster_rows = F, cell_fun = function(j, i, x, y, w, h, fill) {
+  if(adj_p[i, j] < 0.001) {
+    grid.text("***", x, y-h*0.12)
+  }else if(adj_p[i, j] < 0.01) {
+    grid.text("**", x, y-h*0.12)
+  }else if(adj_p[i, j] < 0.05) {
+    grid.text("*", x, y-h*0.12)
+  }
+})
+ComplexHeatmap::draw(cytof_multi_comparison, heatmap_legend_side = "bottom")
+```
+
+# CyTOF separately for patients enrolled on or after 2020/10
+```{r Cytof parent multi-group comparison on or after 2020/10, fig.width=8.5, fig.height=4.2}
+sum(temp$admit_month >= "2020-10")
+
+cytof_parent_mat_sub = cytof_parent_mat[cytof_parent_mat$admit_month >= "2020-10",]
+# scale data
+cytof_parent_mat_sub[,cytof_parent_feature_names] <- 
+  scale(cytof_parent_mat_sub[,cytof_parent_feature_names])
+
+max_cutoff = 0.5
+cytof_parent_test = list()
+cytof_parent_test[["early"]]= multi_group_mixed_test(
+  feature_name = cytof_parent_feature_names, data_mat = cytof_parent_mat_sub, 
+  visit_numbers = c("V1", "V2", "V3"))
+cytof_parent_test[["late"]]= multi_group_mixed_test(
+  feature_name = cytof_parent_feature_names, data_mat = cytof_parent_mat_sub, 
+  visit_numbers = c("V4", "V5", "V6"))
+
+est_mat = cbind(t(cytof_parent_test[["early"]]$est), 
+                t(cytof_parent_test[["late"]]$est))
+pval_mat = cbind(t(cytof_parent_test[["early"]]$pval), 
+                 t(cytof_parent_test[["late"]]$pval))
+rownames(est_mat)[rownames(est_mat) == "CD4 T Cell"] = "CD4+ T Cell"
+rownames(est_mat)[rownames(est_mat) == "CD8 T Cell"] = "CD8+ T Cell"
+rownames(est_mat)[rownames(est_mat) == "Hematopoetic progrenitor Cell"] = 
+  "Hematopoetic progrenitor"
+rownames(pval_mat) = rownames(est_mat)
+adj_p = apply(pval_mat, 2, function(p) p.adjust(p, method = "BH"))
+
+test_type = factor(colnames(est_mat), 
+                   levels = c("EF vs ABC", "F vs E", 
+                              "A vs BC", "B vs AC", "C vs AB"))
+colnames(est_mat) = rep(c("V1-V3","V4-V6"), each = 5)
+colnames(pval_mat) = rep(c("V1-V3","V4-V6"), each = 5)
+est_mat[est_mat > max_cutoff] = max_cutoff
+est_mat[est_mat < -max_cutoff] = -max_cutoff
+
+est_mat = est_mat[select_cytof,]
+adj_p = adj_p[select_cytof,]
+
+cytof_multi_comparison = ComplexHeatmap::Heatmap(
+  as.matrix(est_mat), 
+  col = circlize::colorRamp2(c(-max_cutoff, 0, max_cutoff),
+                             c("#284AA0", "white", "#BC4A4A")),
+  show_heatmap_legend = TRUE, na_col = "grey90", border=T, 
+  column_title_gp = gpar(fontsize = 15), 
+  border_gp = gpar(col = "darkgrey", lwd = 0.5), 
+  rect_gp = gpar(col = "darkgrey", lwd = 0.5),
+  row_names_gp = gpar(fontsize = 15), 
+  column_names_gp = gpar(fontsize = 15),
+  heatmap_legend_param = list(
+    title = "Coefficient    ",
+    direction = "horizontal", title_position = "leftcenter",
+    title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),
+  column_split = test_type, cluster_columns = F,
+  cluster_rows = F, cell_fun = function(j, i, x, y, w, h, fill) {
+  if(adj_p[i, j] < 0.001) {
+    grid.text("***", x, y-h*0.12)
+  }else if(adj_p[i, j] < 0.01) {
+    grid.text("**", x, y-h*0.12)
+  }else if(adj_p[i, j] < 0.05) {
+    grid.text("*", x, y-h*0.12)
+  }
+})
+ComplexHeatmap::draw(cytof_multi_comparison, heatmap_legend_side = "bottom")
+```
+
+

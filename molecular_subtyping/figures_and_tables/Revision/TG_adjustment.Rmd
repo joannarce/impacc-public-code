@@ -1,0 +1,399 @@
+---
+title: "Additional Check"
+output: html_notebook
+---
+
+```{r load library}
+require(openxlsx)
+library(factoextra)
+library(cluster)
+require(nlme) # directly provides p-values, unlike lme4
+require(splines)
+require(dplyr)
+library(fgsea)
+library(knitr)
+library(kableExtra)
+library(tidyverse)
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+source(paste0(codebase_path,"/codebase_subtype.R"))
+
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+mcia_results = readRDS(paste0(intermediate_results_outdir_DR,"MCIA_phase123_20230726.rds"))
+
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+```
+
+# Load preliminary results
+```{r load subtype assignment and clinical data}
+# load subtype assignment and clinical data
+nclust_tree_all = 6
+subtype_hcl = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_aligned = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+extended_data = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/extended_data.rds")
+```
+
+# Factor trajectory across TG
+```{r factor trajectory across TG, fig.height=6, fig.width=30, warning=FALSE}
+mod_ids = c(1, 2, 3, 10, 30)
+negation = c(-1, 1, 1, 1, 1)
+# negate factors
+mcia_factors = t(t(mcia_results$mcia_factors[,mod_ids]) * negation)
+mcia_factors=apply(mcia_factors,2, function(z) qqnorm(z, plot.it = F)$x)
+mcia_factors = data.frame(mcia_factors,row.names = rownames(organized_data$datasets$plasma_proteomics_targeted))
+mcia_factors = mcia_factors[clin_data_aligned$event_id,]
+colnames(mcia_factors) = paste0("Factor", mod_ids)
+
+assay_mat = mcia_factors
+assay_mat$event_id = rownames(assay_mat)
+assay_mat = cytof_mat_preprocess(cytof_mat = assay_mat, 
+                                 subtype_hcl = subtype_hcl,
+                                 clin_data = clin_data_aligned)
+clin_colnames_select = setdiff(colnames(assay_mat), colnames(mcia_factors))
+
+factor_trajectory_analysis_results = helper_trajectory_data_smooth_spline(
+  assay_mat = assay_mat, clin_colnames_select = clin_colnames_select,
+  endpoint = "TG", use_endpoint_levels = c("1", "2", "3", "4", "5"),
+  max_date = 40, feature_with_ylab = c("Factor1"),
+  subgroup_cr = c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", 
+                  "4" = "#BD7D31", "5" = "#9C3418"))
+
+ggarrange(plotlist = factor_trajectory_analysis_results$test_fig_list, 
+          nrow = 1, common.legend = T, legend = "bottom")
+```
+
+# PASC distribution across TG
+```{r PASC distribution across TG, fig.height=6, fig.width=6,}
+sample_meta_participant = extended_data$sample_meta_participant_level
+sample_meta_participant$death_date[sample_meta_participant$death_date<0] = 999
+censoring_date_death = 200
+death_surv = cbind(sample_meta_participant$death_date,sample_meta_participant$death_date)
+death_surv[death_surv[,2]>censoring_date_death,2] = censoring_date_death+1
+death_surv[,1] = ifelse(death_surv[,2]<=censoring_date_death,1,0)
+death_surv = data.frame(death_surv)
+colnames(death_surv) = c("state", "time")
+id_post_acute <- which(death_surv$time > 28 & subtype_hcl$label != "D")
+
+post_acute_label = array("Non-\nrespondent", 
+                         nrow(extended_data$sample_meta_participant_level))
+idx_PASC = which(!is.na(subtype_hcl$conv))
+post_acute_label[idx_PASC] = "Other\nDeficits"
+post_acute_label[subtype_hcl$PASC == "minimal"] = "Minimal\nDeficit"
+post_acute_label = factor(post_acute_label, 
+                          levels = c("Minimal\nDeficit", "Other\nDeficits",
+                                     "Non-\nrespondent"))
+
+df_post_acute = data.frame(Subtype = factor(subtype_hcl$label[id_post_acute]),
+                           post_acute = factor(post_acute_label)[id_post_acute],
+                           TG = subtype_hcl$TG[id_post_acute])
+df_post_acute = df_post_acute[df_post_acute$TG %in% c(1,2,3,4), ]
+df_post_acute$TG = paste0("TG", df_post_acute$TG)
+df_post_acute$TG = factor(df_post_acute$TG)
+df_summary1 = df_post_acute %>%
+  dplyr::group_by(TG, post_acute) %>%
+  dplyr::summarise(Count = n(), .groups = "drop")
+
+total_counts1 <- df_summary1 %>%
+  group_by(TG) %>%
+  summarise(Total = sum(Count))
+
+df_summary1 = df_summary1 %>%
+  dplyr::group_by(TG) %>%
+  mutate(percent = Count/sum(Count)*100)
+df_summary1$TG <- factor(df_summary1$TG, 
+                              levels = rev(levels(df_summary1$TG)))
+
+ggplot(df_summary1 , aes(y = TG, x = percent, fill = post_acute)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+    geom_text(data = total_counts1,
+              aes(y = TG, x = -6.5,label = sprintf(" %d", Total)),
+            position = position_dodge(width = 0.9),
+            inherit.aes = FALSE, size = 7)+
+  labs(y = "TG",
+       x = "Percent", fill = "Post Acute Status") +
+  theme(axis.title.x = element_text(size = 15),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(color = "black", size = 15),
+        axis.text.y = element_text(color = "black", size = 15),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15),
+        legend.position = "top",
+        legend.margin = margin(b = 16),
+        plot.margin = margin(b = 55, t = 5))
+```
+
+# Subtype distribution across TG
+```{r subtype distribution across TG, fig.height=6, fig.width=8}
+df_summary <- data.frame(Subtype = factor(subtype_hcl$label),
+                         PASC =subtype_hcl$PASC,
+                         TG = subtype_hcl$TG)
+df_summary$TG <- factor(paste0("TG", df_summary$TG))
+
+df_summary2 <- df_summary %>%
+  dplyr::group_by(Subtype, TG) %>%
+  dplyr::summarise(Count = n(), .groups = "drop")
+total_counts2 <- df_summary2 %>%
+  group_by(TG) %>%
+  summarise(Total = sum(Count))
+df_summary2 <- df_summary2 %>%
+  dplyr::group_by(TG) %>% 
+  mutate(percent = Count/sum(Count)*100)
+
+df_summary2$TG <- factor(df_summary2$TG, 
+                              levels = rev(levels(df_summary2$TG)))
+
+ggplot(df_summary2, aes(y = TG, x = percent, fill = Subtype)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+    geom_text(data = total_counts2,
+              aes(y = TG, x = -6, label = sprintf(" %d", Total)),
+            position = position_dodge(width = 0.9),
+            inherit.aes = FALSE, size = 7)+
+  labs(y = "TG",
+       x = "Percent") +
+  theme(axis.title.x = element_text(size = 15),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(color = "black", size = 15),
+        axis.text.y = element_text(color = "black", size = 15),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15),
+        legend.key.size = unit(2, "lines"),
+        plot.margin = margin(b = 55, t = 5)) +
+  scale_fill_manual(values = c("A" = "#20854EB2", "B" = "#0072B5B2",
+                               "C" = "#E18727B2", "D" = "#FFDC91B2",
+                               "E" = "#EE4C97B2", "F" = "#BC3C29B2"))
+```
+
+# Post-acute mortality
+```{r}
+# adjust for demographics
+clin_data_patient <- clin_data_aligned[clin_data_aligned$event_type == "Visit 1",]
+demo_data_adjust <- clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
+
+sample_meta_participant = extended_data$sample_meta_participant_level
+sample_meta_participant$death_date[sample_meta_participant$death_date<0] = 999
+censoring_date_death = 200
+death_surv = cbind(sample_meta_participant$death_date,
+                   sample_meta_participant$death_date)
+death_surv[death_surv[,2]>censoring_date_death,2] = censoring_date_death+1
+death_surv[,1] = ifelse(death_surv[,2]<=censoring_date_death,1,0)
+death_surv = data.frame(death_surv)
+colnames(death_surv) = c("state", "time")
+
+idx_post_acute_F = which(death_surv$time > 28 & subtype_hcl$label == "F")
+sum(death_surv$time[idx_post_acute_F] < censoring_date_death) / length(death_surv$time[idx_post_acute_F])
+
+idx_post_acute_E = which(death_surv$time > 28 & subtype_hcl$label == "E")
+sum(death_surv$time[idx_post_acute_E] < censoring_date_death) / length(death_surv$time[idx_post_acute_E])
+
+idx_post_acute_C = which(death_surv$time > 28 & subtype_hcl$label == "C")
+sum(death_surv$time[idx_post_acute_C] < censoring_date_death) / length(death_surv$time[idx_post_acute_C])
+```
+
+# Clinical names correspondence
+```{r clinical names correspondence}
+clin_names <- c("sex" = "Sex (Female)",
+                "ethnicity" = "Ethnicity (Hispanic or Latino)",
+                "admit_age" = "Admission age",
+                "discretized_admit_age_quantile" = "Admission age quantile",
+                "raceAmerican Indian / Alaska Native" = "American Indian/Alaska Native",
+                "raceAsian" = "Asian",
+                "raceBlack / African American" = "Black/African American",
+                "raceBlack...African.American" = "Black/African American",
+                "raceMultiple" = "Multiple Races",
+                "raceNative Hawaiian / Pacific Islander" = "Native Hawaiian/Pacific Islander",
+                "raceWhite" = "White",
+                "bmicat" = "BMI category",
+                "comorb_htn" = "Hypertension",
+                "comorb_isaric_dm" = "Diabetes",
+                "comorb_anyresp_noasthma" = "Pulmonary (excludes asthma)",
+                "comorb_isaric_asthma" = "Asthma",
+                "comorb_isaric_cardiac" = "Chronic cardiac disease",
+                "comorb_isaric_ckd" = "Chronic kidney disease",
+                "comorb_isaric_neoplasm" = "Malignant neoplasm",
+                "comorb_neuro" = "Chronic neurological disorder",
+                "comorb_isaric_liver" = "Liver disease",
+                "comorb_hxtrans" = "History of solid organ or bone marrow transplant",
+                "comorb_hiv2" = "HIV",
+                "comorb_eversmkvape" = "Current or former smoking and/or vaping",
+                "comorb_anysubstance" = "Drug or alcohol abuse or cannabis use",
+                "comp_seizure" = "Seizures",
+                "comp_meningitis" = "Meningitis/encephalitis",
+                "comp_stroke" = "Stroke/CVA",
+                "comp_afib" = "Atrial fibrillation",
+                "comp_ventricular_arr" = "Ventricular arrhythmia",
+                "comp_endo" = "Endocarditis",
+                "comp_myocard" = "Myocarditis/pericarditis",
+                "comp_cardarrest" = "Cardiac arrest",
+                "comp_stemi" = "ST-elevation MI (STEMI)",
+                "comp_nstemi" = "Non-ST elevation MI (NSTEMI) or other cardiac ischemia",
+                "comp_chf" = "CHF/cardiomyopathy",
+                "comp_pneumonia" = "Pneumonia",
+                "comp_bronch" = "Bronchiolitis",
+                "comp_pneumo" = "Pneumothorax",
+                "comp_pneumomed" = "Pneumomediastinum",
+                "comp_aat" = "Acute arterial thromboembolism excluding stroke/CVA or myocardial infarction",
+                "comp_avthromb" = "Acute venous thromboembolism",
+                "comp_shock" = "Shock (use of vasopressors)",
+                "comp_bac" = "Bacteremia",
+                "comp_coag" = "Coagulation disorder/disseminated intravascular coagulation",
+                "comp_hypogly" = "Symptomatic hypoglycemia",
+                "comp_bleed" = "Bleeding",
+                "comp_anemia" = "Anemia",
+                "comp_pancreas" = "Pancreatitis",
+                "comp_renal" = "Acute renal injury/failure",
+                "comp_liver" = "Liver dysfunction/failure",
+                "comp_othlab" = "Other lab abnormality",
+                "comp_electrolyte" = "Electrolyte abnormality",
+                "comp_othinf" = "Other infection (non-pulmonary)",
+                "comp_othpulm" = "Other pulmonary complication",
+                "comp_unddisease" = "Exacerbation of underlying disease",
+                "comp_enceph" = "Encephalopathy",
+                "comp_othneuro" = "Other neurologic complication",
+                "comp_hypergly" = "Hyperglycemia",
+                "comp_psych" = "Psychiatric complication",
+                "comp_mis" = "Multisystem inflammatory syndrome (MIS)",
+                "comp_gastroent" = "Gastroenteritis",
+                "comp_pulmvas" = "Pulmonary vascular disease",
+                "ever_azithro" = "Azithromycin",
+                "ever_icu" = "Ever in ICU",
+                "ever_otherabx" = "Other Antibiotics",
+                "ever_remdes" = "Remdesivir",
+                "ever_steroids" = "Steroids",
+                "ever_ever_esc" = "Ever required escalation of care",
+                "ever_immsupp" = "Immunosuppressives",
+                "baseline_anyimg" = "Any chest imaging at baseline",
+                "baseline_img_infil" = "Radiographic findings on chest imaging",
+                "baseline_lymph_abn" = "Abnormal Lymphocyte count",
+                "baseline_platelets_abn" = "Abnormal Platelets",
+                "baseline_alt_abn" = "Abnormal ALT",
+                "baseline_cr_abn" = "Abnormal Creatinine",
+                "baseline_crp_abn" = "Abnormal CRP",
+                "baseline_ddimer_abn" = "Abnormal D-dimer",
+                "baseline_trop_abn" = "Abnormal Troponin")
+```
+
+```{r}
+interest_clin_feature = c(
+  "comorb_htn", "comorb_anyresp_noasthma", "comorb_isaric_cardiac", 
+  "comorb_isaric_ckd", "comorb_hxtrans", "comp_stroke", "comp_afib",
+  "comp_ventricular_arr", "comp_cardarrest", "comp_chf", "comp_pneumonia", 
+  "comp_avthromb", "comp_shock", "comp_bac", "comp_bleed", "comp_anemia", 
+  "comp_renal", "ever_icu", "ever_ever_esc", "baseline_lymph_abn", 
+  "baseline_platelets_abn", "baseline_alt_abn", "baseline_cr_abn", 
+  "baseline_crp_abn", "baseline_ddimer_abn", "baseline_trop_abn", 
+  "baseline_img_infil")
+# interest_clin_feature = grep("^(comorb|comp|ever|baseline)", 
+#                              interest_clin_feature, value = TRUE)
+```
+
+# Demographic, comorbidity, baseline, and complication
+```{r clinical heatmap, fig.height=8, fig.width=11, warning=FALSE}
+clin_data_patient <- clin_data_aligned[clin_data_aligned$event_type == "Visit 1",]
+demo_data <- clin_data_patient[, c("admit_age", "sex", "ethnicity",
+                                   "discretized_admit_age_quantile",
+                                   "bmicat", "enrollment_site", "race")]
+demo_data$ethnicity[demo_data$ethnicity == "Not Specified"] <- NA
+demo_data$bmicat[demo_data$bmicat == 999] <- NA
+demo_data$bmicat_test <- demo_data$bmicat
+# group obesity together
+demo_data$bmicat_test[demo_data$bmicat_test == 5] <- 4
+demo_data$race <- as.factor(demo_data$race)
+race_one_hot <- model.matrix(~ race-1, data = demo_data)
+race_one_hot <- race_one_hot[, !(colnames(race_one_hot) %in%
+                                   c("raceOther / Declined", 
+                                     "raceUnknown / Unavailable"))]
+demo_data_adjust <- demo_data[, c("discretized_admit_age_quantile", "sex")]
+TG_adjust <- data.frame(TG = subtype_hcl$TG)
+
+clin_data_logit <- clin_data_patient %>%
+  dplyr::select(matches("^(comorb|comp)"), ever_icu, ever_ever_esc) %>%
+  dplyr::select(-comorb_count, -comorb_countcat, -comp_other2) %>%
+  select_if(~sum(.x, na.rm = TRUE) > 0)
+clin_data_demo_logit <- cbind(demo_data[, c("sex", "ethnicity")], race_one_hot)
+clin_data_demo_logit$sex <- ifelse(clin_data_demo_logit$sex == "Female", 1, 0)
+clin_data_demo_logit$ethnicity <- ifelse(clin_data_demo_logit$ethnicity == 
+                                           "Hispanic or Latino", 1, 0)
+
+clin_data_baseline <- clin_data_patient %>%
+  dplyr::select(matches("^baseline")) %>%
+  dplyr::select(-baseline_anyimg) %>%
+  mutate(across(everything(), ~replace(., . == 999, NA)))
+clin_data_baseline_logit <- clin_data_baseline %>%
+  dplyr::select(ends_with("_abn"))
+
+sub_idx <- which(subtype_hcl$label != "D")
+clin_test_logit <- test_clinical_logit_demo(
+  subtype_hcl$label[sub_idx],
+  clin_data_logit[sub_idx,],
+  cbind(demo_data_adjust[sub_idx,],
+        TG_adjust[sub_idx, ]))
+# demo_test_logit <- test_clinical_logit(
+#   subtype_hcl$label[sub_idx],
+#   clin_data_demo_logit[sub_idx,])
+baseline_test_logit <- test_clinical_logit_demo(
+  subtype_hcl$label[sub_idx],
+  clin_data_baseline_logit[sub_idx,],
+  cbind(demo_data_adjust[sub_idx,],
+        TG_adjust[sub_idx, ]))
+# bmi_test_ordinal <- test_ordinal(
+#   subtype_hcl$label[sub_idx],
+#   demo_data$bmicat_test[sub_idx])
+# age_test_ordinal <- test_ordinal(
+#   subtype_hcl$label[sub_idx],
+#   demo_data$discretized_admit_age_quantile[sub_idx])
+baseline_test_ordinal <- test_ordinal_demo(
+  subtype_hcl$label[sub_idx],
+  clin_data_baseline$baseline_img_infil[sub_idx],
+  cbind(demo_data_adjust[sub_idx,],
+        TG_adjust[sub_idx, ]))
+
+clin_test_logit$p_lr_adj <- p.adjust(clin_test_logit$p_lr, method = "BH")
+# demo_test_logit$p_lr_adj <- p.adjust(demo_test_logit$p_lr, method = "BH")
+
+# clinical test featuring variables of interest
+clin_test <- clin_test_logit
+# interest_clin_idx <- which(clin_test_logit$p_lr_adj < 0.001)
+# interest_demo_idx <- which(demo_test_logit$p_lr_adj < 0.001)
+clin_test$est_logit <- cbind(clin_test_logit$est_logit, 
+                             # demo_test_logit$est_logit[,interest_demo_idx],
+                             baseline_test_logit$est_logit,
+                             # bmi_test_ordinal$est_ordinal,
+                             # age_test_ordinal$est_ordinal,
+                             baseline_test_ordinal$est_ordinal)
+# colnames(clin_test$est_logit)[ncol(clin_test$est_logit)-2] <- "bmicat"
+# colnames(clin_test$est_logit)[ncol(clin_test$est_logit)-1] <- 
+#   "discretized_admit_age_quantile"
+colnames(clin_test$est_logit)[ncol(clin_test$est_logit)] <- "baseline_img_infil"
+clin_test$est_logit = clin_test$est_logit[,interest_clin_feature]
+
+clin_test$p_logit <- cbind(clin_test_logit$p_logit, 
+                           # demo_test_logit$p_logit[,interest_demo_idx],
+                           baseline_test_logit$p_logit,
+                           # bmi_test_ordinal$p_ordinal,
+                           # age_test_ordinal$p_ordinal,
+                           baseline_test_ordinal$p_ordinal)
+# colnames(clin_test$p_logit)[ncol(clin_test$p_logit)-2] <- "bmicat"
+# colnames(clin_test$p_logit)[ncol(clin_test$p_logit)-1] <- 
+#   "discretized_admit_age_quantile"
+colnames(clin_test$p_logit)[ncol(clin_test$p_logit)] <- "baseline_img_infil"
+clin_test$p_logit = clin_test$p_logit[,interest_clin_feature]
+
+clin_test$p_adj <- apply(clin_test$p_logit, 2,
+                         function(p) p.adjust(p, method = "BH"))
+
+heatmap_clinical(clin_test, clin_names, adjust_p = TRUE)
+```
+
+
+
+
