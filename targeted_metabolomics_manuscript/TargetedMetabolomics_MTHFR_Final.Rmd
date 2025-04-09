@@ -1,0 +1,3027 @@
+---
+title: "IMPACC Targeted Metabolomics Analysis"
+author: "Caitlin Syphurs"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+editor_options:
+  chunk_output_type: inline
+---
+
+Built with R version: `r getRversion()`
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+setwd("/scratch/metabolomics/plasma-metabolomics-targeted/MTHFR")
+```
+
+### Load libraries
+```{r load-packages}
+suppressPackageStartupMessages(library(package = "knitr"))
+suppressPackageStartupMessages(library(package = "impute"))
+#suppressPackageStartupMessages(library(package = "igraph"))
+suppressPackageStartupMessages(library(package = "ggnetwork"))
+suppressPackageStartupMessages(library(package = "ordinal"))
+suppressPackageStartupMessages(library(package = "qvalue"))
+suppressPackageStartupMessages(library(package = "ggbeeswarm"))
+suppressPackageStartupMessages(library(package = "ggeffects"))
+#BiocManager::install("pvca")
+suppressPackageStartupMessages(library(package = "pvca"))
+suppressPackageStartupMessages(library(package = "GSA"))
+suppressPackageStartupMessages(library(package = "lme4"))
+suppressPackageStartupMessages(library(package = "nlme"))
+suppressPackageStartupMessages(library(package = "tidyverse"))
+suppressPackageStartupMessages(library(package = "ggfortify"))
+suppressPackageStartupMessages(library(package = "epitools"))
+suppressPackageStartupMessages(library(package = "circlize"))
+suppressPackageStartupMessages(library(package = "rstatix"))
+#BiocManager::install("sva")
+suppressPackageStartupMessages(library(package = "sva"))
+suppressPackageStartupMessages(library(package = "ComplexHeatmap"))
+suppressPackageStartupMessages(library(package = "circlize"))
+suppressPackageStartupMessages(library(package = "table1"))
+suppressPackageStartupMessages(library(package = "dplyr"))
+suppressPackageStartupMessages(library(package = "ggplot2"))
+suppressPackageStartupMessages(library(package = "pROC"))
+#install.packages(c("survival", "survminer"))
+suppressPackageStartupMessages(library(package = "survival"))
+suppressPackageStartupMessages(library(package = "survminer"))
+suppressPackageStartupMessages(library(package = "geepack"))
+suppressPackageStartupMessages(library(package = "table1"))
+suppressPackageStartupMessages(library(package = "DT"))
+suppressPackageStartupMessages(library(package = "data.table"))
+suppressPackageStartupMessages(library(package = "readxl"))
+suppressPackageStartupMessages(library(package = "lmtest"))
+
+# set session options
+options(show_col_types = FALSE)
+VarCorr <- lme4::VarCorr
+```
+
+### Import convalescent annotations file
+```{r read and process convalescent annotations}
+convalescent_pro_groups <- read.csv("/scratch/clinical/current/impacc-convalescent.csv")
+participant_status <- read.csv("/scratch/clinical/current/impacc_participant_status.csv")
+
+# Convert PRO group cluster numbers to PRO groups as described in paper
+# This mapping was communicated by Leying Guan via Teams on May 15th as the 
+# original table is unclear about the exact PRO groups mappings
+    
+convalescent_pro_groups <- convalescent_pro_groups %>% 
+  dplyr::mutate( pro_group_labels = case_match( 
+    conv_cluster6, 
+    c(1,3,4) ~ "MIN",
+    c(2) ~ "PHY",
+    c(5) ~ "COG",
+    c(6) ~ "MLT"
+  ))
+
+# Check number of patients in each of the groups
+conv_cohort_size <- length(unique(convalescent_pro_groups$participant_id))
+cat("There are ", conv_cohort_size,
+        " participants in the convalescent cohort.")
+```
+
+```{r define dataset version, echo = FALSE}
+##### Authors: Ravi K. Patel, Jeremy Gygi;
+
+# Indicate the version of the data to use ("current" or a date in "YYYY-MM-DD" format)
+# If "current", the data files in "current" directories are used, otherwise, the data files in "legacy" directories that were current on the specified date are used.
+DATA_VERSION <- "current"
+
+# Indicate the phases that you want to include.
+# NOTE: PHASES = 4 refers to 4a
+#.      PHASES = 5 refers to 4b
+#.      PHASES = 9 refers to phase 9 (leftover samples)
+PHASES <- c(1,2,3,4,5,9,NA)
+
+# Allowed QC? Defaults to pass (including questionable)
+ALLOWED_SMPL_STATUS <- c("IMPACC sample assayed and passed QC", "IMPACC sample assayed with questionable QC")
+
+# Keep only COVID-19 Positive individuals. Defaults to TRUE
+# (TRUE will remove all COVID-19 Negative individuals)
+KEEP_COVID19_POS <- TRUE
+# Keep Escalation visits (Escalation 1, Escalation 2)? Defaults to FALSE
+KEEP_ESCALATIONS = FALSE
+# Keep Emory Controls? Defaults to FALSE
+KEEP_EMORY_CONTROLS = FALSE
+
+# Upper limit for event_date.
+# Using higher values (e.g. 999) will include all visits (see KEEP_ESCALATIONS
+#   for inclusion of Escalation visits).
+EVENT_DATE_UPPER = 999
+
+# Upper limit for event_type. For example, 6 would use up to 'Visit 6'.
+# Using higher values (e.g. 999) will include all visits (see KEEP_ESCALATIONS
+#   for inclusion of Escalation visits).
+VISIT_LOWER = 1
+VISIT_UPPER = 999
+
+# Use 01/01/2023 locked data in "/data/clinical/current"?
+USE_LOCKED_CLINICAL <- TRUE
+
+# Filtering by manuscript cohorts:
+# Currently supports core assay / integration manuscript cohort filtering.
+FILTER_BY_CORE_ASSAY_COHORT = FALSE
+FILTER_BY_INTEGRATION_COHORT = FALSE
+
+# Filter by convalescent cohort participant ID
+#SELECT_PARTICIPANT_ID = convalescent_pro_groups$participant_id
+SELECT_PARTICIPANT_ID=NULL
+
+# Exclude samples
+EXCLUDE_SAMPLES = NULL
+```
+
+```{r Prepare environment, echo=FALSE}
+##### Authors: Ravi K. Patel, Jeremy Gygi.
+# Set options
+options(encoding = "UTF-8") # instead of ANSI
+options(scipen = 999) # non-scientific output
+```
+
+### ------------------------------------
+#### **Study:** IMPACC
+#### **Analysis title:** IMPACC Convalescent Data Loading
+#### **Analysis description:** Loading combined data from all phases for analyses.
+#### **License:** 
+#### **Author(s):** Ravi K. Patel (ravi.patel2@ucsf.edu), Jeremy Gygi (jeremy.gygi@yale.edu), Steven Kleinstein (steven.kleinstein@yale.edu), Leying Guan (leying.guan@yale.edu)
+#### **Date Created:** `r paste(format(Sys.time(), "%Y-%d-%m %X"), "UTC")`
+
+#### **Source file:** `r knitr::current_input()`
+#### **Dataset version:** `r ifelse(DATA_VERSION == "current", paste0("current (date: ", format(Sys.time(),"%Y-%m-%d"), ")"), paste0("legacy (date: ", DATA_VERSION, ")") )` `r paste0("(phases: ", paste0(PHASES, collapse=","), ")") `
+#### **R version:** `r paste(R.Version()$version.string)`
+#### **Platform:** `r paste(R.Version()$platform)`
+#### **Running under**: `r paste(sessionInfo()$running)`
+
+#### **Notes:** The observations for which the clinical data is unavailable are removed.
+### ------------------------------------
+
+```{r load header template codebase, echo=FALSE}
+# Source the codebase file:
+#source(path_to_codebase)
+source("~/IMPACC_data_analysis_codebase.R")
+```
+
+```{r load datasets, message=FALSE, echo=FALSE}
+# Load all available IMPACC datasets associated with DATA_VERSION.
+data_env <- load_IMPACC_datasets(# Data version:
+                                 DATA_VERSION = DATA_VERSION,
+                                 # QC Sample Filtering:
+                                 ALLOWED_SMPL_STATUS = ALLOWED_SMPL_STATUS,
+                                 # COVID-19 Positive
+                                 KEEP_COVID19_POS = KEEP_COVID19_POS,
+                                 # Emory controls:
+                                 KEEP_EMORY_CONTROLS = KEEP_EMORY_CONTROLS,
+                                 # Escalations:
+                                 KEEP_ESCALATIONS = KEEP_ESCALATIONS,
+                                 # Use the locked clinical data (01/01/2023)
+                                 USE_LOCKED_CLINICAL = USE_LOCKED_CLINICAL,
+                                 
+                                 # Don't restrict filtering by manuscript:
+                                 FILTER_BY_CORE_ASSAY_COHORT = FILTER_BY_CORE_ASSAY_COHORT,
+                                 FILTER_BY_INTEGRATION_COHORT = FILTER_BY_INTEGRATION_COHORT,
+                                 
+                                 # Select participant IDs
+                                 SELECT_PARTICIPANT_ID = SELECT_PARTICIPANT_ID,
+                                 
+                                 # Exclude samples
+                                 EXCLUDE_SAMPLES = EXCLUDE_SAMPLES,
+                                 
+                                 # event_type / visit upper limits
+                                 EVENT_DATE_UPPER = 999,
+                                 VISIT_LOWER = VISIT_LOWER,
+                                 VISIT_UPPER = 6,
+                                 
+                                 # Phases
+                                 PHASES = PHASES)
+
+# Load and assign the data objects into the environment
+# User can call upon any assay via the name e.g. serum_olink_counts
+for( n in names(data_env) ) {
+  assign( n, data_env[[n]] )
+}
+
+
+clinical_data <- data_env[[ "clinical_data" ]]
+
+```
+
+### Structure clinical data
+* Add convalescent PRO clusters
+* Subset for metabolomics samples (sample_type=="PROTEOMICS/MET")
+```{r, results="hide", message=FALSE}
+names(convalescent_pro_groups)[3] <- "conv_cluster4"
+clinical_data <- merge(clinical_data, convalescent_pro_groups[,c(1,3)], by = "participant_id", all.x = TRUE)
+
+# combine conv clusters 1, 3, and 4 -> 1 = 1,3,4
+clinical_data$conv_cluster4 <- ifelse(clinical_data$conv_cluster4 == 2, 2, 
+                                     ifelse(clinical_data$conv_cluster4 == 5, 5,
+                                            ifelse(clinical_data$conv_cluster4 == 6, 6, 1)))
+clinical_data$conv_cluster4 <- as.numeric(clinical_data$conv_cluster4)
+
+# subset clinical data for metabolomics samples
+clinical_data <- subset(clinical_data, clinical_data$sample_type=="PROTEOMICS/MET")
+```
+
+### Import MTHFR dataset
+* Merge MTHFR data with clinical data
+```{r}
+alleles <- read.csv("/scratch/metabolomics/plasma-metabolomics-targeted/MTHFR/MTHFR.csv", header = TRUE)
+# create MTHFR variable 
+alleles$MTHFR <- paste(alleles$allele.1, alleles$allele.2, sep="")
+alleles<-subset(alleles,alleles$MTHFR!="00") # remove 3
+alleles$MTHFR<-as.factor(alleles$MTHFR)
+table(alleles$MTHFR)
+alleles <- alleles[,c(1,4)]
+
+#merge MTHFR data with clinical data by participant_id
+clin_alleles <- merge(clinical_data, alleles, by="participant_id")
+length(unique(clin_alleles$participant_id)) # 1035 pts with MTHFR and met sample
+clin_alleles$trajectory_group <- factor(clin_alleles$trajectory_group, levels = c(1,2,3,4,5))
+```
+
+### Import and structure targeted metabolomics data (data_use_targeted)
+```{r}
+### Import targeted phase 1-3 data
+#targeted_raw <- read.csv("/impacc-study/Boston/plasma-metabolomics-targeted/2023-06-15/TargetedPlasmaMetabolomics-Counts.csv")
+# DMAC QC'd targeted metabolomics
+targeted_raw <- read.csv("/impacc-study/Boston/plasma-metabolomics-targeted/TargetedPlasmaMetabolomics-Counts-QCd.csv")
+rownames(targeted_raw) <- targeted_raw[,1]
+targeted <- pivot_longer(targeted_raw,cols = 2:69, names_to = "metabolite")
+
+targeted_meta_raw <- read.csv("/impacc-study/Boston/plasma-metabolomics-targeted/2023-06-15/TargetedPlasmaMetabolomics-Metadata.csv")
+#filter for passed QC
+targeted_meta <- distinct(targeted_meta_raw) %>% filter(sample_status == "IMPACC sample assayed and passed QC")
+paste0("Phases")
+table(targeted_meta$phase)
+paste0("Visits")
+table(targeted_meta$visitnum)
+
+#merge count and metadata
+targeted_meta <- merge(targeted, targeted_meta, by = "guspec")
+
+### Structure targeted data
+clinical_df = clin_alleles
+meta_data_raw <- targeted_meta
+colnames(meta_data_raw)[1] <- "sample_id"
+met_data <- merge(meta_data_raw, clinical_df, by = c("sample_id"), all.x = TRUE)#,"phase"
+met_data = subset(met_data, met_data$"trajectory_group" %in% c(1,2,3,4,5))
+met_data <-  met_data[order(met_data$participant_id),]
+
+targeted_metabolomics_counts_tmp <- targeted_raw[met_data$sample_id,]
+targeted_metabolomics_counts_tmp <- drop_na(targeted_metabolomics_counts_tmp)
+targeted_metabolomics_counts_tmp = targeted_metabolomics_counts_tmp[!duplicated(targeted_metabolomics_counts_tmp),]
+rownames(targeted_metabolomics_counts_tmp) <- NULL
+targeted_metabolomics_counts_tmp <- tibble::column_to_rownames(targeted_metabolomics_counts_tmp, var="guspec")
+
+data_use_targeted <- targeted_metabolomics_counts_tmp %>%
+  rownames_to_column(var = "sample_id") %>%
+  merge(y  = dplyr::select(clinical_data, 
+                    sample_id, 
+                    event_date,
+                    trajectory_group,
+                    enrollment_site,
+                    discretized_admit_age_quantile,
+                    sex,
+                    bmi,
+                    participant_id,event_location,conv_cluster4,event_type),
+        by = "sample_id") %>%
+  filter(!is.na(trajectory_group)) %>%
+  filter(duplicated(participant_id) | duplicated(participant_id, fromLast = TRUE)) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(trajectory_group = factor(trajectory_group)) %>%
+  pivot_longer(cols = -c("sample_id", "event_date", "participant_id",
+                         "enrollment_site", "trajectory_group",
+                         "discretized_admit_age_quantile", "sex", "bmi", "event_location","conv_cluster4","event_type")) %>%
+  mutate(discretized_admit_age_quantile= factor(discretized_admit_age_quantile)) %>%
+  filter(!is.na(value))
+data_use_targeted$conv_cluster4 = as.factor(data_use_targeted$conv_cluster4)
+data_use_targeted <- merge(data_use_targeted,alleles,by="participant_id")
+data_use_targeted$MTHFR = as.factor(data_use_targeted$MTHFR)
+data_use_targeted$OUTCOME = data_use_targeted$MTHFR
+
+data_use_targeted_acute = subset(data_use_targeted, data_use_targeted$event_type %in% c("Visit 1","Visit 2","Visit 4","Visit 6"))#,"Visit 3","Visit 5"
+
+```
+
+### Structure global metabolomics data (data_use_global)
+```{r}
+# identify metabolites in methionine pathway and glycine pathway
+Metabolomics_rowfeature <- read.csv("/data/metabolomics/plasma-metabolomics-global/current/GlobalPlasmaMetabolomics-RowFeature.csv")
+pathways <- Metabolomics_rowfeature %>% filter(SUB_PATHWAY %in% c('Methionine, Cysteine, SAM and Taurine Metabolism','Glycine, Serine and Threonine Metabolism','Creatine Metabolism') )
+
+clinical_df = clin_alleles
+meta_data_raw <- plasma_metabolomics_global_metadata
+meta_data_raw <- rownames_to_column(meta_data_raw, "sample_id")
+met_data <- merge(meta_data_raw, clinical_df, by = c("sample_id"))#,"phase"
+met_data <-  met_data[order(met_data$participant_id),]
+
+  
+plasma_metabolomics_global_counts_tmp <- plasma_metabolomics_global_counts[met_data$sample_id,]
+plasma_metabolomics_global_counts_tmp_long <- rownames_to_column(plasma_metabolomics_global_counts_tmp, var = "sample_id")
+plasma_metabolomics_global_counts_tmp_long <- plasma_metabolomics_global_counts_tmp_long %>% pivot_longer(!sample_id, names_to = "MET_ID", values_to = "value")
+plasma_metabolomics_global_counts_tmp_long <- subset(plasma_metabolomics_global_counts_tmp_long, MET_ID %in% pathways$MET_ID)
+plasma_metabolomics_global_counts_tmp <- plasma_metabolomics_global_counts_tmp_long %>% pivot_wider(names_from = "MET_ID", values_from = "value")
+plasma_metabolomics_global_counts_tmp <- column_to_rownames(plasma_metabolomics_global_counts_tmp, var = "sample_id")
+colnames(plasma_metabolomics_global_counts_tmp) = pathways$CHEMICAL_NAME
+
+data_use_global <- plasma_metabolomics_global_counts_tmp %>%
+  rownames_to_column(var = "sample_id") %>%
+  merge(y  = dplyr::select(clinical_data, 
+                    sample_id, 
+                    event_date,
+                    trajectory_group,
+                    enrollment_site,
+                    discretized_admit_age_quantile,
+                   admit_age,
+                    sex,
+                    bmi,
+                    participant_id,event_location,conv_cluster4,event_type),
+        by = "sample_id") %>%
+  filter(!is.na(trajectory_group)) %>%
+  filter(duplicated(participant_id) | duplicated(participant_id, fromLast = TRUE)) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(trajectory_group = factor(trajectory_group)) %>%
+  pivot_longer(cols = -c("sample_id", "event_date", "participant_id",
+                         "enrollment_site", "trajectory_group",
+                         "discretized_admit_age_quantile", 
+                       "admit_age",
+                         "sex", "bmi", "event_location","conv_cluster4","event_type")) %>%
+  mutate(discretized_admit_age_quantile= factor(discretized_admit_age_quantile)) %>%
+  filter(!is.na(value))
+data_use_global$conv_cluster4 = as.factor(data_use_global$conv_cluster4)
+data_use_global <- merge(data_use_global,alleles,by="participant_id")
+data_use_global$MTHFR = as.factor(data_use_global$MTHFR)
+data_use_global$OUTCOME = data_use_global$MTHFR
+
+data_use_global_acute = subset(data_use_global, data_use_global$event_type %in% c("Visit 1","Visit 2","Visit 3","Visit 4","Visit 5","Visit 6"))
+```
+
+### Figure 1E
+* Logistic regression  - TG123 vs TG45 based on baseline metabolites
+```{r}
+clinical_df = clinical_data
+meta_data_raw <- plasma_metabolomics_global_metadata
+meta_data_raw$sample_id = rownames(meta_data_raw)
+met_data <- merge(meta_data_raw, clinical_df, by = c("sample_id"))#,"phase"
+met_data = subset(met_data, met_data$"trajectory_group" %in% c(1,2,3,4,5))
+met_data_baseline = subset(met_data, met_data$event_type == "Visit 1")
+met_data_baseline <-  met_data_baseline[order(met_data_baseline$participant_id),]
+met_data_baseline <- met_data_baseline %>%  mutate(OUTCOME = case_when(
+    trajectory_group %in% c(1,2,3) ~ 0,
+    trajectory_group %in% c(4,5)  ~ 1
+    ))
+
+met_data_baseline <- met_data_baseline %>% drop_na(OUTCOME)
+OUTCOME = met_data_baseline$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data_baseline$sex)
+y <- as.numeric (OUTCOME)
+age <- as.numeric(met_data_baseline$admit_age)
+bmi <- as.numeric(met_data_baseline$bmi) #numerical
+race <- as.factor(met_data_baseline$race)
+ethnicity <- as.factor(met_data_baseline$ethnicity)
+location <- as.factor(met_data_baseline$event_location)
+participant <- as.factor(met_data_baseline$participant_id)
+age_quantile <- as.factor(met_data_baseline$discretized_admit_age_quantile)
+phase <- as.factor(met_data_baseline$phase.x)
+plate <- as.factor(met_data_baseline$plate)
+type = as.factor(met_data_baseline$Type)
+y <- as.factor (y)
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data_baseline$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met,age, sex, participant, bmi,age_quantile,phase, plate)#,location,type
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile","phase","plate") #"location",,"type"
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    #lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+     lr<- glm (fmla, data=df,family=binomial) #
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  
+  
+  lr_output$coef <- coef
+  lr_output$std <- std
+ 
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_123v45 <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_123v45$qval <= 0.05)
+  output_all_123v45 = output_all
+
+
+# order results based pvalue
+select <- c("Methionine, Cysteine, SAM and Taurine Metabolism")
+all_results_temp <- subset(lr_output_123v45, lr_output_123v45$SUB_PATHWAY %in% select)
+all_results_temp = all_results_temp[order(all_results_temp$pval),]
+
+all_results_temp = all_results_temp %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05 ~ "Not significant"
+    ))
+all_results_temp <- as.data.table(all_results_temp)
+
+#  b <-all_results_sig[SUB_PATHWAY %in% select] 
+ b <- all_results_temp
+  if(dim(b)[1] ==0){
+    return("No metabolites found!")
+  }else{
+    b$data <- ""
+    if(dim(b)[1]>100){
+      b <- b[order(qval)]
+      b <- b[1:100,]
+    }
+  }
+  
+names(b)[2] = "name"
+library(ggforestplot)
+
+p_1= forestplot(
+  df = b,
+  estimate = coef,
+  logodds = FALSE,
+  #colour = type,
+  shape = sig,
+  title = "",
+ se = std,
+  xlab = "coefficient",pvalue = qval, psignif = 0.05
+) +scale_shape_manual(values=c(17,19)) +
+   theme(plot.title = element_text(size=12))
+p_1
+
+```
+
+
+### Figure 4A
+* PASC t-statistic deficit heatmap
+```{r, fig.height=3, fig.width=3.5}
+PRO_tstatistics <- data.frame(
+  PRO = c("EQ-5D-5L","Health", "Cognitive", "Dyspnea", "Mental", "Impact", "Physical"),
+  MIN = c(17.4, 12.75, 9.45, 7.9, 23.79, 18.82, 17.87),
+  PHY   = c(-5.33, -2.69, -3.01, -2.84, -4.94, -1, -11.93),
+  COG   = c(-6.33, -5.59, -8.8, -3.13, -18.5, -17.04, -4.31),
+  MLT   = c(-18.01, -13.72, -3.36, -5.12, -21.88, -16.73, -15.64))
+PRO_tstatistics <- PRO_tstatistics %>% column_to_rownames(var="PRO")
+PRO_tstatistics <- as.matrix(PRO_tstatistics)
+
+col_fun = circlize::colorRamp2(c(-20, 0, 20), c("blue", "white", "red"))
+heat_pro <- Heatmap(PRO_tstatistics, name = "T-statistic", col = col_fun,column_names_rot = 45,
+                    column_title = "PASC", column_title_side = "top",
+                  #  row_title = "Survey", row_title_side = "right",
+    show_column_names = TRUE, show_row_dend = FALSE, show_column_dend = FALSE,
+    cluster_rows = FALSE, cluster_columns = FALSE, column_names_side = "top",
+    column_names_gp = gpar(fontface = "bold"),
+   column_title_gp = gpar(fontface = "bold"),
+       #row_names_gp = gpar(fontface = "bold"),
+   # row_title_gp = gpar(fontface = "bold")
+    )
+heat_pro
+```
+
+### Figure 4B
+* Logistic regression AA vs. OTHERS (AG, GG) for MIN and OTHERS PASC groups based on baseline metabolites
+```{r}
+# subset for Visit 1
+data_use_global_acute_v1 <- subset(data_use_global_acute, data_use_global_acute$event_type=="Visit 1")
+# generate age quantile variable
+data_use_global_acute_v1$discretized_admit_age_quantile <- ifelse(data_use_global_acute_v1$admit_age >= 18 & data_use_global_acute_v1$admit_age <= 35,"[18,35]",
+                                                  ifelse(data_use_global_acute_v1$admit_age >= 36 & data_use_global_acute_v1$admit_age <= 51, "[36,51]", 
+                                                         ifelse(data_use_global_acute_v1$admit_age >=52 & data_use_global_acute_v1$admit_age <= 66, "[52,66]",
+                                                                ifelse(data_use_global_acute_v1$admit_age >=67 & data_use_global_acute_v1$admit_age <=81,"[67,81]",
+                                                                       ifelse(data_use_global_acute_v1$admit_age >=82 & data_use_global_acute_v1$admit_age <=96,"[82,96]",NA)))))
+
+# add PASC groups
+data_use_global_acute_v1 <- merge(data_use_global_acute_v1,convalescent_pro_groups[,c(1,8)], by="participant_id", all.x=TRUE)
+data_use_global_acute_v1$pro_group_labels <- factor(data_use_global_acute_v1$pro_group_labels, levels=c("MIN","PHY","COG","MLT"))
+
+## PASC = MIN regression analysis 
+
+# subset global V1 data for PASC=="MIN"
+met_data <- subset(data_use_global_acute_v1, data_use_global_acute_v1$pro_group_labels=="MIN")
+
+# structure outcome variable
+met_data <-  met_data[order(met_data$participant_id),]
+met_data$outcome <- ifelse(met_data$MTHFR=="AA","AA","OTHER")
+met_data <- met_data %>%  mutate(OUTCOME = case_when(
+    outcome == "OTHER" ~ 0,
+    outcome == "AA" ~ 1
+    ))
+
+met_data <- met_data %>% drop_na(OUTCOME)
+OUTCOME = met_data$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data$sex)
+y <- as.numeric (OUTCOME)
+bmi <- as.numeric(met_data$bmi) #numerical
+race <- as.factor(met_data$race)
+ethnicity <- as.factor(met_data$ethnicity)
+participant <- as.factor(met_data$participant_id)
+age_quantile <- as.factor(met_data$discretized_admit_age_quantile)
+
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met, sex, participant, bmi,age_quantile) #, location,phase, plate,type,age
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile") #"location","phase","plate","type"
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    #lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+    lr<- glm (fmla, data=df, family=binomial) 
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  lr_output$coef <- coef
+  lr_output$std <- std
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_AAvOTHER_min <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_AAvOTHER_min$qval <= 0.05) # 258 sig mets
+  output_all_AAvOTHER_min = output_all
+```
+```{r}
+## PASC = OTHERS regression analysis
+
+# subset global V1 data for PASC=="combined"
+met_data <- subset(data_use_global_acute_v1, data_use_global_acute_v1$pro_group_labels %in% c("PHY","COG","MLT"))
+
+# structure outcome variable
+met_data <-  met_data[order(met_data$participant_id),]
+met_data$outcome <- ifelse(met_data$MTHFR=="AA","AA","OTHER")
+met_data <- met_data %>%  mutate(OUTCOME = case_when(
+    outcome == "OTHER" ~ 0,
+    outcome == "AA" ~ 1
+    ))
+
+met_data <- met_data %>% drop_na(OUTCOME)
+OUTCOME = met_data$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data$sex)
+y <- as.numeric (OUTCOME)
+bmi <- as.numeric(met_data$bmi) #numerical
+race <- as.factor(met_data$race)
+ethnicity <- as.factor(met_data$ethnicity)
+participant <- as.factor(met_data$participant_id)
+age_quantile <- as.factor(met_data$discretized_admit_age_quantile)
+
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met, sex, participant, bmi,age_quantile) #, location,phase, plate,type,age
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile") #"location","phase","plate","type"
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    #lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+    lr<- glm (fmla, data=df, family=binomial) 
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  lr_output$coef <- coef
+  lr_output$std <- std
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_AAvOTHER_other <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_AAvOTHER_other$qval <= 0.05) # 224 sig mets
+  output_all_AAvOTHER_other = output_all
+```
+```{r}
+## AA vs OTHERS forest plot - 'MIN' & 'OTHER' PASC groups
+
+# Combine logistic regression results for PASC==MIN and PASC==OTHER (combined)
+lr_output_AAvOTHER_min = merge(lr_output_AAvOTHER_min, output_all_AAvOTHER_min, by.x = "Compound_ID",by.y = "outc")
+lr_output_AAvOTHER_min$type = "MIN"
+lr_output_AAvOTHER_min = lr_output_AAvOTHER_min %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05  ~ "Not significant"
+    ))
+
+lr_output_AAvOTHER_other = merge(lr_output_AAvOTHER_other, output_all_AAvOTHER_other, by.x = "Compound_ID",by.y = "outc")
+lr_output_AAvOTHER_other$type = "OTHER"
+lr_output_AAvOTHER_other = lr_output_AAvOTHER_other %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05 ~ "Not significant"
+    ))
+
+
+
+lr_output_AAvOTHER_min <- lr_output_AAvOTHER_min[match(lr_output_AAvOTHER_other$Name, lr_output_AAvOTHER_min$Name), ]
+
+all_results_sig = rbind(lr_output_AAvOTHER_min, lr_output_AAvOTHER_other)
+all_results_sig$type = factor(all_results_sig$type, levels = c("MIN", "OTHER"))
+
+# order results based on OTHER pvalue
+select <- c("Methionine, Cysteine, SAM and Taurine Metabolism", "Glycine, Serine and Threonine Metabolism")
+all_results_temp <- subset(all_results_sig, all_results_sig$SUB_PATHWAY %in% select)
+min <- subset(all_results_temp, all_results_temp$type=="MIN")
+other <- subset(all_results_temp, all_results_temp$type=="OTHER")
+other = other[order(other$pval),]
+min <- min[match(other$Name, min$Name), ]
+
+all_results_sig <- rbind(other,min)
+
+#  b <-all_results_sig[SUB_PATHWAY %in% select] 
+ b <- all_results_sig
+  if(dim(b)[1] ==0){
+    return("No metabolites found!")
+  }else{
+    b$data <- ""
+    if(dim(b)[1]>100){
+      b <- b[order(qval)]
+      b <- b[1:100,]
+    }
+  }
+  
+names(b)[2] = "name"
+library(ggforestplot)
+
+p_1= forestplot(
+  df = b,
+  estimate = coef,
+  logodds = FALSE,
+  colour = sig,
+  shape = type,
+  title = "",
+  xlab = "coefficient",pvalue = qval, psignif = 0.05
+) +scale_shape_manual(values=c(17,19)) +
+   theme(plot.title = element_text(size=12))
+p_1
+
+```
+
+### Figure 4C
+* Logistic regression MIN vs. OTHERS (combined) based on baseline metabolites for each MTHFR allele group
+```{r}
+## Allele = aa regression analysis 
+
+# subset for MTHFR==AA
+met_data <- subset(data_use_global_acute_v1, data_use_global_acute_v1$MTHFR=="AA")
+
+# structure outcome variable
+met_data <-  met_data[order(met_data$participant_id),]
+met_data$outcome <- ifelse(met_data$pro_group_labels=="MIN","MIN","OTHER")
+met_data <- met_data %>%  mutate(OUTCOME = case_when(
+    outcome == "MIN" ~ 0,
+    outcome == "OTHER" ~ 1
+    ))
+
+met_data <- met_data %>% drop_na(OUTCOME)
+OUTCOME = met_data$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data$sex)
+y <- as.numeric (OUTCOME)
+bmi <- as.numeric(met_data$bmi) #numerical
+race <- as.factor(met_data$race)
+ethnicity <- as.factor(met_data$ethnicity)
+participant <- as.factor(met_data$participant_id)
+age_quantile <- as.factor(met_data$discretized_admit_age_quantile)
+
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met, sex, participant, bmi,age_quantile) #, location,phase, plate,type,age
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile") #"location","phase","plate","type"
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    #lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+    lr<- glm (fmla, data=df, family=binomial) 
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  lr_output$coef <- coef
+  lr_output$std <- std
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_MINvOTHER_aa <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_MINvOTHER_aa$qval <= 0.05) # 322 sig mets
+  output_all_MINvOTHER_aa = output_all
+```
+```{r}
+## Allele = gg regression analysis
+
+# subset global V1 data for MTHFR==GG
+met_data <- subset(data_use_global_acute_v1, data_use_global_acute_v1$MTHFR=="GG")
+
+# structure outcome variable
+met_data <-  met_data[order(met_data$participant_id),]
+met_data$outcome <- ifelse(met_data$pro_group_labels=="MIN","MIN","OTHER")
+met_data <- met_data %>%  mutate(OUTCOME = case_when(
+    outcome == "MIN" ~ 0,
+    outcome == "OTHER" ~ 1
+    ))
+
+met_data <- met_data %>% drop_na(OUTCOME)
+OUTCOME = met_data$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data$sex)
+y <- as.numeric (OUTCOME)
+bmi <- as.numeric(met_data$bmi) #numerical
+race <- as.factor(met_data$race)
+ethnicity <- as.factor(met_data$ethnicity)
+participant <- as.factor(met_data$participant_id)
+age_quantile <- as.factor(met_data$discretized_admit_age_quantile)
+
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met, sex, participant, bmi,age_quantile) #, location,phase, plate,type,age
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile") #"location","phase","plate","type"
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    #lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+    lr<- glm (fmla, data=df, family=binomial) 
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  lr_output$coef <- coef
+  lr_output$std <- std
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_MINvOTHER_gg <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_MINvOTHER_gg$qval <= 0.05) # 256 sig mets
+  output_all_MINvOTHER_gg = output_all
+```
+```{r}
+## Allele = ag regression analysis
+
+# subset global V1 data for MTHFR==AG
+met_data <- subset(data_use_global_acute_v1, data_use_global_acute_v1$MTHFR=="AG")
+
+# structure outcome variable
+met_data <-  met_data[order(met_data$participant_id),]
+met_data$outcome <- ifelse(met_data$pro_group_labels=="MIN","MIN","OTHER")
+met_data <- met_data %>%  mutate(OUTCOME = case_when(
+    outcome == "MIN" ~ 0,
+    outcome == "OTHER" ~ 1
+    ))
+
+met_data <- met_data %>% drop_na(OUTCOME)
+OUTCOME = met_data$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data$sex)
+y <- as.numeric (OUTCOME)
+bmi <- as.numeric(met_data$bmi) #numerical
+race <- as.factor(met_data$race)
+ethnicity <- as.factor(met_data$ethnicity)
+participant <- as.factor(met_data$participant_id)
+age_quantile <- as.factor(met_data$discretized_admit_age_quantile)
+
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met, sex, participant, bmi,age_quantile) #, location,phase, plate,type,age
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile") #"location","phase","plate","type"
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    #lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+    lr<- glm (fmla, data=df, family=binomial) 
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  lr_output$coef <- coef
+  lr_output$std <- std
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_MINvOTHER_ag <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_MINvOTHER_ag$qval <= 0.05) # 286 sig mets
+  output_all_MINvOTHER_ag = output_all
+```
+```{r}
+### OTHER vs MIN forest plot
+
+# combine logistic regression outputs for each MTHFR allele
+lr_output_MINvOTHER_ag = merge(lr_output_MINvOTHER_ag, output_all_MINvOTHER_ag, by.x = "Compound_ID",by.y = "outc")
+lr_output_MINvOTHER_ag$type = "AG"
+lr_output_MINvOTHER_ag = lr_output_MINvOTHER_ag %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05  ~ "Not significant"
+    ))
+
+lr_output_MINvOTHER_gg = merge(lr_output_MINvOTHER_gg, output_all_MINvOTHER_gg, by.x = "Compound_ID",by.y = "outc")
+lr_output_MINvOTHER_gg$type = "GG"
+lr_output_MINvOTHER_gg = lr_output_MINvOTHER_gg %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05 ~ "Not significant"
+    ))
+lr_output_MINvOTHER_aa = merge(lr_output_MINvOTHER_aa, output_all_MINvOTHER_aa, by.x = "Compound_ID",by.y = "outc")
+lr_output_MINvOTHER_aa$type = "AA"
+lr_output_MINvOTHER_aa = lr_output_MINvOTHER_aa %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05 ~ "Not significant"
+    ))
+
+all_results_sig = rbind(lr_output_MINvOTHER_gg, lr_output_MINvOTHER_ag, lr_output_MINvOTHER_aa)
+all_results_sig$type = factor(all_results_sig$type, levels = c("GG", "AG", "AA"))
+
+  b <-all_results_sig[SUB_PATHWAY %in% c("Methionine, Cysteine, SAM and Taurine Metabolism")] 
+  if(dim(b)[1] ==0){
+    return("No metabolites found!")
+  }else{
+    b$data <- "Methionine, Cysteine, SAM and Taurine Metabolism"
+    if(dim(b)[1]>100){
+      b <- b[order(qval)]
+      b <- b[1:100,]
+    }
+  }
+  
+    p <- b%>%
+     ggplot( aes(x =Name, y = coef)) +
+      facet_grid(. ~ data) +
+      geom_errorbar(aes(ymin = lowerCI, ymax = upperCI, color = sig), width = 0.5, size = 1) +
+      geom_pointrange(aes(ymin = lowerCI, ymax = upperCI, color = sig, shape = type), size = 1) +#shape = 15, 
+      
+      geom_hline(yintercept = 0, linetype = 2) +
+      labs(title = "Methionine, Cysteine, SAM and Taurine Metabolism", x = "Metabolites", y = "coefficient (95% confidence interval)") +
+      
+      theme(title = element_text(size = 2),
+            axis.title = element_text(size = 2),
+            axis.text = element_text(size = 2),
+            strip.text.x = element_text(size = 2),
+            legend.position = "right",
+            legend.title = element_text(size = 2),
+            legend.text = element_text(size = 2)) +
+      theme_bw() +
+      coord_flip()
+ 
+  names(b)[2] = "name"
+library(ggforestplot)
+p_1= forestplot(
+  df = b,
+  estimate = coef,
+  logodds = FALSE,
+  colour = sig,
+  shape = type,
+  title = "Methionine, Cysteine, SAM and Taurine Metabolism",
+  xlab = "coefficient",pvalue = qval, psignif = 0.05
+) +scale_shape_manual(values=c(17,19,15)) +
+   theme(plot.title = element_text(size=12))
+p_1
+
+
+b <-all_results_sig[SUB_PATHWAY %in% c("Glycine, Serine and Threonine Metabolism")] 
+  if(dim(b)[1] ==0){
+    return("No metabolites found!")
+  }else{
+    b$data <- "Glycine, Serine and Threonine Metabolism"
+    if(dim(b)[1]>100){
+      b <- b[order(qval)]
+      b <- b[1:100,]
+    }
+  }
+  
+    p <- b%>%
+     ggplot( aes(x =Name, y = coef)) +
+      facet_grid(. ~ data) +
+      geom_errorbar(aes(ymin = lowerCI, ymax = upperCI, color = sig), width = 0.5, size = 1) +
+      geom_pointrange(aes(ymin = lowerCI, ymax = upperCI, color = sig, shape = type), size = 1) +#shape = 15, 
+      
+      geom_hline(yintercept = 0, linetype = 2) +
+      labs(title = "Glycine, Serine and Threonine Metabolism", x = "Metabolites", y = "coefficient (95% confidence interval)") +
+      
+      theme(title = element_text(size = 2),
+            axis.title = element_text(size = 2),
+            axis.text = element_text(size = 2),
+            strip.text.x = element_text(size = 2),
+            legend.position = "right",
+            legend.title = element_text(size = 2),
+            legend.text = element_text(size = 2)) +
+      theme_bw() +
+      coord_flip()
+ 
+  names(b)[2] = "name"
+library(ggforestplot)
+p_2= forestplot(
+  df = b,
+  estimate = coef,
+  logodds = FALSE,
+  colour = sig,
+  shape = type,
+  title = "Glycine, Serine and Threonine Metabolism",
+  xlab = "coefficient",pvalue = qval, psignif = 0.05
+) +scale_shape_manual(values=c(17,19,15)) +
+   theme(plot.title = element_text(size=12))
+p_2
+
+
+select <- c("Methionine, Cysteine, SAM and Taurine Metabolism", "Glycine, Serine and Threonine Metabolism")
+b_combined <-all_results_sig[SUB_PATHWAY %in% select] 
+  if(dim(b_combined)[1] ==0){
+    return("No metabolites found!")
+  }else{
+    b_combined$data <- "Glycine, Serine and Threonine Metabolism"
+    if(dim(b_combined)[1]>100){
+      b_combined <- b_combined[order(qval)]
+      b_combined <- b_combined[1:100,]
+    }
+  }
+
+b_combined = b_combined[order(b_combined$pval),]
+names(b_combined)[2] = "name"
+library(ggforestplot)
+p_3= forestplot(
+  df = b_combined,
+  estimate = coef,
+  logodds = FALSE,
+  colour = sig,
+  shape = type,
+  title = "",
+  xlab = "coefficient",pvalue = qval, psignif = 0.05
+) +scale_shape_manual(values=c(17,19,15)) +
+   theme(plot.title = element_text(size=12)) #+ facet_grid(. ~ type, scales = "free") + scale_color_manual("Legend", values = c("FDR significant" = "red", "Not significant" = "ivory4", "Raw significant" = "lightsalmon")) + theme(legend.position = "bottom")
+p_3
+
+```
+
+
+### Targeted vs Global metabolite correlations
+
+#### Targeted vs global methionine pearson correlation plot 
+```{r, eval=F}
+#subset for methionine
+global_methionine <- subset(data_use_global_acute, data_use_global_acute$name == "methionine")
+targeted_methionine <- subset(data_use_targeted_acute, data_use_targeted_acute$name == "methionine")
+
+#match targeted and global methionine values by participants and visit
+global_methionine$UID <- paste(global_methionine$participant_id, global_methionine$event_type, sep = "-")
+targeted_methionine$UID <- paste(targeted_methionine$participant_id, targeted_methionine$event_type, sep = "-")
+no_match <- anti_join(targeted_methionine, global_methionine, by = "UID") 
+#print(no_match, n=Inf) # 1 UID in targeted that is not in global
+global_methionine <- subset(global_methionine, UID %in% targeted_methionine$UID)
+targeted_methionine <- subset(targeted_methionine, UID %in% global_methionine$UID)
+length(unique(targeted_methionine$UID))
+length(unique(global_methionine$UID))
+
+global_methionine <- global_methionine[,c(17,14)]
+colnames(global_methionine)[2] <- "global_value"
+targeted_methionine <- targeted_methionine[,c(16,13)]
+colnames(targeted_methionine)[2] <- "targeted_value"
+
+methionine <- merge(global_methionine,targeted_methionine, by = "UID")
+
+#log10 values 
+methionine$log10_global_value <- log10(methionine$global_value)
+methionine$log10_targeted_value <- log10(methionine$targeted_value)
+
+corplot_methionine <- ggscatter(methionine, x = "global_value", y = "targeted_value",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE, # Add confidence interval
+   xlab = "Global Methionine Value", ylab = "Targeted Methionine Value"
+   )
+# Add correlation coefficient
+corplot_methionine + stat_cor(method = "pearson",p.accuracy = 0.001, r.accuracy = 0.01)
+
+methionine_unique <- methionine
+methionine_unique$participant_id <- substr(methionine_unique$UID, 0, 8)
+length(unique(methionine_unique$participant_id)) # 74 pts
+length(unique(methionine_unique$UID)) # 293 matched samples
+```
+
+#### Targeted vs global creatinine pearson correlation plot 
+```{r, eval=F}
+#subset for creatinine
+global_creatinine <- subset(data_use_global_acute, data_use_global_acute$name == "creatinine")
+targeted_creatinine <- subset(data_use_targeted_acute, data_use_targeted_acute$name == "creatinine")
+
+#match targeted and global methionine values by participants and visit
+global_creatinine$UID <- paste(global_creatinine$participant_id, global_creatinine$event_type, sep = "-")
+targeted_creatinine$UID <- paste(targeted_creatinine$participant_id, targeted_creatinine$event_type, sep = "-")
+no_match <- anti_join(targeted_creatinine, global_creatinine, by = "UID") 
+#print(no_match, n=Inf) # 1 UID in targeted that is not in global
+global_creatinine <- subset(global_creatinine, UID %in% targeted_creatinine$UID)
+targeted_creatinine <- subset(targeted_creatinine, UID %in% global_creatinine$UID)
+length(unique(targeted_creatinine$UID))
+length(unique(global_creatinine$UID))
+
+global_creatinine <- global_creatinine[,c(17,14)]
+colnames(global_creatinine)[2] <- "global_value"
+targeted_creatinine <- targeted_creatinine[,c(16,13)]
+colnames(targeted_creatinine)[2] <- "targeted_value"
+
+creatinine <- merge(global_creatinine,targeted_creatinine, by = "UID")
+
+#log10 values 
+creatinine$log10_global_value <- log10(creatinine$global_value)
+creatinine$log10_targeted_value <- log10(creatinine$targeted_value)
+
+corplot_creatinine <- ggscatter(creatinine, x = "global_value", y = "targeted_value",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE, # Add confidence interval
+   xlab = "Global Creatinine Value", ylab = "Targeted Creatinine Value"
+   )
+# Add correlation coefficient
+corplot_creatinine + stat_cor(method = "pearson",p.accuracy = 0.001, r.accuracy = 0.01)
+
+creatinine_unique <- creatinine
+creatinine_unique$participant_id <- substr(creatinine_unique$UID, 0, 8)
+length(unique(creatinine_unique$participant_id)) # 74 pts
+length(unique(creatinine_unique$UID)) # 293 matched samples
+```
+
+#### Targeted vs global creatine pearson correlation plot 
+```{r, eval=F}
+#subset for creatine
+global_creatine <- subset(data_use_global_acute, data_use_global_acute$name == "creatine")
+targeted_creatine <- subset(data_use_targeted_acute, data_use_targeted_acute$name == "creatine")
+
+#match targeted and global methionine values by participants and visit
+global_creatine$UID <- paste(global_creatine$participant_id, global_creatine$event_type, sep = "-")
+targeted_creatine$UID <- paste(targeted_creatine$participant_id, targeted_creatine$event_type, sep = "-")
+no_match <- anti_join(targeted_creatine, global_creatine, by = "UID") 
+#print(no_match, n=Inf) # 1 UID in targeted that is not in global
+global_creatine <- subset(global_creatine, UID %in% targeted_creatine$UID)
+targeted_creatine <- subset(targeted_creatine, UID %in% global_creatinine$UID)
+length(unique(targeted_creatine$UID))
+length(unique(global_creatine$UID))
+
+global_creatine <- global_creatine[,c(17,14)]
+colnames(global_creatine)[2] <- "global_value"
+targeted_creatine <- targeted_creatine[,c(16,13)]
+colnames(targeted_creatine)[2] <- "targeted_value"
+
+creatine <- merge(global_creatine,targeted_creatine, by = "UID")
+
+#log10 values 
+creatine$log10_global_value <- log10(creatine$global_value)
+creatine$log10_targeted_value <- log10(creatine$targeted_value)
+
+corplot_creatinine <- ggscatter(creatine, x = "global_value", y = "targeted_value",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE, # Add confidence interval
+   xlab = "Global Creatine Value", ylab = "Targeted Creatine Value"
+   )
+# Add correlation coefficient
+corplot_creatinine + stat_cor(method = "pearson",p.accuracy = 0.001, r.accuracy = 0.01)
+
+creatine_unique <- creatine
+creatine_unique$participant_id <- substr(creatine_unique$UID, 0, 8)
+length(unique(creatine_unique$participant_id)) # 74 pts
+length(unique(creatine_unique$UID)) # 293 matched samples
+```
+
+### Supplementary Figure 1D
+* Ordinal regression - TGs (1-5) and mortality
+```{r}
+# import baseline global ordinal regression results from JC
+ordinal <- read.csv("/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/ordinal_v1.csv")
+
+ordinal$type = "ordinal"
+ordinal = ordinal %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05 ~ "Not significant"
+    ))
+ordinal <- as.data.table(ordinal)
+
+b_Methionine <- ordinal[SUB_PATHWAY %in% c("Methionine, Cysteine, SAM and Taurine Metabolism") ]
+  if(dim(b_Methionine)[1] ==0){
+    return("No metabolites found!")
+  }else{
+    b_Methionine$data <- "Methionine, Cysteine, SAM and Taurine Metabolism"
+    if(dim(b_Methionine)[1]>100){
+      b_Methionine <- b_Methionine[order(qval)]
+      b_Methionine <- b_Methionine[1:100,]
+    }
+  }
+    p_Methionine <- b_Methionine%>%
+     ggplot( aes(x =Name, y = coef)) +
+      facet_grid(. ~ data) +
+      geom_errorbar(aes(ymin = lowerCI, ymax = upperCI, color = type), width = 0.5, size = 1) +
+      geom_pointrange(aes(ymin = lowerCI, ymax = upperCI, color = type, shape = sig), size = 1) +#shape = 15, 
+      
+      geom_hline(yintercept = 0, linetype = 2) +
+      labs(title = "Methionine, Cysteine, SAM and Taurine Metabolism", x = "Metabolites", y = "coefficient (95% confidence interval)") +
+      
+      theme(title = element_text(size = 2),
+            axis.title = element_text(size = 2),
+            axis.text = element_text(size = 2),
+            strip.text.x = element_text(size = 2),
+            legend.position = "right",
+            legend.title = element_text(size = 2),
+            legend.text = element_text(size = 2)) +
+      theme_bw() +
+      coord_flip()
+    names(b_Methionine)[2] = "name"
+    
+library(ggforestplot)
+ p_3= forestplot(
+  df = b_Methionine,
+  estimate = coef,
+  logodds = FALSE,
+  colour = type,
+  shape = sig,
+  se = std,
+  title = "Methionine, Cysteine, SAM and Taurine Metabolism",
+  xlab = "coefficient",pvalue = qval, psignif = 0.05, ci=0.95
+) +scale_shape_manual(values=c(17,19))
+p_3
+```
+
+### Distribution of trajectory groups and mortality across MTHFR alleles
+```{r}
+# subset for unique participants
+clin_alleles_supp = clin_alleles[!duplicated(clin_alleles$participant_id),]
+clin_alleles_supp$MTHFR <- factor(clin_alleles_supp$MTHFR, levels = c("GG","AG","AA"))
+
+## TGs 
+MTHFR_TG <- clin_alleles_supp %>%
+  dplyr::count(MTHFR, trajectory_group) %>%       
+  group_by(MTHFR) %>%
+  mutate(pct= prop.table(n) * 100) %>%
+  ggplot() + aes(MTHFR, pct, fill=trajectory_group) +
+  scale_fill_manual(values=c('#639A21', '#39828C', '#0072B2', '#E69F00', '#9C3418')) +
+  geom_bar(stat="identity") +
+  ylab("Proportion of Participants") +
+  geom_text(aes(label=paste0(sprintf("%1.1f", pct),"%")),
+            position=position_stack(vjust=0.5)) +
+  ggtitle("TG distribution across MTHFR alleles") +
+  theme_bw() 
+MTHFR_TG
+
+table(clin_alleles_supp$MTHFR)
+table(clin_alleles_supp$MTHFR, clin_alleles_supp$trajectory_group)
+
+# chi square test for homogeneity
+conttable <- table(clin_alleles_supp$MTHFR, clin_alleles_supp$trajectory_group)
+chisq.test(conttable)
+
+
+## MTHFR alleles
+clin_alleles_supp$diedever <- ifelse(clin_alleles_supp$diedever == 0, "No","Yes")
+clin_alleles_supp$diedever <- factor(clin_alleles_supp$diedever, levels = c("No","Yes"))
+
+MTHFR_mortality <- clin_alleles_supp %>%
+  dplyr::count(MTHFR, diedever) %>%       
+  group_by(MTHFR) %>%
+  mutate(pct= prop.table(n) * 100) %>%
+  ggplot() + aes(MTHFR, pct, fill=diedever) +
+  scale_fill_manual(values=c("royalblue3", "gray")) +
+  geom_bar(stat="identity") +
+  ylab("Proportion of Participants") +
+  geom_text(aes(label=paste0(sprintf("%1.1f", pct),"%")),
+            position=position_stack(vjust=0.5)) +
+  ggtitle("Mortality distribution across MTHFR alleles") +
+  theme_bw() +
+  theme(panel.grid = element_blank())
+MTHFR_mortality
+
+table(clin_alleles_supp$MTHFR)
+table(clin_alleles_supp$MTHFR, clin_alleles_supp$diedever)
+
+conttable2 <- table(clin_alleles_supp$MTHFR, clin_alleles_supp$diedever)
+chisq.test(conttable2)
+```
+
+### Hazard ratio analysis
+* Univariate cox hazards model (status = diedever, predictor = MTHFR)
+* Hazards ratio forest plot
+```{r}
+# distinct participant-level data (clin_alleles_supp)
+clin_alleles_supp$death_date <- as.numeric(clin_alleles_supp$death_date)
+clin_alleles_supp$death_date <- ifelse(is.na(clin_alleles_supp$death_date), 0, clin_alleles_supp$death_date)
+clin_alleles_supp$death_date <- ifelse(clin_alleles_supp$death_date==-99, 0, clin_alleles_supp$death_date)
+clin_alleles_supp$diedever <- ifelse(clin_alleles_supp$diedever == "Yes", 1,0)
+
+clin_alleles_supp$MTHFR <- factor(clin_alleles_supp$MTHFR, levels = c("GG", "AG", "AA"))
+
+univ_model <- coxph(Surv(death_date, diedever)~ MTHFR, data = clin_alleles_supp)
+summary(univ_model)
+# HR forest plot
+MTHFR_HR <- ggforest(univ_model, data = clin_alleles_supp)
+
+# survival curve 
+#allele_fit <- survfit(Surv(death_date, diedever) ~ MTHFR, data=clin_alleles_supp)
+#allele_fit
+#ggsurvplot(allele_fit, data = clin_alleles_supp, pval = TRUE)
+
+print(paste0("N=",length(unique(clin_alleles_supp$participant_id))))
+clin_alleles_supp %>%
+  group_by(MTHFR) %>%
+  distinct(participant_id) %>%
+  dplyr::summarise(n = n())
+
+```
+
+### eBV distribution across MTHFR alleles and TGs
+```{ r}
+# import eBV dataset
+ebv <- read.csv("/scratch/metabolomics/plasma-metabolomics-targeted/MTHFR/EBV.csv", header = TRUE)
+colnames(ebv)[1] <- "participant_id"
+
+# subset clinical data for only participants with ebv data
+clin_stanford <- subset(clinical_data, participant_id %in% ebv$participant_id)
+# merge with ebv df
+clin_stanford_ebv <- merge(clin_stanford, ebv, by = "participant_id")
+
+clin_stanford_ebv$EBV_status <- factor(clin_stanford_ebv$EBV_status, levels = c("+","-"))
+clin_stanford_ebv$trajectory_group <- factor(clin_stanford_ebv$trajectory_group, levels = c("1","2","3","4","5"))
+
+clin_stanford_ebv = clin_stanford_ebv[!duplicated(clin_stanford_ebv$participant_id),]
+
+# frequency barplot
+clin_stanford_ebv %>%
+  dplyr::count(trajectory_group, EBV_status) %>%       
+  group_by(trajectory_group) %>%
+  mutate(pct= prop.table(n) * 100) %>%
+  ggplot() + aes(trajectory_group, pct, fill=EBV_status) +
+  scale_fill_manual(values=c("royalblue3", "gray")) +
+  geom_bar(stat="identity") +
+  ylab("Proportion of Participants") +
+  geom_text(aes(label=paste0(sprintf("%1.1f", pct),"%")),
+            position=position_stack(vjust=0.5)) +
+  ggtitle("eBV distribution across TGs") +
+  theme_bw() +
+  theme(panel.grid = element_blank())
+
+cont.table1 <- table(clin_stanford_ebv$trajectory_group,clin_stanford_ebv$EBV_status)
+cont.table1
+# chi-square test for homogeneity
+chisq.test(cont.table1)
+
+
+
+# subset MTHFR data for participants in ebv (Stanford)
+alleles_ebv <- subset(alleles, participant_id %in% ebv$participant_id)
+# merge clinical ebv df with MTHFR alleles
+clin_stanford_ebv_alleles <- merge(clin_stanford_ebv, alleles_ebv, by = "participant_id")
+clin_stanford_ebv_alleles$MTHFR <- factor(clin_stanford_ebv_alleles$MTHFR, levels=c("GG","AG","AA"))
+
+# frequency barplot
+clin_stanford_ebv_alleles %>%
+  dplyr::count(MTHFR, EBV_status) %>%       
+  group_by(MTHFR) %>%
+  mutate(pct= prop.table(n) * 100) %>%
+  ggplot() + aes(MTHFR, pct, fill=EBV_status) +
+  scale_fill_manual(values=c("royalblue3", "gray")) +
+  geom_bar(stat="identity") +
+  ylab("Proportion of Participants") +
+  geom_text(aes(label=paste0(sprintf("%1.1f", pct),"%")),
+            position=position_stack(vjust=0.5)) +
+  ggtitle("eBV distribution across MTHFR alleles") +
+  theme_bw() +
+  theme(panel.grid = element_blank())
+
+cont.table2 <- table(clin_stanford_ebv_alleles$MTHFR, clin_stanford_ebv_alleles$EBV_status)
+cont.table2
+# chi-square test for homogeneity
+chisq.test(cont.table2)
+```
+
+### Distribution of 'anti-RBD IgG AUC' and 'anti-spike IgG' values across TGs
+```{ r}
+# import bcell data
+bcell <- read.csv("/data/serum-rbd-abtiters/current/serum-rbd-abtiters-Counts.csv")
+#log-transform 
+bcell$log2_AUC.RBD.IgG <- log2(bcell$AUC.RBD.IgG)
+bcell$log2_AUC.Spike.IgG <- log2(bcell$AUC.Spike.IgG)
+
+#merge with complete clinical data (all sample types)
+clinical <- data_env[[ "clinical_data" ]]
+bcell_clin <- merge(bcell, clinical, by = "sample_id")
+#match for pts in metabolomics clinical data (i.e. clinical_data)
+bcell_clin <- subset(bcell_clin, participant_id %in% clinical_data$participant_id)
+bcell_clin$trajectory_group <- factor(bcell_clin$trajectory_group, levels = c(1,2,3,4,5))
+
+# anti-RBD IgG AUC plot
+my_comparisons <- list( c("1", "2"), c("1", "3"), c("1", "4"), c("1", "5"), c("2", "3"), c("2", "4"), c("2", "5"), c("3", "4"), c("3", "5"), c("4", "5") )
+ggplot(data = bcell_clin, aes(x=trajectory_group, y=log2_AUC.RBD.IgG)) + 
+  geom_boxplot(aes(fill=trajectory_group)) +
+  stat_compare_means(comparisons = my_comparisons, label="p.signif", method = "wilcox.test") + 
+  scale_fill_manual(values=c("#639A21", "#39828C", "#0072B2", "#E69F00", "#9C3418")) +
+  labs(title="anti-RBD IgG", y="log2(AUC)") + theme_classic()
+
+length(unique(bcell_clin$participant_id)) #1104 pts
+bcell_clin_sub_unique <- distinct(bcell_clin, participant_id, .keep_all = TRUE)
+table(bcell_clin_sub_unique$trajectory_group)
+
+
+# anti-spike IgG plot
+sum(is.na(bcell_clin$log2_AUC.Spike.IgG)) #8 NA values - remove
+bcell_clin <- bcell_clin %>% drop_na(log2_AUC.Spike.IgG)
+
+ggplot(data = bcell_clin, aes(x=trajectory_group, y=log2_AUC.Spike.IgG)) + 
+  geom_boxplot(aes(fill=trajectory_group)) +
+  stat_compare_means(comparisons = my_comparisons, label="p.signif", method = "wilcox.test") + 
+  scale_fill_manual(values=c("#639A21", "#39828C", "#0072B2", "#E69F00", "#9C3418")) +
+  labs(title="anti-spike IgG", y="log2(AUC)") + theme_classic()
+
+length(unique(bcell_clin$participant_id)) #1103 pts
+bcell_clin_sub_unique <- distinct(bcell_clin, participant_id, .keep_all = TRUE)
+table(bcell_clin_sub_unique$trajectory_group)
+```
+
+### Supplmentary Figure 4C (LRT results) & Fig3E (ROC curves)
+* Likelihood ratio test (LRT)
+* Null model: diedever ~ MTHFR
+* Full model: diedever ~ MTHFR + SAH (baseline) + methionine-sulfoxide (baseline) + methionine (baseline)
+* Compare goodness of fit of models using ROC curves
+```{r}
+# merge allele data (clin_alleles) with global V1 metabolite data for SAH (X197), methionine-sulfoxide (X100000039), and methionine (X415) (merge by sample_id)
+counts <- plasma_metabolomics_global_counts %>% rownames_to_column(var = "sample_id")
+clin_alleles_temp <- merge(clin_alleles, counts[,c(1,15,44,144)], by="sample_id", all.x=TRUE)
+clin_alleles_temp <- clin_alleles_temp[,c(1,7,122,181,183:186)]
+clin_alleles_temp <- subset(clin_alleles_temp, clin_alleles_temp$event_type=="Visit 1")
+clin_alleles_temp$diedever <- factor(clin_alleles_temp$diedever, levels = c(0,1))
+
+# subset for samples with data for metabolites at V1
+clin_alleles_temp <- clin_alleles_temp %>%
+  filter(!is.na(X197) & !is.na(X100000039) & !is.na(X415))
+
+table(clin_alleles_temp$diedever)
+
+clin_alleles_temp$MTHFR <- factor(clin_alleles_temp$MTHFR, levels = c("GG","AG","AA"))
+
+# build model based on alleles only
+model_alleles <- glm(diedever ~ MTHFR, data = clin_alleles_temp, family=binomial)
+summary(model_alleles)
+# build model based on alleles and metabolites
+model_full <- glm(diedever ~ MTHFR + X197 + X100000039 + X415, data = clin_alleles_temp, family=binomial)
+summary(model_full)
+# perform likelihood ratio test
+likelihood_ratio_test <- lrtest(model_alleles, model_full)
+likelihood_ratio_test 
+# Interpretation of likelihood ratio test results
+if (likelihood_ratio_test$"Pr(>Chisq)"[2] < 0.05) 
+{
+  cat("Reject the null hypothesis. The full model is significantly better than 
+        the null model.\n")
+} else {
+  cat("Fail to reject the null hypothesis. The null model is sufficient.\n")
+}
+# Calculate AIC values
+AIC_null <- AIC(model_alleles)
+AIC_full <- AIC(model_full)
+# Calculate log-likelihood values
+loglik_null <- logLik(model_alleles)
+loglik_full <- logLik(model_full)
+# Comparison of AIC and log-likelihood values
+cat("AIC value (null model):", AIC_null, "\n")
+cat("AIC value (full model):", AIC_full, "\n")
+cat("Log-likelihood value (null model):", loglik_null, "\n")
+cat("Log-likelihood value (full model):", loglik_full, "\n")
+
+library(stargazer)
+stargazer(model_alleles, model_full, title="Comparison of Nested Logistic Regression Models", type = "html", align=TRUE, out="/scratch/metabolomics/plasma-metabolomics-targeted/MTHFR/LRT_models.html",
+           dep.var.labels=c("Death"),
+          covariate.labels=c("MTHFR AG allele","MTHFR AA allele", 
+                             "SAH","methionine-sulfoxide","methionine", "Reference (MTHFR GG allele)"),
+          single.row = TRUE, ci=TRUE, ci.level=0.95, column.labels=c("MTHFR alleles only","MTHFR alleles + baseline metabolites"))
+```
+```{r}
+### plot ROC curves
+
+# predicted probabilities for both models
+pred_alleles <- predict(model_alleles, type = "response")
+pred_full <- predict(model_full, type = "response")
+
+# roc
+roc1 <- roc(clin_alleles_temp$diedever, pred_alleles)  #, smooth=TRUE
+roc2 <- roc(clin_alleles_temp$diedever, pred_full)   #, smooth=TRUE
+# print AUC values
+auc(roc1)
+auc(roc2)
+
+# plot roc curves
+plot(roc1, col = "blue", main = "ROC Curve Comparison", lwd = 2, xlab = "False Positive Rate (1 - Specificity)", ylab = "True Positive Rate (Sensitivity)")
+lines(roc2, col = "red", lwd = 2)
+legend("bottomright", legend = c("MTHFR alleles only", "MTHFR alleles + baseline metabolites"), col = c("blue", "red"), lwd = 2)
+
+```
+
+### Second LRT comparison
+* Likelihood ratio test (LRT)
+* Null model: diedever ~ SAH (baseline) + methionine-sulfoxide (baseline) + methionine (baseline)
+* Full model: diedever ~ SAH (baseline) + methionine-sulfoxide (baseline) + methionine (baseline) + MTHFR 
+* Compare goodness of fit of models using ROC curves
+```{r}
+# build model based on metabolites only
+model_mets <- glm(diedever ~ X197 + X100000039 + X415, data = clin_alleles_temp, family=binomial)
+summary(model_mets)
+# build model based on alleles and metabolites
+model_full <- glm(diedever ~ X197 + X100000039 + X415 + MTHFR, data = clin_alleles_temp, family=binomial)
+summary(model_full)
+# perform likelihood ratio test
+likelihood_ratio_test <- lrtest(model_mets, model_full)
+likelihood_ratio_test 
+# Interpretation of likelihood ratio test results
+if (likelihood_ratio_test$"Pr(>Chisq)"[2] < 0.05) 
+{
+  cat("Reject the null hypothesis. The full model is significantly better than 
+        the null model.\n")
+} else {
+  cat("Fail to reject the null hypothesis. The null model is sufficient.\n")
+}
+# Calculate AIC values
+AIC_null <- AIC(model_mets)
+AIC_full <- AIC(model_full)
+# Calculate log-likelihood values
+loglik_null <- logLik(model_mets)
+loglik_full <- logLik(model_full)
+# Comparison of AIC and log-likelihood values
+cat("AIC value (null model):", AIC_null, "\n")
+cat("AIC value (full model):", AIC_full, "\n")
+cat("Log-likelihood value (null model):", loglik_null, "\n")
+cat("Log-likelihood value (full model):", loglik_full, "\n")
+
+
+stargazer(model_mets, model_full, title="Comparison of Nested Logistic Regression Models", type = "text", align=TRUE,
+           dep.var.labels=c("Death"),
+          covariate.labels=c("SAH","methionine-sulfoxide","methionine",
+                             "MTHFR AG allele","MTHFR AA allele", 
+                             "Reference (MTHFR GG allele)"),
+          single.row = TRUE, ci=TRUE, ci.level=0.95, 
+         column.labels=c("Baseline mets only","Baseline mets + MTHFR alleles")
+         )
+
+```
+```{r}
+### plot ROC curves
+
+# predicted probabilities for both models
+pred_mets <- predict(model_mets, type = "response")
+pred_full <- predict(model_full, type = "response")
+
+# roc
+roc3 <- roc(clin_alleles_temp$diedever, pred_mets)  #, smooth=TRUE
+roc4 <- roc(clin_alleles_temp$diedever, pred_full)   #, smooth=TRUE
+# print AUC values
+auc(roc3)
+auc(roc4)
+
+# plot roc curves
+plot(roc3, col = "blue", main = "ROC Curve Comparison", lwd = 2, xlab = "False Positive Rate (1 - Specificity)", ylab = "True Positive Rate (Sensitivity)")
+lines(roc4, col = "red", lwd = 2)
+legend("bottomright", legend = c("Baseline metabolites only", "Baseline metabolites + MTHFR alleles"), col = c("blue", "red"), lwd = 2)
+```
+
+### Supplementary Figure 5
+* Baseline (V1) methionine pathway metabolite levels by PASC groups (MIN, COMBINED) and MTHFR allele groups
+```{r, fig.keep='none'}
+# add pasc groups
+data_use_global_acute_conv <- merge(data_use_global_acute,convalescent_pro_groups[,c(1,8)], by="participant_id", all.x=TRUE)
+data_use_global_acute_conv <- subset(data_use_global_acute_conv, !is.na(data_use_global_acute_conv$pro_group_labels))
+data_use_global_acute_conv$pasc_binary <- ifelse(data_use_global_acute_conv$pro_group_labels=="MIN","MIN","OTHER")
+data_use_global_acute_conv$pasc_binary <- factor(data_use_global_acute_conv$pasc_binary, levels=c("MIN","OTHER"))
+data_use_global_acute_conv$pro_group_labels <- factor(data_use_global_acute_conv$pro_group_labels, levels=c("MIN","PHY","COG","MLT"))
+data_use_global_acute_conv$MTHFR <- factor(data_use_global_acute_conv$MTHFR, levels=c("GG","AG","AA"))
+
+# table - MTHFR allele and PASC - pt level
+data_use_global_acute_conv_unique <-distinct(data_use_global_acute_conv, participant_id, .keep_all = TRUE)
+print(paste0("N=",length(data_use_global_acute_conv_unique$participant_id))) # 415 pts
+table(data_use_global_acute_conv_unique$MTHFR, data_use_global_acute_conv_unique$pasc_binary)
+
+# subset for only V1
+data_use_global_sub <- subset(data_use_global_acute_conv, data_use_global_acute_conv$event_type=="Visit 1")
+
+# subset for metabolites in methionine pathway
+rowfeature_methionine <- subset(Metabolomics_rowfeature, Metabolomics_rowfeature$SUB_PATHWAY=="Methionine, Cysteine, SAM and Taurine Metabolism") 
+names <- rowfeature_methionine$CHEMICAL_NAME
+data_use_global_methionine <- subset(data_use_global_sub, data_use_global_sub$name %in% names)
+
+
+### methionine sulfoxide 
+data_use_global_sulfoxide <- subset(data_use_global_sub, data_use_global_sub$name=="methionine sulfoxide")
+
+stat.test <- data_use_global_sulfoxide %>%
+  group_by(pasc_binary) %>%
+  wilcox_test(value ~ MTHFR) %>%
+  add_y_position() %>%
+  add_x_position(x = "pasc_binary", dodge = 1)
+stat.test <- 
+  rstatix::add_significance(
+  stat.test,
+  p.col = "p",
+  output.col = "p.signif",
+  cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+  symbols = c("****", "***", "**", "*", "ns")
+)
+
+plot_sulfoxide_pasc <- ggplot(data_use_global_sulfoxide, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+  geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+  labs(x="PASC Group", y="methionine sulfoxide") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+ # scale_fill_manual(values = c("#999999", "#E69F00"))
+plot_sulfoxide_pasc
+
+
+### S-adenosylhomocysteine (SAH) 
+#data_use_global_SAH <- subset(data_use_global_sub, data_use_global_sub$name=="S-adenosylhomocysteine (SAH)")
+
+#stat.test <- data_use_global_SAH %>%
+ # group_by(pasc_binary) %>%
+#  wilcox_test(value ~ MTHFR) %>%
+ # add_y_position() %>%
+ # add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+#  rstatix::add_significance(
+#  stat.test,
+#  p.col = "p",
+#  output.col = "p.signif",
+#  cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+#  symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_SAH_pasc <- ggplot(data_use_global_SAH, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+ # geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="S-adenosylhomocysteine (SAH)") + theme_bw() + stat_pvalue_manual(stat.test,  label = #"p.signif")
+#plot_SAH_pasc
+
+
+### 2-hydroxy-4-(methylthio)butanoic acid 
+#data_use_global_butonic <- subset(data_use_global_sub, data_use_global_sub$name=="2-hydroxy-4-(methylthio)butanoic acid")
+
+#stat.test <- data_use_global_butonic %>%
+#  group_by(pasc_binary) %>%
+#  wilcox_test(value ~ MTHFR) %>%
+ # add_y_position() %>%
+#  add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+#  rstatix::add_significance(
+#  stat.test,
+#  p.col = "p",
+#  output.col = "p.signif",
+#  cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+#  symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_butonic_pasc <- ggplot(data_use_global_butonic, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+#  geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="2-hydroxy-4-(methylthio)butanoic acid") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_butonic_pasc
+
+
+### betaine
+#data_use_global_betaine <- subset(data_use_global_sub, data_use_global_sub$name=="betaine")
+
+#stat.test <- data_use_global_betaine %>%
+ # group_by(pasc_binary) %>%
+#  wilcox_test(value ~ MTHFR) %>%
+ # add_y_position() %>%
+ # add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+ # rstatix::add_significance(
+ # stat.test,
+ # p.col = "p",
+ # output.col = "p.signif",
+ # cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_betaine_pasc <- ggplot(data_use_global_betaine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+ # geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="betaine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_betaine_pasc
+
+### creatine
+data_use_global_creatine <- subset(data_use_global_sub, data_use_global_sub$name=="creatine")
+
+stat.test <- data_use_global_creatine %>%
+  group_by(pasc_binary) %>%
+  wilcox_test(value ~ MTHFR) %>%
+  add_y_position() %>%
+  add_x_position(x = "pasc_binary", dodge = 1)
+stat.test <- 
+  rstatix::add_significance(
+  stat.test,
+  p.col = "p",
+  output.col = "p.signif",
+  cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+  symbols = c("****", "***", "**", "*", "ns")
+)
+
+plot_creatine_pasc <- ggplot(data_use_global_creatine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+  geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+  labs(x="PASC Group", y="creatine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+plot_creatine_pasc
+
+
+### creatinine
+#data_use_global_creatinine <- subset(data_use_global_sub, data_use_global_sub$name=="creatinine")
+
+#stat.test <- data_use_global_creatinine %>%
+#  group_by(pasc_binary) %>%
+#  wilcox_test(value ~ MTHFR) %>%
+#  add_y_position() %>%
+#  add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+#  rstatix::add_significance(
+#  stat.test,
+#  p.col = "p",
+#  output.col = "p.signif",
+#  cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+#  symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_creatinine_pasc <- ggplot(data_use_global_creatinine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+ # geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="creatinine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_creatinine_pasc
+
+### cysteine
+#data_use_global_cysteine <- subset(data_use_global_sub, data_use_global_sub$name=="cysteine")
+
+#stat.test <- data_use_global_cysteine %>%
+#  group_by(pasc_binary) %>%
+ # wilcox_test(value ~ MTHFR) %>%
+ # add_y_position() %>%
+ # add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+ # rstatix::add_significance(
+ # stat.test,
+ # p.col = "p",
+ # output.col = "p.signif",
+ # cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_cysteine_pasc <- ggplot(data_use_global_cysteine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+ # geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="cysteine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_cysteine_pasc
+
+### cysteine s-sulfate
+#data_use_global_cysteinesulfate <- subset(data_use_global_sub, data_use_global_sub$name=="cysteine s-sulfate")
+
+#stat.test <- data_use_global_cysteinesulfate %>%
+#  group_by(pasc_binary) %>%
+#  wilcox_test(value ~ MTHFR) %>%
+#  add_y_position() %>%
+#  add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+ # rstatix::add_significance(
+ # stat.test,
+ # p.col = "p",
+ # output.col = "p.signif",
+ # cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_cysteinesulfate_pasc <- ggplot(data_use_global_cysteinesulfate, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+ # geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+#  labs(x="PASC Group", y="cysteine s-sulfate") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_cysteinesulfate_pasc
+
+### cystine
+#data_use_global_cystine <- subset(data_use_global_sub, data_use_global_sub$name=="cystine")
+
+#stat.test <- data_use_global_cystine %>%
+ # group_by(pasc_binary) %>%
+ # wilcox_test(value ~ MTHFR) %>%
+ # add_y_position() %>%
+ # add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+ # rstatix::add_significance(
+ # stat.test,
+ # p.col = "p",
+ # output.col = "p.signif",
+ # cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_cystine_pasc <- ggplot(data_use_global_cystine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+ # geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="cystine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_cystine_pasc
+
+### dimethylglycine
+data_use_global_dimethylglycine <- subset(data_use_global_sub, data_use_global_sub$name=="dimethylglycine")
+
+stat.test <- data_use_global_dimethylglycine %>%
+  group_by(pasc_binary) %>%
+  wilcox_test(value ~ MTHFR) %>%
+  add_y_position() %>%
+  add_x_position(x = "pasc_binary", dodge = 1)
+stat.test <- 
+  rstatix::add_significance(
+  stat.test,
+  p.col = "p",
+  output.col = "p.signif",
+  cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+  symbols = c("****", "***", "**", "*", "ns")
+)
+
+plot_dimethylglycine_pasc <- ggplot(data_use_global_dimethylglycine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+  geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+  labs(x="PASC Group", y="dimethylglycine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+plot_dimethylglycine_pasc
+
+
+### glycine
+#data_use_global_glycine <- subset(data_use_global_sub, data_use_global_sub$name=="glycine")
+
+#stat.test <- data_use_global_glycine %>%
+#  group_by(pasc_binary) %>%
+#  wilcox_test(value ~ MTHFR) %>%
+#  add_y_position() %>%
+#  add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+ # rstatix::add_significance(
+ # stat.test,
+ # p.col = "p",
+ # output.col = "p.signif",
+ # cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_glycine_pasc <- ggplot(data_use_global_glycine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+#  geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+#  labs(x="PASC Group", y="glycine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_glycine_pasc
+
+### guanidinoacetate
+data_use_global_guanidinoacetate <- subset(data_use_global_sub, data_use_global_sub$name=="guanidinoacetate")
+
+stat.test <- data_use_global_guanidinoacetate %>%
+  group_by(pasc_binary) %>%
+  wilcox_test(value ~ MTHFR) %>%
+  add_y_position() %>%
+  add_x_position(x = "pasc_binary", dodge = 1)
+stat.test <- 
+  rstatix::add_significance(
+  stat.test,
+  p.col = "p",
+  output.col = "p.signif",
+  cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+  symbols = c("****", "***", "**", "*", "ns")
+)
+
+plot_guanidinoacetate_pasc <- ggplot(data_use_global_guanidinoacetate, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+  geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+  labs(x="PASC Group", y="guanidinoacetate") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+plot_guanidinoacetate_pasc
+
+
+### methionine
+#data_use_global_methionine <- subset(data_use_global_sub, data_use_global_sub$name=="methionine")
+
+#stat.test <- data_use_global_methionine %>%
+#  group_by(pasc_binary) %>%
+#  wilcox_test(value ~ MTHFR) %>%
+#  add_y_position() %>%
+#  add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+#  rstatix::add_significance(
+#  stat.test,
+#  p.col = "p",
+#  output.col = "p.signif",
+#  cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_methionine_pasc <- ggplot(data_use_global_methionine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+#  geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="methionine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_methionine_pasc
+
+### methionine sulfone
+data_use_global_methioninesulfone <- subset(data_use_global_sub, data_use_global_sub$name=="methionine sulfone")
+
+stat.test <- data_use_global_methioninesulfone %>%
+  group_by(pasc_binary) %>%
+  wilcox_test(value ~ MTHFR) %>%
+  add_y_position() %>%
+  add_x_position(x = "pasc_binary", dodge = 1)
+stat.test <- 
+  rstatix::add_significance(
+  stat.test,
+  p.col = "p",
+  output.col = "p.signif",
+  cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+  symbols = c("****", "***", "**", "*", "ns")
+)
+
+plot_methioninesulfone_pasc <- ggplot(data_use_global_methioninesulfone, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+  geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+  labs(x="PASC Group", y="methionine sulfone") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+plot_methioninesulfone_pasc
+
+### N-acetylglycine
+data_use_global_acetylglycine <- subset(data_use_global_sub, data_use_global_sub$name=="N-acetylglycine")
+
+stat.test <- data_use_global_acetylglycine %>%
+  group_by(pasc_binary) %>%
+  wilcox_test(value ~ MTHFR) %>%
+  add_y_position() %>%
+  add_x_position(x = "pasc_binary", dodge = 1)
+stat.test <- 
+  rstatix::add_significance(
+  stat.test,
+  p.col = "p",
+  output.col = "p.signif",
+  cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+  symbols = c("****", "***", "**", "*", "ns")
+)
+
+plot_acetylglycine_pasc <- ggplot(data_use_global_acetylglycine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+  geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+  labs(x="PASC Group", y="N-acetylglycine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+plot_acetylglycine_pasc
+
+
+### N-acetylmethionine
+#data_use_global_acetylmethionine <- subset(data_use_global_sub, data_use_global_sub$name=="N-acetylmethionine")
+
+#stat.test <- data_use_global_acetylmethionine %>%
+#  group_by(pasc_binary) %>%
+ # wilcox_test(value ~ MTHFR) %>%
+ # add_y_position() %>%
+ # add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+ # rstatix::add_significance(
+ # stat.test,
+#  p.col = "p",
+ # output.col = "p.signif",
+ # cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_acetylmethionine_pasc <- ggplot(data_use_global_acetylmethionine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+ # geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="N-acetylmethionine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_acetylmethionine_pasc
+
+### N-acetylserine
+#data_use_global_acetylserine <- subset(data_use_global_sub, data_use_global_sub$name=="N-acetylserine")
+
+#stat.test <- data_use_global_acetylserine %>%
+#  group_by(pasc_binary) %>%
+#  wilcox_test(value ~ MTHFR) %>%
+ # add_y_position() %>%
+ # add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+ # rstatix::add_significance(
+ # stat.test,
+ # p.col = "p",
+#  output.col = "p.signif",
+#  cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+#  symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_acetylserine_pasc <- ggplot(data_use_global_acetylserine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+ # geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="N-acetylserine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_acetylserine_pasc
+
+### N-acetylthreonine
+#data_use_global_acetylthreonine <- subset(data_use_global_sub, data_use_global_sub$name=="N-acetylthreonine")
+
+#stat.test <- data_use_global_acetylthreonine %>%
+#  group_by(pasc_binary) %>%
+ # wilcox_test(value ~ MTHFR) %>%
+ # add_y_position() %>%
+ # add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+#  rstatix::add_significance(
+ # stat.test,
+ # p.col = "p",
+ # output.col = "p.signif",
+ # cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_acetylthreonine_pasc <- ggplot(data_use_global_acetylthreonine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+ # geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="N-acetylthreonine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_acetylthreonine_pasc
+
+### N-formylmethionine
+#data_use_global_formylmethionine <- subset(data_use_global_sub, data_use_global_sub$name=="N-formylmethionine")
+
+#stat.test <- data_use_global_formylmethionine %>%
+#  group_by(pasc_binary) %>%
+#  wilcox_test(value ~ MTHFR) %>%
+#  add_y_position() %>%
+#  add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+ # rstatix::add_significance(
+ # stat.test,
+#  p.col = "p",
+ # output.col = "p.signif",
+ # cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_formylmethionine_pasc <- ggplot(data_use_global_formylmethionine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+#  geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="N-formylmethionine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_formylmethionine_pasc
+
+### S-carboxyethylcysteine
+#data_use_global_carboxyethylcysteine <- subset(data_use_global_sub, data_use_global_sub$name=="S-carboxyethylcysteine")
+
+#stat.test <- data_use_global_carboxyethylcysteine %>%
+ # group_by(pasc_binary) %>%
+ # wilcox_test(value ~ MTHFR) %>%
+ # add_y_position() %>%
+ # add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+ # rstatix::add_significance(
+ # stat.test,
+ # p.col = "p",
+ # output.col = "p.signif",
+ # cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_carboxyethylcysteine_pasc <- ggplot(data_use_global_carboxyethylcysteine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+ # geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="S-carboxyethylcysteine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_carboxyethylcysteine_pasc
+
+### S-methylcysteine
+#data_use_global_methylcysteine <- subset(data_use_global_sub, data_use_global_sub$name=="S-methylcysteine")
+
+#stat.test <- data_use_global_methylcysteine %>%
+#  group_by(pasc_binary) %>%
+#  wilcox_test(value ~ MTHFR) %>%
+#  add_y_position() %>%
+ # add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+ # rstatix::add_significance(
+ # stat.test,
+ # p.col = "p",
+ # output.col = "p.signif",
+ # cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_methylcysteine_pasc <- ggplot(data_use_global_methylcysteine, aes(x = pasc_binary, y =  value, colour=MTHFR)) +
+#  geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+  #labs(x="PASC Group", y="S-methylcysteine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_methylcysteine_pasc
+
+### S-methylcysteine sulfoxide
+#data_use_global_methylcysteinesulfoxide <- subset(data_use_global_sub, data_use_global_sub$name=="S-methylcysteine sulfoxide")
+
+#stat.test <- data_use_global_methylcysteinesulfoxide %>%
+ # group_by(pasc_binary) %>%
+ # wilcox_test(value ~ MTHFR) %>%
+ # add_y_position() %>%
+ # add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+ # rstatix::add_significance(
+ # stat.test,
+ # p.col = "p",
+ # output.col = "p.signif",
+ # cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_methylcysteinesulfoxide_pasc <- ggplot(data_use_global_methylcysteinesulfoxide, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+ # geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="S-methylcysteine sulfoxide") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_methylcysteinesulfoxide_pasc
+
+### sarcosine
+#data_use_global_sarcosine <- subset(data_use_global_sub, data_use_global_sub$name=="sarcosine")
+
+#stat.test <- data_use_global_sarcosine %>%
+ # group_by(pasc_binary) %>%
+ # wilcox_test(value ~ MTHFR) %>%
+ # add_y_position() %>%
+ # add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+ # rstatix::add_significance(
+ # stat.test,
+ # p.col = "p",
+ # output.col = "p.signif",
+ # cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_sarcosine_pasc <- ggplot(data_use_global_sarcosine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+ # geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="sarcosine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_sarcosine_pasc
+
+### serine
+#data_use_global_serine <- subset(data_use_global_sub, data_use_global_sub$name=="serine")
+
+#stat.test <- data_use_global_serine %>%
+ # group_by(pasc_binary) %>%
+ # wilcox_test(value ~ MTHFR) %>%
+ # add_y_position() %>%
+ # add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+ # rstatix::add_significance(
+ # stat.test,
+ # p.col = "p",
+ # output.col = "p.signif",
+ # cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_serine_pasc <- ggplot(data_use_global_serine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+ # geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="serine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_serine_pasc
+
+### taurine
+#data_use_global_taurine <- subset(data_use_global_sub, data_use_global_sub$name=="taurine")
+
+#stat.test.taurine <- data_use_global_taurine %>%
+ # group_by(pasc_binary) %>%
+ # wilcox_test(value ~ MTHFR) %>%
+ # add_y_position() %>%
+ # add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test.taurine <- 
+ # rstatix::add_significance(
+ # stat.test.taurine,
+ # p.col = "p",
+ # output.col = "p.signif",
+ # cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_taurine_pasc <- ggplot(data_use_global_taurine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+ # geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="taurine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_taurine_pasc
+
+### threonine
+#data_use_global_threonine <- subset(data_use_global_sub, data_use_global_sub$name=="threonine")
+
+#stat.test <- data_use_global_threonine %>%
+ # group_by(pasc_binary) %>%
+ # wilcox_test(value ~ MTHFR) %>%
+ # add_y_position() %>%
+ # add_x_position(x = "pasc_binary", dodge = 1)
+#stat.test <- 
+ # rstatix::add_significance(
+ # stat.test,
+#  p.col = "p",
+ # output.col = "p.signif",
+ # cutpoints = c(0, 1e-04, 0.001, 0.01, 0.05, 1),
+ # symbols = c("****", "***", "**", "*", "ns")
+#)
+
+#plot_threonine_pasc <- ggplot(data_use_global_threonine, aes(x = pasc_binary, y =  value, colour=MTHFR)) + 
+ # geom_point(size=1,position = position_jitterdodge(), alpha=0.5) +
+ # labs(x="PASC Group", y="threonine") + theme_bw() + stat_pvalue_manual(stat.test,  label = "p.signif")
+#plot_threonine_pasc 
+
+```
+### Figure S5 panel
+```{r}
+ggarrange(plot_sulfoxide_pasc, plot_creatine_pasc, plot_dimethylglycine_pasc, plot_guanidinoacetate_pasc, plot_methioninesulfone_pasc, plot_acetylglycine_pasc, common.legend = TRUE, legend = "bottom")
+```
+
+### Table 1 - patient demographics stratified by MTHFR alleles
+* targeted and global metabolomics
+* sex, age, TG, visit, MTHFR alleles, PASC
+```{r}
+temp <- clin_alleles
+# distinct participant
+temp <- temp %>% distinct(participant_id, .keep_all = TRUE)
+
+# table 
+temp$sex <- 
+  factor(temp$sex, levels=c("Male","Female"),
+         labels=c("Male", 
+                  "Female"))
+temp$event_type <-
+  factor(temp$event_type, levels=c("Visit 1", "Visit 2", "Visit 3", "Visit 4", "Visit 5", "Visit 6"),
+         labels = c("Visit 1", "Visit 2", 
+                    "Visit 3", "Visit 4", 
+                    "Visit 5", "Visit 6"))
+
+temp$trajectory_group <- 
+  factor(temp$trajectory_group, levels=c("1","2","3","4","5"),
+         labels=c("TG1","TG2","TG3","TG4","TG5"))
+
+temp$conv_cluster4 <- 
+  factor(temp$conv_cluster4, levels=c("1","2","5","6"),
+         labels=c("MIN","PHY","COG","MLT"))
+
+temp$MTHFR <-
+  factor(temp$MTHFR, levels=c("GG","AG","AA"),
+         labels=c("GG","AG","AA"))
+
+temp$admit_age <- as.integer(temp$admit_age)
+#temp$discretized_admit_age_quantile <- 
+  #factor(temp$discretized_admit_age_quantile, levels=c("[18,35]","[36,51]","[52,66]","[67,81]","[82,96]"),
+     #    labels=c("[18,35]","[36,51]","[52,66]","[67,81]","[82,96]"))
+
+label(temp$sex) <- "Sex"
+label(temp$admit_age) <- "Age at admission (years)"
+#label(temp$discretized_admit_age_quantile) <- "Discretized Age Quantile (years)"
+label(temp$event_type)       <- "Visit"
+label(temp$trajectory_group)     <- "Trajectory Group"
+label(temp$conv_cluster4) <- "Convalescent PASC Group"
+label(temp$MTHFR) <- "MTHFR allele"
+
+
+pvalue <- function(x, ...) {
+  x <- x[-length(x)]  # Remove "overall" group
+  # Construct vectors of data y, and groups (strata) g
+  y <- unlist(x)
+  g <- factor(rep(1:length(x), times=sapply(x, length)))
+  if (is.numeric(y)) {
+    # For numeric variables, perform an ANOVA
+    p <- summary(aov(y ~ g))[[1]][["Pr(>F)"]][1]
+  } else {
+    # For categorical variables, perform a chi-squared test of independence
+    p <- chisq.test(table(y, g))$p.value
+  }
+  # Format the p-value, using an HTML entity for the less-than sign.
+  # The initial empty string places the output on the line below the variable label.
+  c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
+}
+
+#pdf(file = "Table1_MTHFR.pdf",width=20,height=20)
+table1_mthfr <- table1(~ sex + admit_age + event_type + trajectory_group + conv_cluster4 | MTHFR, data=temp, overall=c(left="Total"), topclass="Rtable1-zebra", extra.col = list(`P-value`=pvalue)) #, footnote=footnote, caption=caption
+#dev.off()
+
+write.table (table1_mthfr , "/users/csyphurs/Table1_MTHFR.csv", col.names = T, row.names=F, sep=',')
+
+```
+
+### Logistic regression AA vs. OTHERS (AG, GG) based on baseline metabolites for each PASC group (MIN, PHY, COG, MLT)
+```{r, eval=F}
+## PASC = MIN regression analysis
+
+# subset global V1 data for PASC=="MIN"
+met_data <- subset(data_use_global_acute_v1, data_use_global_acute_v1$pro_group_labels=="MIN")
+
+# structure outcome variable
+met_data <-  met_data[order(met_data$participant_id),]
+met_data$outcome <- ifelse(met_data$MTHFR=="AA","AA","OTHER")
+met_data <- met_data %>%  mutate(OUTCOME = case_when(
+    outcome == "OTHER" ~ 0,
+    outcome == "AA" ~ 1
+    ))
+
+met_data <- met_data %>% drop_na(OUTCOME)
+OUTCOME = met_data$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data$sex)
+y <- as.numeric (OUTCOME)
+bmi <- as.numeric(met_data$bmi) #numerical
+race <- as.factor(met_data$race)
+ethnicity <- as.factor(met_data$ethnicity)
+participant <- as.factor(met_data$participant_id)
+age_quantile <- as.factor(met_data$discretized_admit_age_quantile)
+#age_quantile <- as.numeric(met_data$admit_age)
+
+
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met, sex, participant, bmi,age_quantile) #, location,phase, plate,type,age
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile") #"location","phase","plate","type"
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    #lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+    lr<- glm (fmla, data=df, family=binomial) 
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  lr_output$coef <- coef
+  lr_output$std <- std
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_AAvOTHER_min <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_AAvOTHER_min$qval <= 0.05) # 258 sig mets
+  output_all_AAvOTHER_min = output_all
+```
+```{r, eval=F}
+## PASC = PHY regression analysis
+
+# subset global V1 data for PASC="PHY"
+met_data <- subset(data_use_global_acute_v1, data_use_global_acute_v1$pro_group_labels=="PHY")
+
+# structure outcome variable
+met_data <-  met_data[order(met_data$participant_id),]
+met_data$outcome <- ifelse(met_data$MTHFR=="AA","AA","OTHER")
+met_data <- met_data %>%  mutate(OUTCOME = case_when(
+    outcome == "OTHER" ~ 0,
+    outcome == "AA" ~ 1
+    ))
+
+met_data <- met_data %>% drop_na(OUTCOME)
+OUTCOME = met_data$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data$sex)
+y <- as.numeric (OUTCOME)
+bmi <- as.numeric(met_data$bmi) #numerical
+race <- as.factor(met_data$race)
+ethnicity <- as.factor(met_data$ethnicity)
+participant <- as.factor(met_data$participant_id)
+age_quantile <- as.factor(met_data$discretized_admit_age_quantile)
+
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met, sex, participant, bmi,age_quantile) #, location,phase, plate,type,age
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile") #"location","phase","plate","type"
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    #lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+    lr<- glm (fmla, data=df, family=binomial) 
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  lr_output$coef <- coef
+  lr_output$std <- std
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_AAvOTHER_phy <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_AAvOTHER_phy$qval <= 0.05) # 270 sig mets
+  output_all_AAvOTHER_phy = output_all
+```
+```{r, eval=F}
+## PASC = COG regression analysis 
+
+# subset global V1 data for PASC=="COG"
+met_data <- subset(data_use_global_acute_v1, data_use_global_acute_v1$pro_group_labels=="COG")
+
+# structure outcome variable
+met_data <-  met_data[order(met_data$participant_id),]
+met_data$outcome <- ifelse(met_data$MTHFR=="AA","AA","OTHER")
+met_data <- met_data %>%  mutate(OUTCOME = case_when(
+    outcome == "OTHER" ~ 0,
+    outcome == "AA" ~ 1
+    ))
+
+met_data <- met_data %>% drop_na(OUTCOME)
+OUTCOME = met_data$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data$sex)
+y <- as.numeric (OUTCOME)
+bmi <- as.numeric(met_data$bmi) #numerical
+race <- as.factor(met_data$race)
+ethnicity <- as.factor(met_data$ethnicity)
+participant <- as.factor(met_data$participant_id)
+age_quantile <- as.factor(met_data$discretized_admit_age_quantile)
+
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met, sex, participant, bmi,age_quantile) #, location,phase, plate,type,age
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile") #"location","phase","plate","type"
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    #lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+    lr<- glm (fmla, data=df, family=binomial) 
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  lr_output$coef <- coef
+  lr_output$std <- std
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_AAvOTHER_cog <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_AAvOTHER_cog$qval <= 0.05) # 341 sig mets
+  output_all_AAvOTHER_cog = output_all
+```
+```{r, eval=F}
+## PASC = MLT regression analysis
+
+# subset global V1 data for PASC=="MLT"
+met_data <- subset(data_use_global_acute_v1, data_use_global_acute_v1$pro_group_labels=="MLT")
+
+# structure outcome variable
+met_data <-  met_data[order(met_data$participant_id),]
+met_data$outcome <- ifelse(met_data$MTHFR=="AA","AA","OTHER")
+met_data <- met_data %>%  mutate(OUTCOME = case_when(
+    outcome == "OTHER" ~ 0,
+    outcome == "AA" ~ 1
+    ))
+
+met_data <- met_data %>% drop_na(OUTCOME)
+OUTCOME = met_data$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data$sex)
+y <- as.numeric (OUTCOME)
+bmi <- as.numeric(met_data$bmi) #numerical
+race <- as.factor(met_data$race)
+ethnicity <- as.factor(met_data$ethnicity)
+participant <- as.factor(met_data$participant_id)
+age_quantile <- as.factor(met_data$discretized_admit_age_quantile)
+
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met, sex, participant, bmi,age_quantile) #, location,phase, plate,type,age
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile") #"location","phase","plate","type"
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    #lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+    lr<- glm (fmla, data=df, family=binomial) 
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  lr_output$coef <- coef
+  lr_output$std <- std
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_AAvOTHER_mlt <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_AAvOTHER_mlt$qval <= 0.05) # 301 sig mets
+  output_all_AAvOTHER_mlt = output_all
+```
+```{r, eval=F}
+## AA vs OTHERS forest plot
+
+# Combine logistic regression results for each PASC group
+lr_output_AAvOTHER_min = merge(lr_output_AAvOTHER_min, output_all_AAvOTHER_min, by.x = "Compound_ID",by.y = "outc")
+lr_output_AAvOTHER_min$type = "MIN"
+lr_output_AAvOTHER_min = lr_output_AAvOTHER_min %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05  ~ "Not significant"
+    ))
+
+lr_output_AAvOTHER_phy = merge(lr_output_AAvOTHER_phy, output_all_AAvOTHER_phy, by.x = "Compound_ID",by.y = "outc")
+lr_output_AAvOTHER_phy$type = "PHY"
+lr_output_AAvOTHER_phy = lr_output_AAvOTHER_phy %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05 ~ "Not significant"
+    ))
+lr_output_AAvOTHER_cog = merge(lr_output_AAvOTHER_cog, output_all_AAvOTHER_cog, by.x = "Compound_ID",by.y = "outc")
+lr_output_AAvOTHER_cog$type = "COG"
+lr_output_AAvOTHER_cog = lr_output_AAvOTHER_cog %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05 ~ "Not significant"
+    ))
+lr_output_AAvOTHER_mlt = merge(lr_output_AAvOTHER_mlt, output_all_AAvOTHER_mlt, by.x = "Compound_ID",by.y = "outc")
+lr_output_AAvOTHER_mlt$type = "MLT"
+lr_output_AAvOTHER_mlt = lr_output_AAvOTHER_mlt %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05 ~ "Not significant"
+    ))
+
+
+all_results_sig = rbind(lr_output_AAvOTHER_min, lr_output_AAvOTHER_phy, lr_output_AAvOTHER_cog,lr_output_AAvOTHER_mlt)
+all_results_sig$type = factor(all_results_sig$type, levels = c("MIN", "PHY", "COG", "MLT"))
+
+  b <-all_results_sig[SUB_PATHWAY %in% c("Methionine, Cysteine, SAM and Taurine Metabolism")] 
+  if(dim(b)[1] ==0){
+    return("No metabolites found!")
+  }else{
+    b$data <- "Methionine, Cysteine, SAM and Taurine Metabolism"
+    if(dim(b)[1]>100){
+      b <- b[order(qval)]
+      b <- b[1:100,]
+    }
+  }
+  
+    p <- b%>%
+     ggplot( aes(x =Name, y = coef)) +
+      facet_grid(. ~ data) +
+      geom_errorbar(aes(ymin = lowerCI, ymax = upperCI, color = type), width = 0.5, size = 1) +
+      geom_pointrange(aes(ymin = lowerCI, ymax = upperCI, color = type, shape = sig), size = 1) +#shape = 15, 
+      
+      geom_hline(yintercept = 0, linetype = 2) +
+      labs(title = "Methionine, Cysteine, SAM and Taurine Metabolism", x = "Metabolites", y = "coefficient (95% confidence interval)") +
+      
+      theme(title = element_text(size = 2),
+            axis.title = element_text(size = 2),
+            axis.text = element_text(size = 2),
+            strip.text.x = element_text(size = 2),
+            legend.position = "right",
+            legend.title = element_text(size = 2),
+            legend.text = element_text(size = 2)) +
+      theme_bw() +
+      coord_flip()
+ 
+  names(b)[2] = "name"
+library(ggforestplot)
+p_1= forestplot(
+  df = b,
+  estimate = coef,
+  logodds = FALSE,
+  colour = type,
+  shape = sig,
+  title = "Methionine, Cysteine, SAM and Taurine Metabolism",
+  xlab = "coefficient",pvalue = qval, psignif = 0.05
+) +scale_shape_manual(values=c(17,19)) +
+   theme(plot.title = element_text(size=12))
+p_1
+
+
+b <-all_results_sig[SUB_PATHWAY %in% c("Glycine, Serine and Threonine Metabolism")] 
+  if(dim(b)[1] ==0){
+    return("No metabolites found!")
+  }else{
+    b$data <- "Glycine, Serine and Threonine Metabolism"
+    if(dim(b)[1]>100){
+      b <- b[order(qval)]
+      b <- b[1:100,]
+    }
+  }
+  
+    p <- b%>%
+     ggplot( aes(x =Name, y = coef)) +
+      facet_grid(. ~ data) +
+      geom_errorbar(aes(ymin = lowerCI, ymax = upperCI, color = type), width = 0.5, size = 1) +
+      geom_pointrange(aes(ymin = lowerCI, ymax = upperCI, color = type, shape = sig), size = 1) +#shape = 15, 
+      
+      geom_hline(yintercept = 0, linetype = 2) +
+      labs(title = "Glycine, Serine and Threonine Metabolism", x = "Metabolites", y = "coefficient (95% confidence interval)") +
+      
+      theme(title = element_text(size = 2),
+            axis.title = element_text(size = 2),
+            axis.text = element_text(size = 2),
+            strip.text.x = element_text(size = 2),
+            legend.position = "right",
+            legend.title = element_text(size = 2),
+            legend.text = element_text(size = 2)) +
+      theme_bw() +
+      coord_flip()
+ 
+  names(b)[2] = "name"
+library(ggforestplot)
+p_2= forestplot(
+  df = b,
+  estimate = coef,
+  logodds = FALSE,
+  colour = type,
+  shape = sig,
+  title = "Glycine, Serine and Threonine Metabolism",
+  xlab = "coefficient",pvalue = qval, psignif = 0.05
+) +scale_shape_manual(values=c(17,19)) +
+   theme(plot.title = element_text(size=12))
+p_2
+
+```
+
+## Supplementary: check other MTHFR SNP distributions (rs1801131)
+```{r}
+# import allele data
+alleles_other <- read.csv("/scratch/metabolomics/plasma-metabolomics-targeted/MTHFR/two_MTHFR_snps.csv")
+alleles_other <- alleles_other[,c("participant_id","rs1801131")]
+
+#merge MTHFR data with clinical data by participant_id
+clin_alleles_other <- merge(clinical_data, alleles_other, by="participant_id")
+length(unique(clin_alleles_other$participant_id)) # 1031 pts with MTHFR and met sample
+clin_alleles_other$trajectory_group <- factor(clin_alleles_other$trajectory_group, levels = c(1,2,3,4,5))
+
+# subset for unique participants
+clin_alleles_other_supp = clin_alleles_other[!duplicated(clin_alleles_other$participant_id),]
+clin_alleles_other_supp$rs1801131 <- factor(clin_alleles_other_supp$rs1801131, levels = c("TT","TG","GG"))
+
+## TGs proportions
+rs1801131_TG <- clin_alleles_other_supp %>%
+  dplyr::count(rs1801131, trajectory_group) %>%       
+  group_by(rs1801131) %>%
+  mutate(pct= prop.table(n) * 100) %>%
+  ggplot() + aes(rs1801131, pct, fill=trajectory_group) +
+  scale_fill_manual(values=c('#639A21', '#39828C', '#0072B2', '#E69F00', '#9C3418')) +
+  geom_bar(stat="identity") +
+  ylab("Proportion of Participants") +
+  geom_text(aes(label=paste0(sprintf("%1.1f", pct),"%")),
+            position=position_stack(vjust=0.5)) +
+  ggtitle("TG distribution across MTHFR (rs1801131) alleles") +
+  theme_bw() 
+rs1801131_TG
+
+table(clin_alleles_other_supp$rs1801131)
+table(clin_alleles_other_supp$rs1801131, clin_alleles_other_supp$trajectory_group)
+
+# chi square test for homogeneity
+conttable <- table(clin_alleles_other_supp$rs1801131, clin_alleles_other_supp$trajectory_group)
+chisq.test(conttable)
+
+
+## mortality proportions
+clin_alleles_other_supp$diedever <- ifelse(clin_alleles_other_supp$diedever == 0, "No","Yes")
+clin_alleles_other_supp$diedever <- factor(clin_alleles_other_supp$diedever, levels = c("No","Yes"))
+
+rs1801131_mortality <- clin_alleles_other_supp %>%
+  dplyr::count(rs1801131, diedever) %>%       
+  group_by(rs1801131) %>%
+  mutate(pct= prop.table(n) * 100) %>%
+  ggplot() + aes(rs1801131, pct, fill=diedever) +
+  scale_fill_manual(values=c("royalblue3", "gray")) +
+  geom_bar(stat="identity") +
+  ylab("Proportion of Participants") +
+  geom_text(aes(label=paste0(sprintf("%1.1f", pct),"%")),
+            position=position_stack(vjust=0.5)) +
+  ggtitle("Mortality distribution across MTHFR (rs1801131) alleles") +
+  theme_bw() +
+  theme(panel.grid = element_blank())
+rs1801131_mortality
+
+table(clin_alleles_other_supp$rs1801131)
+table(clin_alleles_other_supp$rs1801131, clin_alleles_other_supp$diedever)
+
+conttable2 <- table(clin_alleles_other_supp$rs1801131, clin_alleles_other_supp$diedever)
+chisq.test(conttable2)
+```
+
+```{r}
+# distinct participant-level data (clin_alleles_other_supp)
+clin_alleles_other_supp$death_date <- as.numeric(clin_alleles_other_supp$death_date)
+clin_alleles_other_supp$death_date <- ifelse(is.na(clin_alleles_other_supp$death_date), 0, clin_alleles_other_supp$death_date)
+clin_alleles_other_supp$death_date <- ifelse(clin_alleles_other_supp$death_date==-99, 0, clin_alleles_supp$death_date)
+clin_alleles_other_supp$diedever <- ifelse(clin_alleles_other_supp$diedever=="Yes",1,0)
+
+clin_alleles_other_supp$rs1801131 <- factor(clin_alleles_other_supp$rs1801131, levels = c("TT", "TG", "GG"))
+
+univ_model <- coxph(Surv(death_date, diedever) ~ rs1801131, data = clin_alleles_other_supp)
+summary(univ_model)
+# HR forest plot
+rs1801131_HR <- ggforest(univ_model, data = clin_alleles_other_supp)
+rs1801131_HR
+
+print(paste0("N=",length(unique(clin_alleles_other_supp$participant_id))))
+clin_alleles_other_supp %>%
+  group_by(rs1801131) %>%
+  distinct(participant_id) %>%
+  dplyr::summarise(n = n())
+
+```
+
+
+# Panel for Figure S4A
+```{r}
+ggarrange(MTHFR_TG, MTHFR_mortality,
+  rs1801131_TG, rs1801131_mortality, 
+  nrow = 2, ncol = 2)
+```
+
+# Panel for Figure S4B
+```{r}
+ggarrange(MTHFR_HR, rs1801131_HR,
+  nrow = 2, ncol = 1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
