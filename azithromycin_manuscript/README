@@ -1,0 +1,26 @@
+# Empiric Azithromycin Impacts the Respiratory Microbiome and Antimicrobial Resistome without Anti-inflammatory Benefit in COVID-19
+
+---
+Contact Information: To be added soon.
+## Instructions
+This code is for the manuscript titled "Empiric Azithromycin Impacts the Respiratory Microbiome and Antimicrobial Resistome without Anti-inflammatory Benefit in COVID-19"
+## Data availability
+Data used in this study is available at ImmPort Shared Data under the accession number [SDY1760](https://www.immport.org/shared/search?text=SDY1760%20) and in the NLM's
+769 Database of Genotypes and Phenotypes (dbGaP) under the accession number [phs002686.v2.p2](https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs002686.v2.p2). Note this is a controlled database with approval from NIAID required (please follow the instructions as you try to access the data). However, Immport has agreed to provide special access to reviewers of this article upon request by the IMPACC team.
+
+### Code Install and Run Time
+The codebase itself is small and each script should finish within a few minutes once the data paths have been updated to fit your chosen file structure.
+
+### Figures and Tables
+Scripts used to generate figures and tables. To be added soon.
+
+</br>
+
+## Term of use
+
+License details: MIT License (see the [LICENSE file](LICENSE))
+
+</br>
+
+## Required software
+The packages and R version used for each script is reported at the bottom of each rendered script with sessionInfo().
