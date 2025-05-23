@@ -874,6 +874,8 @@ filename_5 <- "/scratch/nasal-transcriptomics/Naresh/data/MLmodels/temp_240705_b
 
 # save(RF_model_results, XGB_model_results, svmRadial_model_results, NNET_model_results, bGLM_model_results, file = filename_5)
 
+load(filename_5)
+
 all_model_results_list <- list(bGLM_model_results = bGLM_model_results,
                                NNET_model_results = NNET_model_results,
                                svmRadial_model_results = svmRadial_model_results,
@@ -926,6 +928,7 @@ View(roc_data_merged)
 View(pr_data_merged)
 
 df_mean <- auroc_auprc_merged %>% 
+  mutate(Model = if_else(Model == "svmRadial", "SVM", Model)) %>%
   group_by(Model) %>%
   summarise(n = n(),
             AUROC_mean = mean(AUROC),
@@ -933,22 +936,25 @@ df_mean <- auroc_auprc_merged %>%
             AUPRC_mean = mean(AUPRC),
             AUPRC_median = median(AUPRC)) %>%
   mutate(AUROC_mean_text = round(AUROC_mean, 3),
-         AUPRC_mean_text = round(AUPRC_mean, 3))
+         AUPRC_mean_text = round(AUPRC_mean, 3)) %>%
+  mutate(AUROC_mean_text_label = paste0("AUROC = ", round(AUROC_mean, 3)),
+         AUPRC_mean_text_label = paste0("AUPRC = ", round(AUPRC_mean, 3)))
 
 
 
 paletteer::paletteer_d("calecopal::superbloom2")
 col_sel <- c("bGLM" = "#DE7424FF", "NNET" = "#496849FF", "RF" = "#F5CA37FF",
-             "svmRadial" = "#654783FF", "XGB" = "#AD8D26FF")
+             "SVM" = "#654783FF", "XGB" = "#AD8D26FF")
 
 # plotting AUROC and AUPRC as box plots
 AUROC_plot1 <- auroc_auprc_merged %>%
+  mutate(Model = if_else(Model == "svmRadial", "SVM", Model)) %>%
   ggplot(aes(x = Model, y = AUROC)) +
   geom_boxplot(aes(color = Model), alpha = 1, lwd = 1.2) +
   geom_quasirandom(aes(color = Model), width = 0.2, alpha = 0.7, size = 1.5) +
   geom_point(data = df_mean, aes(x = Model, y = AUROC_mean), color = "black", size = 5, alpha = 0.7) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 0, size = 14),
+  theme(axis.text.x = element_text(angle = 0, size = 12),
         # axis.text.x = element_blank(),
         axis.text.y = element_text(size = 14),
         plot.title = element_text(size = 14, face = "bold"),
@@ -957,18 +963,21 @@ AUROC_plot1 <- auroc_auprc_merged %>%
         strip.text = element_text(size=14),
         legend.title=element_blank(),
         legend.text = element_text(size = 12)) +
-  # xlab("UMAP 1") +
+  xlab("") +
   # ylab("UMAP 2") +
-  scale_color_manual(values = col_sel) 
+  scale_color_manual(values = col_sel) +
+  scale_y_continuous(limits = c(0.5,0.8)) +
+  scale_x_discrete(labels= c("bGLM", "NNET", "RF", "SVM", "XGB"))
 
 
 AUPRC_plot1 <- auroc_auprc_merged %>%
+  mutate(Model = if_else(Model == "svmRadial", "SVM", Model)) %>%
   ggplot(aes(x = Model, y = AUPRC)) +
   geom_boxplot(aes(color = Model), alpha = 1, lwd = 1.2) +
   geom_quasirandom(aes(color = Model), width = 0.2, alpha = 0.7, size = 1.5) +
   geom_point(data = df_mean, aes(x = Model, y = AUPRC_mean), color = "black", size = 5, alpha = 0.7) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 0, size = 14),
+  theme(axis.text.x = element_text(angle = 0, size = 12),
         # axis.text.x = element_blank(),
         axis.text.y = element_text(size = 14),
         plot.title = element_text(size = 14, face = "bold"),
@@ -977,25 +986,42 @@ AUPRC_plot1 <- auroc_auprc_merged %>%
         strip.text = element_text(size=14),
         legend.title=element_blank(),
         legend.text = element_text(size = 12)) +
-  # xlab("UMAP 1") +
+  xlab("") +
   # ylab("UMAP 2") +
-  scale_color_manual(values = col_sel) 
+  scale_color_manual(values = col_sel) +
+  scale_y_continuous(limits = c(0.4,0.65)) +
+  scale_x_discrete(labels= c("bGLM", "NNET", "RF", "SVM", "XGB"))
 
-AUROC_AUPRC_plot1 <- cowplot::plot_grid(AUROC_plot1, AUPRC_plot1, ncol = 1, labels = NULL, rel_widths = c(1, 1))
+AUROC_AUPRC_plot1 <- cowplot::plot_grid(AUROC_plot1, AUPRC_plot1, ncol = 1, rel_widths = c(1, 1), labels=c("A", "B"))
+
+outDir <- "/scratch/nasal-transcriptomics/impacc-public-code/predict_model_PASC_manuscript/output"
+filename_temp <- file.path(outDir, "mainFig2.pdf")
+ggsave(
+  filename = filename_temp,
+  width = 5,
+  height = 7,
+  units = "in",
+  dpi = 300,
+)
+
+# save source data for mainFig2: ROC_PRC_pots_train_data
+write_csv(auroc_auprc_merged, file = file.path(outDir, "Source_data_Rev1_mainFig2_AUROC_AUPRC_box_plots_test_data.csv"))
+
 
 ### Plotting ROC and PRC curves
 ROC_plot1 <- roc_data_merged %>%
+  mutate(Model = if_else(Model == "svmRadial", "SVM", Model)) %>%
   mutate(iteration = factor(iteration)) %>%
   ggplot(aes(x = 1-specificity, y = sensitivity)) +
   geom_path(aes(color = iteration), linewidth = 0.8) + 
-  geom_text(data = df_mean, aes(x = 0.8, y = 0.2, label = AUROC_mean_text), size = 6) +
+  geom_text(data = df_mean, aes(x = 0.6, y = 0.2, label = AUROC_mean_text_label), size = 5) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 0, size = 14),
         # axis.text.x = element_blank(),
         axis.text.y = element_text(size = 14),
         plot.title = element_text(size = 14, face = "bold"),
-        axis.title.x = element_text(size = 16),
-        axis.title.y = element_text(size = 16),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
         strip.text = element_text(size=14),
         legend.title=element_blank(),
         legend.text = element_text(size = 12)) +
@@ -1003,36 +1029,56 @@ ROC_plot1 <- roc_data_merged %>%
   ylab("Sensitivity") +
   # scale_color_manual(values = col_sel) +
   geom_abline(slope = 1, intercept = 0, color = "black", linewidth = 1.5, linetype = "dashed") +
-  scale_y_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
-  scale_x_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_y_continuous(limits = c(0,1), breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_x_continuous(limits = c(0,1), breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
   facet_wrap(~Model, ncol = 5) +
   theme(legend.position = "none")
 
 PRC_plot1 <- pr_data_merged %>%
+  mutate(Model = if_else(Model == "svmRadial", "SVM", Model)) %>%
   mutate(iteration = factor(iteration)) %>%
   ggplot(aes(x = recall, y = precision)) +
   geom_path(aes(color = iteration), linewidth = 0.8) + 
-  geom_text(data = df_mean, aes(x = 0.8, y = 0.2, label = AUPRC_mean_text), size = 6) +
+  geom_text(data = df_mean, aes(x = 0.6, y = 0.2, label = AUPRC_mean_text_label), size = 5) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 0, size = 14),
         # axis.text.x = element_blank(),
         axis.text.y = element_text(size = 14),
         plot.title = element_text(size = 14, face = "bold"),
-        axis.title.x = element_text(size = 16),
-        axis.title.y = element_text(size = 16),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
         strip.text = element_text(size=14),
         legend.title=element_blank(),
         legend.text = element_text(size = 12)) +
   xlab("Recall") +
   ylab("Precision") +
-  # scale_color_manual(values = col_sel) +
-  # geom_abline(slope = 1, intercept = 0, color = "red", linewidth = 1.5, linetype = "dashed") +
-  scale_y_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
-  scale_x_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_y_continuous(limits = c(0,1), breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_x_continuous(limits = c(0,1), breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
   facet_wrap(~Model, ncol = 5) +
   theme(legend.position = "none")
 
-ROC_PRC_plot1 <- cowplot::plot_grid(ROC_plot1, PRC_plot1, ncol = 1, labels = NULL, rel_widths = c(1, 1))
+ROC_PRC_plot1 <- cowplot::plot_grid(ROC_plot1, PRC_plot1, ncol = 1, labels = c("A", "B"), rel_widths = c(1, 1))
+
+
+outDir <- "/scratch/nasal-transcriptomics/impacc-public-code/predict_model_PASC_manuscript/output"
+# filename_temp <- file.path(outDir, "suppFig2_ROC_PRC_pots_test_data.pdf")
+filename_temp <- file.path(outDir, "Rev1_suppFig2_ROC_PRC_pots_test_data.pdf")
+ggsave(
+  filename = filename_temp,
+  width = 10,
+  height = 5,
+  units = "in",
+  dpi = 300,
+)
+
+
+# save source data for suppFig2: ROC_PRC_pots_train_data
+write_csv(roc_data_merged, file = file.path(outDir, "Source_data_Rev1_suppFig2_ROC_plots_test_data.csv"))
+write_csv(pr_data_merged, file = file.path(outDir, "Source_data_Rev1_suppFig2_PRC_plots_test_data.csv"))
+
+
+
+### Compute Average Preccisin, Accuracy, Precision, Recall and F1 score for test data
 
 
 ### Feature importance data
@@ -1080,8 +1126,39 @@ for (model in model_names) {
 # Print the merged feature importance data frame
 View(feature_importance_merged)
 
+df_temp <- data.frame(Feature = c("N1_CT_au", 
+                             "Spike_au", 
+                             "comorb_anyresp_noasthma", 
+                             "comorb_countcat_v2_0", 
+                             "comorb_isaric_cardiac", 
+                             "comorb_isaric_dm",
+                             "comorb_neuro",
+                             "sex_Female",
+                             "symptom_chestpain",
+                             "symptom_confusion",
+                             "symptom_cough",
+                             "symptom_dyspnea",
+                             "symptom_myalgia",
+                             "symptom_sorethroat"), 
+             Feature_new = c("Viral load-N1 CT", 
+                             "Antibody titer-Spike IgG", 
+                             "Comorbidity-Respiratory disease non-asthma", 
+                             "Comorbidity count-zero vs more", 
+                             "Comorbidity-Cardiac disease", 
+                             "Comorbidity-Diabetes",
+                             "Comorbidity-Neurologic disorder",
+                             "Sex-Female",
+                             "Symptom-Chest pain",
+                             "Symptom-Confusion",
+                             "Symptom-Cough",
+                             "Symptom-Dyspnea",
+                             "Symptom-Myalgia",
+                             "Symptom-Sore throat"))
+
+
 feature_importance_mean <- feature_importance_merged %>%
-  group_by(Model, Feature) %>%
+  inner_join(df_temp) %>%
+  group_by(Model, Feature_new) %>%
   summarise(count = n(),
             mean_imp = mean(LongCOVID),
             median_imp = median(LongCOVID))
@@ -1092,21 +1169,26 @@ feature_importance_mean_NNET <- feature_importance_mean %>%
   arrange(desc(median_imp))
 
 # Convert Feature column to factor with levels in the order of descending median_imp
-feature_importance_mean <- feature_importance_mean %>% mutate(Feature = factor(Feature, levels = rev(feature_importance_mean_NNET$Feature)))
+feature_importance_mean <- feature_importance_mean %>% mutate(Feature_new = factor(Feature_new, levels = rev(feature_importance_mean_NNET$Feature_new)))
 
+
+
+data_temp <- feature_importance_mean %>%
+  dplyr::filter(Model %in% c("XGB", "RF", "svmRadial", "bGLM", "NNET")) %>%
+  mutate(Model = if_else(Model == "svmRadial", "SVM", Model)) %>%
+  dplyr::filter(count > 6) %>%
+  dplyr::filter(Feature_new %in% feature_importance_mean_NNET$Feature_new) 
 
 # variable importance plot
-feature_imp_dotplot_all_models <- feature_importance_mean %>%
-  dplyr::filter(Model %in% c("XGB", "RF", "svmRadial", "bGLM", "NNET")) %>%
-  dplyr::filter(count > 6) %>%
-  dplyr::filter(Feature %in% feature_importance_mean_NNET$Feature) %>%
-  ggplot(aes(x = Model, y = Feature)) +
+plot_feature_imp_dotplot_all_models <- data_temp %>%
+  ggplot(aes(x = Model, y = Feature_new)) +
   geom_point(aes(color = median_imp, size = median_imp)) + 
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 14),
-        axis.text.y = element_text(size = 14),
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 12),
+        axis.text.y = element_text(size = 12),
         text = element_text(size = 14),
-        plot.title = element_text(size = 14, face = "bold")) +
+        plot.title = element_text(size = 14, face = "bold"),
+        legend.position = "bottom") +
   scale_color_continuous(type = "viridis", name = "Score") +
   guides(size = "none") +
   xlab("") + 
@@ -1121,6 +1203,24 @@ feature_imp_dotplot_all_models <- feature_importance_mean %>%
 
 ```{r Model predictions on training data, echo=FALSE}
 
+find_best_threshold_accuracy <- function(y_true, y_probs, thresholds = seq(0, 1, by = 0.01)) {
+  best_threshold <- 0.5
+  best_accuracy <- 0
+  
+  for (t in thresholds) {
+    y_pred <- ifelse(y_probs >= t, 1, 0)
+    accuracy <- sum(y_pred == y_true) / length(y_true)
+    
+    if (accuracy > best_accuracy) {
+      best_accuracy <- accuracy
+      best_threshold <- t
+    }
+  }
+  
+  return(list(best_threshold = best_threshold, best_accuracy = best_accuracy))
+}
+
+
 model_pred_train_itr <- function(model_data = model_data){
   train_data <- model_data$trainingData
   X_train <- train_data %>%
@@ -1128,7 +1228,14 @@ model_pred_train_itr <- function(model_data = model_data){
   Y_train <- train_data %>%
     pull(.outcome)
   # compute probabilities
-  pred_train <- predict(model_data, newdata = X_train, type = "prob") %>% dplyr::mutate(truth = Y_train)
+  pred_train <- predict(model_data, newdata = X_train, type = "prob") %>% dplyr::mutate(truth = Y_train) %>%
+    mutate(y_true = if_else(truth == "LongCOVID", 1, 0),
+           y_probs = LongCOVID)
+  best_cutoff <- find_best_threshold_accuracy(pred_train$y_true, pred_train$y_probs)
+  
+  pred_train <- pred_train %>%
+    mutate(predicted = if_else(LongCOVID >= best_cutoff$best_threshold, "LongCOVID", "Non_LongCOVID")) %>%
+    mutate(predicted = factor(predicted, levels = c("LongCOVID", "Non_LongCOVID")))
   
   auroc_itr <- roc_auc(pred_train, truth, LongCOVID, event_level = "first")$.estimate
   auprc_itr <- pr_auc(pred_train, truth, LongCOVID, event_level = "first")$.estimate
@@ -1136,15 +1243,28 @@ model_pred_train_itr <- function(model_data = model_data){
   pr_data_itr <- pr_curve(pred_train, truth, LongCOVID, event_level = "first") 
   roc_data_itr <- roc_curve(pred_train, truth, LongCOVID, event_level = "first")
   
+  avgpr_itr <- average_precision(pred_train, truth, LongCOVID, event_level = "first")$.estimate
+  
+  # point metrics
+  accuracy_itr <- accuracy(pred_train, truth, predicted, event_level = "first")$.estimate
+  pr_itr <- precision(pred_train, truth, predicted)$.estimate
+  recall_itr <- recall(pred_train, truth, predicted)$.estimate
+  fmeas_itr <- f_meas(pred_train, truth, predicted)$.estimate
+  
   model_output <- list(auroc_itr = auroc_itr,
                        auprc_itr = auprc_itr,
                        pr_data_itr = pr_data_itr,
-                       roc_data_itr = roc_data_itr)
+                       roc_data_itr = roc_data_itr,
+                       avgpr_itr = avgpr_itr,
+                       accuracy_itr = accuracy_itr,
+                       pr_itr = pr_itr,
+                       recall_itr = recall_itr,
+                       fmeas_itr = fmeas_itr)
   
   return(model_output)
 }
 
-tt = model_pred_train_itr(model_data = all_model_results_list$bGLM_model_results$model_list[[1]])$roc_data_itr
+tt = model_pred_train_itr(model_data = all_model_results_list$bGLM_model_results$model_list[[2]])$roc_data_itr
 tt1 = model_pred_train_itr(model_data = all_model_results_list$bGLM_model_results$model_list[[11]])$roc_data_itr
 
 model_pred_train_itr_all <- function(data_list = all_model_results_list$bGLM_model_results$model_list){
@@ -1153,11 +1273,21 @@ model_pred_train_itr_all <- function(data_list = all_model_results_list$bGLM_mod
   auprc_itr_all <- NULL
   pr_data_itr_all <- NULL
   roc_data_itr_all <- NULL
+  avgpr_itr_all <- NULL
+  accuracy_itr_all <- NULL
+  pr_itr_all <- NULL
+  recall_itr_all <- NULL
+  fmeas_itr_all <- NULL
   for(itr in 1:nitr){
     model_output_itr <- model_pred_train_itr(model_data = data_list[[itr]])
     
     auroc_itr <- model_output_itr$auroc_itr
     auprc_itr <- model_output_itr$auprc_itr
+    avgpr_itr <- model_output_itr$avgpr_itr
+    accuracy_itr <- model_output_itr$accuracy_itr
+    pr_itr <- model_output_itr$pr_itr
+    recall_itr <- model_output_itr$recall_itr
+    fmeas_itr <- model_output_itr$fmeas_itr
     
     pr_data_itr <- model_output_itr$pr_data_itr %>%
       mutate(iteration = itr)
@@ -1166,6 +1296,11 @@ model_pred_train_itr_all <- function(data_list = all_model_results_list$bGLM_mod
     
     auroc_itr_all <- c(auroc_itr_all, auroc_itr)
     auprc_itr_all <- c(auprc_itr_all, auprc_itr)
+    avgpr_itr_all <- c(avgpr_itr_all, avgpr_itr)
+    accuracy_itr_all <- c(accuracy_itr_all, accuracy_itr)
+    pr_itr_all <- c(pr_itr_all, pr_itr)
+    recall_itr_all <- c(recall_itr_all, recall_itr)
+    fmeas_itr_all <- c(fmeas_itr_all, fmeas_itr)
     
     roc_data_itr_all <- rbind(roc_data_itr_all, roc_data_itr)
     pr_data_itr_all <- rbind(pr_data_itr_all, pr_data_itr)
@@ -1175,7 +1310,12 @@ model_pred_train_itr_all <- function(data_list = all_model_results_list$bGLM_mod
   model_results <- list(auroc_itr_all = auroc_itr_all,
                         auprc_itr_all = auprc_itr_all,
                         roc_data_itr_all = roc_data_itr_all,
-                        pr_data_itr_all = pr_data_itr_all)
+                        pr_data_itr_all = pr_data_itr_all,
+                        avgpr_itr_all = avgpr_itr_all,
+                        accuracy_itr_all = accuracy_itr_all,
+                        pr_itr_all = pr_itr_all,
+                        recall_itr_all = recall_itr_all,
+                        fmeas_itr_all = fmeas_itr_all)
   
   return(model_results)
 }
@@ -1195,6 +1335,7 @@ all_model_results_list_train <- list(bGLM_model_results = bGLM_model_results_tra
 # make data frames for plotting
 # Initialize empty lists to store merged data
 auroc_auprc_merged <- data.frame()
+other_metrics_merged <- data.frame()
 roc_data_merged <- data.frame()
 pr_data_merged <- data.frame()
 
@@ -1214,8 +1355,21 @@ for (model in model_names) {
     Model = model
   )
   
+  # Combine other metrics with model information
+  other_metrics_df <- data.frame(
+    AveragePrecision = model_results$avgpr_itr_all,
+    Accuracy = model_results$accuracy_itr_all,
+    Precision = model_results$pr_itr_all,
+    Recall = model_results$recall_itr_all,
+    F1 = model_results$fmeas_itr_all,
+    iteration = 1:length(model_results$auroc_itr_all),
+    Model = model
+  )
+  
+  
   # Append to the merged data frame
   auroc_auprc_merged <- rbind(auroc_auprc_merged, auroc_auprc_df)
+  other_metrics_merged <- rbind(other_metrics_merged, other_metrics_df)
   
   # Combine roc_data_itr_all with model information
   roc_df <- model_results$roc_data_itr_all
@@ -1234,10 +1388,12 @@ for (model in model_names) {
 
 # Print the merged data frames
 View(auroc_auprc_merged)
+View(other_metrics_merged)
 View(roc_data_merged)
 View(pr_data_merged)
 
 df_mean <- auroc_auprc_merged %>% 
+  mutate(Model = if_else(Model == "svmRadial", "SVM", Model)) %>%
   group_by(Model) %>%
   summarise(n = n(),
             AUROC_mean = mean(AUROC),
@@ -1245,7 +1401,9 @@ df_mean <- auroc_auprc_merged %>%
             AUPRC_mean = mean(AUPRC),
             AUPRC_median = median(AUPRC)) %>%
   mutate(AUROC_mean_text = round(AUROC_mean, 3),
-         AUPRC_mean_text = round(AUPRC_mean, 3))
+         AUPRC_mean_text = round(AUPRC_mean, 3)) %>%
+  mutate(AUROC_mean_text_label = paste0("AUROC = ", round(AUROC_mean, 3)),
+         AUPRC_mean_text_label = paste0("AUPRC = ", round(AUPRC_mean, 3)))
 
 
 
@@ -1255,12 +1413,13 @@ col_sel <- c("bGLM" = "#DE7424FF", "NNET" = "#496849FF", "RF" = "#F5CA37FF",
 
 # plotting AUROC and AUPRC as box plots
 AUROC_plot1 <- auroc_auprc_merged %>%
+  mutate(Model = if_else(Model == "svmRadial", "SVM", Model)) %>%
   ggplot(aes(x = Model, y = AUROC)) +
   geom_boxplot(aes(color = Model), alpha = 1, lwd = 1.2) +
   geom_quasirandom(aes(color = Model), width = 0.2, alpha = 0.7, size = 1.5) +
   geom_point(data = df_mean, aes(x = Model, y = AUROC_mean), color = "black", size = 5, alpha = 0.7) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 0, size = 14),
+  theme(axis.text.x = element_text(angle = 0, size = 12),
         # axis.text.x = element_blank(),
         axis.text.y = element_text(size = 14),
         plot.title = element_text(size = 14, face = "bold"),
@@ -1269,19 +1428,21 @@ AUROC_plot1 <- auroc_auprc_merged %>%
         strip.text = element_text(size=14),
         legend.title=element_blank(),
         legend.text = element_text(size = 12)) +
-  # xlab("UMAP 1") +
+  xlab("") +
   # ylab("UMAP 2") +
   scale_color_manual(values = col_sel) +
-  scale_y_continuous(limits = c(0.6,1))
+  scale_y_continuous(limits = c(0.6,1)) +
+  scale_x_discrete(labels= c("bGLM", "NNET", "RF", "SVM", "XGB"))
 
 
 AUPRC_plot1 <- auroc_auprc_merged %>%
+  mutate(Model = if_else(Model == "svmRadial", "SVM", Model)) %>%
   ggplot(aes(x = Model, y = AUPRC)) +
   geom_boxplot(aes(color = Model), alpha = 1, lwd = 1.2) +
   geom_quasirandom(aes(color = Model), width = 0.2, alpha = 0.7, size = 1.5) +
   geom_point(data = df_mean, aes(x = Model, y = AUPRC_mean), color = "black", size = 5, alpha = 0.7) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 0, size = 14),
+  theme(axis.text.x = element_text(angle = 0, size = 12),
         # axis.text.x = element_blank(),
         axis.text.y = element_text(size = 14),
         plot.title = element_text(size = 14, face = "bold"),
@@ -1290,26 +1451,42 @@ AUPRC_plot1 <- auroc_auprc_merged %>%
         strip.text = element_text(size=14),
         legend.title=element_blank(),
         legend.text = element_text(size = 12)) +
-  # xlab("UMAP 1") +
+  xlab("") +
   # ylab("UMAP 2") +
   scale_color_manual(values = col_sel) +
-  scale_y_continuous(limits = c(0.6,1))
+  scale_y_continuous(limits = c(0.6,1)) +
+  scale_x_discrete(labels= c("bGLM", "NNET", "RF", "SVM", "XGB"))
 
-AUROC_AUPRC_plot1 <- cowplot::plot_grid(AUROC_plot1, AUPRC_plot1, ncol = 1, labels = NULL, rel_widths = c(1, 1))
+AUROC_AUPRC_plot1 <- cowplot::plot_grid(AUROC_plot1, AUPRC_plot1, ncol = 1, rel_widths = c(1, 1), labels=c("A", "B"))
+
+outDir <- "/scratch/nasal-transcriptomics/impacc-public-code/predict_model_PASC_manuscript/output"
+filename_temp <- file.path(outDir, "suppFig1.pdf")
+ggsave(
+  filename = filename_temp,
+  width = 5,
+  height = 7,
+  units = "in",
+  dpi = 300,
+)
+
+# save source data for suppFig1: AUROC and AUPRC on train data
+write_csv(auroc_auprc_merged, file = file.path(outDir, "Source_data_Rev1_suppFig1_AUROC_AUPRC_box_plots_test_data.csv"))
+
 
 ### Plotting ROC and PRC curves
 ROC_plot1 <- roc_data_merged %>%
+  mutate(Model = if_else(Model == "svmRadial", "SVM", Model)) %>%
   mutate(iteration = factor(iteration)) %>%
   ggplot(aes(x = 1-specificity, y = sensitivity)) +
   geom_path(aes(color = iteration), linewidth = 0.8) + 
-  geom_text(data = df_mean, aes(x = 0.8, y = 0.2, label = AUROC_mean_text), size = 6) +
+  geom_text(data = df_mean, aes(x = 0.6, y = 0.2, label = AUROC_mean_text_label), size = 5) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 0, size = 14),
         # axis.text.x = element_blank(),
         axis.text.y = element_text(size = 14),
         plot.title = element_text(size = 14, face = "bold"),
-        axis.title.x = element_text(size = 16),
-        axis.title.y = element_text(size = 16),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
         strip.text = element_text(size=14),
         legend.title=element_blank(),
         legend.text = element_text(size = 12)) +
@@ -1317,39 +1494,51 @@ ROC_plot1 <- roc_data_merged %>%
   ylab("Sensitivity") +
   # scale_color_manual(values = col_sel) +
   geom_abline(slope = 1, intercept = 0, color = "black", linewidth = 1.5, linetype = "dashed") +
-  scale_y_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
-  scale_x_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_y_continuous(limits = c(0,1), breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_x_continuous(limits = c(0,1), breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
   facet_wrap(~Model, ncol = 5) +
   theme(legend.position = "none")
 
 PRC_plot1 <- pr_data_merged %>%
+  mutate(Model = if_else(Model == "svmRadial", "SVM", Model)) %>%
   mutate(iteration = factor(iteration)) %>%
   ggplot(aes(x = recall, y = precision)) +
   geom_path(aes(color = iteration), linewidth = 0.8) + 
-  geom_text(data = df_mean, aes(x = 0.8, y = 0.2, label = AUPRC_mean_text), size = 6) +
+  geom_text(data = df_mean, aes(x = 0.6, y = 0.2, label = AUPRC_mean_text_label), size = 5) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 0, size = 14),
         # axis.text.x = element_blank(),
         axis.text.y = element_text(size = 14),
         plot.title = element_text(size = 14, face = "bold"),
-        axis.title.x = element_text(size = 16),
-        axis.title.y = element_text(size = 16),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
         strip.text = element_text(size=14),
         legend.title=element_blank(),
         legend.text = element_text(size = 12)) +
   xlab("Recall") +
   ylab("Precision") +
-  # scale_color_manual(values = col_sel) +
-  # geom_abline(slope = 1, intercept = 0, color = "red", linewidth = 1.5, linetype = "dashed") +
-  scale_y_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
-  scale_x_continuous(breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_y_continuous(limits = c(0,1), breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
+  scale_x_continuous(limits = c(0,1), breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1), labels = c("0", "0.2", "0.4", "0.6", "0.8", "1")) +
   facet_wrap(~Model, ncol = 5) +
   theme(legend.position = "none")
 
-ROC_PRC_plot1 <- cowplot::plot_grid(ROC_plot1, PRC_plot1, ncol = 1, labels = NULL, rel_widths = c(1, 1))
+ROC_PRC_plot1 <- cowplot::plot_grid(ROC_plot1, PRC_plot1, ncol = 1, labels = c("A", "B"), rel_widths = c(1, 1))
 
 
-#
+outDir <- "/scratch/nasal-transcriptomics/impacc-public-code/predict_model_PASC_manuscript/output"
+# filename_temp <- file.path(outDir, "suppFig3_ROC_PRC_pots_train_data.pdf")
+filename_temp <- file.path(outDir, "Rev1_suppFig3_ROC_PRC_pots_train_data.pdf")
+ggsave(
+  filename = filename_temp,
+  width = 10,
+  height = 5,
+  units = "in",
+  dpi = 300,
+)
+
+# save source data for suppFig3: ROC_PRC_pots_train_data
+write_csv(roc_data_merged, file = file.path(outDir, "Source_data_Rev1_suppFig3_ROC_plots_train_data.csv"))
+write_csv(pr_data_merged, file = file.path(outDir, "Source_data_Rev1_suppFig3_PRC_plots_train_data.csv"))
 
 
 
@@ -1375,7 +1564,9 @@ data_temp <- X_all %>%
   
 LR_out <- NULL
 # feature_names <- setdiff(colnames(data_temp), "Y_all")
-feature_names <- feature_importance_mean_NNET$Feature
+feature_importance_mean_NNET_2 <- feature_importance_mean_NNET %>%
+  inner_join(df_temp)
+feature_names <- unique(feature_importance_mean_NNET_2$Feature)
 for (k in 1:length(feature_names)){
   feature_k <- feature_names[k]
   formula_k <- paste0("Y_all~", feature_k)
@@ -1385,26 +1576,42 @@ for (k in 1:length(feature_names)){
 }
 
 LR_out2 <- LR_out %>%
-  mutate(feature_name = factor(feature_name, levels = rev(feature_importance_mean_NNET$Feature)))
+  mutate(Feature = feature_name) %>%
+  inner_join(df_temp) %>% 
+    mutate(Feature_new = factor(Feature_new, levels = rev(feature_importance_mean_NNET_2$Feature_new)))
+  
 # forest plot
 
-temp_plot <- LR_out2 %>%
+OR_plot <- LR_out2 %>%
   ggplot() + 
-  geom_point(data = LR_out, aes(x = feature_name, y = estimate), size = 4, alpha = 1) +
-  geom_errorbar(aes(x = feature_name, ymin = conf.low, ymax = conf.high), width = 0.4, colour = "black", alpha = 1, linewidth = 1) + 
+  geom_point(aes(x = Feature_new, y = estimate), size = 4, alpha = 1) +
+  geom_errorbar(aes(x = Feature_new, ymin = conf.low, ymax = conf.high), width = 0.4, colour = "black", alpha = 1, linewidth = 1) + 
   scale_y_continuous(trans='log', breaks=c(0.05, 0.5, 1, 10, 30), labels = c("0.05", "0.5", "1", "10", "30")) + 
   geom_hline(yintercept = 1, linetype="dashed", 
-                color = "darkgrey", size = 0.8) +
+                color = "darkgrey", linewidth = 0.8) +
   theme_bw() +
   ylab("Odds Ratio (95% CI)") +
   xlab("") +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 16),
-        axis.text.y = element_text(size = 16),
-        text = element_text(size=18)) +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 12),
+        axis.text.y = element_text(size = 12),
+        text = element_text(size=14)) +
   coord_flip() # +
   # scale_y_continuous(trans='log', breaks=c(0.0625, 1, 16, 256), labels = c("0.0625", "1", "16", "256"))
   
-temp_plot
+OR_plot
+
+ROC_PRC_plot1 <- cowplot::plot_grid(plot_feature_imp_dotplot_all_models, OR_plot, ncol = 1, labels = c("A", "B"), rel_heights = c(1.2, 1))
+
+
+outDir <- "/scratch/nasal-transcriptomics/impacc-public-code/predict_model_PASC_manuscript/output"
+filename_temp <- file.path(outDir, "mainFig3.pdf")
+ggsave(
+  filename = filename_temp,
+  width = 8,
+  height = 10,
+  units = "in",
+  dpi = 300,
+)
 
 
 ```

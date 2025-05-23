@@ -1,0 +1,245 @@
+--
+title: "Revising ML models manuscript for Communications Medicine"
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+
+### Load libraries
+```{r load-packages}
+suppressPackageStartupMessages(library(package = "knitr"))
+suppressPackageStartupMessages(library(package = "impute"))
+# suppressPackageStartupMessages(library(package = "igraph"))
+suppressPackageStartupMessages(library(package = "ggnetwork"))
+suppressPackageStartupMessages(library(package = "ordinal"))
+suppressPackageStartupMessages(library(package = "qvalue"))
+suppressPackageStartupMessages(library(package = "ggbeeswarm"))
+suppressPackageStartupMessages(library(package = "ggeffects"))
+suppressPackageStartupMessages(library(package = "pvca"))
+suppressPackageStartupMessages(library(package = "GSA"))
+suppressPackageStartupMessages(library(package = "lme4"))
+suppressPackageStartupMessages(library(package = "nlme"))
+suppressPackageStartupMessages(library(package = "tidyverse"))
+
+# set session options
+options(show_col_types = FALSE)
+VarCorr <- lme4::VarCorr
+```
+
+
+### load the data
+
+```{r load the Data, echo=FALSE}
+filename_1 <- "/scratch/nasal-transcriptomics/Naresh/data/MLmodels/temp_240115.rda"
+
+load(filename_1) # X_all, Y_all, nasal_viralload_copies_per_ul, clinical_data, clin_supp_viral_titers_data_1, clin_supp_viral_titers_data_2, clinical_supp_data_PRO_clust
+
+# read viral load data
+viral_load_file <- file.path("/data/nasal-viralload/current", "nasal-viralload-Counts.csv")
+
+viral_load_data <- read.csv(viral_load_file) %>%
+  dplyr::select(sample_id, N1_CT, N2_CT) %>%
+  inner_join(clinical_data %>%
+               dplyr::select(sample_id, participant_id, event_type, event_id, event_date, symptom_date)) %>%
+  filter(event_type == "Visit 1") %>%
+  filter(participant_id %in% nasal_viralload_copies_per_ul$participant_id) %>%
+  dplyr::select(participant_id, N1_CT, N2_CT)
+  
+    
+X_all_select <- X_all %>%
+  rownames_to_column(var = "participant_id") %>%
+  select(participant_id, N1_CT_au_v2 = N1_CT_au, Spike_au) %>%
+  mutate(Y = Y_all) %>%
+  mutate(longCOVID_outcome = if_else(Y == "Non_LongCOVID", "Minimal", "Deficit"))
+  
+# read serum rbd titers
+serum_rbd_titers_file <- file.path("/data/serum-rbd-abtiters/current", "serum-rbd-abtiters-Counts.csv")
+
+serum_rbd_titers <- read.csv(serum_rbd_titers_file) %>%
+  dplyr::select(sample_id, AUC_RBD = AUC.RBD.IgG, AUC_Spike = AUC.Spike.IgG) %>%
+  inner_join(clinical_data %>%
+               dplyr::select(sample_id, participant_id, event_type, event_id, event_date, symptom_date)) %>%
+  filter(event_type == "Visit 1") %>%
+  filter(participant_id %in% nasal_viralload_copies_per_ul$participant_id) %>%
+  mutate(symptom_onset_date = event_date - symptom_date) %>%
+  mutate(symptom_onset_groups_v2 = cut(
+    symptom_onset_date,
+    breaks = c(-Inf, 3, 7, 14, Inf),
+    labels = c("≤3", "4-7", "8-14", ">14"),
+    right = TRUE
+  )) %>%
+  mutate(symptom_onset_groups = cut(
+    abs(symptom_date),
+    breaks = c(-Inf, 3, 7, 14, Inf),
+    labels = c("<3", "4-7", "8-14", ">14"),
+    right = TRUE
+  )) %>%
+  # mutate(Y = Y_all) %>%
+  # mutate(longCOVID_outcome = if_else(Y == "Non_LongCOVID", "Minimal", "Deficit")) %>%
+  inner_join(viral_load_data) %>%
+  inner_join(nasal_viralload_copies_per_ul) %>%
+  inner_join(X_all_select) %>%
+  mutate(AUC_RBD_log2 = log2(AUC_RBD)) %>%
+  mutate(AUC_Spike_log2 = log2(AUC_Spike)) %>%
+  mutate(longCOVID_outcome = factor(longCOVID_outcome, levels = c("Minimal", "Deficit")))
+
+
+
+
+
+
+```
+
+### Viral load by symptom onset days
+
+```{r Viral load by symptom onset days, echo=FALSE}
+
+# compute P-values by paiwise symptom onset groups
+library(rstatix)
+
+# compute Kruskal Wallis test
+kruskal_res <- serum_rbd_titers %>%
+  drop_na(symptom_onset_groups) %>%
+  kruskal_test(N1_CT_au ~ symptom_onset_groups)
+
+# Perform Wilcoxon test
+df_p <- serum_rbd_titers %>%
+  drop_na(symptom_onset_groups) %>%
+  wilcox_test(N1_CT ~ symptom_onset_groups) %>%
+  adjust_pvalue(method = "bonferroni") %>%
+  add_significance("p.adj") %>%
+  mutate(y.position = -1*c(13, 11, 9, 7, 5, 3))  # set y position for annotation
+
+# Plot with p-values
+viral_by_symptom <- serum_rbd_titers %>%
+  drop_na(symptom_onset_groups) %>%
+  ggplot(aes(x = symptom_onset_groups, y = N1_CT)) +
+  geom_boxplot(aes(color = symptom_onset_groups), alpha = 1, lwd = 1.2) +
+  geom_quasirandom(aes(color = symptom_onset_groups), width = 0.2, alpha = 0.7, size = 1.5) +
+  stat_pvalue_manual(df_p, label = "p.adj.signif", tip.length = 0.01) +
+  scale_y_reverse() + 
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 0, size = 14),
+    axis.text.y = element_text(size = 14),
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    strip.text = element_text(size = 14),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    legend.position = "none"
+  ) +
+  xlab("Symptom onset to hospitalization [days]") + 
+  ylab("N1 CT")
+  
+
+
+outDir <- "/scratch/nasal-transcriptomics/impacc-public-code/predict_model_PASC_manuscript/output"
+filename_temp <- file.path(outDir, "ReviewerFig_viralload_by_symptom_onset.pdf")
+filename_temp <- file.path(outDir, "ReviewerFig_viralload_by_symptom_onset.png")
+ggsave(
+  filename = filename_temp,
+  width = 5,
+  height = 7,
+  units = "in",
+  dpi = 300,
+)
+
+### viral load by long COVID outcome
+
+# Perform Wilcoxon test
+df_p <- serum_rbd_titers %>%
+  wilcox_test(N1_CT_au ~ longCOVID_outcome) %>%
+  # t_test(N1_CT ~ longCOVID_outcome) %>%
+  adjust_pvalue(method = "bonferroni") %>%
+  add_significance("p.adj") %>%
+  mutate(y.position = -10)  # set y position for annotation
+
+col_sel <- c("Minimal" = "#009900FF", "Deficit" = "#C8102EFF")
+# Plot with p-values
+viral_by_LC <- serum_rbd_titers %>%
+  ggplot(aes(x = longCOVID_outcome, y = N1_CT)) +
+  geom_boxplot(aes(color = longCOVID_outcome), alpha = 1, lwd = 1.2) +
+  geom_quasirandom(aes(color = longCOVID_outcome), width = 0.2, alpha = 0.7, size = 1.5) +
+  stat_pvalue_manual(df_p, label = "p.adj", tip.length = 0.01) +
+  scale_y_reverse() +
+  scale_color_manual(values = col_sel) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 0, size = 14),
+    axis.text.y = element_text(size = 14),
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    strip.text = element_text(size = 14),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    legend.position = "none"
+  ) +
+  xlab("long COVID outcome") + 
+  ylab("N1 CT")
+  
+
+
+
+
+# titers by long COVID
+
+# Perform Wilcoxon test
+df_p <- serum_rbd_titers %>%
+  wilcox_test(AUC_Spike_log2 ~ longCOVID_outcome) %>%
+  # t_test(AUC_RBD_log2 ~ longCOVID_outcome) %>%
+  adjust_pvalue(method = "bonferroni") %>%
+  add_significance("p.adj") %>%
+  mutate(y.position = 18)  # set y position for annotation
+
+
+# Plot with p-values
+spike_by_LC <- serum_rbd_titers %>%
+  mutate(AUC_RBD_log2 = log2(AUC_RBD)) %>%
+  # filter(N1_CT_au < 0.25) %>%
+  ggplot(aes(x = longCOVID_outcome, y = AUC_RBD_log2)) +
+  geom_boxplot(aes(color = longCOVID_outcome), alpha = 1, lwd = 1.2) +
+  geom_quasirandom(aes(color = longCOVID_outcome), width = 0.2, alpha = 0.7, size = 1.5) +
+  stat_pvalue_manual(df_p, label = "p.adj", tip.length = 0.01) +
+  scale_color_manual(values = col_sel) +
+  # scale_y_reverse() + 
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 0, size = 14),
+    axis.text.y = element_text(size = 14),
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    strip.text = element_text(size = 14),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    legend.position = "none"
+  ) +
+  xlab("long COVID outcome") + 
+  ylab("Spike IgG")
+  
+N1_Spike_plot1 <- cowplot::plot_grid(viral_by_LC, spike_by_LC, ncol = 2, rel_heights = c(1, 1))
+
+outDir <- "/scratch/nasal-transcriptomics/impacc-public-code/predict_model_PASC_manuscript/output"
+filename_temp <- file.path(outDir, "Fig3C_viralload_titers_by_longCOVID.pdf")
+filename_temp <- file.path(outDir, "Fig3C_viralload_titers_by_longCOVID.png")
+ggsave(
+  filename = filename_temp,
+  width = 8,
+  height = 7,
+  units = "in",
+  dpi = 300,
+)
+
+
+
+
+
+```
+
+
+
