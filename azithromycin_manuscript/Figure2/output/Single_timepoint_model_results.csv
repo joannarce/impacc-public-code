@@ -1,0 +1,41 @@
+"","name","timepoint","group1","group2","p","p.adj"
+"1","sc2_rpm","Day 0-2","No ABX","Azithro",0.0289555100526938,0.0868665301580814
+"2","sc2_rpm","Day 4-6","No ABX","Azithro",0.372172934962796,0.558259402444194
+"3","sc2_rpm","Day 0-2","Azithro","Other
+ABX",0.134513612700118,0.201770419050177
+"4","sc2_rpm","Day 4-6","Azithro","Other
+ABX",0.130439705086008,0.391319115258023
+"5","sc2_rpm","Day 0-2","No ABX","Other
+ABX",0.891242285791271,0.891242285791271
+"6","sc2_rpm","Day 4-6","No ABX","Other
+ABX",0.604226120592183,0.604226120592183
+"7","total_bacterial_rpm","Day 0-2","No ABX","Azithro",0.000648564132662935,0.00194569239798881
+"8","total_bacterial_rpm","Day 4-6","No ABX","Azithro",0.00865488726774751,0.0259646618032425
+"9","total_bacterial_rpm","Day 0-2","Azithro","Other
+ABX",0.153818308525866,0.153818308525866
+"10","total_bacterial_rpm","Day 4-6","Azithro","Other
+ABX",0.644673865761262,0.644673865761262
+"11","total_bacterial_rpm","Day 0-2","No ABX","Other
+ABX",0.0238323492064892,0.0357485238097339
+"12","total_bacterial_rpm","Day 4-6","No ABX","Other
+ABX",0.330607138891899,0.495910708337848
+"13","manual_diversity","Day 0-2","No ABX","Azithro",0.505306444236479,0.505306444236479
+"14","manual_diversity","Day 4-6","No ABX","Azithro",0.682193012367142,0.682193012367142
+"15","manual_diversity","Day 0-2","Azithro","Other
+ABX",0.0374461233669533,0.0561691850504299
+"16","manual_diversity","Day 4-6","Azithro","Other
+ABX",0.0600007628848128,0.180002288654439
+"17","manual_diversity","Day 0-2","No ABX","Other
+ABX",0.00957391211773579,0.0287217363532074
+"18","manual_diversity","Day 4-6","No ABX","Other
+ABX",0.327175890253736,0.490763835380603
+"19","fungal_rpm","Day 0-2","No ABX","Azithro",0.0127000300253926,0.0381000900761779
+"20","fungal_rpm","Day 4-6","No ABX","Azithro",0.861086735822926,0.861086735822926
+"21","fungal_rpm","Day 0-2","Azithro","Other
+ABX",0.582660827733202,0.582660827733202
+"22","fungal_rpm","Day 4-6","Azithro","Other
+ABX",0.353236936450053,0.861086735822926
+"23","fungal_rpm","Day 0-2","No ABX","Other
+ABX",0.238981119586819,0.358471679380228
+"24","fungal_rpm","Day 4-6","No ABX","Other
+ABX",0.748239149835629,0.861086735822926
