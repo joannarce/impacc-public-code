@@ -1,0 +1,374 @@
+---
+title: "Figure1"
+format: html
+editor: visual
+---
+
+## Figure 1
+
+```{r}
+library(tidyverse)
+library(readr)
+library(ggpubr) 
+library(scales) 
+library(ggridges)
+library(ggbeeswarm) 
+library(readxl)
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+ABX_colors <- c("#4268C6", "#E07E3D", "#399960")
+out_dir <- "../output/"
+
+nasal_metagenomics_metadata <- read_csv("/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv")
+
+### Load all clinical data straight out of data
+clinical_data_ext <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-supp-locked.csv")
+clinical_data1 <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-sample-locked.csv")
+clinical_data2 <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-locked.csv")
+tj_pred <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-locked.csv") %>%
+  distinct(participant_id, trajectory_group)
+clinical_data3 <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-event-locked.csv")
+clinical_data <- merge(clinical_data1, clinical_data2, by = "participant_id")
+clinical_data <- merge(clinical_data, clinical_data3, by= c("event_id", "participant_id"))
+clinical_data$discretized_admit_age_quantile <- cut(clinical_data$admit_age, breaks = c(17,46,54,62,70, 96), include.lowest = FALSE)
+rm(clinical_data2, clinical_data3)
+## These are the Age quantiles for Van/Alexandra's analysis in case Chaz asks for something by their age groupings
+
+### Load Antibiotic data sent by Chaz
+antibiotic_data <- read_csv("/scratch/metagenomics/antibiotic_data/antibiotics_data_12Feb25.csv")
+colnames(antibiotic_data)[1] <- "participant_id" ## Make this matching to make merging easier with other IMPACC dataframes
+
+ABXcoverage <- read_excel("/scratch/metagenomics/antibiotic_data/Antibiotic coverage.xls", sheet = 1)%>%
+  select(-X_ANTIMICROBIALMED, -scale) %>%
+  filter(!is.na(`Score Total`)) %>%
+  rowwise() %>%
+  mutate(`Score Total` = sum(`GP Coverage`, `GN coverage`, `Anaerobic Coverage`)) %>%
+  distinct()
+Gerbercoverage <- read_excel("/scratch/metagenomics/antibiotic_data/Antibiotic coverage.xls", sheet = 2)
+
+antibiotic_class_mapping <- read_excel("/scratch/metagenomics/antibiotic_data/abx_names_to_classify_v2_VC_CL.xlsx")   %>%
+  rename("Med group" = "Medgroup") %>%
+  filter(!grepl("Ignore", `Med group`)) %>%
+  separate_longer_delim(`Med group`, "; ") %>%
+  left_join(ABXcoverage) %>%
+  rename(med_group = `Med group`)
+```
+
+```{r}
+exclude_participant <- antibiotic_data %>% filter(conmed_dose_start > conmed_dose_stop)
+exclude_ABX_metadata <- plyr::rbind.fill(nasal_metagenomics_metadata) %>%
+  select(sample_id) %>%
+  left_join(clinical_data %>% select(sample_id, participant_id)) %>%
+  filter(participant_id %in% exclude_participant$participant_id)
+exclude_samples = c("0865-00F2MG00-001", "0865-003Y5D00-001_REMOVE", "0865-004KMH00-001", "0865-00DGJG00-001", "0865-004FWA00-001")
+exclude_samples <- unique(c(exclude_samples, exclude_ABX_metadata$sample_id ))
+
+part_meta <- read_csv("/scratch/metagenomics/ABX_Cohort/group_assignments_v2.csv")
+nasal_long <- read_csv("/scratch/metagenomics/batch_corrected/NS_genus_data_090723.csv") %>%
+  dplyr::rename("core_specific_ID_SUFFIX" = "sample_name") %>%
+  inner_join(nasal_metagenomics_metadata) %>%
+  filter(!sample_id %in% exclude_samples) %>%
+  filter(internal_control != "yes") %>%
+  filter(!sample_id %in% exclude_samples) %>%
+  left_join(clinical_data %>% select(sample_id, event_date, participant_id)) %>%
+  filter(!is.na(event_date)) %>% select(-event_date)
+
+nasal.meta.final <- nasal_long %>%
+  distinct(sample_id, participant_id, visit_num) %>%
+  left_join(part_meta) %>%
+  left_join(clinical_data %>% distinct(sample_id, participant_id, event_type)) %>%
+  group_by(Group, event_type) %>%
+  dplyr::summarize(count = n()) %>%
+  filter(grepl("Visit", event_type)) %>%
+  filter(event_type != "Visit 7") %>%
+  mutate(omic = "Nasal\nMetatranscriptomics") %>%
+  filter(!is.na(event_type))
+
+```
+
+### Figure 1A
+
+```{r}
+## Example of what nasal.meta.final looks like
+# Group        event_type count omic                        
+#   <chr>        <chr>      <int> <chr>                       
+# 1 Azithromycin Visit 1      306 "Nasal\nMetatranscriptomics"
+# 2 Azithromycin Visit 2      214 "Nasal\nMetatranscriptomics"
+# 3 Azithromycin Visit 3      156 "Nasal\nMetatranscriptomics"
+# 4 Azithromycin Visit 4      145 "Nasal\nMetatranscriptomics"
+# 5 Azithromycin Visit 5       38 "Nasal\nMetatranscriptomics"
+# 6 Azithromycin Visit 6      125 "Nasal\nMetatranscriptomics"
+patient_counts <- part_meta %>% group_by(Group) %>%
+  dplyr::summarize(total = n())
+
+data <- rbind.data.frame(nasal.meta.final) %>%
+  as.data.frame() %>%
+  mutate(omic = as.factor(omic)) %>%
+  mutate(Group = as.factor(Group)) %>%
+  mutate(event_type = factor(event_type, c(paste0("Visit ", 1:6)))) %>%
+  left_join(patient_counts) %>%
+  mutate(percent = count / total * 100) %>%
+  mutate(label = count) %>%
+  mutate(Group = factor(Group, levels = c("Azithro", "No ABX", "Other ABX")))
+text_size <- 3.88
+
+gga <- data %>%
+  mutate(xmin = match(event_type, levels(data$event_type)) - 0.5,
+         xmax = match(event_type, levels(data$event_type)) + ((percent/100)-0.5) ,
+         ymin = match(Group, levels(data$Group)) - 0.5,
+         ymax = match(Group, levels(data$Group)) + 0.5) %>%
+  ggplot(aes(x=event_type, y=Group)) +
+  geom_tile(fill = NA, color = "black", size = 0.5) +
+   geom_rect(aes(xmin=xmin, xmax = xmax,
+                ymin = ymin, ymax = ymax, fill = Group),  alpha = 0.6,
+             color = NA) +
+  geom_tile(fill = NA, color = "black", size = 0.5) +
+  geom_tile(fill = NA, color = "black") +
+  theme_classic() +
+   theme(legend.position = "none") +
+  geom_text(aes(label=label), size = text_size) +
+  ylab("Assay") +
+  xlab("Visit") +
+  scale_fill_manual(values = ABX_colors[rev(c(2,1,3))]) +
+  scale_y_discrete(limits=rev)
+
+gga
+## 4.84 x 2.1
+ggsave(paste0(out_dir, "Figure1A.pdf"), width = 4.8, height = 2.1)
+
+```
+
+### Figure 1B
+
+```{r, fig.width = 3.5, fig.height =3}
+total_part <- length(unique(clinical_data$participant_id[clinical_data$participant_type == "COVID-19 Positive"]))
+
+ggb1 <- part_meta %>%
+  group_by(Group) %>%
+  mutate(Group = ifelse(Group != "Azithro", "Not Azithro",  "Azithro")) %>%
+  dplyr::summarize(positive = n()) %>%
+  mutate(frequency_TG = positive / sum(positive) *100,
+         count = sum(positive)) %>%
+  ungroup() %>%
+  filter(Group == "Azithro") %>%
+  mutate(label = paste0(round(frequency_TG, 2), "%\n(", positive, "/", count, ")")) %>%
+  ggplot(aes(x="Total", y= frequency_TG)) +
+    geom_bar(stat = "identity", color = "black", fill = "lightgray") +
+    geom_text(aes(label = label), size = 3) +
+  theme_classic() +
+  ylab("Percent of TG\nReceiving Azithromycin (%)") +
+  xlab("Trajectory Gorup") +
+  theme(legend.position = "none") +
+  coord_cartesian(ylim = c(0, 45))
+
+ggb1
+
+ggb <- part_meta %>%
+  left_join(clinical_data %>% distinct(participant_id, trajectory_group)) %>%
+  group_by(trajectory_group, Group) %>%
+  mutate(Group = ifelse(Group != "Azithro", "Not Azithro",  "Azithro")) %>%
+  dplyr::summarize(positive = n()) %>%
+  mutate(frequency_TG = positive / sum(positive) *100,
+         count = sum(positive)) %>%
+  ungroup() %>%
+  filter(Group == "Azithro") %>%
+  mutate(label = paste0(round(frequency_TG, 2), "%\n(", positive, "/", count, ")")) %>%
+  mutate(trajectory_group = as.factor(trajectory_group)) %>%
+  ggplot(aes(x=trajectory_group, y= frequency_TG)) +
+    geom_bar(aes(fill = trajectory_group), stat = "identity", color = "black") +
+    geom_text(aes(label = label), size = 3) +
+  theme_classic() +
+  ylab("Percent of TG\nReceiving Azithromycin (%)") +
+  xlab("Trajectory Gorup") +
+  theme(legend.position = "none") +
+  coord_cartesian(ylim = c(0, 45)) +
+  scale_fill_manual(values = TrajGrpCol)
+
+ggb
+## 3.5 x3
+
+stat_df <-part_meta %>%
+  left_join(clinical_data %>% distinct(participant_id, trajectory_group)) %>%
+  group_by(trajectory_group, Group) %>%
+  mutate(Group = ifelse(Group != "Azithro", "Not Azithro",  "Azithro")) %>%
+  dplyr::summarize(positive = n()) %>%
+  mutate(frequency_TG = positive / sum(positive) *100,
+         count = sum(positive)) %>%
+  ungroup() %>%
+  filter(Group == "Azithro") %>%
+  mutate(negative = count - positive) %>%
+  distinct(positive, negative)
+
+chisq.test(stat_df)
+
+ggarrange(ggb1, ggb, align = "hv", widths = c(1.15,2.5))
+ggsave(paste0(out_dir, "Figure1B.pdf"), width = 3.5, height = 3)
+
+write.csv(plyr::rbind.fill(ggb1$data, ggb$data), paste0(out_dir, "Figure1B.csv"))
+```
+
+### Figure 1C & S1: Length of administration, when was administrated
+
+#### Figure S1
+
+```{r}
+## Figure S1
+ggS1 <- antibiotic_data %>%
+  left_join(antibiotic_class_mapping %>% dplyr::rename("medname" = "Medname")) %>%
+  filter(!is.na(conmed_dose_stop)) %>%
+  filter(med_group == "Azithromycin") %>%
+  filter(!conmed_dose_start < -10) %>%
+  filter(conmed_dose_stop >= 0) %>%
+  rowwise() %>%
+  mutate(number_of_days = conmed_dose_stop - conmed_dose_start) %>%
+  inner_join(clinical_data %>% distinct(participant_id, trajectory_group)) %>%
+  mutate(trajectory_group = factor(trajectory_group, c("1", "2", "3", "4", "5"))) %>%
+  filter(number_of_days != 0) %>%
+  ggplot(aes(x=trajectory_group, y= number_of_days, color = trajectory_group)) +
+  geom_boxplot(outlier.shape = NA) +
+  ggbeeswarm::geom_quasirandom(size = 0.8) +
+  scale_color_manual(values = TrajGrpCol) +
+  ylab("Number of Days on Azithromycin") +
+  xlab("Trajectory Group") +
+  theme_classic() +
+  theme(legend.position = "none")
+ggS1
+ggsave(paste0(out_dir, "FigureS1.pdf"), width = 4, height = 3)
+write.csv(ggS1$data %>% distinct(trajectory_group, number_of_days), paste0(out_dir, "FigureS1.csv"))
+
+tmp_data <- antibiotic_data %>%
+  left_join(antibiotic_class_mapping %>% dplyr::rename("medname" = "Medname")) %>%
+  filter(!is.na(conmed_dose_stop)) %>%
+  filter(med_group == "Azithromycin") %>%
+  filter(!conmed_dose_start < -10) %>%
+  filter(conmed_dose_stop >= 0) %>%
+  rowwise() %>%
+  mutate(number_of_days = conmed_dose_stop - conmed_dose_start) %>%
+  inner_join(clinical_data %>% distinct(participant_id, trajectory_group)) %>%
+  mutate(trajectory_group = factor(trajectory_group, c("1", "2", "3", "4", "5"))) %>%
+  filter(number_of_days != 0)
+
+median(tmp_data$number_of_days)
+IQR(tmp_data$number_of_days)
+
+length(unique(tmp_data$participant_id[tmp_data$conmed_dose_start < 7])) / length(unique(tmp_data$participant_id))
+
+ggpubr::compare_means(number_of_days ~ trajectory_group, data = tmp_data %>% ungroup(),
+                      method = "kruskal.test")
+
+
+
+```
+
+#### Figure 1C
+
+```{r}
+library(ggridges)
+
+tmp <- antibiotic_data %>%
+  left_join(antibiotic_class_mapping %>% dplyr::rename("medname" = "Medname")) %>%
+  filter(!is.na(conmed_dose_stop)) %>%
+  filter(med_group == "Azithromycin") %>%
+  filter(!conmed_dose_start < -10) %>%
+  filter(conmed_dose_stop >= 0) %>%
+  inner_join(clinical_data %>% distinct(participant_id, trajectory_group))
+
+df <- data.frame()
+for(i in 1:nrow(tmp)){
+  days <- tmp$conmed_dose_start[i]:tmp$conmed_dose_stop[i]
+  tmp.df <- data.frame(days, rep(tmp$trajectory_group[i], length(days)))
+  colnames(tmp.df)[2] <- "trajectory_group"
+  df <- rbind.data.frame(df, tmp.df)
+}
+
+tmp %>%
+  group_by(trajectory_group) %>%
+  dplyr::summarise(mean = mean(conmed_dose_start),
+                   median = median(conmed_dose_start))
+
+ggc <- df %>%
+  mutate(trajectory_group = factor(trajectory_group)) %>%
+  ggplot(aes(x=days, y= trajectory_group, fill =trajectory_group)) +
+  geom_density_ridges() +
+  scale_fill_manual(values = TrajGrpCol) +
+  xlab("Hospital Days on Azithromycin") +
+  ylab("Trajectory Group") +
+  theme_classic() +
+  theme(legend.position = "none") +
+  coord_cartesian(xlim = c(0, 30)) +
+  scale_x_continuous(expand = c(0, 0))
+ggc
+ggsave(paste0(out_dir, "Figure1C.pdf"), width = 4, height = 3)
+
+write.csv(ggc$data, paste0(out_dir, "Figure1C.csv"))
+```
+
+### Figure 1D: Coadministration
+
+```{r}
+#| output: false
+tmp <- antibiotic_data %>%
+  left_join(antibiotic_class_mapping %>% dplyr::rename("medname" = "Medname")) %>%
+  filter(!is.na(conmed_dose_stop)) %>%
+  filter(med_group == "Azithromycin") %>%
+  filter(!conmed_dose_start < -10) %>%
+  filter(conmed_dose_stop >= 0) %>%
+  inner_join(clinical_data %>% distinct(participant_id, trajectory_group))
+other_abx <- data.frame()
+for(part in unique(tmp$participant_id)){
+  tmp_part <- tmp %>%
+    filter(participant_id == part) 
+  if(nrow(tmp_part) > 1){
+    other_abxs <- c()
+    for(j in 1:nrow(tmp_part)){
+    other_abxs_tmp <- antibiotic_data %>%
+      filter(participant_id == part)%>%
+      left_join(antibiotic_class_mapping %>% dplyr::rename("medname" = "Medname")) %>%
+      filter(!is.na(conmed_dose_stop)) %>%
+      filter(conmed_dose_stop >= tmp_part$conmed_dose_start[j])%>%
+      filter(conmed_dose_start <= tmp_part$conmed_dose_stop[j])
+    other_abxs <- unique(c(other_abxs, unique(other_abxs_tmp$med_group)))
+    }
+     other_abx <- rbind.data.frame(other_abx, as.data.frame(table(other_abxs)) %>%
+    mutate(participant_id = part) %>%
+    dplyr::rename("med_group" = 1))
+  } else {
+  other_abxs <- antibiotic_data %>%
+    filter(participant_id == part)%>%
+    left_join(antibiotic_class_mapping %>% dplyr::rename("medname" = "Medname")) %>%
+    filter(!is.na(conmed_dose_stop)) %>%
+    filter(conmed_dose_stop >= tmp_part$conmed_dose_start)%>%
+    filter(conmed_dose_start <= tmp_part$conmed_dose_stop)
+  
+  other_abx <- rbind.data.frame(other_abx, as.data.frame(table(other_abxs$med_group)) %>%
+    mutate(participant_id = part) %>%
+    dplyr::rename("med_group" = "Var1"))
+  }
+  
+}
+
+```
+
+```{r, fig.width = 3, fig.height = 3}
+
+ggd <- other_abx %>%
+  group_by(med_group) %>%
+  dplyr::summarize(count = n()) %>%
+  mutate(freq = (count / 320) * 100) %>%
+  filter(med_group != "Azithromycin") %>%
+  filter(grepl("Ceftri|Vanco|Cefe|Piper|Doxy|Mero", med_group)) %>%
+  mutate(med_group = gsub("Piperacillin-Tazobactam", "Pip-Tazo", med_group)) %>%
+  mutate(med_group = fct_reorder(med_group, freq)) %>%
+  ggplot(aes(x=freq, y= med_group, fill = med_group)) +
+  geom_bar(stat = "identity", color = "black") +
+  geom_text(aes(label = paste0(round(freq, 2), "%")),  hjust = -0.1, size = 3) +
+  theme_classic() +
+  xlab("Percent of Participants with\nOverlapping Drug Courses (%)") +
+  ylab("Other Overlapping ABXs") +
+  scale_fill_manual(values = (c("#045375", "#089099", "#7CCBA2", "#FCDE9C", "#FAB27B", "#E23333"))) +
+  theme(legend.position = "none") +
+  coord_cartesian(xlim = c(0, 100)) +
+  scale_x_continuous(expand = c(0, 0))
+ggd
+ggsave(paste0(out_dir, "Figure1D.pdf"), width = 3, height = 3)
+write.csv(ggd$data, paste0(out_dir, "Figure1D.csv"))
+```
