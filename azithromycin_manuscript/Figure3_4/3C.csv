@@ -1,0 +1,972 @@
+"","group_id","timepoint","mls_gene_count"
+"1","Azithromycin","Day 0-2",2
+"2","Azithromycin","Day 0-2",3
+"3","Azithromycin","Day 0-2",2
+"4","Other ABX","Day 0-2",0
+"5","No ABX","Day 4-6",1
+"6","Other ABX","Day 0-2",1
+"7","No ABX","Day 0-2",3
+"8","Azithromycin","Day 0-2",1
+"9","Azithromycin","Day 0-2",1
+"10","Azithromycin","Day 0-2",0
+"11","Other ABX","Day 0-2",1
+"12","Other ABX","Day 0-2",1
+"13","Azithromycin","Day 0-2",2
+"14","Other ABX","Day 4-6",0
+"15","Other ABX","Day 0-2",1
+"16","Other ABX","Day 0-2",1
+"17","Azithromycin","Day 0-2",2
+"18","Azithromycin","Day 0-2",1
+"19","Azithromycin","Day 0-2",1
+"20","Azithromycin","Day 0-2",2
+"21","Azithromycin","Day 0-2",2
+"22","Other ABX","Day 0-2",0
+"23","Azithromycin","Day 4-6",2
+"24","Azithromycin","Day 4-6",2
+"25","Azithromycin","Day 0-2",3
+"26","Azithromycin","Day 0-2",3
+"27","Azithromycin","Day 0-2",3
+"28","Azithromycin","Day 0-2",1
+"29","Azithromycin","Day 0-2",0
+"30","No ABX","Day 0-2",3
+"31","Other ABX","Day 4-6",3
+"32","Azithromycin","Day 0-2",1
+"33","Azithromycin","Day 0-2",2
+"34","No ABX","Day 4-6",2
+"35","Azithromycin","Day 0-2",1
+"36","Other ABX","Day 0-2",2
+"37","Other ABX","Day 4-6",0
+"38","Azithromycin","Day 0-2",0
+"39","No ABX","Day 0-2",1
+"40","Azithromycin","Day 0-2",1
+"41","No ABX","Day 0-2",0
+"42","Azithromycin","Day 0-2",1
+"43","Azithromycin","Day 0-2",1
+"44","Other ABX","Day 0-2",3
+"45","Other ABX","Day 0-2",2
+"46","Other ABX","Day 0-2",0
+"47","Azithromycin","Day 4-6",2
+"48","No ABX","Day 0-2",1
+"49","No ABX","Day 4-6",1
+"50","Azithromycin","Day 0-2",1
+"51","Other ABX","Day 0-2",1
+"52","Azithromycin","Day 0-2",1
+"53","Azithromycin","Day 4-6",4
+"54","Other ABX","Day 0-2",1
+"55","Other ABX","Day 0-2",2
+"56","Azithromycin","Day 0-2",0
+"57","Other ABX","Day 0-2",1
+"58","Other ABX","Day 0-2",0
+"59","Azithromycin","Day 0-2",2
+"60","Other ABX","Day 0-2",1
+"61","Azithromycin","Day 0-2",0
+"62","Other ABX","Day 0-2",1
+"63","Azithromycin","Day 0-2",2
+"64","Other ABX","Day 0-2",2
+"65","Other ABX","Day 0-2",0
+"66","Azithromycin","Day 0-2",1
+"67","Azithromycin","Day 0-2",2
+"68","Azithromycin","Day 0-2",2
+"69","No ABX","Day 4-6",0
+"70","Azithromycin","Day 4-6",2
+"71","Azithromycin","Day 4-6",2
+"72","Azithromycin","Day 0-2",1
+"73","Other ABX","Day 0-2",1
+"74","Other ABX","Day 0-2",1
+"75","Azithromycin","Day 0-2",2
+"76","No ABX","Day 0-2",2
+"77","No ABX","Day 0-2",0
+"78","Azithromycin","Day 0-2",0
+"79","Azithromycin","Day 0-2",0
+"80","Azithromycin","Day 0-2",1
+"81","No ABX","Day 0-2",2
+"82","Azithromycin","Day 0-2",3
+"83","Azithromycin","Day 0-2",3
+"84","No ABX","Day 4-6",3
+"85","Azithromycin","Day 4-6",2
+"86","Azithromycin","Day 4-6",4
+"87","Other ABX","Day 0-2",1
+"88","Azithromycin","Day 4-6",0
+"89","Azithromycin","Day 0-2",0
+"90","Azithromycin","Day 0-2",0
+"91","Other ABX","Day 4-6",2
+"92","No ABX","Day 0-2",2
+"93","Azithromycin","Day 0-2",3
+"94","Azithromycin","Day 0-2",2
+"95","Other ABX","Day 4-6",0
+"96","Azithromycin","Day 0-2",2
+"97","Azithromycin","Day 0-2",1
+"98","Azithromycin","Day 4-6",1
+"99","Azithromycin","Day 0-2",2
+"100","Azithromycin","Day 0-2",3
+"101","Other ABX","Day 0-2",0
+"102","Azithromycin","Day 4-6",6
+"103","No ABX","Day 0-2",3
+"104","Azithromycin","Day 0-2",1
+"105","Azithromycin","Day 4-6",1
+"106","Other ABX","Day 0-2",0
+"107","Other ABX","Day 0-2",2
+"108","Azithromycin","Day 0-2",2
+"109","Azithromycin","Day 0-2",1
+"110","No ABX","Day 0-2",0
+"111","No ABX","Day 4-6",2
+"112","Azithromycin","Day 4-6",0
+"113","No ABX","Day 0-2",0
+"114","Other ABX","Day 0-2",1
+"115","Other ABX","Day 0-2",2
+"116","Azithromycin","Day 0-2",2
+"117","Other ABX","Day 0-2",1
+"118","Other ABX","Day 0-2",1
+"119","Azithromycin","Day 0-2",2
+"120","Other ABX","Day 0-2",0
+"121","No ABX","Day 4-6",0
+"122","No ABX","Day 0-2",0
+"123","Azithromycin","Day 0-2",1
+"124","Other ABX","Day 0-2",1
+"125","Azithromycin","Day 0-2",1
+"126","No ABX","Day 0-2",2
+"127","Azithromycin","Day 0-2",1
+"128","No ABX","Day 0-2",0
+"129","Other ABX","Day 0-2",2
+"130","Other ABX","Day 0-2",0
+"131","No ABX","Day 0-2",2
+"132","Azithromycin","Day 0-2",3
+"133","Other ABX","Day 0-2",1
+"134","Azithromycin","Day 0-2",1
+"135","Azithromycin","Day 4-6",1
+"136","Azithromycin","Day 0-2",1
+"137","Azithromycin","Day 0-2",2
+"138","No ABX","Day 4-6",2
+"139","No ABX","Day 0-2",0
+"140","Azithromycin","Day 0-2",2
+"141","Other ABX","Day 4-6",1
+"142","No ABX","Day 0-2",1
+"143","Azithromycin","Day 0-2",0
+"144","Other ABX","Day 0-2",0
+"145","Other ABX","Day 4-6",1
+"146","No ABX","Day 0-2",0
+"147","Azithromycin","Day 0-2",2
+"148","Azithromycin","Day 4-6",2
+"149","Azithromycin","Day 4-6",1
+"150","Other ABX","Day 0-2",1
+"151","Azithromycin","Day 0-2",1
+"152","Azithromycin","Day 0-2",1
+"153","Azithromycin","Day 0-2",2
+"154","Azithromycin","Day 0-2",1
+"155","No ABX","Day 0-2",1
+"156","No ABX","Day 4-6",1
+"157","Other ABX","Day 0-2",1
+"158","Azithromycin","Day 0-2",2
+"159","Azithromycin","Day 0-2",0
+"160","Azithromycin","Day 0-2",4
+"161","Other ABX","Day 0-2",0
+"162","Other ABX","Day 0-2",3
+"163","Other ABX","Day 0-2",2
+"164","No ABX","Day 0-2",0
+"165","Other ABX","Day 0-2",1
+"166","Azithromycin","Day 0-2",2
+"167","Azithromycin","Day 0-2",3
+"168","Other ABX","Day 0-2",1
+"169","Other ABX","Day 0-2",0
+"170","Other ABX","Day 0-2",0
+"171","Azithromycin","Day 0-2",1
+"172","Other ABX","Day 4-6",2
+"173","Azithromycin","Day 0-2",1
+"174","Azithromycin","Day 0-2",2
+"175","Azithromycin","Day 4-6",2
+"176","No ABX","Day 4-6",0
+"177","No ABX","Day 0-2",1
+"178","No ABX","Day 0-2",1
+"179","Azithromycin","Day 0-2",3
+"180","Azithromycin","Day 0-2",1
+"181","Azithromycin","Day 0-2",3
+"182","Azithromycin","Day 0-2",3
+"183","Azithromycin","Day 0-2",1
+"184","Azithromycin","Day 0-2",2
+"185","Azithromycin","Day 0-2",0
+"186","Azithromycin","Day 4-6",1
+"187","Other ABX","Day 0-2",1
+"188","Other ABX","Day 4-6",0
+"189","Azithromycin","Day 4-6",2
+"190","Azithromycin","Day 0-2",1
+"191","Azithromycin","Day 0-2",1
+"192","Azithromycin","Day 0-2",4
+"193","Azithromycin","Day 0-2",3
+"194","No ABX","Day 0-2",1
+"195","Azithromycin","Day 0-2",1
+"196","Azithromycin","Day 0-2",1
+"197","Azithromycin","Day 0-2",1
+"198","Other ABX","Day 0-2",1
+"199","Other ABX","Day 0-2",0
+"200","Azithromycin","Day 0-2",2
+"201","No ABX","Day 4-6",1
+"202","Other ABX","Day 0-2",1
+"203","Other ABX","Day 0-2",2
+"204","Other ABX","Day 0-2",1
+"205","Azithromycin","Day 4-6",4
+"206","Azithromycin","Day 0-2",0
+"207","Azithromycin","Day 0-2",1
+"208","Azithromycin","Day 0-2",2
+"209","Azithromycin","Day 0-2",1
+"210","No ABX","Day 0-2",1
+"211","Other ABX","Day 0-2",2
+"212","Other ABX","Day 0-2",3
+"213","Other ABX","Day 0-2",3
+"214","Azithromycin","Day 4-6",0
+"215","Azithromycin","Day 0-2",1
+"216","Azithromycin","Day 0-2",1
+"217","Azithromycin","Day 0-2",3
+"218","No ABX","Day 0-2",1
+"219","Other ABX","Day 0-2",0
+"220","Azithromycin","Day 4-6",2
+"221","Azithromycin","Day 4-6",1
+"222","Azithromycin","Day 4-6",1
+"223","Other ABX","Day 0-2",2
+"224","Azithromycin","Day 0-2",4
+"225","Azithromycin","Day 0-2",4
+"226","No ABX","Day 4-6",1
+"227","No ABX","Day 0-2",1
+"228","Azithromycin","Day 0-2",1
+"229","Other ABX","Day 0-2",1
+"230","Other ABX","Day 0-2",2
+"231","Other ABX","Day 0-2",2
+"232","Other ABX","Day 0-2",0
+"233","No ABX","Day 0-2",0
+"234","Other ABX","Day 0-2",1
+"235","Azithromycin","Day 0-2",4
+"236","Azithromycin","Day 0-2",0
+"237","No ABX","Day 0-2",1
+"238","Other ABX","Day 0-2",3
+"239","Azithromycin","Day 0-2",0
+"240","Other ABX","Day 0-2",0
+"241","Other ABX","Day 0-2",0
+"242","Other ABX","Day 0-2",1
+"243","Other ABX","Day 4-6",1
+"244","Azithromycin","Day 0-2",5
+"245","No ABX","Day 0-2",1
+"246","Azithromycin","Day 0-2",3
+"247","Azithromycin","Day 0-2",2
+"248","Azithromycin","Day 0-2",1
+"249","No ABX","Day 4-6",1
+"250","Other ABX","Day 0-2",1
+"251","Other ABX","Day 0-2",1
+"252","Azithromycin","Day 0-2",2
+"253","Other ABX","Day 0-2",2
+"254","Other ABX","Day 0-2",3
+"255","No ABX","Day 0-2",1
+"256","Azithromycin","Day 0-2",1
+"257","Other ABX","Day 0-2",1
+"258","Other ABX","Day 4-6",0
+"259","Azithromycin","Day 0-2",1
+"260","Other ABX","Day 0-2",2
+"261","Azithromycin","Day 0-2",4
+"262","Azithromycin","Day 0-2",3
+"263","No ABX","Day 4-6",1
+"264","Azithromycin","Day 0-2",3
+"265","Azithromycin","Day 0-2",3
+"266","Azithromycin","Day 0-2",2
+"267","Azithromycin","Day 0-2",2
+"268","Azithromycin","Day 0-2",2
+"269","Azithromycin","Day 0-2",2
+"270","Other ABX","Day 0-2",2
+"271","Azithromycin","Day 0-2",2
+"272","Other ABX","Day 0-2",2
+"273","Other ABX","Day 0-2",0
+"274","No ABX","Day 0-2",0
+"275","No ABX","Day 4-6",0
+"276","Azithromycin","Day 0-2",4
+"277","Other ABX","Day 0-2",0
+"278","Other ABX","Day 0-2",1
+"279","No ABX","Day 0-2",2
+"280","Azithromycin","Day 0-2",1
+"281","Azithromycin","Day 0-2",3
+"282","Azithromycin","Day 0-2",2
+"283","Azithromycin","Day 0-2",2
+"284","Azithromycin","Day 0-2",0
+"285","Other ABX","Day 0-2",0
+"286","Azithromycin","Day 0-2",0
+"287","Azithromycin","Day 0-2",0
+"288","Azithromycin","Day 0-2",3
+"289","Azithromycin","Day 0-2",2
+"290","Other ABX","Day 0-2",1
+"291","No ABX","Day 4-6",1
+"292","No ABX","Day 0-2",1
+"293","Azithromycin","Day 0-2",0
+"294","Other ABX","Day 0-2",4
+"295","Other ABX","Day 4-6",1
+"296","Azithromycin","Day 0-2",3
+"297","Azithromycin","Day 0-2",4
+"298","Other ABX","Day 0-2",0
+"299","Azithromycin","Day 0-2",5
+"300","Other ABX","Day 0-2",0
+"301","Other ABX","Day 0-2",0
+"302","Other ABX","Day 0-2",0
+"303","Azithromycin","Day 0-2",1
+"304","Azithromycin","Day 0-2",0
+"305","No ABX","Day 0-2",0
+"306","Other ABX","Day 0-2",0
+"307","Other ABX","Day 4-6",3
+"308","No ABX","Day 0-2",1
+"309","Other ABX","Day 0-2",0
+"310","Other ABX","Day 4-6",4
+"311","No ABX","Day 0-2",1
+"312","Other ABX","Day 4-6",1
+"313","Other ABX","Day 0-2",0
+"314","No ABX","Day 4-6",1
+"315","Other ABX","Day 4-6",0
+"316","Other ABX","Day 0-2",0
+"317","Other ABX","Day 0-2",2
+"318","No ABX","Day 0-2",1
+"319","Other ABX","Day 0-2",1
+"320","No ABX","Day 4-6",3
+"321","Azithromycin","Day 0-2",4
+"322","Azithromycin","Day 0-2",2
+"323","No ABX","Day 0-2",1
+"324","Azithromycin","Day 0-2",3
+"325","Azithromycin","Day 0-2",4
+"326","Azithromycin","Day 0-2",3
+"327","Other ABX","Day 0-2",1
+"328","No ABX","Day 0-2",1
+"329","No ABX","Day 4-6",4
+"330","Azithromycin","Day 0-2",3
+"331","Other ABX","Day 4-6",1
+"332","Azithromycin","Day 0-2",1
+"333","Azithromycin","Day 0-2",3
+"334","Other ABX","Day 0-2",1
+"335","Other ABX","Day 0-2",0
+"336","Azithromycin","Day 0-2",1
+"337","Other ABX","Day 0-2",2
+"338","No ABX","Day 0-2",3
+"339","No ABX","Day 4-6",0
+"340","No ABX","Day 0-2",0
+"341","Other ABX","Day 0-2",0
+"342","Other ABX","Day 0-2",0
+"343","No ABX","Day 0-2",0
+"344","No ABX","Day 4-6",2
+"345","Azithromycin","Day 0-2",1
+"346","Other ABX","Day 0-2",2
+"347","Other ABX","Day 0-2",3
+"348","Other ABX","Day 0-2",0
+"349","No ABX","Day 4-6",1
+"350","No ABX","Day 0-2",2
+"351","Other ABX","Day 0-2",3
+"352","Azithromycin","Day 0-2",0
+"353","Azithromycin","Day 4-6",4
+"354","Azithromycin","Day 0-2",0
+"355","No ABX","Day 0-2",2
+"356","Other ABX","Day 0-2",0
+"357","Other ABX","Day 0-2",1
+"358","No ABX","Day 4-6",1
+"359","Azithromycin","Day 0-2",2
+"360","Other ABX","Day 4-6",0
+"361","Azithromycin","Day 0-2",2
+"362","Other ABX","Day 0-2",1
+"363","Other ABX","Day 0-2",1
+"364","Other ABX","Day 0-2",0
+"365","Azithromycin","Day 4-6",2
+"366","Other ABX","Day 4-6",0
+"367","Other ABX","Day 0-2",0
+"368","Other ABX","Day 4-6",0
+"369","No ABX","Day 0-2",2
+"370","No ABX","Day 4-6",2
+"371","Other ABX","Day 0-2",1
+"372","Other ABX","Day 4-6",1
+"373","Other ABX","Day 0-2",1
+"374","Azithromycin","Day 0-2",1
+"375","Azithromycin","Day 0-2",0
+"376","Azithromycin","Day 4-6",2
+"377","Azithromycin","Day 4-6",6
+"378","Azithromycin","Day 0-2",1
+"379","Azithromycin","Day 0-2",2
+"380","Azithromycin","Day 0-2",2
+"381","Other ABX","Day 0-2",2
+"382","Other ABX","Day 0-2",3
+"383","Azithromycin","Day 0-2",2
+"384","Azithromycin","Day 4-6",1
+"385","Other ABX","Day 4-6",1
+"386","No ABX","Day 0-2",0
+"387","No ABX","Day 4-6",0
+"388","Azithromycin","Day 0-2",0
+"389","Azithromycin","Day 4-6",2
+"390","Azithromycin","Day 0-2",2
+"391","Azithromycin","Day 4-6",4
+"392","Azithromycin","Day 4-6",1
+"393","Azithromycin","Day 0-2",2
+"394","Azithromycin","Day 0-2",2
+"395","Azithromycin","Day 0-2",3
+"396","Azithromycin","Day 0-2",2
+"397","No ABX","Day 0-2",1
+"398","Other ABX","Day 0-2",4
+"399","Other ABX","Day 0-2",1
+"400","Other ABX","Day 0-2",2
+"401","Azithromycin","Day 0-2",0
+"402","No ABX","Day 0-2",0
+"403","Azithromycin","Day 0-2",2
+"404","Azithromycin","Day 0-2",3
+"405","Azithromycin","Day 0-2",3
+"406","Azithromycin","Day 0-2",1
+"407","Azithromycin","Day 0-2",1
+"408","Azithromycin","Day 0-2",1
+"409","Other ABX","Day 0-2",0
+"410","Azithromycin","Day 0-2",1
+"411","Azithromycin","Day 0-2",2
+"412","Azithromycin","Day 0-2",3
+"413","Other ABX","Day 0-2",1
+"414","No ABX","Day 0-2",3
+"415","No ABX","Day 4-6",0
+"416","Azithromycin","Day 0-2",4
+"417","Other ABX","Day 4-6",2
+"418","Other ABX","Day 0-2",1
+"419","Azithromycin","Day 0-2",3
+"420","Azithromycin","Day 0-2",2
+"421","Azithromycin","Day 0-2",2
+"422","Azithromycin","Day 0-2",1
+"423","No ABX","Day 4-6",3
+"424","Other ABX","Day 0-2",0
+"425","Other ABX","Day 0-2",3
+"426","Other ABX","Day 0-2",0
+"427","Azithromycin","Day 0-2",0
+"428","No ABX","Day 0-2",0
+"429","Other ABX","Day 0-2",1
+"430","Other ABX","Day 4-6",1
+"431","Azithromycin","Day 0-2",2
+"432","Azithromycin","Day 0-2",1
+"433","Azithromycin","Day 0-2",1
+"434","Azithromycin","Day 0-2",2
+"435","Azithromycin","Day 0-2",1
+"436","No ABX","Day 4-6",3
+"437","Azithromycin","Day 0-2",1
+"438","No ABX","Day 0-2",3
+"439","Azithromycin","Day 0-2",1
+"440","Other ABX","Day 0-2",0
+"441","Azithromycin","Day 0-2",1
+"442","No ABX","Day 0-2",1
+"443","Other ABX","Day 4-6",2
+"444","Azithromycin","Day 0-2",1
+"445","Azithromycin","Day 0-2",1
+"446","Azithromycin","Day 4-6",3
+"447","No ABX","Day 4-6",1
+"448","Azithromycin","Day 0-2",2
+"449","Azithromycin","Day 0-2",2
+"450","No ABX","Day 0-2",0
+"451","Other ABX","Day 4-6",0
+"452","Azithromycin","Day 0-2",2
+"453","Other ABX","Day 4-6",2
+"454","Other ABX","Day 4-6",1
+"455","Azithromycin","Day 4-6",1
+"456","Other ABX","Day 0-2",1
+"457","Other ABX","Day 4-6",3
+"458","Azithromycin","Day 0-2",0
+"459","Azithromycin","Day 0-2",2
+"460","No ABX","Day 4-6",0
+"461","Azithromycin","Day 0-2",1
+"462","Azithromycin","Day 0-2",2
+"463","No ABX","Day 0-2",2
+"464","Other ABX","Day 0-2",0
+"465","Other ABX","Day 0-2",0
+"466","No ABX","Day 0-2",1
+"467","Azithromycin","Day 0-2",0
+"468","Azithromycin","Day 0-2",0
+"469","No ABX","Day 4-6",1
+"470","Other ABX","Day 0-2",0
+"471","Other ABX","Day 0-2",0
+"472","No ABX","Day 4-6",1
+"473","Azithromycin","Day 0-2",1
+"474","Azithromycin","Day 0-2",1
+"475","No ABX","Day 0-2",1
+"476","Azithromycin","Day 0-2",1
+"477","Other ABX","Day 0-2",1
+"478","Other ABX","Day 4-6",1
+"479","Azithromycin","Day 0-2",2
+"480","Azithromycin","Day 0-2",2
+"481","Azithromycin","Day 0-2",2
+"482","Azithromycin","Day 0-2",0
+"483","Azithromycin","Day 4-6",0
+"484","Azithromycin","Day 0-2",0
+"485","Azithromycin","Day 0-2",1
+"486","Azithromycin","Day 0-2",2
+"487","Azithromycin","Day 0-2",1
+"488","Other ABX","Day 0-2",0
+"489","Azithromycin","Day 0-2",0
+"490","Azithromycin","Day 0-2",1
+"491","No ABX","Day 0-2",3
+"492","Azithromycin","Day 0-2",2
+"493","No ABX","Day 4-6",0
+"494","Other ABX","Day 0-2",0
+"495","Azithromycin","Day 0-2",1
+"496","Other ABX","Day 0-2",2
+"497","Azithromycin","Day 0-2",4
+"498","Other ABX","Day 0-2",1
+"499","Azithromycin","Day 0-2",2
+"500","No ABX","Day 4-6",3
+"501","No ABX","Day 0-2",0
+"502","Azithromycin","Day 0-2",3
+"503","Azithromycin","Day 0-2",0
+"504","Azithromycin","Day 0-2",3
+"505","Azithromycin","Day 0-2",2
+"506","Azithromycin","Day 0-2",2
+"507","Other ABX","Day 0-2",1
+"508","Azithromycin","Day 0-2",2
+"509","Azithromycin","Day 0-2",0
+"510","Other ABX","Day 0-2",0
+"511","No ABX","Day 0-2",2
+"512","Azithromycin","Day 0-2",1
+"513","Azithromycin","Day 0-2",1
+"514","Azithromycin","Day 0-2",0
+"515","Azithromycin","Day 0-2",1
+"516","Azithromycin","Day 0-2",2
+"517","Azithromycin","Day 0-2",2
+"518","Azithromycin","Day 4-6",1
+"519","No ABX","Day 4-6",0
+"520","Other ABX","Day 0-2",1
+"521","Azithromycin","Day 0-2",1
+"522","Other ABX","Day 0-2",1
+"523","Other ABX","Day 0-2",0
+"524","No ABX","Day 0-2",0
+"525","No ABX","Day 4-6",0
+"526","No ABX","Day 0-2",0
+"527","Other ABX","Day 0-2",1
+"528","Other ABX","Day 0-2",1
+"529","Azithromycin","Day 0-2",0
+"530","No ABX","Day 4-6",0
+"531","No ABX","Day 0-2",2
+"532","Azithromycin","Day 0-2",0
+"533","Azithromycin","Day 0-2",1
+"534","Azithromycin","Day 0-2",0
+"535","Azithromycin","Day 0-2",2
+"536","Azithromycin","Day 0-2",2
+"537","No ABX","Day 0-2",0
+"538","No ABX","Day 4-6",3
+"539","Other ABX","Day 0-2",1
+"540","Azithromycin","Day 4-6",3
+"541","Azithromycin","Day 0-2",0
+"542","Azithromycin","Day 4-6",1
+"543","No ABX","Day 0-2",2
+"544","Azithromycin","Day 0-2",2
+"545","Other ABX","Day 0-2",0
+"546","Other ABX","Day 0-2",1
+"547","Other ABX","Day 0-2",1
+"548","Other ABX","Day 0-2",2
+"549","Other ABX","Day 0-2",1
+"550","Other ABX","Day 0-2",1
+"551","No ABX","Day 0-2",0
+"552","Azithromycin","Day 0-2",0
+"553","Azithromycin","Day 0-2",2
+"554","Azithromycin","Day 0-2",0
+"555","Azithromycin","Day 0-2",1
+"556","Other ABX","Day 4-6",5
+"557","Azithromycin","Day 0-2",3
+"558","Azithromycin","Day 0-2",3
+"559","Azithromycin","Day 0-2",1
+"560","Azithromycin","Day 0-2",3
+"561","No ABX","Day 0-2",0
+"562","Azithromycin","Day 0-2",0
+"563","No ABX","Day 0-2",1
+"564","Azithromycin","Day 0-2",0
+"565","No ABX","Day 0-2",2
+"566","Azithromycin","Day 0-2",1
+"567","No ABX","Day 0-2",2
+"568","Azithromycin","Day 0-2",3
+"569","Azithromycin","Day 0-2",0
+"570","Azithromycin","Day 0-2",1
+"571","Other ABX","Day 0-2",1
+"572","No ABX","Day 0-2",0
+"573","Azithromycin","Day 4-6",0
+"574","No ABX","Day 0-2",2
+"575","Azithromycin","Day 4-6",2
+"576","Azithromycin","Day 4-6",2
+"577","Azithromycin","Day 0-2",2
+"578","Azithromycin","Day 0-2",3
+"579","Azithromycin","Day 0-2",2
+"580","Azithromycin","Day 0-2",2
+"581","Azithromycin","Day 0-2",2
+"582","Other ABX","Day 0-2",2
+"583","No ABX","Day 4-6",4
+"584","Other ABX","Day 0-2",0
+"585","Azithromycin","Day 0-2",2
+"586","No ABX","Day 0-2",1
+"587","Other ABX","Day 0-2",1
+"588","Azithromycin","Day 0-2",0
+"589","No ABX","Day 4-6",1
+"590","Azithromycin","Day 0-2",2
+"591","Azithromycin","Day 0-2",2
+"592","No ABX","Day 0-2",1
+"593","Azithromycin","Day 0-2",2
+"594","Azithromycin","Day 0-2",3
+"595","Azithromycin","Day 0-2",2
+"596","Other ABX","Day 0-2",0
+"597","Other ABX","Day 0-2",1
+"598","Azithromycin","Day 0-2",1
+"599","No ABX","Day 0-2",0
+"600","Azithromycin","Day 0-2",0
+"601","Other ABX","Day 4-6",2
+"602","Azithromycin","Day 0-2",3
+"603","Other ABX","Day 0-2",0
+"604","No ABX","Day 0-2",1
+"605","Azithromycin","Day 0-2",2
+"606","Azithromycin","Day 0-2",4
+"607","Azithromycin","Day 4-6",3
+"608","No ABX","Day 4-6",1
+"609","Azithromycin","Day 0-2",2
+"610","Azithromycin","Day 0-2",2
+"611","Azithromycin","Day 0-2",1
+"612","Azithromycin","Day 0-2",1
+"613","No ABX","Day 0-2",1
+"614","Other ABX","Day 0-2",0
+"615","Other ABX","Day 0-2",1
+"616","Other ABX","Day 0-2",0
+"617","Azithromycin","Day 0-2",0
+"618","Azithromycin","Day 0-2",5
+"619","No ABX","Day 0-2",0
+"620","Azithromycin","Day 0-2",1
+"621","Azithromycin","Day 0-2",2
+"622","Other ABX","Day 0-2",0
+"623","No ABX","Day 0-2",1
+"624","Azithromycin","Day 0-2",3
+"625","Azithromycin","Day 0-2",1
+"626","Azithromycin","Day 0-2",3
+"627","Azithromycin","Day 0-2",1
+"628","Other ABX","Day 0-2",0
+"629","Azithromycin","Day 0-2",3
+"630","Other ABX","Day 0-2",0
+"631","Other ABX","Day 0-2",1
+"632","Azithromycin","Day 0-2",3
+"633","No ABX","Day 4-6",1
+"634","No ABX","Day 0-2",2
+"635","Azithromycin","Day 0-2",0
+"636","Other ABX","Day 0-2",2
+"637","Other ABX","Day 0-2",1
+"638","Other ABX","Day 0-2",1
+"639","Other ABX","Day 0-2",0
+"640","Other ABX","Day 0-2",2
+"641","Azithromycin","Day 0-2",2
+"642","Azithromycin","Day 0-2",1
+"643","Azithromycin","Day 0-2",3
+"644","No ABX","Day 0-2",1
+"645","Azithromycin","Day 4-6",2
+"646","Azithromycin","Day 4-6",5
+"647","Azithromycin","Day 4-6",3
+"648","Azithromycin","Day 4-6",2
+"649","No ABX","Day 0-2",0
+"650","Azithromycin","Day 0-2",2
+"651","Azithromycin","Day 0-2",5
+"652","Other ABX","Day 4-6",0
+"653","Other ABX","Day 0-2",2
+"654","Azithromycin","Day 0-2",0
+"655","No ABX","Day 0-2",5
+"656","No ABX","Day 4-6",1
+"657","Other ABX","Day 0-2",1
+"658","Azithromycin","Day 0-2",6
+"659","Azithromycin","Day 0-2",1
+"660","Azithromycin","Day 4-6",4
+"661","No ABX","Day 0-2",4
+"662","No ABX","Day 4-6",3
+"663","Other ABX","Day 0-2",1
+"664","Other ABX","Day 4-6",1
+"665","Azithromycin","Day 0-2",0
+"666","Azithromycin","Day 4-6",4
+"667","Other ABX","Day 4-6",2
+"668","Other ABX","Day 0-2",2
+"669","No ABX","Day 0-2",1
+"670","Azithromycin","Day 0-2",3
+"671","Azithromycin","Day 0-2",2
+"672","Azithromycin","Day 0-2",0
+"673","Azithromycin","Day 0-2",3
+"674","Other ABX","Day 0-2",3
+"675","Azithromycin","Day 0-2",3
+"676","Azithromycin","Day 0-2",4
+"677","Azithromycin","Day 0-2",0
+"678","Other ABX","Day 0-2",1
+"679","No ABX","Day 0-2",1
+"680","No ABX","Day 4-6",0
+"681","Azithromycin","Day 0-2",2
+"682","Azithromycin","Day 0-2",3
+"683","No ABX","Day 4-6",2
+"684","No ABX","Day 0-2",1
+"685","Other ABX","Day 4-6",1
+"686","No ABX","Day 4-6",0
+"687","Azithromycin","Day 0-2",1
+"688","Other ABX","Day 0-2",2
+"689","Azithromycin","Day 0-2",3
+"690","Azithromycin","Day 0-2",2
+"691","Azithromycin","Day 0-2",3
+"692","Other ABX","Day 0-2",2
+"693","Other ABX","Day 0-2",3
+"694","Azithromycin","Day 0-2",0
+"695","No ABX","Day 0-2",3
+"696","Other ABX","Day 0-2",3
+"697","Other ABX","Day 0-2",3
+"698","Other ABX","Day 0-2",2
+"699","Other ABX","Day 4-6",3
+"700","Azithromycin","Day 0-2",3
+"701","No ABX","Day 0-2",3
+"702","No ABX","Day 4-6",2
+"703","Azithromycin","Day 0-2",1
+"704","Azithromycin","Day 4-6",1
+"705","Azithromycin","Day 0-2",2
+"706","Azithromycin","Day 0-2",1
+"707","Azithromycin","Day 0-2",0
+"708","Other ABX","Day 0-2",1
+"709","Other ABX","Day 0-2",0
+"710","Azithromycin","Day 0-2",1
+"711","Azithromycin","Day 4-6",3
+"712","No ABX","Day 0-2",5
+"713","Other ABX","Day 0-2",3
+"714","Azithromycin","Day 0-2",2
+"715","Azithromycin","Day 0-2",4
+"716","Azithromycin","Day 0-2",1
+"717","Azithromycin","Day 0-2",3
+"718","No ABX","Day 0-2",3
+"719","Other ABX","Day 0-2",2
+"720","Other ABX","Day 0-2",2
+"721","Other ABX","Day 0-2",0
+"722","Azithromycin","Day 0-2",2
+"723","Azithromycin","Day 0-2",0
+"724","Azithromycin","Day 0-2",1
+"725","Azithromycin","Day 0-2",3
+"726","Azithromycin","Day 0-2",1
+"727","Azithromycin","Day 0-2",2
+"728","Azithromycin","Day 0-2",3
+"729","Other ABX","Day 0-2",1
+"730","Other ABX","Day 0-2",0
+"731","Other ABX","Day 0-2",1
+"732","Azithromycin","Day 0-2",3
+"733","No ABX","Day 0-2",1
+"734","Azithromycin","Day 0-2",3
+"735","No ABX","Day 0-2",4
+"736","Azithromycin","Day 4-6",2
+"737","Azithromycin","Day 0-2",0
+"738","Azithromycin","Day 0-2",7
+"739","No ABX","Day 4-6",4
+"740","Azithromycin","Day 0-2",3
+"741","Azithromycin","Day 0-2",3
+"742","No ABX","Day 0-2",1
+"743","Azithromycin","Day 0-2",4
+"744","Other ABX","Day 0-2",0
+"745","No ABX","Day 4-6",1
+"746","Azithromycin","Day 0-2",2
+"747","No ABX","Day 0-2",1
+"748","Other ABX","Day 0-2",2
+"749","Other ABX","Day 0-2",3
+"750","Other ABX","Day 0-2",1
+"751","Other ABX","Day 0-2",0
+"752","Other ABX","Day 0-2",0
+"753","Other ABX","Day 0-2",1
+"754","Other ABX","Day 0-2",1
+"755","Azithromycin","Day 0-2",2
+"756","Other ABX","Day 0-2",0
+"757","Other ABX","Day 0-2",1
+"758","Other ABX","Day 0-2",2
+"759","Other ABX","Day 0-2",1
+"760","No ABX","Day 0-2",0
+"761","Other ABX","Day 0-2",4
+"762","No ABX","Day 4-6",1
+"763","Azithromycin","Day 0-2",2
+"764","Azithromycin","Day 0-2",3
+"765","Azithromycin","Day 0-2",2
+"766","Azithromycin","Day 0-2",3
+"767","Other ABX","Day 4-6",2
+"768","Azithromycin","Day 0-2",1
+"769","No ABX","Day 4-6",1
+"770","No ABX","Day 0-2",1
+"771","Other ABX","Day 4-6",1
+"772","Azithromycin","Day 0-2",7
+"773","No ABX","Day 0-2",0
+"774","Azithromycin","Day 0-2",6
+"775","Azithromycin","Day 0-2",1
+"776","Azithromycin","Day 0-2",3
+"777","Azithromycin","Day 0-2",2
+"778","No ABX","Day 4-6",1
+"779","Azithromycin","Day 0-2",0
+"780","Azithromycin","Day 0-2",1
+"781","Other ABX","Day 0-2",2
+"782","No ABX","Day 0-2",4
+"783","No ABX","Day 4-6",1
+"784","Other ABX","Day 4-6",2
+"785","Azithromycin","Day 0-2",3
+"786","Azithromycin","Day 0-2",0
+"787","Azithromycin","Day 0-2",3
+"788","Azithromycin","Day 4-6",5
+"789","Azithromycin","Day 4-6",5
+"790","Azithromycin","Day 0-2",3
+"791","No ABX","Day 0-2",1
+"792","Azithromycin","Day 0-2",2
+"793","Azithromycin","Day 0-2",2
+"794","Azithromycin","Day 4-6",2
+"795","Azithromycin","Day 0-2",3
+"796","No ABX","Day 0-2",1
+"797","Azithromycin","Day 0-2",2
+"798","Other ABX","Day 4-6",2
+"799","Azithromycin","Day 0-2",2
+"800","Other ABX","Day 4-6",1
+"801","No ABX","Day 0-2",3
+"802","Azithromycin","Day 0-2",2
+"803","Azithromycin","Day 4-6",1
+"804","Other ABX","Day 0-2",1
+"805","Other ABX","Day 0-2",2
+"806","Azithromycin","Day 0-2",3
+"807","Azithromycin","Day 0-2",1
+"808","No ABX","Day 4-6",0
+"809","Azithromycin","Day 0-2",3
+"810","Azithromycin","Day 0-2",2
+"811","No ABX","Day 0-2",0
+"812","Other ABX","Day 0-2",3
+"813","Azithromycin","Day 0-2",5
+"814","Azithromycin","Day 0-2",2
+"815","Azithromycin","Day 0-2",3
+"816","Other ABX","Day 0-2",1
+"817","Other ABX","Day 0-2",1
+"818","Other ABX","Day 0-2",1
+"819","Other ABX","Day 0-2",1
+"820","Other ABX","Day 4-6",1
+"821","Other ABX","Day 0-2",1
+"822","Azithromycin","Day 0-2",1
+"823","Azithromycin","Day 0-2",2
+"824","Other ABX","Day 0-2",2
+"825","Other ABX","Day 0-2",1
+"826","Azithromycin","Day 4-6",0
+"827","No ABX","Day 0-2",2
+"828","No ABX","Day 4-6",1
+"829","Azithromycin","Day 0-2",4
+"830","Azithromycin","Day 0-2",4
+"831","No ABX","Day 4-6",1
+"832","Azithromycin","Day 4-6",3
+"833","No ABX","Day 0-2",1
+"834","Azithromycin","Day 0-2",2
+"835","Azithromycin","Day 0-2",4
+"836","No ABX","Day 4-6",6
+"837","Azithromycin","Day 4-6",3
+"838","Azithromycin","Day 0-2",2
+"839","Other ABX","Day 0-2",2
+"840","Azithromycin","Day 0-2",5
+"841","Azithromycin","Day 0-2",1
+"842","No ABX","Day 4-6",3
+"843","Azithromycin","Day 4-6",2
+"844","Other ABX","Day 4-6",2
+"845","Other ABX","Day 0-2",0
+"846","Azithromycin","Day 0-2",0
+"847","Azithromycin","Day 0-2",0
+"848","No ABX","Day 0-2",1
+"849","Azithromycin","Day 0-2",1
+"850","Azithromycin","Day 0-2",0
+"851","Other ABX","Day 4-6",1
+"852","Azithromycin","Day 0-2",0
+"853","Azithromycin","Day 0-2",1
+"854","Other ABX","Day 4-6",2
+"855","Azithromycin","Day 0-2",1
+"856","Azithromycin","Day 0-2",2
+"857","Azithromycin","Day 0-2",2
+"858","Azithromycin","Day 0-2",6
+"859","Azithromycin","Day 0-2",1
+"860","Other ABX","Day 0-2",1
+"861","Other ABX","Day 0-2",2
+"862","No ABX","Day 0-2",0
+"863","Azithromycin","Day 0-2",0
+"864","Azithromycin","Day 0-2",2
+"865","No ABX","Day 4-6",3
+"866","No ABX","Day 0-2",0
+"867","Other ABX","Day 0-2",2
+"868","Other ABX","Day 0-2",3
+"869","Azithromycin","Day 0-2",1
+"870","Azithromycin","Day 0-2",0
+"871","Other ABX","Day 4-6",1
+"872","No ABX","Day 0-2",1
+"873","Other ABX","Day 4-6",2
+"874","No ABX","Day 4-6",2
+"875","Other ABX","Day 0-2",0
+"876","Azithromycin","Day 0-2",0
+"877","Other ABX","Day 0-2",0
+"878","Azithromycin","Day 0-2",2
+"879","No ABX","Day 0-2",0
+"880","Azithromycin","Day 0-2",2
+"881","Azithromycin","Day 0-2",3
+"882","Azithromycin","Day 0-2",0
+"883","Azithromycin","Day 0-2",4
+"884","Azithromycin","Day 0-2",1
+"885","Azithromycin","Day 0-2",1
+"886","Azithromycin","Day 0-2",2
+"887","Azithromycin","Day 0-2",2
+"888","No ABX","Day 0-2",1
+"889","Other ABX","Day 0-2",2
+"890","Azithromycin","Day 0-2",0
+"891","Azithromycin","Day 0-2",3
+"892","No ABX","Day 4-6",2
+"893","No ABX","Day 0-2",1
+"894","No ABX","Day 0-2",1
+"895","No ABX","Day 4-6",0
+"896","Azithromycin","Day 0-2",2
+"897","Azithromycin","Day 0-2",1
+"898","Azithromycin","Day 0-2",3
+"899","Azithromycin","Day 0-2",1
+"900","No ABX","Day 0-2",2
+"901","No ABX","Day 0-2",3
+"902","No ABX","Day 4-6",3
+"903","No ABX","Day 0-2",0
+"904","Other ABX","Day 0-2",0
+"905","No ABX","Day 4-6",1
+"906","No ABX","Day 0-2",3
+"907","No ABX","Day 4-6",0
+"908","No ABX","Day 0-2",3
+"909","No ABX","Day 4-6",0
+"910","No ABX","Day 0-2",2
+"911","Other ABX","Day 0-2",2
+"912","Other ABX","Day 4-6",2
+"913","Other ABX","Day 4-6",0
+"914","Azithromycin","Day 0-2",2
+"915","Azithromycin","Day 0-2",1
+"916","Azithromycin","Day 0-2",2
+"917","Other ABX","Day 0-2",0
+"918","Azithromycin","Day 0-2",1
+"919","Other ABX","Day 0-2",2
+"920","Other ABX","Day 0-2",1
+"921","Azithromycin","Day 0-2",2
+"922","No ABX","Day 0-2",0
+"923","Azithromycin","Day 0-2",1
+"924","Other ABX","Day 0-2",0
+"925","Other ABX","Day 0-2",0
+"926","Other ABX","Day 0-2",1
+"927","Other ABX","Day 0-2",0
+"928","Other ABX","Day 4-6",0
+"929","Azithromycin","Day 0-2",1
+"930","Azithromycin","Day 4-6",0
+"931","Azithromycin","Day 0-2",2
+"932","No ABX","Day 4-6",1
+"933","No ABX","Day 0-2",0
+"934","Other ABX","Day 0-2",2
+"935","Other ABX","Day 4-6",2
+"936","No ABX","Day 0-2",0
+"937","Azithromycin","Day 0-2",1
+"938","Azithromycin","Day 0-2",2
+"939","No ABX","Day 4-6",2
+"940","No ABX","Day 0-2",1
+"941","Azithromycin","Day 4-6",4
+"942","Other ABX","Day 0-2",0
+"943","Azithromycin","Day 0-2",4
+"944","Azithromycin","Day 4-6",3
+"945","Azithromycin","Day 0-2",5
+"946","Azithromycin","Day 0-2",2
+"947","Azithromycin","Day 0-2",1
+"948","Azithromycin","Day 0-2",2
+"949","Other ABX","Day 0-2",1
+"950","Azithromycin","Day 0-2",2
+"951","Other ABX","Day 0-2",3
+"952","Azithromycin","Day 0-2",1
+"953","No ABX","Day 4-6",1
+"954","No ABX","Day 0-2",1
+"955","Azithromycin","Day 0-2",2
+"956","Other ABX","Day 0-2",0
+"957","Other ABX","Day 4-6",0
+"958","No ABX","Day 4-6",2
+"959","No ABX","Day 0-2",0
+"960","No ABX","Day 4-6",1
+"961","No ABX","Day 0-2",1
+"962","Azithromycin","Day 0-2",1
+"963","Other ABX","Day 0-2",1
+"964","Other ABX","Day 0-2",1
+"965","Other ABX","Day 0-2",3
+"966","Other ABX","Day 4-6",1
+"967","No ABX","Day 0-2",1
+"968","Other ABX","Day 0-2",2
+"969","Other ABX","Day 0-2",3
+"970","Azithromycin","Day 0-2",1
+"971","Azithromycin","Day 0-2",1
