@@ -1,0 +1,622 @@
+---
+title: "20250325_bulk_RNAseq_nasal"
+output: html_document
+---
+
+Here I analyze host gene expression vs antibiotics exposure.
+
+R version 4.3.3
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+# library(pheatmap)
+library(patchwork)
+
+library(limma)
+# library(edgeR)
+
+library(fgsea)
+
+# library(gamm4)
+
+setwd("~/20240208_IMPACC_ABX")
+
+my.theme <- theme_classic() + 
+  theme(
+    plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+    axis.text = element_text(size=12, color="black"),
+    text = element_text(size=12, family="Arial"),
+    plot.margin = unit(c(0,1,1,0), "cm")
+  )
+which.script <- "20250325_bulk_RNAseq_nasal.Rmd"
+```
+
+
+# Data import
+
+## Clinical metadata
+
+```{r}
+# Patient metadata
+clin.individ <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-locked.csv",
+  header = TRUE)
+
+# Sample
+clin.sample <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-sample-locked.csv",
+  header = TRUE)
+
+# Event
+clin.event <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-event-locked.csv",
+  header = TRUE)
+```
+
+Supplemental data for steroid.
+
+```{r}
+clin.supp <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-supp-locked.csv",
+  header=TRUE
+)
+```
+
+Convert categorical variables to factor
+
+```{r}
+clin.event$respiratory_status <- as.factor(clin.event$respiratory_status)
+
+clin.individ$sex <- as.factor(clin.individ$sex)
+clin.individ$trajectory_group <- as.factor(clin.individ$trajectory_group)
+clin.individ$enrollment_site <- as.factor(clin.individ$enrollment_site)
+clin.individ$participant_id <- as.factor(clin.individ$participant_id)
+```
+
+Any empty steroid fields?
+
+```{r}
+print(any(is.na(clin.supp$ever_steroids)))
+
+clin.supp$ever_steroids <- as.factor(clin.supp$ever_steroids)
+```
+
+### Merge clinical metadata
+
+```{r}
+# Combine sample and event metadata
+clin.sample.event <- merge(
+  clin.sample, clin.event,
+  by = "event_id",
+  all.x = TRUE, all.y = FALSE,
+  suffixes = c("",".y"),
+  sort = FALSE
+)
+
+# Add patient metadata
+clin.sample.event.individ <- merge(
+  clin.sample.event, clin.individ,
+  by = "participant_id", all = FALSE, sort = FALSE
+)
+```
+
+Add steroid info
+
+```{r}
+clin.sample.event.individ <- merge(
+  clin.sample.event.individ,
+  clin.supp[,c("participant_id","ever_steroids")],
+  by="participant_id",
+  all=FALSE,
+  sort=FALSE
+)
+```
+
+## ABX metadata 
+
+Antibiotics data prepared by Cole
+
+```{r}
+abx <- read.csv(
+  "/scratch/metagenomics/antibiotic_data/timepoint_group_assignment_2025_03_05.csv"
+)
+
+# Merge antibiotics data with clinical metadata
+clin.sample.event.individ <- merge(
+  clin.sample.event.individ,
+  abx[,c("sample_id","group_id","timepoint")],
+  by="sample_id",
+  all=FALSE
+) %>%
+  droplevels()
+
+print(dim(clin.sample.event.individ))
+```
+
+How many samples does each Visit have?
+
+```{r}
+print(table(clin.sample.event.individ$event_type, clin.sample.event.individ$timepoint))
+```
+
+I will remove Control donor visit, without filtering out other event types.
+
+```{r}
+clin.sample.event.individ <- clin.sample.event.individ %>%
+  subset(event_type != "Control donor visit")
+print(dim(clin.sample.event.individ))
+print(table(clin.sample.event.individ$event_type, clin.sample.event.individ$timepoint))
+```
+
+Do samples from the same patients show up in the same time point?
+
+```{r}
+clin.sample.event.individ %>%
+  group_by(participant_id, timepoint) %>%
+  summarise(n=n()) %>%
+  arrange(desc(n))
+```
+
+I will need to model participant_id as random effects.
+
+## RNA-seq data
+
+Import gene counts.
+
+```{r}
+counts <- read.csv(
+  "/data/nasal-transcriptomics/legacy/2022-06-30/nasal-transcriptomics-Counts.csv",
+  header = TRUE, row.names = 1,
+  check.names = FALSE
+)
+counts <- t(counts)
+print(counts[1:6,1:6])
+
+counts.metadata <- read.csv(
+  "/data/nasal-transcriptomics/legacy/2022-06-30/nasal-transcriptomics-Metadata.csv",
+  header = TRUE, row.names = NULL,
+  check.names = FALSE
+)
+print(head(counts.metadata))
+
+rData <- read.csv(
+  "/data/nasal-transcriptomics/current/nasal-transcriptomics-RowFeature.csv",
+  header = FALSE, row.names = NULL,
+  check.names = FALSE
+)
+stopifnot(rownames(counts)==rData$gene_id)
+colnames(rData) <- rData[2,]
+rData <- rData[-(1:2),]
+print(head(rData))
+```
+
+```{r}
+# RNA-seq QC
+counts.metadata <- subset(
+  counts.metadata,
+  sample_status == "IMPACC sample assayed and passed QC"
+)
+
+# Filter clinical metadata data frame
+clin.sample.event.individ <- clin.sample.event.individ %>%
+  subset(sample_id %in% counts.metadata$sample_id)
+```
+
+```{r}
+print(dim(counts))
+```
+
+## Load pathways for GSEA
+
+```{r}
+# Reactome
+reactome <- msigdbr::msigdbr(species = "Homo sapiens",
+                             category = "C2", subcategory = "CP:REACTOME")
+reactome.list <- split(x = reactome$ensembl_gene, f = reactome$gs_name) # for fgsea
+reactome.list2 <- reactome %>% select(gs_name, ensembl_gene) # for clusterProfiler
+
+# # Hallmark gene sets
+# hallmark <- msigdbr::msigdbr(species = "Homo sapiens",
+#                              category = "H")
+# hallmark.list <- split(x = hallmark$ensembl_gene, f = hallmark$gs_name)
+# hallmark.list2 <- hallmark %>% select(gs_name, ensembl_gene)
+```
+
+# Session info
+
+```{r}
+sessionInfo()
+```
+
+# Azithro vs no Abx at both time points
+
+## Day 0-2
+
+Subset timepoint 0-2, and remove "Other ABX" samples
+
+```{r}
+print(dim(clin.sample.event.individ))
+clin.sample.event.individ.1a <- clin.sample.event.individ %>%
+  subset((group_id!="Other ABX") & (timepoint=="Day 0-2"))
+print(dim(clin.sample.event.individ.1a))
+```
+
+I should get 1671 samples before removing Other ABX, and 965 samples after removing it.
+
+Count patients by group and timepoint
+
+```{r}
+clin.sample.event.individ.1a %>%
+  group_by(participant_id, group_id, timepoint) %>%
+  summarise(n=n()) %>%
+  arrange(desc(n))
+```
+
+Make "No ABX" the first level
+
+```{r}
+clin.sample.event.individ.1a$group_id <- factor(
+  clin.sample.event.individ.1a$group_id,
+  levels=c("No ABX","Azithromycin")
+)
+```
+
+Subset gene counts
+
+```{r}
+# Subset count data
+counts.1a <- counts[,clin.sample.event.individ.1a$sample_id]
+
+# Count number of patients
+print(dim(counts.1a))
+print(table(clin.sample.event.individ.1a$event_type))
+```
+
+Gene filtering.
+
+```{r}
+# Keep only protein_coding genes
+counts.1a <- counts.1a[rData[rData$gene_biotype=="protein_coding", "gene_id"],]
+
+# Keep genes with at least 10 counts in 20% of samples
+keep <- rowSums(counts.1a>=10) >= (0.2*ncol(counts.1a))
+counts.1a <- counts.1a[keep,]
+```
+
+There should be 1006 samples in total.
+
+```{r}
+print(dim(counts.1a))
+```
+
+Design matrix
+
+```{r}
+stopifnot(colnames(counts.1a)==clin.sample.event.individ.1a$sample_id)
+
+design <- model.matrix(
+  ~ group_id + admit_age + sex + trajectory_group + ever_steroids + event_date,
+  data=clin.sample.event.individ.1a)
+print(colnames(design))
+colnames(design)[2] <- "Azithro"
+print(colnames(design))
+```
+
+Run voom with duplicateCorrelation twice: https://support.bioconductor.org/p/59700/ and Section 18.1.9 in the [User Guide](https://www.bioconductor.org/packages/release/bioc/vignettes/limma/inst/doc/usersguide.pdf)
+
+duplicateCorrelation is slow!
+
+```{r}
+vwts <- voom(
+  counts.1a, 
+  design = design,
+  normalize.method = "quantile",
+  plot = T
+)
+corfit <- duplicateCorrelation(
+  vwts,
+  design = design,
+  block = clin.sample.event.individ.1a$participant_id
+)
+print(paste0("Correlation, 1st iteration: ", corfit$consensus))
+vwts <- voom(
+  counts.1a, 
+  design = design,
+  normalize.method = "quantile",
+  block = clin.sample.event.individ.1a$participant_id,
+  correlation = corfit$consensus,
+  plot = T
+)
+corfit <- duplicateCorrelation(
+  vwts,
+  design = design,
+  block = clin.sample.event.individ.1a$participant_id
+)
+print(paste0("Correlation, 2nd iteration: ", corfit$consensus))
+
+vfit <- lmFit(
+  vwts,
+  design = design,
+  block = clin.sample.event.individ.1a$participant_id,
+  correlation = corfit$consensus
+)
+vfit <- eBayes(vfit)
+```
+
+Extract DE result
+
+```{r}
+res.1a <- topTable(
+  vfit,
+  coef = "Azithro",
+  sort.by = "none",
+  number = Inf,
+  adjust.method = "BH",
+  p.value = 1
+)
+
+head(res.1a)
+```
+
+Count number of significant genes
+
+```{r}
+print(sum(res.1a$adj.P.Val<0.05))
+```
+
+Add gene symbols, then export the DE result
+
+```{r}
+temp <- merge(
+  res.1a, rData[,c("gene_id","gene_name")],
+  by.x="row.names", by.y="gene_id",
+  all.x=TRUE, all.y=FALSE,
+  sort=FALSE
+)
+colnames(temp)[1] <- "gene_id"
+
+write.csv(
+  temp,
+  "20250325_bulk_RNAseq_nasal_Day0-2_DE.csv",
+  row.names=FALSE
+)
+```
+
+Volcano plot
+
+```{r}
+# Identify direction
+res.toplot <- res.1a
+res.toplot$direction <- ifelse(
+  res.toplot$adj.P.Val>=0.05, "Not significant",
+  ifelse(
+    res.toplot$logFC>0, "Up", "Down"
+  )
+)
+
+# Limit minimum P value to 1e-10
+res.toplot[res.toplot$adj.P.Val<1e-10,"adj.P.Val"] <- 1e-10
+
+p <- ggplot(data=res.toplot) +
+  geom_point(aes(x=logFC, y=-log10(adj.P.Val), color=direction), size=0.8) +
+  scale_color_manual(
+    values=c("Up"="darkred","Down"="dodgerblue4","Not significant"="gray75"),
+    name="", guide="none") +
+  scale_x_continuous(limits=c(-2,2), expand=c(0,0)) +
+  labs(x="log2FC", y="-log10(adjusted P)",
+       title="PBMC genes associated\nwith Azithromycin at Day 1-2") +
+  my.theme
+```
+
+Reactome GSEA
+
+```{r}
+# Sort gene list in descending order
+gene.ranks <- res.1a$t
+names(gene.ranks) <- rownames(res.1a)
+gene.ranks <- sort(gene.ranks, decreasing = TRUE)
+
+set.seed(1)
+reactome.gsea <- fgseaMultilevel(
+  pathways = reactome.list,
+  stats = gene.ranks,
+  minSize = 15,
+  maxSize = 500,
+  nproc = 1
+)
+```
+
+## Day 4-6
+
+Subset timepoint 4-6, and remove "Other ABX" samples
+
+```{r}
+print(dim(clin.sample.event.individ))
+clin.sample.event.individ.1b <- clin.sample.event.individ %>%
+  subset((group_id!="Other ABX") & (timepoint=="Day 4-6"))
+print(dim(clin.sample.event.individ.1b))
+```
+
+I should get 1671 samples before removing Other ABX, and 217 samples after removing it.
+
+Make "No ABX" the first level
+
+```{r}
+clin.sample.event.individ.1b$group_id <- factor(
+  clin.sample.event.individ.1b$group_id,
+  levels=c("No ABX","Azithromycin")
+)
+```
+
+Subset gene counts
+
+```{r}
+# Subset count data
+counts.1b <- counts[,clin.sample.event.individ.1b$sample_id]
+
+# Count number of patients
+print(dim(counts.1b))
+print(table(clin.sample.event.individ.1b$event_type))
+```
+
+Gene filtering.
+
+```{r}
+# Keep only protein_coding genes
+counts.1b <- counts.1b[rData[rData$gene_biotype=="protein_coding", "gene_id"],]
+
+# Keep genes with at least 10 counts in 20% of samples
+keep <- rowSums(counts.1b>=10) >= (0.2*ncol(counts.1b))
+counts.1b <- counts.1b[keep,]
+```
+
+There should be 217 samples in total
+
+```{r}
+print(dim(counts.1b))
+```
+
+Design matrix
+
+```{r}
+stopifnot(colnames(counts.1b)==clin.sample.event.individ.1b$sample_id)
+
+design <- model.matrix(
+  ~ group_id + admit_age + sex + trajectory_group + ever_steroids + event_date,
+  data=clin.sample.event.individ.1b)
+print(colnames(design))
+colnames(design)[2] <- "Azithro"
+print(colnames(design))
+```
+
+Count patients by group and timpeoint
+
+```{r}
+clin.sample.event.individ.1b %>%
+  group_by(participant_id, group_id, timepoint) %>%
+  summarise(n=n()) %>%
+  arrange(desc(n))
+```
+
+Run voom with duplicateCorrelation twice: https://support.bioconductor.org/p/59700/ and Section 18.1.9 in the [User Guide](https://www.bioconductor.org/packages/release/bioc/vignettes/limma/inst/doc/usersguide.pdf)
+
+duplicateCorrelation is slow!
+
+```{r}
+vwts <- voom(
+  counts.1b, 
+  design = design,
+  normalize.method = "quantile",
+  plot = T
+)
+corfit <- duplicateCorrelation(
+  vwts,
+  design = design,
+  block = clin.sample.event.individ.1b$participant_id
+)
+print(paste0("Correlation, 1st iteration: ", corfit$consensus))
+vwts <- voom(
+  counts.1b, 
+  design = design,
+  normalize.method = "quantile",
+  block = clin.sample.event.individ.1b$participant_id,
+  correlation = corfit$consensus,
+  plot = T
+)
+corfit <- duplicateCorrelation(
+  vwts,
+  design = design,
+  block = clin.sample.event.individ.1b$participant_id
+)
+print(paste0("Correlation, 2nd iteration: ", corfit$consensus))
+
+vfit <- lmFit(
+  vwts,
+  design = design,
+  block = clin.sample.event.individ.1b$participant_id,
+  correlation = corfit$consensus
+)
+vfit <- eBayes(vfit)
+
+summary(decideTests(vfit, adjust.method = "BH", p.value = 0.05))
+```
+
+```{r}
+res.1b <- topTable(
+  vfit,
+  coef = "Azithro",
+  sort.by = "none",
+  number = Inf,
+  adjust.method = "BH",
+  p.value = 1
+)
+
+head(res.1b)
+```
+
+Count number of significant genes
+
+```{r}
+print(sum(res.1b$adj.P.Val<0.05))
+```
+
+Add gene symbols, then export the DE result
+
+```{r}
+temp <- merge(
+  res.1b, rData[,c("gene_id","gene_name")],
+  by.x="row.names", by.y="gene_id",
+  all.x=TRUE, all.y=FALSE,
+  sort=FALSE
+)
+colnames(temp)[1] <- "gene_id"
+
+write.csv(
+  temp,
+  "20250325_bulk_RNAseq_nasal_Day4-6_DE.csv",
+  row.names=FALSE
+)
+```
+
+Volcano plot
+
+```{r}
+# Identify direction
+res.toplot <- res.1b
+res.toplot$direction <- ifelse(
+  res.toplot$adj.P.Val>=0.05, "Not significant",
+  ifelse(
+    res.toplot$logFC>0, "Up", "Down"
+  )
+)
+
+p <- ggplot(data=res.toplot) +
+  geom_point(aes(x=logFC, y=-log10(adj.P.Val), color=direction), size=0.8) +
+  scale_color_manual(
+    values=c("Up"="darkred","Down"="dodgerblue4","Not significant"="gray75"),
+    name="", guide="none") +
+  scale_x_continuous(limits=c(-2,2), expand=c(0,0)) +
+  labs(x="log2FC", y="-log10(adjusted P)",
+       title="PBMC genes associated\nwith Azithromycin at Day 0-2") +
+  my.theme
+```
+
+Reactome GSEA
+
+```{r}
+# Sort gene list in descending order
+gene.ranks <- res.1b$t
+names(gene.ranks) <- rownames(res.1b)
+gene.ranks <- sort(gene.ranks, decreasing = TRUE)
+
+set.seed(1)
+reactome.gsea.1b <- fgseaMultilevel(
+  pathways = reactome.list,
+  stats = gene.ranks,
+  minSize = 15,
+  maxSize = 500,
+  nproc = 1
+)
+```
+
