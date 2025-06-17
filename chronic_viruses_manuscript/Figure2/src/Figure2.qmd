@@ -26,7 +26,8 @@ comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.c
          -starts_with("Enterovirus.pbmc"),
          -starts_with("Enterovirus.ea"),
          -starts_with("Anelloviridae.ea"),
-         -starts_with("Anelloviridae.nasal"))
+         -starts_with("Anelloviridae.nasal"),
+         -starts_with("Human alphaherpesvirus 2 (HSV2).ea"))
 data_env <- readRDS("/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS")
 clinical_data <- data_env$clinical_data
 rm(data_env)
@@ -35,7 +36,7 @@ clinical_data_ext <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-
 out_dir <- "../output/"
 ```
 
-### Figure 2A: Severity (and Figure S2A)
+### Figure 2A: Severity (and Figure S4A)
 
 ```{r}
 library(aplot)
@@ -112,12 +113,12 @@ stat.df <- stat.df %>%
   add_significance("p.adj") %>%
   mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
   arrange(name) %>%
-  mutate(xpos = 12:1) %>%
+  mutate(xpos = 11:1) %>%
   mutate(group1 = "filler_text", group2 = "variable") %>%
   mutate(y.position = 40)
 write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part1.csv"))
 
-ggS2A <- graph_data %>%
+ggS4A <- graph_data %>%
   ggplot(aes(y=name, x=pos_freq)) +
   geom_bar(stat = "identity", position = "stack", aes(fill = trajectory_group)) +
   theme_classic() + scale_y_discrete(limits = rev(unique(graph_data$name))) +
@@ -128,7 +129,7 @@ ggS2A <- graph_data %>%
         legend.position = "top",
         legend.direction = "vertical",
         axis.ticks = element_line(color = "black"))
-ggS2A
+ggS4A
 
 
 gg1 <- graph_data %>%
@@ -141,7 +142,7 @@ gg1 <- graph_data %>%
   ylab(" ") +
   stat_pvalue_manual(stat.df %>%
                        filter(!p.adj.signif %in% c("ns", "", " ")) %>%
-                       mutate(y.position = c(38, 11, 15, 19, 45, 28, 12)),
+                       mutate(y.position = c(38, 11, 15, 19, 45, 28)),
                      x= "xpos", label = "p.adj.signif", vjust = 0.7) +
     coord_flip() +
   theme(#axis.text.y = element_blank(),
@@ -228,7 +229,7 @@ stat.df <- stat.df %>%
   relocate(name, `.y.`, group1, group2) %>%
   mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
   arrange(name) %>%
-  mutate(x=c(12:1), xmin = x-0.2, xmax =x+0.2)
+  mutate(x=c(11:1), xmin = x-0.2, xmax =x+0.2)
 write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part2.csv"))
 
 gg2 <- ever_reactivate %>%
@@ -239,6 +240,8 @@ gg2 <- ever_reactivate %>%
   ggplot(aes(x=name, y=mean)) +
   geom_bar(aes(fill = diedever, color = diedever), stat = "identity",  width = 0.7,
            position = position_dodge(width = 0.85)) +
+  ## The crosshatching package is inconsistent between different R versions
+  ## Manually adding back in in illustrator, original code the crosshatch worked with below
   # geom_bar_pattern(aes(pattern = diedever, fill = diedever, color = diedever), stat = "identity",
   #                  pattern_spacing = 0.06, width = 0.7,
   #                  pattern_density = 0.35, position = position_dodge(width = 0.85),
@@ -251,7 +254,7 @@ gg2 <- ever_reactivate %>%
   xlab("Virus & Compartment") +
   ylab("Percent of Patients (%)") + stat_pvalue_manual(
   stat.df %>% filter(p.adj.med.signif != "ns") %>%
-    mutate(y.position = c(36, 28, 33, 38, 48, 25)),
+    mutate(y.position = c(36, 28, 33, 38, 45)),
   label = "p.adj.med.signif", hjust = -1.1, vjust = 1.5, tip.length = 0.01
   ) +
     coord_flip() +
@@ -338,7 +341,7 @@ stat.df <- stat.df %>%
   add_significance("p.adj") %>%
   mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
   arrange(name) %>%
-  mutate(xpos = 12:1) %>%
+  mutate(xpos = 11:1) %>%
   mutate(group1 = "filler_text", group2 = "variable") %>%
   mutate(y.position = 40)
 write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part3.csv"))
@@ -534,9 +537,9 @@ ggsave(paste0(out_dir, "Figure2C.pdf"), width = 8.5, height = 5)
 write_csv(gg2C$data, paste0(out_dir, "source_data_Figure2C.csv"))
 ```
 
-## Supplemental Figure 2
+## Supplemental Figure 4
 
-### Figure S2B: Ethnicity
+### Figure S4B: Ethnicity
 
 ```{r}
 ################ Ethinicity #########################
@@ -575,14 +578,14 @@ for(active_virus in unique(ever_reactivate$name)){
 stat.df <- stat.df %>%
   mutate(p.adj = p.adjust(p, "fdr")) %>%
   add_significance("p.adj") %>%
-  mutate(xpos = 12:1) %>%
+  mutate(xpos = 11:1) %>%
   mutate(group1 = "filler_text", group2 = "variable") %>%
   mutate(y.position = 40)
 
 write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part5.csv"))
 
 library(viridis)
-ggS2B <- ever_reactivate %>%
+ggS4B <- ever_reactivate %>%
   ggplot(aes(x=name, y=mean)) +
   geom_bar(stat = "identity", position = position_dodge(preserve = "single"), aes(fill = ethnicity)) +
   theme_classic() + scale_x_discrete(limits = rev(unique(ever_reactivate$name))) +
@@ -603,11 +606,11 @@ ggS2B <- ever_reactivate %>%
 
 ```
 
-### Figure S2C: Sex
+### Figure S4C: Sex
 
 ```{r, fig.width = 8, fig.height = 5}
 
-## S2A is from earlier in the markdown (in the severity chunk)
+## S4A is from earlier in the markdown (in the severity chunk)
 
 ever_reactivate <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
@@ -644,7 +647,7 @@ for(active_virus in unique(ever_reactivate$name)){
 write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part6.csv"))
 
 library(viridis)
-ggS2C <- ever_reactivate %>%
+ggS4C <- ever_reactivate %>%
   ggplot(aes(x=name, y=mean)) +
   geom_bar(stat = "identity", position = position_dodge(preserve = "single"), aes(fill = sex)) +
   theme_classic() + scale_x_discrete(limits = rev(unique(ever_reactivate$name))) +
@@ -658,7 +661,7 @@ ggS2C <- ever_reactivate %>%
 
 ```
 
-### Figure S2D-E: Treatments
+### Figure S4D-E: Treatments
 
 ```{r, fig.width = 5, fig.height = 5}
 library(rstatix)
@@ -789,23 +792,57 @@ gg3_rem
 ```{r, fig.width = 10, fig.height = 12}
 
 ## 10 x 12
-ggarrange(ggS2A + theme(legend.position = "top",
+ggarrange(ggS4A + theme(legend.position = "top",
                         axis.title.y = element_blank()),
-          ggS2B + theme(legend.position = "top",
+          ggS4B + theme(legend.position = "top",
                         axis.title.y = element_blank()),
-          ggS2C + theme(legend.position = "top",
+          ggS4C + theme(legend.position = "top",
                         axis.title.y = element_blank()),
           gg3_steroids + theme(legend.position = "top",
                         axis.title.y = element_blank()) ,
           gg3_rem + theme(legend.position = "top",
                         axis.title.y = element_blank()),
           align = "hv",nrow = 2, ncol = 3, labels = c("A", "B", "C", "D", "E"), font.label = list(size=18))
-ggsave(paste0(out_dir, "FigureS2.pdf"), width = 10, height = 12)
-write_csv(ggS2A$data, paste0(out_dir, "source_data_FigureS2A.csv"))
-write_csv(ggS2B$data, paste0(out_dir, "source_data_FigureS2B.csv"))
-write_csv(ggS2C$data, paste0(out_dir, "source_data_FigureS2C.csv"))
-write_csv(gg3_steroids$data, paste0(out_dir, "source_data_FigureS2D.csv"))
-write_csv(gg3_rem$data, paste0(out_dir, "source_data_FigureS2E.csv"))
+ggsave(paste0(out_dir, "FigureS4.pdf"), width = 10, height = 12)
+write_csv(ggS4A$data, paste0(out_dir, "source_data_FigureS4A.csv"))
+write_csv(ggS4B$data, paste0(out_dir, "source_data_FigureS4B.csv"))
+write_csv(ggS4C$data, paste0(out_dir, "source_data_FigureS4C.csv"))
+write_csv(gg3_steroids$data, paste0(out_dir, "source_data_FigureS4D.csv"))
+write_csv(gg3_rem$data, paste0(out_dir, "source_data_FigureS4E.csv"))
+```
+
+### Figure S4F: Percent with Chronic Immunosupression in Anelloviridae+ vs -
+
+```{r, fig.height = 3, fig.width = 3}
+core <- comb_data %>%
+  left_join(clinical_data %>% distinct(event_id, participant_id, event_date)) %>%
+  filter(event_date <= 40) %>%
+  group_by(participant_id) %>%
+  slice_max(Anelloviridae.pbmc) %>%
+  filter(!is.na(Anelloviridae.pbmc)) %>%
+  left_join(clinical_data_ext %>% distinct(participant_id, ever_immsupp)) %>%
+  ungroup() %>% rowwise() %>%
+  mutate(binary = Anelloviridae.pbmc > 0) %>% ungroup() %>%
+  distinct(participant_id, binary, ever_immsupp) %>%
+  group_by(ever_immsupp, binary) %>%
+  dplyr::summarize(count = n()) %>% ungroup()
+
+ggS4F <- core %>% group_by(binary) %>%
+  mutate(freq = count / sum(count) * 100) %>%
+  mutate(ever_immsupp = as.factor(ever_immsupp)) %>%
+  ggplot(aes(x=binary, y= freq, fill = ever_immsupp)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(round(freq, 1), "%")),
+            position = position_stack(vjust = 0.5),
+            color = "black", size = 3) +
+  theme_classic() +
+  xlab("Anelloviridae in PBMC") +
+  ylab("Percent of Participants (%)") +
+  scale_fill_manual(values = c("darkgray", "cornflowerblue"))
+## Anelloviridae are certainly associated with Immunosupression, but only comprise 17.19% of the patient positive during the acute period
+ggS4F
+ggsave(paste0(out_dir, "FigureS4F.pdf"), width = 3, height = 3)
+write_csv(ggS4F$data, paste0(out_dir, "source_data_FigureS4F.csv"))
 ```
 
 # Session Info
