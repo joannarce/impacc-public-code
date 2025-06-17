@@ -228,6 +228,7 @@ graph_data <- ever_reactivate %>%
 
 ## Association Testing
 stat.df <- data.frame()
+stat.df.glm <- data.frame()
 for(active_virus in unique(graph_data$name)){
   tmp.chi <- graph_data %>%
     filter(!is.na(conv_cluster6)) %>%
@@ -238,6 +239,29 @@ for(active_virus in unique(graph_data$name)){
     column_to_rownames("conv_cluster6")
 
   stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>% mutate(name = active_virus))
+  
+  model_df <- ever_reactivate %>%
+  filter(!grepl(".ea", name)) %>%
+  left_join(clinical_data %>% distinct(participant_id, trajectory_group,
+                                       discretized_admit_age_quantile, sex)) %>%
+   left_join(pro_symptoms %>% distinct(participant_id,conv_cluster6)) %>%
+  filter(name == active_virus )
+
+  ## Now fit a glm to also regress trajectory group, sex, admit age, and whether on immunosupressive therapies
+fit <- glm(conv_cluster6 ~ ever_immsupp + binary + trajectory_group + sex + discretized_admit_age_quantile,
+           data = model_df %>%
+      left_join(clinical_data_ext %>% distinct(participant_id, ever_immsupp)) %>%
+        mutate(conv_cluster6 = factor(conv_cluster6),
+               ever_immsupp = factor(ever_immsupp),
+               binary = factor(binary)) %>%
+        filter(!is.na(binary)) %>%
+        filter(!is.na(ever_immsupp)) %>%
+        filter(!is.na(conv_cluster6)) %>% as.data.frame(), family = "binomial")
+
+stat.df.glm <- rbind.data.frame(stat.df.glm,
+                                as.data.frame(car::Anova(fit, type = "III")) %>%
+                                  rownames_to_column("feature") %>%
+                                  mutate(virus = active_virus))
 }
 
 stat.df <- stat.df %>%
@@ -248,6 +272,19 @@ stat.df <- stat.df %>%
   mutate(group1 = "filler_text", group2 = "variable") %>%
   mutate(y.position = 40)
 write.csv(stat.df, paste0(out_dir, "Supplemental_Data_6_part2.csv"))
+
+stat.df.glm
+write.csv(stat.df.glm, paste0(out_dir, "Supplemental_Data_6_part3.csv"))
+
+stat.df.glm.adj <- stat.df.glm %>%
+  filter(feature == "binary") %>%
+  mutate(p.value = `Pr(>Chisq)`) %>%
+  mutate(p.adj = p.adjust(p.value, "fdr")) %>%
+  add_significance("p.adj") %>%
+  mutate(xpos = 2:1) %>%
+  mutate(group1 = "filler_text", group2 = "variable") %>%
+  mutate(y.position = 40)
+write.csv(stat.df.glm.adj, paste0(out_dir, "Supplemental_Data_6_part4.csv"))
 
 ## Add star manually
 ggb <- graph_data %>%
@@ -271,9 +308,9 @@ ggsave(paste0(out_dir, "Figure7B.pdf"), width = 5, height = 3)
 write_csv(ggb$data, paste0(out_dir, "source_data_Figure7B.csv"))
 ```
 
-## Supplemental Figure 7
+## Supplemental Figure 9
 
-### Panel S7A
+### Panel S9A
 
 ```{r}
 library(aplot)
@@ -320,7 +357,7 @@ graph_data <- rbind.data.frame(ever_reactivate, ever_reactivate_neg) %>%
 
 
 p_values <- c()
-for(i in unique(graph_data$name)[-8]){
+for(i in unique(graph_data$name)[c(-4,-8)]){
   tmp <- graph_data %>% filter(name %in% c(i, "Virus Negative"))
   tmp_table <- matrix(unlist(c(tmp[3,3]+tmp[4,3], tmp[2,3],
                         tmp[7,3]+tmp[8,3], tmp[6,3])), nrow = 2, ncol = 2)
@@ -335,7 +372,7 @@ p_df <- as.data.frame(p_values) %>%
               rownames_to_column("name") %>%
               mutate(p_values = formatC(p_values, format = "e", digits = 2))
 write_csv(p_df, paste0(out_dir, "Supplemental_Data_6_part3.csv"))                     
-ggS7A <- graph_data %>%
+ggS9A <- graph_data %>%
   mutate(PASC_status = factor(PASC_status, levels = c("PRO Minimal", "PRO PASC Group", "Non-responders", "Died"))) %>%
   mutate(label = paste0("n=", count, "\n(", round(freq, 1), "%)")) %>%
   group_by(name) %>%
@@ -365,7 +402,7 @@ ggS7A <- graph_data %>%
 
 ```
 
-### Panel S7B
+### Panel S9B
 
 ```{r}
 
@@ -422,7 +459,7 @@ stat.df <- stat.df %>%
 write.csv(stat.df, paste0(out_dir, "Supplemental_data_6_part8.csv"))
 
 
-ggS7B <- graph_data %>%
+ggS9B <- graph_data %>%
   mutate(conv_cluster6 = as.character(conv_cluster6)) %>%
   mutate(conv_cluster6 = ifelse(is.na(conv_cluster6), "non-responder", conv_cluster6)) %>%
   mutate(label1 = paste0(positive, "/", count)) %>%
@@ -444,7 +481,7 @@ ggS7B <- graph_data %>%
         axis.ticks = element_line(color = "black"))
 ```
 
-### Panel S7C
+### Panel S9C
 
 ```{r}
 
@@ -471,7 +508,7 @@ graph_data <- comb_data %>%
   group_by(name) %>%
   mutate(pos_freq = positive / sum(positive) *100)
 
-ggS7C <- graph_data %>%
+ggS9C <- graph_data %>%
   filter(name == "Anelloviridae.pbmc") %>%
   mutate(conv_cluster6 = factor(conv_cluster6)) %>%
   filter(!is.na(conv_cluster6)) %>%
@@ -497,16 +534,79 @@ ggS7C <- graph_data %>%
 
 ```
 
-### Figure arrangment
+### Panel S9D
+
+```{r}
+ggS9D <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  filter(name == "Anelloviridae.pbmc") %>%
+  filter(!is.na(value)) %>%
+  left_join(clinical_data %>% distinct(event_id, participant_id, event_type)) %>%
+  left_join(pro_symptoms) %>%
+  filter(event_type %in% paste0("Visit ", 7:10)) %>%
+  distinct(conv_cluster6, participant_id, event_type) %>%
+  group_by(participant_id, conv_cluster6) %>%
+  dplyr::summarize(count = n()) %>% ungroup() %>%
+  group_by(conv_cluster6, count) %>%
+  dplyr::summarise(count2 = n()) %>%
+  mutate(freq = count2 / sum(count2) *100) %>%
+  filter(!is.na(conv_cluster6)) %>%
+  mutate(conv_cluster6 = stringr::str_to_title(conv_cluster6)) %>%
+  mutate(count = factor(count)) %>%
+  ggplot(aes(x=conv_cluster6, y=freq, fill = count)) +
+  geom_bar(stat = "identity") +
+  theme_classic() +
+  ylab("Percent of participants (%)") +
+  xlab("PRO Groups") +
+  scale_fill_manual(values = c("#D3CA79", "#EA7300", "#E83F25", "#A62C2C"),
+                    name = "Number of Convalescent Samples") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+ggS9D
+```
+
+### Panel S9E
+
+```{r}
+
+ggS9E <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  filter(name == "Anelloviridae.pbmc") %>%
+  filter(!is.na(value)) %>%
+  left_join(clinical_data %>% distinct(event_id, participant_id, event_type)) %>%
+  left_join(pro_symptoms) %>%
+  filter(event_type %in% paste0("Visit ", 7:10)) %>%
+  distinct(conv_cluster6, participant_id, event_type, value) %>%
+  group_by(participant_id, conv_cluster6)  %>%
+  mutate(event_type = factor(event_type, levels = paste0("Visit ", 7:10))) %>%
+  filter(!is.na(conv_cluster6)) %>%
+  ggplot(aes(x=event_type, y=value, color = conv_cluster6)) +
+  geom_point() +
+  geom_line(aes(group = participant_id), alpha = 0.3) +
+  theme_classic() +
+  ylab("Reads per Million of Anelloviridae (RPM)") +
+  scale_y_continuous(trans='log10') +
+  xlab("PRO Groups") +
+  scale_color_manual(values = PROGrpCol,
+                    name = "PRO Groups") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black")) +
+  facet_wrap(~conv_cluster6)
+ggS9E
+
+```
+
+### Figure arrangement
 
 ```{r, fig.width = 11, fig.height = 8}
 
-ggarrange(ggS7A, ggS7B, ggS7C, nrow = 2, ncol =2, labels = "AUTO",font.label = list(size = 18), heights = c(1.3, 1))
-ggsave(paste0(out_dir, "FigureS7.pdf"), width = 11, height = 8)
+ggarrange(ggS9A, ggS9B, ggS9C, ggS9D, nrow = 2, ncol =2, labels = "AUTO",font.label = list(size = 18), heights = c(1.3, 1))
+ggsave(paste0(out_dir, "FigureS9.pdf"), width = 11, height = 8)
 
-write_csv(ggS7A$data, paste0(out_dir, "source_data_FigureS7A.csv"))
-write_csv(ggS7B$data, paste0(out_dir, "source_data_FigureS7B.csv"))
-write_csv(ggS7C$data, paste0(out_dir, "source_data_FigureS7C.csv"))
+write_csv(ggS9A$data, paste0(out_dir, "source_data_FigureS9A.csv"))
+write_csv(ggS9B$data, paste0(out_dir, "source_data_FigureS9B.csv"))
+write_csv(ggS9C$data, paste0(out_dir, "source_data_FigureS9C.csv"))
+write_csv(ggS9D$data, paste0(out_dir, "source_data_FigureS9D.csv"))
 ```
 
 # Session Info
