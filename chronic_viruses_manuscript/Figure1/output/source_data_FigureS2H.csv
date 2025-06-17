@@ -1,0 +1,281 @@
+name,percent,day,compartment,virus
+Anelloviridae.nasal,4.878048780487805,1,nasal,Anelloviridae
+Enterovirus.nasal,0,1,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,1.2195121951219512,1,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,1,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0,1,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.6585365853658534,1,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,90.2439024390244,1,nasal,SARS-CoV-2
+Anelloviridae.nasal,4,2,nasal,Anelloviridae
+Enterovirus.nasal,3.3333333333333335,2,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,3.3333333333333335,2,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,2,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0,2,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.3333333333333335,2,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,91.33333333333333,2,nasal,SARS-CoV-2
+Anelloviridae.nasal,3.765690376569038,3,nasal,Anelloviridae
+Enterovirus.nasal,3.3472803347280333,3,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,2.5210084033613445,3,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,3,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0,3,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,2.928870292887029,3,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,93.30543933054393,3,nasal,SARS-CoV-2
+Anelloviridae.nasal,2.848101265822785,4,nasal,Anelloviridae
+Enterovirus.nasal,2.5316455696202533,4,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,1.9047619047619049,4,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,4,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0,4,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.1645569620253164,4,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,94.9367088607595,4,nasal,SARS-CoV-2
+Anelloviridae.nasal,2.0202020202020203,5,nasal,Anelloviridae
+Enterovirus.nasal,3.2828282828282833,5,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,2.827763496143959,5,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,5,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.25252525252525254,5,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.787878787878788,5,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,96.46464646464646,5,nasal,SARS-CoV-2
+Anelloviridae.nasal,2.3404255319148937,6,nasal,Anelloviridae
+Enterovirus.nasal,3.829787234042553,6,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,2.6030368763557483,6,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,6,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.2127659574468085,6,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.404255319148936,6,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,96.38297872340425,6,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.824817518248175,7,nasal,Anelloviridae
+Enterovirus.nasal,2.737226277372263,7,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,2.9850746268656714,7,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,7,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.18248175182481752,7,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.2846715328467155,7,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,96.35036496350365,7,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.5706806282722512,8,nasal,Anelloviridae
+Enterovirus.nasal,2.6178010471204187,8,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,3.942652329749104,8,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,8,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.17452006980802792,8,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.1413612565445024,8,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,95.81151832460732,8,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.6722408026755853,9,nasal,Anelloviridae
+Enterovirus.nasal,2.6755852842809364,9,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,4.317789291882556,9,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,9,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.16722408026755853,9,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.3444816053511706,9,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,93.9799331103679,9,nasal,SARS-CoV-2
+Anelloviridae.nasal,2.1172638436482085,10,nasal,Anelloviridae
+Enterovirus.nasal,1.9543973941368076,10,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,4,10,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,10,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.16286644951140067,10,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.0944625407166124,10,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,93.64820846905538,10,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.5463917525773196,11,nasal,Anelloviridae
+Enterovirus.nasal,1.8900343642611683,11,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,4.601769911504425,11,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,11,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.1718213058419244,11,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.436426116838488,11,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,93.47079037800687,11,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.7509727626459144,12,nasal,Anelloviridae
+Enterovirus.nasal,1.9455252918287937,12,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,4.3999999999999995,12,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,12,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.38910505836575876,12,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.501945525291829,12,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,92.41245136186771,12,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.4314928425357873,13,nasal,Anelloviridae
+Enterovirus.nasal,1.4314928425357873,13,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,4.3841336116910234,13,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,13,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.408997955010225,13,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.6809815950920246,13,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,92.22903885480572,13,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.55902004454343,14,nasal,Anelloviridae
+Enterovirus.nasal,1.7817371937639197,14,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,4.751131221719457,14,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,14,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.6681514476614699,14,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.5634743875278394,14,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,92.20489977728286,14,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.3192612137203166,15,nasal,Anelloviridae
+Enterovirus.nasal,2.1108179419525066,15,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,5.361930294906166,15,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,15,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.5277044854881267,15,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.6939313984168867,15,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,90.50131926121372,15,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.4450867052023122,16,nasal,Anelloviridae
+Enterovirus.nasal,1.4450867052023122,16,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,5.813953488372093,16,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0.5780346820809248,16,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.8670520231213872,16,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.1791907514450863,16,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,88.4393063583815,16,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.5772870662460567,17,nasal,Anelloviridae
+Enterovirus.nasal,1.8927444794952681,17,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,6.070287539936102,17,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0.6309148264984227,17,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.9463722397476341,17,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,4.416403785488959,17,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,87.69716088328076,17,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.7985611510791366,18,nasal,Anelloviridae
+Enterovirus.nasal,2.5179856115107913,18,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,5.88235294117647,18,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0.7194244604316548,18,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,1.079136690647482,18,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,4.316546762589928,18,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,84.53237410071942,18,nasal,SARS-CoV-2
+Anelloviridae.nasal,3.1620553359683794,19,nasal,Anelloviridae
+Enterovirus.nasal,2.371541501976284,19,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,7.258064516129033,19,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0.7905138339920948,19,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.7905138339920948,19,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,4.743083003952568,19,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,84.18972332015811,19,nasal,SARS-CoV-2
+Anelloviridae.nasal,3.375527426160337,20,nasal,Anelloviridae
+Enterovirus.nasal,2.9535864978902953,20,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,7.792207792207792,20,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0.8438818565400843,20,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.8438818565400843,20,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,4.641350210970464,20,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,83.54430379746836,20,nasal,SARS-CoV-2
+Anelloviridae.nasal,3.1963470319634704,21,nasal,Anelloviridae
+Enterovirus.nasal,4.5662100456621,21,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,8.018867924528301,21,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,21,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.91324200913242,21,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,5.0228310502283104,21,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,83.56164383561644,21,nasal,SARS-CoV-2
+Anelloviridae.nasal,3.5897435897435894,22,nasal,Anelloviridae
+Enterovirus.nasal,4.102564102564102,22,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,7.936507936507936,22,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,22,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,0.5128205128205128,22,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.076923076923077,22,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,83.07692307692308,22,nasal,SARS-CoV-2
+Anelloviridae.nasal,4.49438202247191,23,nasal,Anelloviridae
+Enterovirus.nasal,4.49438202247191,23,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,9.30232558139535,23,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,23,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,1.1235955056179776,23,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.3707865168539324,23,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,87.07865168539325,23,nasal,SARS-CoV-2
+Anelloviridae.nasal,2.4390243902439024,24,nasal,Anelloviridae
+Enterovirus.nasal,4.2682926829268295,24,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,8.280254777070063,24,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,24,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,1.2195121951219512,24,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,1.8292682926829267,24,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,84.7560975609756,24,nasal,SARS-CoV-2
+Anelloviridae.nasal,2.73972602739726,25,nasal,Anelloviridae
+Enterovirus.nasal,3.4246575342465753,25,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,8.571428571428571,25,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0.6896551724137931,25,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,2.054794520547945,25,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,1.36986301369863,25,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,82.87671232876713,25,nasal,SARS-CoV-2
+Anelloviridae.nasal,3.731343283582089,26,nasal,Anelloviridae
+Enterovirus.nasal,1.4925373134328357,26,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,7.03125,26,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0.7518796992481203,26,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,1.4925373134328357,26,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,0.7462686567164178,26,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,79.1044776119403,26,nasal,SARS-CoV-2
+Anelloviridae.nasal,3.1746031746031744,27,nasal,Anelloviridae
+Enterovirus.nasal,1.5873015873015872,27,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,9.090909090909092,27,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0.8,27,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,1.5873015873015872,27,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,1.5873015873015872,27,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,79.36507936507937,27,nasal,SARS-CoV-2
+Anelloviridae.nasal,2.7027027027027026,28,nasal,Anelloviridae
+Enterovirus.nasal,0.9009009009009009,28,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,10.2803738317757,28,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0.9174311926605505,28,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,1.8018018018018018,28,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,1.8018018018018018,28,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,71.17117117117117,28,nasal,SARS-CoV-2
+Anelloviridae.nasal,3.6036036036036037,29,nasal,Anelloviridae
+Enterovirus.nasal,3.6036036036036037,29,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,11.11111111111111,29,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0.9090909090909091,29,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,3.6036036036036037,29,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.6036036036036037,29,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,72.07207207207207,29,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.8018018018018018,30,nasal,Anelloviridae
+Enterovirus.nasal,3.6036036036036037,30,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,11.214953271028037,30,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0.9090909090909091,30,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,2.7027027027027026,30,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.6036036036036037,30,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,72.97297297297297,30,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.7699115044247788,31,nasal,Anelloviridae
+Enterovirus.nasal,2.6548672566371683,31,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,13.636363636363635,31,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0.9009009009009009,31,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,4.424778761061947,31,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,4.424778761061947,31,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,80.53097345132744,31,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.7094017094017095,32,nasal,Anelloviridae
+Enterovirus.nasal,2.564102564102564,32,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,12.389380530973451,32,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0.8695652173913043,32,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,5.128205128205128,32,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,4.273504273504273,32,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,80.34188034188034,32,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.680672268907563,33,nasal,Anelloviridae
+Enterovirus.nasal,4.201680672268908,33,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,9.482758620689655,33,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,1.694915254237288,33,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,4.201680672268908,33,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,4.201680672268908,33,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,80.67226890756302,33,nasal,SARS-CoV-2
+Anelloviridae.nasal,1.8181818181818181,34,nasal,Anelloviridae
+Enterovirus.nasal,2.727272727272727,34,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,9.433962264150944,34,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,1.834862385321101,34,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,4.545454545454546,34,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.6363636363636362,34,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,79.0909090909091,34,nasal,SARS-CoV-2
+Anelloviridae.nasal,2.7522935779816518,35,nasal,Anelloviridae
+Enterovirus.nasal,2.7522935779816518,35,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,9.433962264150944,35,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0.9259259259259258,35,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,4.587155963302752,35,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,4.587155963302752,35,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,78.89908256880734,35,nasal,SARS-CoV-2
+Anelloviridae.nasal,2.941176470588235,36,nasal,Anelloviridae
+Enterovirus.nasal,2.941176470588235,36,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,7.07070707070707,36,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0.9803921568627451,36,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,2.941176470588235,36,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.9215686274509802,36,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,72.54901960784314,36,nasal,SARS-CoV-2
+Anelloviridae.nasal,3.0303030303030303,37,nasal,Anelloviridae
+Enterovirus.nasal,4.040404040404041,37,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,5.154639175257731,37,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,1.0101010101010102,37,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,2.0202020202020203,37,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.0303030303030303,37,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,67.67676767676768,37,nasal,SARS-CoV-2
+Anelloviridae.nasal,5.4945054945054945,38,nasal,Anelloviridae
+Enterovirus.nasal,2.197802197802198,38,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,7.954545454545454,38,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,38,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,3.296703296703297,38,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,4.395604395604396,38,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,64.83516483516483,38,nasal,SARS-CoV-2
+Anelloviridae.nasal,4.395604395604396,39,nasal,Anelloviridae
+Enterovirus.nasal,3.296703296703297,39,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,5.747126436781609,39,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,39,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,1.098901098901099,39,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,3.296703296703297,39,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,64.83516483516483,39,nasal,SARS-CoV-2
+Anelloviridae.nasal,3.6585365853658534,40,nasal,Anelloviridae
+Enterovirus.nasal,3.6585365853658534,40,nasal,Enterovirus
+Human alphaherpesvirus 1 (HSV1).nasal,5.128205128205128,40,nasal,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).nasal,0,40,nasal,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).nasal,1.2195121951219512,40,nasal,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).nasal,1.2195121951219512,40,nasal,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.nasal,64.63414634146342,40,nasal,SARS-CoV-2

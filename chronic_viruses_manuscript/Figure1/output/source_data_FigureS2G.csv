@@ -1,0 +1,241 @@
+name,percent,day,compartment,virus
+Anelloviridae.ea,0,1,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,0,1,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,1,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,1,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,0,1,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,100,1,ea,SARS-CoV-2
+Anelloviridae.ea,0,2,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,0,2,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,2,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,2,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,16.666666666666664,2,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,83.33333333333334,2,ea,SARS-CoV-2
+Anelloviridae.ea,0,3,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,0,3,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,3,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,3,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,6.666666666666667,3,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,86.66666666666667,3,ea,SARS-CoV-2
+Anelloviridae.ea,0,4,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,0,4,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,4,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,4,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,4.545454545454546,4,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,86.36363636363636,4,ea,SARS-CoV-2
+Anelloviridae.ea,0,5,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,3.0303030303030303,5,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,5,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,5,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,3.0303030303030303,5,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,87.87878787878788,5,ea,SARS-CoV-2
+Anelloviridae.ea,0,6,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,5,6,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,6,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,2.5,6,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,2.5,6,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,90,6,ea,SARS-CoV-2
+Anelloviridae.ea,0,7,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,9.615384615384617,7,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,7,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,1.9230769230769231,7,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,0,7,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,88.46153846153845,7,ea,SARS-CoV-2
+Anelloviridae.ea,1.7857142857142856,8,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,10.714285714285714,8,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,8,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,1.7857142857142856,8,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,0,8,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,91.07142857142857,8,ea,SARS-CoV-2
+Anelloviridae.ea,1.5625,9,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,18.75,9,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,9,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,1.5625,9,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,0,9,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,92.1875,9,ea,SARS-CoV-2
+Anelloviridae.ea,2.666666666666667,10,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,21.333333333333336,10,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,10,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,1.3333333333333335,10,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,0,10,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,92,10,ea,SARS-CoV-2
+Anelloviridae.ea,4.10958904109589,11,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,21.91780821917808,11,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,11,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,11,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,0,11,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,89.04109589041096,11,ea,SARS-CoV-2
+Anelloviridae.ea,5.714285714285714,12,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,18.571428571428573,12,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,12,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,12,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,0,12,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,91.42857142857143,12,ea,SARS-CoV-2
+Anelloviridae.ea,4.10958904109589,13,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,27.397260273972602,13,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,13,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,13,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,1.36986301369863,13,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,89.04109589041096,13,ea,SARS-CoV-2
+Anelloviridae.ea,4.3478260869565215,14,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,23.18840579710145,14,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,14,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,14,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,1.4492753623188406,14,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,86.95652173913044,14,ea,SARS-CoV-2
+Anelloviridae.ea,3.1746031746031744,15,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,25.396825396825395,15,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,15,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,15,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,1.5873015873015872,15,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,84.12698412698413,15,ea,SARS-CoV-2
+Anelloviridae.ea,1.5873015873015872,16,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,26.984126984126984,16,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,16,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,16,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,1.5873015873015872,16,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,85.71428571428571,16,ea,SARS-CoV-2
+Anelloviridae.ea,0,17,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,31.147540983606557,17,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,17,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,17,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,1.639344262295082,17,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,80.32786885245902,17,ea,SARS-CoV-2
+Anelloviridae.ea,0,18,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,25,18,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,18,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,18,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,0,18,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,80.76923076923077,18,ea,SARS-CoV-2
+Anelloviridae.ea,0,19,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,29.411764705882355,19,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,19,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,19,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,1.9607843137254901,19,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,78.43137254901961,19,ea,SARS-CoV-2
+Anelloviridae.ea,6.8181818181818175,20,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,25,20,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,20,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,4.545454545454546,20,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,4.545454545454546,20,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,79.54545454545455,20,ea,SARS-CoV-2
+Anelloviridae.ea,7.142857142857142,21,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,28.57142857142857,21,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,21,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,4.761904761904762,21,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,4.761904761904762,21,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,73.80952380952381,21,ea,SARS-CoV-2
+Anelloviridae.ea,10.526315789473683,22,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,36.84210526315789,22,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,22,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,5.263157894736842,22,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,5.263157894736842,22,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,78.94736842105263,22,ea,SARS-CoV-2
+Anelloviridae.ea,10.81081081081081,23,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,35.13513513513514,23,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,23,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,5.405405405405405,23,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,5.405405405405405,23,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,75.67567567567568,23,ea,SARS-CoV-2
+Anelloviridae.ea,11.76470588235294,24,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,38.23529411764706,24,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,24,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,8.823529411764707,24,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,2.941176470588235,24,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,79.41176470588235,24,ea,SARS-CoV-2
+Anelloviridae.ea,3.3333333333333335,25,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,53.333333333333336,25,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,25,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,6.666666666666667,25,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,0,25,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,80,25,ea,SARS-CoV-2
+Anelloviridae.ea,3.225806451612903,26,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,51.61290322580645,26,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,26,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,6.451612903225806,26,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,3.225806451612903,26,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,83.87096774193549,26,ea,SARS-CoV-2
+Anelloviridae.ea,0,27,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,50,27,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,27,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,7.142857142857142,27,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,3.571428571428571,27,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,82.14285714285714,27,ea,SARS-CoV-2
+Anelloviridae.ea,0,28,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,56.00000000000001,28,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,28,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,8,28,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,4,28,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,80,28,ea,SARS-CoV-2
+Anelloviridae.ea,0,29,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,44,29,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,29,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,4,29,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,4,29,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,76,29,ea,SARS-CoV-2
+Anelloviridae.ea,0,30,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,38.46153846153847,30,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,30,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,30,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,3.8461538461538463,30,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,65.38461538461539,30,ea,SARS-CoV-2
+Anelloviridae.ea,0,31,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,39.130434782608695,31,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,31,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,4.3478260869565215,31,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,4.3478260869565215,31,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,69.56521739130434,31,ea,SARS-CoV-2
+Anelloviridae.ea,0,32,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,36,32,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,32,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,4,32,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,4,32,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,72,32,ea,SARS-CoV-2
+Anelloviridae.ea,0,33,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,32,33,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,33,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,4,33,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,4,33,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,72,33,ea,SARS-CoV-2
+Anelloviridae.ea,0,34,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,42.10526315789473,34,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,34,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,5.263157894736842,34,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,5.263157894736842,34,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,73.68421052631578,34,ea,SARS-CoV-2
+Anelloviridae.ea,5.88235294117647,35,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,41.17647058823529,35,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,35,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,11.76470588235294,35,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,11.76470588235294,35,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,82.35294117647058,35,ea,SARS-CoV-2
+Anelloviridae.ea,7.142857142857142,36,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,35.714285714285715,36,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,36,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,7.142857142857142,36,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,14.285714285714285,36,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,71.42857142857143,36,ea,SARS-CoV-2
+Anelloviridae.ea,10,37,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,30,37,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,37,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,10,37,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,20,37,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,60,37,ea,SARS-CoV-2
+Anelloviridae.ea,11.11111111111111,38,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,55.55555555555556,38,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,38,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,11.11111111111111,38,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,22.22222222222222,38,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,55.55555555555556,38,ea,SARS-CoV-2
+Anelloviridae.ea,10,39,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,40,39,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,39,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,10,39,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,20,39,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,40,39,ea,SARS-CoV-2
+Anelloviridae.ea,0,40,ea,Anelloviridae
+Human alphaherpesvirus 1 (HSV1).ea,33.33333333333333,40,ea,Human alphaherpesvirus 1 (HSV1)
+Human alphaherpesvirus 2 (HSV2).ea,0,40,ea,Human alphaherpesvirus 2 (HSV2)
+Human betaherpesvirus 5 (CMV).ea,0,40,ea,Human betaherpesvirus 5 (CMV)
+Human gammaherpesvirus 4 (EBV).ea,16.666666666666664,40,ea,Human gammaherpesvirus 4 (EBV)
+SARS-CoV-2.ea,16.666666666666664,40,ea,SARS-CoV-2
