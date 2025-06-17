@@ -33,8 +33,6 @@ Scripts used to generate figures and tables.
 
 License details: MIT License (see the [LICENSE file](LICENSE))
 
-</br>
-
 ## Required software
 
 The codes were run in R v4.0.3. The sessionInfo() with the package used and their versions are reported at the bottom of each Figures script.
