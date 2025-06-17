@@ -98,6 +98,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="figure-3" class="level2">
 <h2 class="anchored" data-anchor-id="figure-3">Figure 3</h2>
+<p>For the remaining portion of Supplementary Figure 5 not covered in this script, (external cohort validation), please see the other script in this folder.</p>
 <section id="boot-up" class="level3">
 <h3 class="anchored" data-anchor-id="boot-up">Boot-up</h3>
 <div class="cell">
@@ -362,14 +363,14 @@ Joining with `by = join_by(sample_id)`</code></pre>
   "many-to-many"` to silence this warning.</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Warning: There were 10504 warnings in `dplyr::summarize()`.
+<pre><code>Warning: There were 10568 warnings in `dplyr::summarize()`.
 The first warning was:
 ℹ In argument: `max = max(value, na.rm = TRUE)`.
 ℹ In group 5: `participant_id = "001-0001"`, `event_id = "001-0001-1"`,
   `event_date = 1`, `name = "Human alphaherpesvirus 1 (HSV1).ea"`.
 Caused by warning in `max()`:
 ! no non-missing arguments to max; returning -Inf
-ℹ Run `dplyr::last_dplyr_warnings()` to see the 10503 remaining warnings.</code></pre>
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 10567 remaining warnings.</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>`summarise()` has grouped output by 'participant_id', 'event_id', 'event_date'.
@@ -493,14 +494,14 @@ Joining with `by = join_by(sample_id)`</code></pre>
 <pre><code>Joining with `by = join_by(event_id)`</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Warning: There were 4676 warnings in `dplyr::summarize()`.
+<pre><code>Warning: There were 4688 warnings in `dplyr::summarize()`.
 The first warning was:
 ℹ In argument: `value = max(value, na.rm = TRUE)`.
 ℹ In group 3: `participant_id = "001-0001"` and `name = "Human alphaherpesvirus
   1 (HSV1).ea"`.
 Caused by warning in `max()`:
 ! no non-missing arguments to max; returning -Inf
-ℹ Run `dplyr::last_dplyr_warnings()` to see the 4675 remaining warnings.</code></pre>
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 4687 remaining warnings.</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>`summarise()` has grouped output by 'participant_id'. You can override using
@@ -630,14 +631,14 @@ Joining with `by = join_by(sample_id)`
 <pre><code>Joining with `by = join_by(event_id)`</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Warning: There were 4676 warnings in `dplyr::summarize()`.
+<pre><code>Warning: There were 4688 warnings in `dplyr::summarize()`.
 The first warning was:
 ℹ In argument: `value = max(value, na.rm = TRUE)`.
 ℹ In group 3: `participant_id = "001-0001"` and `name = "Human alphaherpesvirus
   1 (HSV1).ea"`.
 Caused by warning in `max()`:
 ! no non-missing arguments to max; returning -Inf
-ℹ Run `dplyr::last_dplyr_warnings()` to see the 4675 remaining warnings.</code></pre>
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 4687 remaining warnings.</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>`summarise()` has grouped output by 'participant_id'. You can override using
@@ -707,7 +708,7 @@ chr (2): B Cell (CD11c+ CXCR5-), B Cell
 <span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>cutoff <span class="ot">=</span> <span class="dv">0</span></span>
 <span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>model.out <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
-<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="fu">unique</span>(<span class="fu">colnames</span>(comb_data)[<span class="sc">-</span><span class="dv">1</span>])){</span>
+<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="fu">unique</span>(<span class="fu">colnames</span>(comb_data)[<span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>, <span class="sc">-</span><span class="dv">12</span>)])){</span>
 <span id="cb55-9"><a href="#cb55-9" aria-hidden="true" tabindex="-1"></a>       virus <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
 <span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a>           <span class="fu">pivot_longer</span>(<span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
 <span id="cb55-11"><a href="#cb55-11" aria-hidden="true" tabindex="-1"></a>            <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(value), <span class="dv">0</span>, value)) <span class="sc">%&gt;%</span></span>
@@ -771,7 +772,7 @@ Attaching package: 'scales'</code></pre>
 • `` -&gt; `...1`</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Rows: 3672 Columns: 12
+<pre><code>Rows: 3366 Columns: 12
 ── Column specification ────────────────────────────────────────────────────────
 Delimiter: ","
 chr (5): variable, feature, omic, virus, level
@@ -825,6 +826,8 @@ argument is not numeric or logical: returning NA
 Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
 argument is not numeric or logical: returning NA
 Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
+argument is not numeric or logical: returning NA
+Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
 argument is not numeric or logical: returning NA</code></pre>
 </div>
 <div class="cell-output-display">
@@ -843,13 +846,15 @@ argument is not numeric or logical: returning NA
 Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
 argument is not numeric or logical: returning NA
 Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
+argument is not numeric or logical: returning NA
+Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
 argument is not numeric or logical: returning NA</code></pre>
 </div>
 </div>
 </section>
 </section>
-<section id="supplemental-figure-3" class="level1">
-<h1>Supplemental Figure 3</h1>
+<section id="supplemental-figure-5" class="level1">
+<h1>Supplemental Figure 5</h1>
 <section id="panel-a-tg-correcting-for-cell-types-in-whole-blood" class="level3">
 <h3 class="anchored" data-anchor-id="panel-a-tg-correcting-for-cell-types-in-whole-blood">Panel A: TG correcting for cell types in Whole Blood</h3>
 <div class="cell">
@@ -893,14 +898,14 @@ Attaching package: 'ordinal'</code></pre>
   "many-to-many"` to silence this warning.</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Warning: There were 4423 warnings in `dplyr::summarize()`.
+<pre><code>Warning: There were 4428 warnings in `dplyr::summarize()`.
 The first warning was:
 ℹ In argument: `max = max(value, na.rm = TRUE)`.
 ℹ In group 3: `participant_id = "001-0001"` and `name = "Human alphaherpesvirus
   1 (HSV1).ea"`.
 Caused by warning in `max()`:
 ! no non-missing arguments to max; returning -Inf
-ℹ Run `dplyr::last_dplyr_warnings()` to see the 4422 remaining warnings.</code></pre>
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 4427 remaining warnings.</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>`summarise()` has grouped output by 'participant_id'. You can override using
@@ -954,14 +959,14 @@ the `.groups` argument.</code></pre>
   "many-to-many"` to silence this warning.</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Warning: There were 4673 warnings in `dplyr::summarize()`.
+<pre><code>Warning: There were 4685 warnings in `dplyr::summarize()`.
 The first warning was:
 ℹ In argument: `max = max(value, na.rm = TRUE)`.
 ℹ In group 3: `participant_id = "001-0001"` and `name = "Human alphaherpesvirus
   1 (HSV1).ea"`.
 Caused by warning in `max()`:
 ! no non-missing arguments to max; returning -Inf
-ℹ Run `dplyr::last_dplyr_warnings()` to see the 4672 remaining warnings.</code></pre>
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 4684 remaining warnings.</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>`summarise()` has grouped output by 'participant_id'. You can override using
@@ -1112,8 +1117,8 @@ rescale.p, : Chi-squared approximation may be incorrect</code></pre>
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb102"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb102-1"><a href="#cb102-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS3A.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="fl">3.5</span>)</span>
-<span id="cb102-2"><a href="#cb102-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(gg2<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS3A.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb102"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb102-1"><a href="#cb102-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS5A.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="fl">3.5</span>)</span>
+<span id="cb102-2"><a href="#cb102-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(gg2<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS5A.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="panel-b-hsv1-proteins-by-tg" class="level3">
@@ -1206,10 +1211,11 @@ Joining with `by = join_by(sample_id)`</code></pre>
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb110"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb110-1"><a href="#cb110-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS3B.pdf"</span>), <span class="at">width =</span> <span class="fl">2.25</span>, <span class="at">height =</span> <span class="dv">2</span>)</span>
+<div class="sourceCode cell-code" id="cb110"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb110-1"><a href="#cb110-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS5B.pdf"</span>), <span class="at">width =</span> <span class="fl">2.25</span>, <span class="at">height =</span> <span class="dv">2</span>)</span>
 <span id="cb110-2"><a href="#cb110-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb110-3"><a href="#cb110-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(ggS2<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS3B.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb110-3"><a href="#cb110-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(ggS2<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS5B.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+<p>For the remaining portion of Supplementary Figure 5 dedicated to validating key viral findings in an external cohort, please see the other script in this folder.</p>
 </section>
 </section>
 <section id="session-info" class="level1">
@@ -1246,12 +1252,12 @@ loaded via a namespace (and not attached):
  [4] carData_3.0-5       ucminf_1.1-4        yulab.utils_0.0.4  
  [7] vipor_0.4.5         cellranger_1.1.0    yaml_2.3.10        
 [10] lattice_0.20-41     numDeriv_2016.8-1.1 pillar_1.9.0       
-[13] backports_1.5.0     glue_1.6.2          digest_0.6.29      
+[13] backports_1.5.0     glue_1.6.2          digest_0.6.37      
 [16] ggsignif_0.6.3      colorspace_2.0-3    ggfun_0.0.9        
-[19] htmltools_0.5.3     Matrix_1.4-1        pkgconfig_2.0.3    
+[19] htmltools_0.5.8.1   Matrix_1.4-1        pkgconfig_2.0.3    
 [22] broom_1.0.7         patchwork_1.1.1     ggplotify_0.1.1    
 [25] tzdb_0.4.0          timechange_0.3.0    generics_0.1.2     
-[28] farver_2.1.0        car_3.0-12          withr_2.5.0        
+[28] farver_2.1.0        car_3.0-12          withr_3.0.2        
 [31] cli_3.6.3           magrittr_2.0.3      crayon_1.5.0       
 [34] evaluate_1.0.1      fansi_1.0.6         MASS_7.3-53        
 [37] beeswarm_0.4.0      textshaping_0.4.0   tools_4.0.3        
@@ -1260,7 +1266,7 @@ loaded via a namespace (and not attached):
 [46] rlang_1.1.4         grid_4.0.3          rstudioapi_0.17.1  
 [49] htmlwidgets_1.5.4   labeling_0.4.2      rmarkdown_2.29     
 [52] gtable_0.3.0        abind_1.4-5         R6_2.5.1           
-[55] gridExtra_2.3       knitr_1.49          fastmap_1.1.0      
+[55] gridExtra_2.3       knitr_1.49          fastmap_1.2.0      
 [58] bit_4.0.4           utf8_1.2.4          ragg_1.3.3         
 [61] stringi_1.8.4       ggbeeswarm_0.6.0    parallel_4.0.3     
 [64] vctrs_0.6.5         tidyselect_1.2.1    xfun_0.49          </code></pre>
