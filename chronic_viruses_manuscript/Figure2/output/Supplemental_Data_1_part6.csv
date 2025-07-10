@@ -8,6 +8,5 @@
 "7",1104,1.08874947383505,0.297,1,"Chi-square test","ns","EBV.pbmc"
 "8",1035,0.54213989226167,0.462,1,"Chi-square test","ns","Enterovirus.nasal"
 "9",157,1.07488294376964e-30,1,1,"Chi-square test","ns","HSV1.ea"
-"10",1035,3.19263575471448e-29,1,1,"Chi-square test","ns","HSV1.nasal"
-"11",157,3.05524783210674e-30,1,1,"Chi-square test","ns","HSV2.ea"
-"12",1035,0.536924296314227,0.464,1,"Chi-square test","ns","HSV2.nasal"
+"10",1024,1.50255416455411,0.22,1,"Chi-square test","ns","HSV1.nasal"
+"11",1034,1.01327997364903,0.314,1,"Chi-square test","ns","HSV2.nasal"

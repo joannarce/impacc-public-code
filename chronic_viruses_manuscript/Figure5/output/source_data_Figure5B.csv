@@ -1,145 +1,144 @@
 virus_compartment,SUPER_PATHWAY,SUB_PATHWAY,mean_p,features,total,impact_ratio
-Anelloviridae.pbmc,Amino Acid,Alanine and Aspartate Metabolism,2.136155105433829,1,7,0.14285714285714285
-CMV.pbmc,Amino Acid,Alanine and Aspartate Metabolism,2.491139531909787,2,7,0.2857142857142857
-CMV.pbmc,Amino Acid,Creatine Metabolism,3.0831287469674478,2,3,0.6666666666666666
-Anelloviridae.pbmc,Amino Acid,Glutamate Metabolism,2.0722947709407187,2,9,0.2222222222222222
-HSV1.nasal,Amino Acid,Glutamate Metabolism,3.4984201488214706,1,9,0.1111111111111111
-CMV.pbmc,Amino Acid,Glutamate Metabolism,3.551589552472741,2,9,0.2222222222222222
-EBV.pbmc,Amino Acid,Glutamate Metabolism,2.5958089753395464,1,9,0.1111111111111111
-Anelloviridae.pbmc,Amino Acid,"Glycine, Serine and Threonine Metabolism",2.529809508461228,2,9,0.2222222222222222
-HSV1.nasal,Amino Acid,"Glycine, Serine and Threonine Metabolism",3.023077947755476,1,9,0.1111111111111111
-CMV.pbmc,Amino Acid,"Glycine, Serine and Threonine Metabolism",2.4942677052875,2,9,0.2222222222222222
-CMV.pbmc,Amino Acid,Histidine Metabolism,2.7641900956877805,4,8,0.5
-Anelloviridae.pbmc,Amino Acid,"Leucine, Isoleucine and Valine Metabolism",2.49495857759209,3,19,0.15789473684210525
-HSV1.nasal,Amino Acid,"Leucine, Isoleucine and Valine Metabolism",2.981644609805794,1,19,0.05263157894736842
-CMV.pbmc,Amino Acid,"Leucine, Isoleucine and Valine Metabolism",2.8318453134071384,3,19,0.15789473684210525
-EBV.nasal,Amino Acid,"Leucine, Isoleucine and Valine Metabolism",2.1528384708849124,1,19,0.05263157894736842
-Anelloviridae.pbmc,Amino Acid,Lysine Metabolism,2.2880418971013747,1,10,0.1
-CMV.pbmc,Amino Acid,Lysine Metabolism,3.0895230078767826,2,10,0.2
-EBV.pbmc,Amino Acid,Lysine Metabolism,2.1221898762997427,1,10,0.1
-Anelloviridae.pbmc,Amino Acid,"Methionine, Cysteine, SAM and Taurine Metabolism",2.486592358891304,4,14,0.2857142857142857
-HSV1.nasal,Amino Acid,"Methionine, Cysteine, SAM and Taurine Metabolism",2.6517087746498946,2,14,0.14285714285714285
-HSV2.nasal,Amino Acid,"Methionine, Cysteine, SAM and Taurine Metabolism",2.5563932311374606,3,14,0.21428571428571427
-CMV.pbmc,Amino Acid,"Methionine, Cysteine, SAM and Taurine Metabolism",5.244810120821647,6,14,0.42857142857142855
-EBV.nasal,Amino Acid,"Methionine, Cysteine, SAM and Taurine Metabolism",2.2465257795201743,2,14,0.14285714285714285
-EBV.pbmc,Amino Acid,"Methionine, Cysteine, SAM and Taurine Metabolism",2.7749842221465757,2,14,0.14285714285714285
-HSV2.nasal,Amino Acid,Phenylalanine Metabolism,2.9417817811658376,2,4,0.5
-CMV.pbmc,Amino Acid,Phenylalanine Metabolism,2.6971181108642774,2,4,0.5
-EBV.nasal,Amino Acid,Phenylalanine Metabolism,2.3239936166950135,1,4,0.25
-Anelloviridae.pbmc,Amino Acid,Polyamine Metabolism,2.441891728779556,2,4,0.5
-HSV1.nasal,Amino Acid,Polyamine Metabolism,2.9432662121585604,1,4,0.25
-CMV.pbmc,Amino Acid,Polyamine Metabolism,3.0751208096176854,3,4,0.75
-Anelloviridae.pbmc,Amino Acid,Tryptophan Metabolism,2.4371847361786836,3,17,0.17647058823529413
-HSV1.nasal,Amino Acid,Tryptophan Metabolism,3.502656058606295,1,17,0.058823529411764705
-HSV2.nasal,Amino Acid,Tryptophan Metabolism,2.4737359840089352,2,17,0.11764705882352941
-CMV.pbmc,Amino Acid,Tryptophan Metabolism,2.8351275590299534,7,17,0.4117647058823529
-EBV.nasal,Amino Acid,Tryptophan Metabolism,2.50662851616627,3,17,0.17647058823529413
-Anelloviridae.pbmc,Amino Acid,Tyrosine Metabolism,2.3432970837884803,1,10,0.1
-HSV2.nasal,Amino Acid,Tyrosine Metabolism,2.6761922897694443,1,10,0.1
-CMV.pbmc,Amino Acid,Tyrosine Metabolism,2.5098664966580784,3,10,0.3
-Anelloviridae.pbmc,Amino Acid,Urea cycle; Arginine and Proline Metabolism,2.390047908222255,3,13,0.23076923076923078
-CMV.pbmc,Amino Acid,Urea cycle; Arginine and Proline Metabolism,6.160398310984552,5,13,0.38461538461538464
-CMV.pbmc,Carbohydrate,Aminosugar Metabolism,2.1682175979356773,3,4,0.75
-HSV1.nasal,Carbohydrate,"Glycolysis, Gluconeogenesis, and Pyruvate Metabolism",2.2462541492176995,1,6,0.16666666666666666
-HSV2.nasal,Carbohydrate,"Glycolysis, Gluconeogenesis, and Pyruvate Metabolism",3.1618558369371645,1,6,0.16666666666666666
-CMV.pbmc,Carbohydrate,"Glycolysis, Gluconeogenesis, and Pyruvate Metabolism",3.6864321526989716,1,6,0.16666666666666666
-Anelloviridae.pbmc,Carbohydrate,Pentose Metabolism,3.505536688051894,2,5,0.4
-HSV1.nasal,Carbohydrate,Pentose Metabolism,3.023077947755476,1,5,0.2
-HSV2.nasal,Carbohydrate,Pentose Metabolism,2.375587283531739,2,5,0.4
-CMV.pbmc,Carbohydrate,Pentose Metabolism,2.513538201540373,3,5,0.6
-EBV.nasal,Carbohydrate,Pentose Metabolism,2.4436566783747633,1,5,0.2
-CMV.pbmc,Cofactors and Vitamins,Nicotinate and Nicotinamide Metabolism,3.2100698978693587,2,3,0.6666666666666666
-EBV.nasal,Cofactors and Vitamins,Nicotinate and Nicotinamide Metabolism,2.1161639845921245,1,3,0.3333333333333333
-Anelloviridae.pbmc,Cofactors and Vitamins,Pantothenate and CoA Metabolism,2.589728853794483,1,2,0.5
-Anelloviridae.pbmc,Cofactors and Vitamins,Tocopherol Metabolism,2.4950834148189482,1,5,0.2
-Anelloviridae.pbmc,Cofactors and Vitamins,Vitamin A Metabolism,2.394636736602239,1,3,0.3333333333333333
-HSV1.nasal,Cofactors and Vitamins,Vitamin A Metabolism,2.2462541492176995,1,3,0.3333333333333333
-CMV.pbmc,Cofactors and Vitamins,Vitamin A Metabolism,3.560069341041526,1,3,0.3333333333333333
-HSV2.nasal,Cofactors and Vitamins,Vitamin B6 Metabolism,2.1870832444243056,1,1,1
-CMV.pbmc,Cofactors and Vitamins,Vitamin B6 Metabolism,2.9738786067143375,1,1,1
-HSV1.nasal,Energy,TCA Cycle,2.1634788405964214,1,6,0.16666666666666666
-Anelloviridae.pbmc,Lipid,Androgenic Steroids,2.2532520418129662,1,14,0.07142857142857142
-HSV1.nasal,Lipid,Androgenic Steroids,2.1151491007842176,2,14,0.14285714285714285
-CMV.pbmc,Lipid,Androgenic Steroids,2.6796673195128937,1,14,0.07142857142857142
-EBV.nasal,Lipid,Androgenic Steroids,2.4436566783747633,2,14,0.14285714285714285
-CMV.pbmc,Lipid,Carnitine Metabolism,2.411519642583486,2,2,1
-Anelloviridae.pbmc,Lipid,"Fatty Acid Metabolism (Acyl Carnitine, Dicarboxylate)",2.17944090289558,1,1,1
-CMV.pbmc,Lipid,"Fatty Acid Metabolism (Acyl Carnitine, Dicarboxylate)",3.4575115658863695,1,1,1
-CMV.pbmc,Lipid,"Fatty Acid Metabolism (Acyl Carnitine, Long Chain Saturated)",2.1500758505767004,1,4,0.25
-Anelloviridae.pbmc,Lipid,"Fatty Acid Metabolism (Acyl Carnitine, Medium Chain)",2.217083356481101,1,4,0.25
-CMV.pbmc,Lipid,"Fatty Acid Metabolism (Acyl Carnitine, Monounsaturated)",2.3087935549752006,2,6,0.3333333333333333
-CMV.pbmc,Lipid,"Fatty Acid Metabolism (Acyl Carnitine, Polyunsaturated)",2.8970546617968025,1,3,0.3333333333333333
-CMV.pbmc,Lipid,"Fatty Acid Metabolism (Acyl Carnitine, Short Chain)",4.045947694942201,1,1,1
-CMV.pbmc,Lipid,"Fatty Acid, Amino",3.3890692166186858,3,3,1
-HSV1.nasal,Lipid,"Fatty Acid, Dicarboxylate",3.502656058606295,1,14,0.07142857142857142
-CMV.pbmc,Lipid,"Fatty Acid, Dicarboxylate",2.3498917510401656,2,14,0.14285714285714285
-EBV.nasal,Lipid,"Fatty Acid, Dicarboxylate",2.0511286855282345,1,14,0.07142857142857142
-EBV.pbmc,Lipid,"Fatty Acid, Dicarboxylate",2.1711794870200705,1,14,0.07142857142857142
-HSV1.nasal,Lipid,"Fatty Acid, Dihydroxy",2.4594376692389144,1,3,0.3333333333333333
-CMV.pbmc,Lipid,"Fatty Acid, Dihydroxy",3.560069341041526,1,3,0.3333333333333333
-CMV.pbmc,Lipid,Hexosylceramides (HCER),2.4547231522176127,2,4,0.5
-Anelloviridae.pbmc,Lipid,Long Chain Monounsaturated Fatty Acid,3.2546748708369866,2,6,0.3333333333333333
-CMV.pbmc,Lipid,Long Chain Monounsaturated Fatty Acid,3.4562307430091184,3,6,0.5
-Anelloviridae.pbmc,Lipid,Long Chain Polyunsaturated Fatty Acid (n3 and n6),2.355570174811899,6,12,0.5
-CMV.pbmc,Lipid,Long Chain Polyunsaturated Fatty Acid (n3 and n6),2.562520632652608,9,12,0.75
-Anelloviridae.pbmc,Lipid,Long Chain Saturated Fatty Acid,2.7962556455769296,2,7,0.2857142857142857
-CMV.pbmc,Lipid,Long Chain Saturated Fatty Acid,2.757790142929621,2,7,0.2857142857142857
-Anelloviridae.pbmc,Lipid,Lysophospholipid,2.490080380352508,3,19,0.15789473684210525
-CMV.pbmc,Lipid,Lysophospholipid,2.1627161531076804,3,19,0.15789473684210525
-Anelloviridae.pbmc,Lipid,Medium Chain Fatty Acid,2.3432970837884803,1,9,0.1111111111111111
-HSV1.nasal,Lipid,Medium Chain Fatty Acid,2.724119848512516,2,9,0.2222222222222222
-HSV2.nasal,Lipid,Medium Chain Fatty Acid,2.2537097086255953,1,9,0.1111111111111111
-CMV.pbmc,Lipid,Medium Chain Fatty Acid,2.661338419422454,2,9,0.2222222222222222
-Anelloviridae.pbmc,Lipid,Monoacylglycerol,2.1291267726729823,1,3,0.3333333333333333
-CMV.pbmc,Lipid,Monoacylglycerol,2.3404204664237325,1,3,0.3333333333333333
-HSV1.nasal,Lipid,Phosphatidylcholine (PC),2.905465924195834,1,17,0.058823529411764705
-HSV2.nasal,Lipid,Phosphatidylcholine (PC),2.0655049012029143,1,17,0.058823529411764705
-CMV.pbmc,Lipid,Phosphatidylcholine (PC),4.4444046658851155,7,17,0.4117647058823529
-HSV1.nasal,Lipid,Phosphatidylethanolamine (PE),2.1375364521422267,1,8,0.125
-CMV.pbmc,Lipid,Phosphatidylinositol (PI),3.2484061241830675,1,5,0.2
-Anelloviridae.pbmc,Lipid,Plasmalogen,2.2345287790297266,3,8,0.375
-HSV1.nasal,Lipid,Plasmalogen,2.349799243473978,4,8,0.5
-HSV2.nasal,Lipid,Plasmalogen,2.0342313129166416,1,8,0.125
-CMV.pbmc,Lipid,Plasmalogen,2.8054357955323526,4,8,0.5
-CMV.pbmc,Lipid,Primary Bile Acid Metabolism,2.1500758505767004,1,7,0.14285714285714285
-HSV1.nasal,Lipid,Secondary Bile Acid Metabolism,2.4923156572315985,2,15,0.13333333333333333
-CMV.pbmc,Lipid,Secondary Bile Acid Metabolism,2.4770395164671655,3,15,0.2
-EBV.nasal,Lipid,Secondary Bile Acid Metabolism,3.399684456123077,1,15,0.06666666666666667
-HSV1.nasal,Lipid,Sphingomyelins,2.0910690242061056,2,28,0.07142857142857142
-CMV.pbmc,Lipid,Sphingomyelins,2.7680360548031953,10,28,0.35714285714285715
-EBV.nasal,Lipid,Sphingomyelins,2.4436566783747633,1,28,0.03571428571428571
-CMV.pbmc,Nucleotide,"Purine Metabolism, (Hypo)Xanthine/Inosine containing",2.8207947206559094,1,5,0.2
-Anelloviridae.pbmc,Nucleotide,"Purine Metabolism, Adenine containing",2.377382570010014,2,3,0.6666666666666666
-CMV.pbmc,Nucleotide,"Purine Metabolism, Adenine containing",2.593592331394625,2,3,0.6666666666666666
-EBV.nasal,Nucleotide,"Purine Metabolism, Adenine containing",2.4436566783747633,1,3,0.3333333333333333
-CMV.pbmc,Nucleotide,"Pyrimidine Metabolism, Thymine containing",2.283729242168945,1,2,0.5
-Anelloviridae.pbmc,Nucleotide,"Pyrimidine Metabolism, Uracil containing",2.358639928220005,1,5,0.2
-HSV1.nasal,Nucleotide,"Pyrimidine Metabolism, Uracil containing",2.9432662121585604,1,5,0.2
-CMV.pbmc,Nucleotide,"Pyrimidine Metabolism, Uracil containing",3.6466522974348137,2,5,0.4
-EBV.nasal,Nucleotide,"Pyrimidine Metabolism, Uracil containing",2.1161639845921245,1,5,0.2
-Anelloviridae.pbmc,Partially Characterized Molecules,Partially Characterized Molecules,2.0695796450837816,1,19,0.05263157894736842
-HSV1.nasal,Partially Characterized Molecules,Partially Characterized Molecules,2.584718007836477,2,19,0.10526315789473684
-HSV2.nasal,Partially Characterized Molecules,Partially Characterized Molecules,2.3936063132987124,2,19,0.10526315789473684
-CMV.pbmc,Partially Characterized Molecules,Partially Characterized Molecules,2.8043237211089713,3,19,0.15789473684210525
-EBV.nasal,Partially Characterized Molecules,Partially Characterized Molecules,2.89429697735729,1,19,0.05263157894736842
-Anelloviridae.pbmc,Peptide,Dipeptide,2.008434436447609,1,4,0.25
-HSV2.nasal,Peptide,Gamma-glutamyl Amino Acid,2.721707725394511,1,9,0.1111111111111111
-CMV.pbmc,Peptide,Gamma-glutamyl Amino Acid,3.608539175983894,1,9,0.1111111111111111
-Anelloviridae.pbmc,Peptide,Modified Peptides,2.4408348686106858,1,1,1
-HSV1.nasal,Peptide,Modified Peptides,2.035779980494734,1,1,1
-CMV.pbmc,Peptide,Modified Peptides,3.5857902555297465,1,1,1
-Anelloviridae.pbmc,Xenobiotics,Benzoate Metabolism,3.518973602951969,3,13,0.23076923076923078
-HSV1.nasal,Xenobiotics,Benzoate Metabolism,3.112149970851652,1,13,0.07692307692307693
-CMV.pbmc,Xenobiotics,Benzoate Metabolism,3.2412805157677713,4,13,0.3076923076923077
-Anelloviridae.pbmc,Xenobiotics,Chemical,2.4323765832268296,1,14,0.07142857142857142
-HSV1.nasal,Xenobiotics,Chemical,2.146358067917477,1,14,0.07142857142857142
-CMV.pbmc,Xenobiotics,Chemical,2.554497281711834,3,14,0.21428571428571427
-EBV.nasal,Xenobiotics,Chemical,2.2354568426391626,2,14,0.14285714285714285
-Anelloviridae.pbmc,Xenobiotics,Food Component/Plant,2.305765147635299,7,40,0.175
-HSV1.nasal,Xenobiotics,Food Component/Plant,2.967876636727248,9,40,0.225
-HSV2.nasal,Xenobiotics,Food Component/Plant,2.9417817811658376,2,40,0.05
-CMV.pbmc,Xenobiotics,Food Component/Plant,3.9944980487264297,14,40,0.35
-EBV.nasal,Xenobiotics,Food Component/Plant,2.5502436544692264,3,40,0.075
-EBV.pbmc,Xenobiotics,Food Component/Plant,2.6620045261914727,6,40,0.15
-Anelloviridae.pbmc,Xenobiotics,Xanthine Metabolism,2.6419871115538607,1,3,0.3333333333333333
-CMV.pbmc,Xenobiotics,Xanthine Metabolism,2.740572870904785,1,3,0.3333333333333333
+Anelloviridae.pbmc,Amino Acid,Alanine and Aspartate Metabolism,2.1136219636751012,1,7,0.14285714285714285
+CMV.pbmc,Amino Acid,Alanine and Aspartate Metabolism,2.3994555028263016,2,7,0.2857142857142857
+CMV.pbmc,Amino Acid,Creatine Metabolism,2.7568036331049326,2,3,0.6666666666666666
+EBV.pbmc,Amino Acid,Creatine Metabolism,2.0139773291652183,1,3,0.3333333333333333
+Anelloviridae.pbmc,Amino Acid,Glutamate Metabolism,2.0547091634540555,2,9,0.2222222222222222
+HSV1.nasal,Amino Acid,Glutamate Metabolism,2.568738916172419,1,9,0.1111111111111111
+CMV.pbmc,Amino Acid,Glutamate Metabolism,3.3224556015684765,2,9,0.2222222222222222
+EBV.pbmc,Amino Acid,Glutamate Metabolism,2.4639696449359114,1,9,0.1111111111111111
+Anelloviridae.pbmc,Amino Acid,"Glycine, Serine and Threonine Metabolism",2.5477230760079097,2,9,0.2222222222222222
+HSV1.nasal,Amino Acid,"Glycine, Serine and Threonine Metabolism",3.3502461646116535,1,9,0.1111111111111111
+CMV.pbmc,Amino Acid,"Glycine, Serine and Threonine Metabolism",2.286872275924453,3,9,0.3333333333333333
+HSV1.nasal,Amino Acid,Histidine Metabolism,2.5210778032885073,1,8,0.125
+CMV.pbmc,Amino Acid,Histidine Metabolism,2.926544541415038,3,8,0.375
+EBV.pbmc,Amino Acid,Histidine Metabolism,2.0139773291652183,1,8,0.125
+Anelloviridae.pbmc,Amino Acid,"Leucine, Isoleucine and Valine Metabolism",2.480618137907694,3,19,0.15789473684210525
+CMV.pbmc,Amino Acid,"Leucine, Isoleucine and Valine Metabolism",2.5312920551556486,3,19,0.15789473684210525
+EBV.nasal,Amino Acid,"Leucine, Isoleucine and Valine Metabolism",2.125264901694002,1,19,0.05263157894736842
+Anelloviridae.pbmc,Amino Acid,Lysine Metabolism,2.2656109199103756,1,10,0.1
+CMV.pbmc,Amino Acid,Lysine Metabolism,2.7324170059014277,2,10,0.2
+EBV.pbmc,Amino Acid,Lysine Metabolism,2.089884262614811,1,10,0.1
+Anelloviridae.pbmc,Amino Acid,"Methionine, Cysteine, SAM and Taurine Metabolism",2.50572607023894,4,14,0.2857142857142857
+HSV1.nasal,Amino Acid,"Methionine, Cysteine, SAM and Taurine Metabolism",3.2106430906066623,2,14,0.14285714285714285
+CMV.pbmc,Amino Acid,"Methionine, Cysteine, SAM and Taurine Metabolism",5.874283611461999,5,14,0.35714285714285715
+EBV.nasal,Amino Acid,"Methionine, Cysteine, SAM and Taurine Metabolism",2.2673554906421054,2,14,0.14285714285714285
+EBV.pbmc,Amino Acid,"Methionine, Cysteine, SAM and Taurine Metabolism",2.697921629499424,2,14,0.14285714285714285
+CMV.pbmc,Amino Acid,Phenylalanine Metabolism,2.759332046394486,2,4,0.5
+EBV.nasal,Amino Acid,Phenylalanine Metabolism,2.4094460795902086,1,4,0.25
+Anelloviridae.pbmc,Amino Acid,Polyamine Metabolism,2.4651168505590926,2,4,0.5
+HSV1.nasal,Amino Acid,Polyamine Metabolism,3.2920969579064034,1,4,0.25
+CMV.pbmc,Amino Acid,Polyamine Metabolism,2.798299831252189,3,4,0.75
+EBV.nasal,Amino Acid,Polyamine Metabolism,2.0408288371707046,1,4,0.25
+Anelloviridae.pbmc,Amino Acid,Tryptophan Metabolism,2.4224984741505073,3,17,0.17647058823529413
+HSV1.nasal,Amino Acid,Tryptophan Metabolism,3.3502461646116535,1,17,0.058823529411764705
+CMV.pbmc,Amino Acid,Tryptophan Metabolism,2.768619564903145,7,17,0.4117647058823529
+EBV.nasal,Amino Acid,Tryptophan Metabolism,2.5101484347060454,3,17,0.17647058823529413
+Anelloviridae.pbmc,Amino Acid,Tyrosine Metabolism,2.3220094054892106,1,10,0.1
+CMV.pbmc,Amino Acid,Tyrosine Metabolism,2.3798021107885634,3,10,0.3
+Anelloviridae.pbmc,Amino Acid,Urea cycle; Arginine and Proline Metabolism,2.385885330759368,3,13,0.23076923076923078
+CMV.pbmc,Amino Acid,Urea cycle; Arginine and Proline Metabolism,5.95918398250995,5,13,0.38461538461538464
+CMV.pbmc,Carbohydrate,Aminosugar Metabolism,2.081110659351637,3,4,0.75
+HSV1.nasal,Carbohydrate,"Glycolysis, Gluconeogenesis, and Pyruvate Metabolism",2.8456556483618365,1,6,0.16666666666666666
+CMV.pbmc,Carbohydrate,"Glycolysis, Gluconeogenesis, and Pyruvate Metabolism",3.5725199089748605,1,6,0.16666666666666666
+Anelloviridae.pbmc,Carbohydrate,Pentose Metabolism,3.537079262486613,2,5,0.4
+HSV1.nasal,Carbohydrate,Pentose Metabolism,2.5590408245012464,2,5,0.4
+CMV.pbmc,Carbohydrate,Pentose Metabolism,2.4837429676133937,2,5,0.4
+EBV.nasal,Carbohydrate,Pentose Metabolism,2.5097104156715995,1,5,0.2
+HSV1.nasal,Cofactors and Vitamins,Nicotinate and Nicotinamide Metabolism,2.5341348963410475,1,3,0.3333333333333333
+CMV.pbmc,Cofactors and Vitamins,Nicotinate and Nicotinamide Metabolism,3.2403895579493414,2,3,0.6666666666666666
+EBV.nasal,Cofactors and Vitamins,Nicotinate and Nicotinamide Metabolism,2.0887157357300286,1,3,0.3333333333333333
+Anelloviridae.pbmc,Cofactors and Vitamins,Pantothenate and CoA Metabolism,2.7940035264413825,1,2,0.5
+Anelloviridae.pbmc,Cofactors and Vitamins,Tocopherol Metabolism,2.527758866954212,1,5,0.2
+Anelloviridae.pbmc,Cofactors and Vitamins,Vitamin A Metabolism,2.37966377151903,1,3,0.3333333333333333
+HSV1.nasal,Cofactors and Vitamins,Vitamin A Metabolism,2.556201086423013,2,3,0.6666666666666666
+CMV.pbmc,Cofactors and Vitamins,Vitamin A Metabolism,3.5600148300961245,1,3,0.3333333333333333
+HSV1.nasal,Cofactors and Vitamins,Vitamin B6 Metabolism,2.4351376787070462,1,1,1
+CMV.pbmc,Cofactors and Vitamins,Vitamin B6 Metabolism,3.0093872357889278,1,1,1
+HSV1.nasal,Energy,TCA Cycle,2.080777444554399,1,6,0.16666666666666666
+Anelloviridae.pbmc,Lipid,Androgenic Steroids,2.283410650711789,1,14,0.07142857142857142
+HSV1.nasal,Lipid,Androgenic Steroids,2.588560994664253,2,14,0.14285714285714285
+CMV.pbmc,Lipid,Androgenic Steroids,2.867064183059421,1,14,0.07142857142857142
+EBV.nasal,Lipid,Androgenic Steroids,2.459578247630904,2,14,0.14285714285714285
+CMV.pbmc,Lipid,Carnitine Metabolism,2.284850363275582,2,2,1
+CMV.pbmc,Lipid,Endocannabinoid,2.0744118369270264,2,3,0.6666666666666666
+Anelloviridae.pbmc,Lipid,"Fatty Acid Metabolism (Acyl Carnitine, Dicarboxylate)",2.2656109199103756,1,1,1
+CMV.pbmc,Lipid,"Fatty Acid Metabolism (Acyl Carnitine, Dicarboxylate)",3.5509168672109213,1,1,1
+CMV.pbmc,Lipid,"Fatty Acid Metabolism (Acyl Carnitine, Long Chain Saturated)",2.162991574027296,1,4,0.25
+Anelloviridae.pbmc,Lipid,"Fatty Acid Metabolism (Acyl Carnitine, Medium Chain)",2.2656109199103756,1,4,0.25
+HSV1.nasal,Lipid,"Fatty Acid Metabolism (Acyl Carnitine, Monounsaturated)",2.2367364771277614,1,6,0.16666666666666666
+CMV.pbmc,Lipid,"Fatty Acid Metabolism (Acyl Carnitine, Monounsaturated)",2.2781252902490894,3,6,0.5
+CMV.pbmc,Lipid,"Fatty Acid Metabolism (Acyl Carnitine, Polyunsaturated)",3.126273977038931,1,3,0.3333333333333333
+CMV.pbmc,Lipid,"Fatty Acid Metabolism (Acyl Carnitine, Short Chain)",3.8527119878886698,1,1,1
+CMV.pbmc,Lipid,Fatty Acid Metabolism (Acyl Glutamine),2.030087542190018,1,1,1
+CMV.pbmc,Lipid,"Fatty Acid, Amino",3.2734569204264505,3,3,1
+HSV1.nasal,Lipid,"Fatty Acid, Dicarboxylate",5.888898666751807,4,14,0.2857142857142857
+CMV.pbmc,Lipid,"Fatty Acid, Dicarboxylate",2.4663308214828135,3,14,0.21428571428571427
+EBV.nasal,Lipid,"Fatty Acid, Dicarboxylate",2.125264901694002,1,14,0.07142857142857142
+EBV.pbmc,Lipid,"Fatty Acid, Dicarboxylate",2.363026731620061,1,14,0.07142857142857142
+HSV1.nasal,Lipid,"Fatty Acid, Dihydroxy",2.9832789208291626,1,3,0.3333333333333333
+CMV.pbmc,Lipid,"Fatty Acid, Dihydroxy",3.5725199089748605,1,3,0.3333333333333333
+CMV.pbmc,Lipid,Hexosylceramides (HCER),2.5677003578536945,2,4,0.5
+Anelloviridae.pbmc,Lipid,Long Chain Monounsaturated Fatty Acid,3.2508194458111075,2,6,0.3333333333333333
+CMV.pbmc,Lipid,Long Chain Monounsaturated Fatty Acid,3.439054942090094,4,6,0.6666666666666666
+Anelloviridae.pbmc,Lipid,Long Chain Polyunsaturated Fatty Acid (n3 and n6),2.396725832624168,5,12,0.4166666666666667
+CMV.pbmc,Lipid,Long Chain Polyunsaturated Fatty Acid (n3 and n6),2.791691615034409,9,12,0.75
+Anelloviridae.pbmc,Lipid,Long Chain Saturated Fatty Acid,2.85348970771925,2,7,0.2857142857142857
+CMV.pbmc,Lipid,Long Chain Saturated Fatty Acid,2.496563967506513,5,7,0.7142857142857143
+Anelloviridae.pbmc,Lipid,Lysophospholipid,2.507942765317553,3,19,0.15789473684210525
+CMV.pbmc,Lipid,Lysophospholipid,2.3795095515138844,3,19,0.15789473684210525
+Anelloviridae.pbmc,Lipid,Medium Chain Fatty Acid,2.3220094054892106,1,9,0.1111111111111111
+HSV1.nasal,Lipid,Medium Chain Fatty Acid,3.5432334967423937,2,9,0.2222222222222222
+CMV.pbmc,Lipid,Medium Chain Fatty Acid,2.827571559368948,2,9,0.2222222222222222
+Anelloviridae.pbmc,Lipid,Monoacylglycerol,2.087130504633263,1,3,0.3333333333333333
+CMV.pbmc,Lipid,Monoacylglycerol,2.4269482333939325,1,3,0.3333333333333333
+HSV1.nasal,Lipid,Phosphatidylcholine (PC),2.691520241029671,2,17,0.11764705882352941
+CMV.pbmc,Lipid,Phosphatidylcholine (PC),4.819259262628685,6,17,0.35294117647058826
+HSV1.nasal,Lipid,Phosphatidylethanolamine (PE),2.3484362001173693,2,8,0.25
+CMV.pbmc,Lipid,Phosphatidylinositol (PI),3.218496582460643,1,5,0.2
+Anelloviridae.pbmc,Lipid,Plasmalogen,2.205048478089492,3,8,0.375
+HSV1.nasal,Lipid,Plasmalogen,2.8185345975690943,4,8,0.5
+CMV.pbmc,Lipid,Plasmalogen,2.944802067476581,3,8,0.375
+CMV.pbmc,Lipid,Primary Bile Acid Metabolism,2.334471228954114,1,7,0.14285714285714285
+HSV1.nasal,Lipid,Secondary Bile Acid Metabolism,2.717427537909482,2,15,0.13333333333333333
+CMV.pbmc,Lipid,Secondary Bile Acid Metabolism,2.546962665710873,2,15,0.13333333333333333
+EBV.nasal,Lipid,Secondary Bile Acid Metabolism,3.4009312159038183,1,15,0.06666666666666667
+HSV1.nasal,Lipid,Sphingomyelins,2.4867012290508215,4,28,0.14285714285714285
+CMV.pbmc,Lipid,Sphingomyelins,2.7473458675412608,10,28,0.35714285714285715
+EBV.nasal,Lipid,Sphingomyelins,2.5097104156715995,1,28,0.03571428571428571
+CMV.pbmc,Lipid,Sterol,2.107477262347288,1,3,0.3333333333333333
+HSV1.nasal,Nucleotide,"Purine Metabolism, (Hypo)Xanthine/Inosine containing",2.5210778032885073,1,5,0.2
+CMV.pbmc,Nucleotide,"Purine Metabolism, (Hypo)Xanthine/Inosine containing",2.915516306494029,1,5,0.2
+Anelloviridae.pbmc,Nucleotide,"Purine Metabolism, Adenine containing",2.4046541620653725,2,3,0.6666666666666666
+CMV.pbmc,Nucleotide,"Purine Metabolism, Adenine containing",2.424405345176781,2,3,0.6666666666666666
+EBV.nasal,Nucleotide,"Purine Metabolism, Adenine containing",2.5097104156715995,1,3,0.3333333333333333
+CMV.pbmc,Nucleotide,"Pyrimidine Metabolism, Orotate containing",2.6967996584848732,1,2,0.5
+CMV.pbmc,Nucleotide,"Pyrimidine Metabolism, Thymine containing",2.1306902419893037,1,2,0.5
+Anelloviridae.pbmc,Nucleotide,"Pyrimidine Metabolism, Uracil containing",2.3743907021929207,1,5,0.2
+HSV1.nasal,Nucleotide,"Pyrimidine Metabolism, Uracil containing",2.786615308035823,1,5,0.2
+CMV.pbmc,Nucleotide,"Pyrimidine Metabolism, Uracil containing",3.6281249524439136,2,5,0.4
+EBV.nasal,Nucleotide,"Pyrimidine Metabolism, Uracil containing",2.125264901694002,1,5,0.2
+Anelloviridae.pbmc,Partially Characterized Molecules,Partially Characterized Molecules,2.104006915286697,1,19,0.05263157894736842
+HSV1.nasal,Partially Characterized Molecules,Partially Characterized Molecules,2.7442604398987562,2,19,0.10526315789473684
+CMV.pbmc,Partially Characterized Molecules,Partially Characterized Molecules,2.683503716703856,3,19,0.15789473684210525
+EBV.nasal,Partially Characterized Molecules,Partially Characterized Molecules,3.018287374197905,1,19,0.05263157894736842
+Anelloviridae.pbmc,Peptide,Dipeptide,2.1674796256762847,1,4,0.25
+HSV1.nasal,Peptide,Gamma-glutamyl Amino Acid,2.6396752931515617,1,9,0.1111111111111111
+CMV.pbmc,Peptide,Gamma-glutamyl Amino Acid,3.676326153388738,1,9,0.1111111111111111
+Anelloviridae.pbmc,Peptide,Modified Peptides,2.424586995115704,1,1,1
+HSV1.nasal,Peptide,Modified Peptides,2.786615308035823,1,1,1
+CMV.pbmc,Peptide,Modified Peptides,3.3130809242897565,1,1,1
+Anelloviridae.pbmc,Xenobiotics,Benzoate Metabolism,3.4374995431753184,3,13,0.23076923076923078
+HSV1.nasal,Xenobiotics,Benzoate Metabolism,2.5341348963410475,1,13,0.07692307692307693
+CMV.pbmc,Xenobiotics,Benzoate Metabolism,2.9070098745205546,5,13,0.38461538461538464
+Anelloviridae.pbmc,Xenobiotics,Chemical,2.424586995115704,1,14,0.07142857142857142
+HSV1.nasal,Xenobiotics,Chemical,2.3402448295084524,1,14,0.07142857142857142
+CMV.pbmc,Xenobiotics,Chemical,3.1723426891963387,2,14,0.14285714285714285
+EBV.nasal,Xenobiotics,Chemical,2.4094460795902086,1,14,0.07142857142857142
+Anelloviridae.pbmc,Xenobiotics,Food Component/Plant,2.2881889602379086,7,40,0.175
+HSV1.nasal,Xenobiotics,Food Component/Plant,2.984384778038609,9,40,0.225
+CMV.pbmc,Xenobiotics,Food Component/Plant,3.8991166503721773,14,40,0.35
+EBV.nasal,Xenobiotics,Food Component/Plant,2.4373642212499065,4,40,0.1
+EBV.pbmc,Xenobiotics,Food Component/Plant,2.701550220689868,6,40,0.15
+Anelloviridae.pbmc,Xenobiotics,Xanthine Metabolism,2.7106890365366887,1,3,0.3333333333333333
+CMV.pbmc,Xenobiotics,Xanthine Metabolism,2.2415787218992502,2,3,0.6666666666666666

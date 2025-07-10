@@ -40,12 +40,45 @@ out_dir <- "../output/"
 library(nlme)
 library(gamm4)
 library(mgcv)
+
 gamm_modeling <- function(counts, viral_load_control, binary = TRUE, event_date_cutoff){
   ## Requires a data_env be made and in the environment
   ## using the load_IMPACC_dataset function from the codebase
   model.out <- data.frame()
   plot_list <- list()
   residual_list <- list()
+  
+  old_comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/old_full_comb_data.csv") %>% select(-1) %>%
+  select(-starts_with("Human betaherpesvirus 6"),
+         -starts_with("Human gammaherpesvirus 8"),
+         -starts_with("Human betaherpesvirus 7"),
+         -starts_with("Respiratory syncytial virus"),
+         -starts_with("Human immunodeficiency virus 1"),
+         -starts_with("SARS-CoV-2.pbmc"),
+         -starts_with("Enterovirus.pbmc"),
+         -starts_with("Enterovirus.ea"),
+         -starts_with("Anelloviridae.ea"),
+         -starts_with("Anelloviridae.nasal"),
+         -ends_with(".ea")) %>%
+  dplyr::rename("Betacoronavirus.nasal" = "SARS-CoV-2.nasal")
+  
+  max_part <- old_comb_data %>%
+    pivot_longer(cols = -event_id) %>%
+    left_join(data_env$clinical_data %>%
+                distinct(event_id, participant_id, event_date)) %>%
+    filter(event_date >= 0) %>%
+    filter(event_date <= event_date_cutoff) %>%
+    group_by(participant_id, name) %>%
+    filter(name != "Betacoronavirus.nasal") %>%
+    dplyr::summarize(value = max(value, na.rm = TRUE)) %>%
+    filter(value != -Inf) %>%
+    distinct() %>%
+    pivot_wider(names_from = name, values_from = value) %>%
+    ungroup() %>%
+    dplyr::select(-starts_with("Betacoronavirus"))
+  max_part <- max_part[complete.cases(max_part),]
+  ctl_part <- max_part$participant_id[rowSums(max_part[,c(-1)]) == 0]
+  
   max_part <- comb_data %>%
     pivot_longer(cols = -event_id) %>%
     left_join(data_env$clinical_data %>%
@@ -59,12 +92,15 @@ gamm_modeling <- function(counts, viral_load_control, binary = TRUE, event_date_
     distinct() %>%
     pivot_wider(names_from = name, values_from = value) %>%
     ungroup() %>%
-    select(-starts_with("Betacoronavirus"))
+    dplyr::select(-starts_with("Betacoronavirus"))
   
   ## Filter for participants that we have both a nasal and pbmc sample for
   ## Really not that big of deal because we control for nasal viral load
   max_part <- max_part[complete.cases(max_part),]
-  ctl_part <- max_part$participant_id[rowSums(max_part[,c(-1)]) == 0]
+  
+  ## This is to standardize the control cohort to the prior version
+  ## that did not yet exclude 3B plate 4 for HSV1
+  
   
   for(active_vir in colnames(max_part)[-1]){
     print(paste0("Starting ", match(active_vir, colnames(max_part)[-1]), " out of ", length(colnames(max_part)[-1])))
@@ -80,9 +116,9 @@ gamm_modeling <- function(counts, viral_load_control, binary = TRUE, event_date_
                                                           enrollment_site,
                                                           discretized_admit_age_quantile,
                                                           sex)) %>%
-      inner_join(max_part %>% select(participant_id, .data[[active_vir]]), by = "participant_id") %>%
+      inner_join(max_part %>% dplyr::select(participant_id, .data[[active_vir]]), by = "participant_id") %>%
       inner_join(comb_data %>%
-                   select(event_id, Betacoronavirus.nasal), by = "event_id") %>%
+                   dplyr::select(event_id, Betacoronavirus.nasal), by = "event_id") %>%
       relocate(sample_id, event_id, event_type, event_date,
                participant_id,
                respiratory_status, trajectory_group, enrollment_site,
@@ -215,9 +251,9 @@ gamm_modeling <- function(counts, viral_load_control, binary = TRUE, event_date_
                                                               enrollment_site,
                                                               discretized_admit_age_quantile,
                                                               sex)) %>%
-          inner_join(max_part %>% select(participant_id), by = "participant_id") %>%
+          inner_join(max_part %>% dplyr::select(participant_id), by = "participant_id") %>%
           inner_join(comb_data %>%
-                       select(event_id, Betacoronavirus.nasal), by = "event_id") %>%
+                       dplyr::select(event_id, Betacoronavirus.nasal), by = "event_id") %>%
           relocate(sample_id, event_id, event_type, event_date,
                    participant_id,
                    respiratory_status, trajectory_group, enrollment_site,
@@ -528,9 +564,9 @@ ggsave(paste0(out_dir, "Figure5E.pdf"), width = 14.16, height = 3)
 
 ```
 
-## Supplemental Figure 5
+## Supplemental Figure 7
 
-### Figure S5A
+### Figure S7A
 
 ```{r, fig.width = 6, fig.height = 26}
 library(ComplexHeatmap)
@@ -570,49 +606,53 @@ colnames(heat_df3) <- gsub("\\)", "", gsub(".*\\(", "", colnames(heat_df3)))
 heat_df3[is.na(heat_df3)] <- 0
 rownames(heat_df3) <- data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME[match(rownames(heat_df3), rownames(data_env$plasma_metabolomics_global_rowfeature))]
 
-pdf(paste0(out_dir, "FigureS5A.pdf"), width = 6, height = 26)
+pdf(paste0(out_dir, "FigureS7A.pdf"), width = 6, height = 26)
 Heatmap(heat_df3, border = TRUE, row_split = data_env$plasma_metabolomics_global_rowfeature$SUPER_PATHWAY[match(rownames(heat_df3), data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME)],
         col = col_fun, show_row_dend = F, show_column_dend = F,column_title = "Virus",
         column_split = gsub("_.*", "", colnames(heat_df3)), cluster_rows = T,
         column_names_rot = 45, column_names_side = "top",column_title_side = "bottom",
         name = "Signed\n-log10 transformed\nadjusted p.values", cluster_columns = TRUE)
 dev.off()
+write_csv(heat_df3, paste0(out_dir, "source_data_FigureS7A.csv"))
+
+write_csv(pmg %>% left_join(data_env$plasma_metabolomics_global_rowfeature %>% rownames_to_column("feature") %>%
+              select(feature, CHEMICAL_NAME)), paste0(out_dir, "Supplemental_Data_part1_named_compounds.csv"))
 ```
 
-### Figure S5B-F
+### Figure S7B-F
 
 ```{r}
 
 ggb <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "N,N,N-trimethyl-alanylproline betaine (TMAP)"], better_name = "\nTMAP",base_size = 12,
           c("Human betaherpesvirus 5 (CMV).pbmc"), modeling_results, viral_colors)
 ggb
-ggsave(paste0(out_dir, "FigureS5B.pdf"), width = 4.92, height = 3)
+ggsave(paste0(out_dir, "FigureS7B.pdf"), width = 4.92, height = 3)
 
 ggc <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "arachidate (20:0)"], better_name = "\nArachidate (20:0)",base_size = 12,
           c("Human betaherpesvirus 5 (CMV).pbmc","Anelloviridae.pbmc"), modeling_results, viral_colors)
 ggc
-ggsave(paste0(out_dir, "FigureS5C.pdf"), width = 8, height = 3)
+ggsave(paste0(out_dir, "FigureS7C.pdf"), width = 8, height = 3)
 
 ggd <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "docosadienoate (22:2n6)"], better_name = "\nDocosadienoate (22:2n6)",base_size = 12,
           c("Human betaherpesvirus 5 (CMV).pbmc","Anelloviridae.pbmc"), modeling_results, viral_colors)
 ggd
-ggsave(paste0(out_dir, "FigureS5D.pdf"), width = 8, height = 3)
+ggsave(paste0(out_dir, "FigureS7D.pdf"), width = 8, height = 3)
 
 ## Dimethylarginine
 gge <- traj_plot("X100001810", better_name = "\nDimethylarginine", base_size = 12,
           c("Human betaherpesvirus 5 (CMV).pbmc", "Anelloviridae.pbmc"), modeling_results, viral_colors)
 gge
-ggsave(paste0(out_dir, "FigureS5E.pdf"), width = 8, height = 3)
-
+ggsave(paste0(out_dir, "FigureS7E.pdf"), width = 8, height = 3)
 
 ggf <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "S-methylcysteine sulfoxide"], better_name = "\nS-methylcysteine sulfoxide",base_size = 12,
           c("Human betaherpesvirus 5 (CMV).pbmc","Human gammaherpesvirus 4 (EBV).pbmc",
                      "Human alphaherpesvirus 1 (HSV1).nasal", "Anelloviridae.pbmc"), modeling_results, viral_colors)
 ggf
-ggsave(paste0(out_dir, "FigureS5F.pdf"), width = 14.16, height = 3)
+ggsave(paste0(out_dir, "FigureS7F.pdf"), width = 14.16, height = 3)
 ```
 
 ## Session Info
+
 ```{r}
 sessionInfo()
 ```

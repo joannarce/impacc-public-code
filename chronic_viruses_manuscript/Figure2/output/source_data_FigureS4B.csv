@@ -1,0 +1,34 @@
+name,ethnicity,mean,count,positive,.group
+Anelloviridae.pbmc,Hispanic or Latino,16.470588235294116,340,55.99999999999999,1
+Anelloviridae.pbmc,Not Hispanic or Latino,17.891816920943135,721,129,1
+Anelloviridae.pbmc,Not Specified,11.627906976744185,43,5,1
+CMV.ea,Hispanic or Latino,7.894736842105263,76,6,2
+CMV.ea,Not Hispanic or Latino,6.8493150684931505,73,5,2
+CMV.ea,Not Specified,0,8,0,2
+CMV.nasal,Hispanic or Latino,3.7383177570093453,321,11.999999999999998,3
+CMV.nasal,Not Hispanic or Latino,1.0416666666666665,672,6.999999999999999,3
+CMV.nasal,Not Specified,7.142857142857142,42,3,3
+CMV.pbmc,Hispanic or Latino,6.176470588235294,340,21,4
+CMV.pbmc,Not Hispanic or Latino,2.496532593619972,721,17.999999999999996,4
+CMV.pbmc,Not Specified,4.651162790697675,43,2,4
+EBV.ea,Hispanic or Latino,7.894736842105263,76,6,5
+EBV.ea,Not Hispanic or Latino,6.8493150684931505,73,5,5
+EBV.ea,Not Specified,0,8,0,5
+EBV.nasal,Hispanic or Latino,10.59190031152648,321,34,6
+EBV.nasal,Not Hispanic or Latino,5.803571428571429,672,39,6
+EBV.nasal,Not Specified,7.142857142857142,42,3,6
+EBV.pbmc,Hispanic or Latino,31.76470588235294,340,107.99999999999999,7
+EBV.pbmc,Not Hispanic or Latino,22.74618585298197,721,164,7
+EBV.pbmc,Not Specified,32.55813953488372,43,14,7
+Enterovirus.nasal,Hispanic or Latino,5.607476635514018,321,18,8
+Enterovirus.nasal,Not Hispanic or Latino,4.613095238095238,672,31,8
+Enterovirus.nasal,Not Specified,2.380952380952381,42,1,8
+HSV1.ea,Hispanic or Latino,46.05263157894737,76,35,9
+HSV1.ea,Not Hispanic or Latino,41.0958904109589,73,30,9
+HSV1.ea,Not Specified,25,8,2,9
+HSV1.nasal,Hispanic or Latino,12.341772151898734,316,39,10
+HSV1.nasal,Not Hispanic or Latino,8.995502248875562,667,60,10
+HSV1.nasal,Not Specified,4.878048780487805,41,2,10
+HSV2.nasal,Hispanic or Latino,0.6230529595015576,321,2,11
+HSV2.nasal,Not Hispanic or Latino,0.2976190476190476,672,2,11
+HSV2.nasal,Not Specified,0,41,0,11

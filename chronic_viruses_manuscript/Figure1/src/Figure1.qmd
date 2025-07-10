@@ -74,6 +74,10 @@ pbmc_reports_subset <- pbmc_reports_subset %>%
 
 ```{r}
 nasal_metagenomics_metadata <- read_csv("/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv")
+nasal_transcriptomics_metadata <- read_csv("/data/nasal-transcriptomics/current/nasal-transcriptomics-Metadata.csv")
+## See the section Nasal Batch Check Below for the reason this batch is being excluded for HSV1
+plate_3B_4 <- nasal_transcriptomics_metadata$sample_id[nasal_transcriptomics_metadata$phase == "3B" & nasal_transcriptomics_metadata$plate == "4"]
+plate_3B_4 <- plate_3B_4[!is.na(plate_3B_4)]
 nasal_metagenomics_rowfeature <- read_csv("/data/nasal-metagenomics/current/nasal-metagenomics-AllGenera-RowFeatures.csv", skip = 1)
 nasal_viral_samples <- fread("/scratch/metagenomics/viral_reactivation/data/nasal_virus_samples_analyzed.csv.gz")
 
@@ -85,9 +89,17 @@ nasal_reports <- fread("/scratch/metagenomics/viral_reactivation/data/nasal_viru
               filter(core_specific_ID %in% nasal_viral_samples$samples) %>%
               filter(sample_status == "IMPACC sample assayed and passed QC") %>%
               filter(internal_control != "yes") %>%
-              distinct(core_specific_ID, sample_id),
+              distinct(core_specific_ID, sample_id, phase, plate),
             by = c("full_czid_id" = "core_specific_ID")) %>%
-  relocate(sample_id) %>% select(-full_czid_id) %>%
+  relocate(sample_id, phase, plate) %>% rowwise() %>%
+  mutate(`Human alphaherpesvirus 1` = ifelse(sample_id %in% plate_3B_4,
+                                             ifelse(`Human alphaherpesvirus 1` > 0, -Inf,
+                                                    0), `Human alphaherpesvirus 1`),
+        `Human alphaherpesvirus 2` = ifelse(sample_id %in% plate_3B_4,
+                                            ifelse(`Human alphaherpesvirus 2` > 0, -Inf,
+                                                    0), `Human alphaherpesvirus 2`)) %>%
+  ungroup() %>%
+  select(-full_czid_id, -phase, -plate) %>%
   distinct()
 
 nasal_reports_subset <- nasal_reports %>%
@@ -115,6 +127,7 @@ nasal_reports_subset <- nasal_reports_subset %>%
   group_by(event_id) %>%
   select(-sample_id, -participant_id) %>%
   replace(is.na(.), 0) %>%
+  replace(.==-Inf, NA) %>%
   summarise_all("mean")
 
 
@@ -234,6 +247,57 @@ full_comb_data <- pbmc_reports_subset %>%
     rename_with(~paste0(., ".ea"), -event_id),
   by = c("event_id")) 
 
+HSV1_2_Ratio <- full_comb_data %>%
+  filter(!is.na(`Human alphaherpesvirus 1 (HSV1).nasal`)) %>%
+  mutate(HSV1_2Ratio = `Human alphaherpesvirus 1 (HSV1).nasal` / (`Human alphaherpesvirus 1 (HSV1).nasal` + `Human alphaherpesvirus 2 (HSV2).nasal`)) %>%
+  ggplot(aes(x=HSV1_2Ratio)) +
+  geom_histogram(bins = 100) +
+  theme_classic()
+HSV1_2_Ratio
+ggsave(paste0(out_dir, "HSV1_2Ratio_nasal.pdf"))
+
+HSV1_2_Ratio <- full_comb_data %>%
+  filter(!is.na(`Human alphaherpesvirus 1 (HSV1).ea`)) %>%
+  mutate(HSV1_2Ratio = `Human alphaherpesvirus 1 (HSV1).ea` / (`Human alphaherpesvirus 1 (HSV1).ea` + `Human alphaherpesvirus 2 (HSV2).ea`)) %>%
+  ggplot(aes(x=HSV1_2Ratio)) +
+  geom_histogram(bins = 100) +
+  theme_classic()
+HSV1_2_Ratio
+ggsave(paste0(out_dir, "HSV1_2Ratio_ea.pdf"))
+
+## Attribute all HSV2 reads to HSV1 if the ratio is high enough (i.e. HSV1 > HSV2,
+## as although primative, the histogram above demonstrates a clear separation)
+## Doing for both the nasal and ea
+for(i in 1:nrow(full_comb_data)){
+  if(is.na(full_comb_data$`Human alphaherpesvirus 1 (HSV1).nasal`[i]) | is.na(full_comb_data$`Human alphaherpesvirus 2 (HSV2).nasal`)[i]){
+    next
+  }
+  if(full_comb_data$`Human alphaherpesvirus 1 (HSV1).nasal`[i] > full_comb_data$`Human alphaherpesvirus 2 (HSV2).nasal`[i]){
+    full_comb_data$`Human alphaherpesvirus 1 (HSV1).nasal`[i] <- full_comb_data$`Human alphaherpesvirus 1 (HSV1).nasal`[i] +
+      full_comb_data$`Human alphaherpesvirus 2 (HSV2).nasal`[i]
+     full_comb_data$`Human alphaherpesvirus 2 (HSV2).nasal`[i] <-0
+  } else if (full_comb_data$`Human alphaherpesvirus 1 (HSV1).nasal`[i] < full_comb_data$`Human alphaherpesvirus 2 (HSV2).nasal`[i]){
+     full_comb_data$`Human alphaherpesvirus 2 (HSV2).nasal`[i] <- full_comb_data$`Human alphaherpesvirus 2 (HSV2).nasal`[i] +
+      full_comb_data$`Human alphaherpesvirus 1 (HSV1).nasal`[i]
+     full_comb_data$`Human alphaherpesvirus 1 (HSV1).nasal`[i] <-0
+  }
+}
+
+for(i in 1:nrow(full_comb_data)){
+  if(is.na(full_comb_data$`Human alphaherpesvirus 1 (HSV1).ea`[i]) | is.na(full_comb_data$`Human alphaherpesvirus 2 (HSV2).ea`)[i]){
+    next
+  }
+  if(full_comb_data$`Human alphaherpesvirus 1 (HSV1).ea`[i] > full_comb_data$`Human alphaherpesvirus 2 (HSV2).ea`[i]){
+    full_comb_data$`Human alphaherpesvirus 1 (HSV1).ea`[i] <- full_comb_data$`Human alphaherpesvirus 1 (HSV1).ea`[i] +
+      full_comb_data$`Human alphaherpesvirus 2 (HSV2).ea`[i]
+     full_comb_data$`Human alphaherpesvirus 2 (HSV2).ea`[i] <-0
+  } else if (full_comb_data$`Human alphaherpesvirus 1 (HSV1).ea`[i] < full_comb_data$`Human alphaherpesvirus 2 (HSV2).ea`[i]){
+     full_comb_data$`Human alphaherpesvirus 2 (HSV2).ea`[i] <- full_comb_data$`Human alphaherpesvirus 2 (HSV2).ea`[i] +
+      full_comb_data$`Human alphaherpesvirus 1 (HSV1).ea`[i]
+     full_comb_data$`Human alphaherpesvirus 1 (HSV1).ea`[i] <-0
+  }
+}
+
 colnames(full_comb_data) <- gsub("Betacoronavirus", "SARS-CoV-2", colnames(full_comb_data))
 write.csv(full_comb_data, "/scratch/metagenomics/viral_reactivation/full_comb_data.csv")
 ## This is the key file used for all subsequent figures reporting the viral load on a event_id basis
@@ -251,6 +315,7 @@ library(ggpubr)
 TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
 
 comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.csv") %>% select(-1)
+
 data_env <- readRDS("/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS")
 clinical_data <- data_env$clinical_data
 nasal_viralload_counts <- data_env$nasal_viralload_counts %>%
@@ -262,6 +327,14 @@ rm(data_env)
 clinical_data_ext <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-supp-locked.csv")
 
 out_dir <- "../output/"
+
+## This is the list of participants used in the study, and the ones used to generate 
+## The supplemental clinical table.
+## Hashed out, as only need to run one time
+# write_csv(comb_data %>% left_join(clinical_data %>%
+#                                     distinct(event_id, participant_id)) %>%
+#             filter(!is.na(participant_id)) %>% distinct(participant_id),
+#           "/scratch/metagenomics/viral_reactivation/final_participant_list.csv")
 ```
 
 ## Figure 1B: Biospecimens across visits and omics
@@ -509,7 +582,7 @@ flattenCorrMatrix <- function(cormat, pmat) {
     p = pmat[ut]
     )
 }
-for_cor_data <- as.matrix(comb_data[,c(2:4, 10:15, 22, 23, 24, 25, 26 )])
+for_cor_data <- as.matrix(comb_data[,c(2:4, 10:15, 22, 23, 24, 26 )])
 for_cor_data <- for_cor_data[,!grepl("Beta", colnames(for_cor_data))]
 colnames(for_cor_data) <- gsub("\\)", "", gsub(".* \\(", "", colnames(for_cor_data)))
 res <- rcorr(for_cor_data,type = "spearman")
@@ -517,6 +590,7 @@ resdf <- flattenCorrMatrix(res$r, res$P)
 write.csv(resdf, paste0(out_dir, "source_data_Figure1E.csv"))
 tmpP <- res$P
 tmpP[is.na(tmpP)] <- 1
+res$r[is.nan(res$r)] <- 0
 pdf(paste0(out_dir, "Figure1E.pdf"), width = 8, height = 8)
 corrplot(res$r, type = "upper", order = "hclust", 
          tl.col = "black",outline = TRUE, tl.srt = 45,
@@ -563,8 +637,12 @@ ggb <- corr_data %>%
   ylab("Nucleocapsid 2 Cycle Threshold") +
   xlab("Betacoronavirus RPM")
 
-write_csv(gga$data, paste0(out_dir, "source_data_FigureS1A.csv"))
-write_csv(ggb$data, paste0(out_dir, "source_data_FigureS1B.csv"))
+write_csv(gga$data %>% select(-event_id), paste0(out_dir, "source_data_FigureS1A.csv"))
+write_csv(ggb$data %>% select(-event_id), paste0(out_dir, "source_data_FigureS1B.csv"))
+
+top <- ggarrange(gga, ggb, nrow =1, ncol =2, labels = c("A", "B"))
+top
+ggsave(paste0(out_dir, "FigureS1A-B.pdf"), width = 8, height = 2.5)
 ```
 
 ### Figure S1C: Taxnonomy of Anelloviridae
@@ -612,8 +690,6 @@ enterovirus_reports <- plyr::rbind.fill(fread("/scratch/metagenomics/viral_react
   
 cat(paste(unique(enterovirus_reports$tax_id), collapse = "\n"))
 ## Paste these into https://www.ncbi.nlm.nih.gov/Taxonomy/CommonTree/wwwcmt.cgi
-
-
 ```
 
 ```{r, fig.width=5, fig.height =4}
@@ -627,27 +703,755 @@ ggsave(paste0(out_dir, "FiguresS1D.pdf"), width = 5, height = 4)
 ## 5x4
 ```
 
-### Figure S1E-H: Expanded Smoothed Reactivation Curves
+### Figure S1E-F: Enrollment site, sequencing core
+
+```{r, fig.height = 3, fig.width = 6}
+c15 <- c(
+  "dodgerblue2", "#E31A1C", 
+  "#6A3D9A",
+  "#FF7F00",
+  "black", "gold1",
+  "skyblue2", "#FB9A99",
+  "palegreen2",
+  "#CAB2D6",
+  "#FDBF6F", 
+  "gray70", "khaki2",
+  "maroon", "orchid1"
+)
+event_date_cutoff = 40
+
+comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.csv") %>% select(-1) %>%
+  select(-starts_with("Human betaherpesvirus 6"),
+         -starts_with("Human gammaherpesvirus 8"),
+         -starts_with("Human betaherpesvirus 7"),
+         -starts_with("Respiratory syncytial virus"),
+         -starts_with("Human immunodeficiency virus 1"),
+         -starts_with("SARS-CoV-2.pbmc"),
+         -starts_with("Enterovirus.ea"),
+         -starts_with("Enterovirus.pbmc"),
+         -starts_with("Anelloviridae.ea"),
+         -starts_with("Anelloviridae.nasal"),
+         -ends_with(".ea")) %>%
+  dplyr::rename("Betacoronavirus.nasal" = "SARS-CoV-2.nasal")
+
+max_part <- comb_data %>%
+    pivot_longer(cols = -event_id) %>%
+    left_join(clinical_data %>%
+                distinct(event_id, participant_id, event_date)) %>%
+    filter(event_date >= 0) %>%
+    filter(event_date <= event_date_cutoff) %>%
+    group_by(participant_id, name) %>%
+    filter(name != "Betacoronavirus.nasal") %>%
+    dplyr::summarize(value = max(value, na.rm = TRUE)) %>%
+    filter(value != -Inf) %>%
+    distinct() %>%
+    pivot_wider(names_from = name, values_from = value) %>%
+    ungroup() %>%
+    dplyr::select(-starts_with("Betacoronavirus"))
+
+ggS1E <- max_part %>%
+  pivot_longer(cols = -participant_id) %>%
+  left_join(clinical_data %>% distinct(participant_id, enrollment_site)) %>%
+    mutate(value = ifelse(value > 0, 1, value)) %>%
+    filter(!is.na(value)) %>%
+  filter(value == 1) %>%
+    group_by(name, value, enrollment_site) %>%
+    dplyr::summarize(count = n()) %>%
+    mutate(freq = count /sum(count) * 100,
+           total = sum(count)) %>% 
+  mutate(name = gsub(".*\\(", "", gsub(")", "", name))) %>%
+  ggplot(aes(x=freq, y=name, fill = enrollment_site)) +
+  geom_bar(stat = "identity") +
+  theme_classic() +
+  scale_y_discrete(limits = rev) +
+  guides(fill = guide_legend(override.aes = list(size = 0.25))) +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"),
+        legend.key.size = unit(0.4, 'cm')) +
+  scale_fill_manual(values = c15, name = "Enrollment Site") +
+  xlab("Percent of Positive Participants (%)") +
+  ylab("Virus and Tissue")
+ggS1E
+ggsave(paste0(out_dir, "FigureS1E.pdf"), width = 6, height = 3)
+write_csv(ggS1E$data %>% ungroup() %>% dplyr::select(-value, -.group), paste0(out_dir, "source_data_FigureS1E.csv"))
+```
+
+For the PBMC sequencing, it was conducted between two cores, with participants split between the two. Here we compare the rates of PBMC associated viruses between the two and find them comparable.
+
+```{r, fig.width = 4.5, fig.height = 2.5}
+comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.csv") %>% select(-1) %>%
+  select(-starts_with("Human betaherpesvirus 6"),
+         -starts_with("Human gammaherpesvirus 8"),
+         -starts_with("Human betaherpesvirus 7"),
+         -starts_with("Respiratory syncytial virus"),
+         -starts_with("Human immunodeficiency virus 1"),
+         -starts_with("SARS-CoV-2.pbmc"),
+         -starts_with("Enterovirus.ea"),
+         -starts_with("Enterovirus.pbmc"),
+         -starts_with("Anelloviridae.ea"),
+         -starts_with("Anelloviridae.nasal"),
+         -ends_with(".ea")) %>%
+  dplyr::rename("Betacoronavirus.nasal" = "SARS-CoV-2.nasal")
+
+###########################################################################
+
+pbmc_metadata <- read_csv("/data/pbmc-transcriptomics/current/pbmc-transcriptomics-Metadata.csv") %>%
+  distinct(sample_id, Core) %>%
+  left_join(clinical_data %>% distinct(sample_id, event_id)) %>%
+  distinct(event_id, Core)
+
+ggS1F <- comb_data %>%
+    pivot_longer(cols = -event_id) %>%
+    left_join(pbmc_metadata) %>%
+    filter(grepl(".pbmc", name)) %>%
+    mutate(value = ifelse(value > 0, 1, value)) %>%
+    filter(!is.na(value)) %>%
+    group_by(Core, name, value) %>%
+    dplyr::summarize(count = n()) %>%
+    mutate(freq = count /sum(count) * 100,
+           total = sum(count)) %>%
+    filter(value == 1) %>%
+    filter(!is.na(Core)) %>%
+  mutate(Core = gsub(".*_", "", Core)) %>%
+  mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+    ggplot(aes(x=Core, y= freq,
+               fill = Core)) +
+    geom_bar(stat = "identity") +
+    facet_wrap( ~ name) +
+    theme_classic() +
+    ylab("Percent of Samples Positive (%)") +
+    xlab("Sequencing Core") +
+  geom_text(aes(label = paste0(round(freq, 1), "%")), vjust = -0.5, color = "black") +
+  coord_cartesian(ylim = c(0, 14)) +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"),
+        legend.position = "none") 
+ggS1F
+ggsave(paste0(out_dir, "FigureS1F.pdf"), width = 4.5, height = 2.5)
+write_csv(ggS1F$data %>% ungroup() %>% dplyr::select(-value, -.group), paste0(out_dir, "source_data_FigureS1F.csv"))
+```
+
+### Supplemental Analysis of Evaluation for Plate/Batch Effect
+
+```{r}
+## data load of a version without the exclusion of the nasal batch 3B_4
+comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/old_full_comb_data.csv") %>% select(-1) %>%
+  select(-starts_with("Human betaherpesvirus 6"),
+         -starts_with("Human gammaherpesvirus 8"),
+         -starts_with("Human betaherpesvirus 7"),
+         -starts_with("Respiratory syncytial virus"),
+         -starts_with("Human immunodeficiency virus 1"),
+         -starts_with("SARS-CoV-2.pbmc"),
+         -starts_with("Enterovirus.ea"),
+         -starts_with("Enterovirus.pbmc"),
+         -starts_with("Anelloviridae.ea"),
+         -starts_with("Anelloviridae.nasal"),
+         -ends_with(".ea")) %>%
+  dplyr::rename("Betacoronavirus.nasal" = "SARS-CoV-2.nasal")
+
+## Has phase and plate information
+nasal_metadata <- read_csv("/data/nasal-transcriptomics/current/nasal-transcriptomics-Metadata.csv")
+pbmc_metadata <- read_csv("/data/pbmc-transcriptomics/current/pbmc-transcriptomics-Metadata.csv")
+ea_metadata <- read_csv("/data/ea-transcriptomics/current/ea-transcriptomics-Metadata.csv")
+```
+
+#### Nasal Batch Check
+
+```{r, fig.width = 8, fig.height = 4}
+
+model_df <- comb_data %>%
+  select(-`Enterovirus.nasal`) %>%
+  pivot_longer(cols = -event_id) %>%
+  filter(grepl(".nasal", name)) %>%
+  filter(!is.na(value)) %>% ## Removes events without a nasal sample
+  left_join(nasal_metadata %>%
+              left_join(clinical_data %>% distinct(sample_id, event_id,
+                                                   trajectory_group,
+                                                   event_date))) %>%
+  mutate(plate = paste0(phase, "_", plate)) %>%
+  filter(event_date <= 40)
+
+model_df %>% mutate(value2 = ifelse(value > 0, 1, 0 )) %>%
+  group_by(name, plate, trajectory_group, value2) %>%
+  dplyr::summarize(count = n()) %>%
+  group_by(name, plate) %>%
+  mutate(freq = count / sum(count)) %>%
+  ungroup() %>%
+  filter(value2 == 1) %>%
+  complete(name, plate) %>%
+  mutate(freq = ifelse(is.na(freq), 0, freq)) %>%
+  filter(name != "Betacoronavirus.nasal") %>%
+  mutate(name = gsub(".*\\(", "", gsub(")", "", name))) %>%
+  mutate(trajectory_group = factor(trajectory_group, levels = 5:1)) %>%
+  ggplot(aes(x=plate, y=freq * 100, fill = trajectory_group)) +
+  geom_bar(stat = "identity") +
+  theme_classic() +
+  facet_wrap(~name,scales = "free") +
+  ylab("Percent of Batch") +
+  theme(axis.text.x = element_blank()) +
+  scale_fill_manual(values = TrajGrpCol, name = "Trajectory Group") +
+  xlab("Batch")
+ggsave(paste0(out_dir, "Nasal_batch_rates.pdf"), width = 8, height = 4)
+
+```
+
+
+Exploration of high HSV1 batch
+```{r, fig.width = 5, fig.height = 3}
+
+model_df %>%
+  group_by(name, plate, trajectory_group, participant_id) %>%
+  filter(name == "Human alphaherpesvirus 1 (HSV1).nasal") %>%
+  filter(plate == "3B_4") %>%
+  mutate(trajectory_group = factor(trajectory_group, levels = 5:1)) %>%
+  ggplot(aes(x=event_date, y=value, color = trajectory_group)) +
+  geom_line(aes(group = participant_id)) +
+  geom_point() +
+  theme_classic() +
+  ylab("HSV1 RPM") +
+  #theme(axis.text.x = element_blank()) +
+  scale_color_manual(values = TrajGrpCol) +
+  xlab("Event Date")+
+  scale_y_continuous(trans='log10')
+
+ggsave(paste0(out_dir, "HSV1_RPM_outlier_batch_excluded.pdf"), width = 5, height = 3)
+```
+
+##### Statistical Testing
+```{r}
+## Excluding the identified plate 3B_4 finds no significant association with batch
+model_df <- comb_data %>%
+  dplyr::select(-Betacoronavirus.nasal) %>%
+  pivot_longer(cols = -event_id) %>%
+  filter(grepl(".nasal", name)) %>%
+  filter(!is.na(value)) %>% ## Removes events without a nasal sample
+  left_join(nasal_metadata %>%
+              left_join(clinical_data %>% distinct(sample_id, event_id,
+                                                   trajectory_group,
+                                                   event_date))) %>%
+  mutate(plate = paste0(phase, "_", plate)) %>%
+  filter(plate != "3B_4") %>%
+  mutate(binary = ifelse(value > 0, 1, 0))
+
+nasal_out <- data.frame()
+for(active_virus in unique(model_df$name)){
+  fit <- lm(value ~ trajectory_group * event_date + plate, data = model_df %>% filter(name == active_virus))
+  nasal_out <- rbind.data.frame(nasal_out,
+                                car::Anova(fit, type = "III") %>%
+                                  as.data.frame() %>%
+                                  rownames_to_column("feature") %>%
+                                  mutate(virus = active_virus))
+}
+write.csv(nasal_out, paste0(out_dir, "nasal_batch_testing.csv"), row.names = F)
+```
+
+
+#### PBMC Batch Check
+
+```{r, fig.width = 6, fig.height = 4.5}
+
+model_df <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  filter(grepl(".pbmc", name)) %>%
+  filter(!is.na(value)) %>% ## Removes events without a nasal sample
+  left_join(pbmc_metadata %>%
+              left_join(clinical_data %>% distinct(sample_id, event_id,
+                                                   trajectory_group,
+                                                   event_date))) %>%
+  mutate(plate = paste0(phase, "_", plate_num)) %>%
+  filter(event_date <= 40)
+
+model_df %>% mutate(value2 = ifelse(value > 0, 1, 0 )) %>%
+  group_by(name, Core, plate, trajectory_group, value2) %>%
+  dplyr::summarize(count = n()) %>%
+  group_by(name, plate) %>%
+  mutate(freq = count / sum(count)) %>%
+  ungroup() %>%
+  filter(value2 == 1) %>%
+  complete(name, nesting(Core, plate)) %>%
+  mutate(freq = ifelse(is.na(freq), 0, freq)) %>%
+  filter(name != "Betacoronavirus.nasal") %>%
+  mutate(name = gsub(".*\\(", "", gsub(")", "", name))) %>%
+  mutate(trajectory_group = factor(trajectory_group, levels = 5:1)) %>%
+  ggplot(aes(x=plate, y=freq * 100, fill = trajectory_group)) +
+  geom_bar(stat = "identity") +
+  theme_classic() +
+  facet_grid(name~Core,scales = "free") +
+  ylab("Percent of Batch") +
+  theme(axis.text.x = element_blank()) +
+  #theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  scale_fill_manual(values = TrajGrpCol, name = "Trajectory Group") +
+  xlab("Batch")
+ggsave(paste0(out_dir, "PBMC_batch_rates.pdf"), width = 6, height = 4.5)
+```
+
+#### EA Batch Check
+
+```{r, fig.width = 6, fig.height = 3.5}
+
+comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.csv") %>% select(-1) %>%
+  select(-starts_with("Human betaherpesvirus 6"),
+         -starts_with("Human gammaherpesvirus 8"),
+         -starts_with("Human betaherpesvirus 7"),
+         -starts_with("Respiratory syncytial virus"),
+         -starts_with("Human immunodeficiency virus 1"),
+         -starts_with("SARS-CoV-2.pbmc"),
+         -starts_with("Enterovirus.ea"),
+         -starts_with("Enterovirus.pbmc"),
+         -starts_with("Anelloviridae.ea"),
+         -starts_with("Anelloviridae.nasal"))
+
+model_df <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  filter(grepl(".ea", name)) %>%
+  filter(!is.na(value)) %>% ## Removes events without a nasal sample
+  left_join(ea_metadata %>%
+              left_join(clinical_data %>% distinct(sample_id, event_id,
+                                                   trajectory_group,
+                                                   event_date))) %>%
+  mutate(plate = paste0(phase, "_", plate)) %>%
+  filter(event_date <= 40)
+
+model_df %>% mutate(value2 = ifelse(value > 0, 1, 0 )) %>%
+  group_by(name, plate, trajectory_group, value2) %>%
+  dplyr::summarize(count = n()) %>%
+  group_by(name, plate) %>%
+  mutate(freq = count / sum(count)) %>%
+  ungroup() %>%
+  filter(value2 == 1) %>%
+  complete(name, plate) %>%
+  mutate(freq = ifelse(is.na(freq), 0, freq)) %>%
+  filter(name != "SARS-CoV-2.ea") %>%
+  mutate(name = gsub(".*\\(", "", gsub(")", "", name))) %>%
+  mutate(trajectory_group = factor(trajectory_group, levels = 5:1)) %>%
+  ggplot(aes(x=plate, y=freq * 100, fill = trajectory_group)) +
+  geom_bar(stat = "identity") +
+  theme_classic() +
+  facet_wrap(~name,scales = "free") +
+  ylab("Percent of Batch") +
+  theme(axis.text.x = element_blank()) +
+  scale_fill_manual(values = TrajGrpCol) +
+  xlab("Batch")
+ggsave(paste0(out_dir, "EA_batch_rates.pdf"), width = 8, height = 4)
+
+```
+
+### Figure S1G: Checking Read Duplication
+#### EBV in PBMCs
+```{r, fig.width = 2.5, fig.height = 3}
+#| eval: false
+## Takes a long time to run (hence eval: false), presaved results in repo
+pbmc_metadata <- read_csv("/data/pbmc-transcriptomics/current/pbmc-transcriptomics-Metadata.csv")
+ebv_pbmc_reads <- read_csv("/scratch/metagenomics/viral_reactivation/EBV_pbmc_reads.csv") %>%
+  mutate(sample_id = gsub(".*_", "", gsub(".*\\/", "", gsub("_S.*", "",i))))
+  
+key_data <- ebv_pbmc_reads %>%
+  left_join(pbmc_metadata) %>%
+  mutate(phase = paste0(Core, "_", phase)) %>%
+  mutate(plate = paste0(Core, "_", plate_num)) %>%
+  mutate(phase_plate = paste0(phase, "__", plate_num))
+
+for(read in 1:length(key_data$tmp_reads)){ #
+  print(read)
+  test <- key_data %>%
+    filter(sample_id != key_data$sample_id[read])
+  
+  key_data$global_dup[read] <- ifelse(sum(grepl(key_data$tmp_reads[read], test$tmp_reads)) > 0, TRUE, FALSE)
+  
+  ## Exclude reads from the other core in the case of PBMCs
+  test_core <- test %>%
+    filter(Core == test$Core[read])
+  key_data$core_dup[read] <- ifelse(sum(grepl(key_data$tmp_reads[read], test_core$tmp_reads)) > 0, TRUE, FALSE)
+  
+  ## Exclude reads from the wrong phase of the project
+  test_phase <- test_core %>%
+    filter(phase == test$phase[read])
+  key_data$phase_dup[read] <- ifelse(sum(grepl(key_data$tmp_reads[read], test_phase$tmp_reads)) > 0, TRUE, FALSE)
+  
+  ## Exclude reads from other plates/batches from that phase
+  test_phase_plate <- test_phase %>%
+    filter(phase_plate == test$phase_plate[read])
+  key_data$plate_dup[read] <- ifelse(sum(grepl(key_data$tmp_reads[read], test_phase_plate$tmp_reads)) > 0, TRUE, FALSE)
+}
+
+tmp1 <- key_data %>%
+ dplyr::summarize(count = n(),
+                  freq_of_dup = sum(global_dup) / count * 100)
+
+tmp2 <- key_data %>%
+  group_by(Core) %>%
+ dplyr::summarize(count = n(),
+                  freq_of_dup = sum(core_dup) / count * 100)
+
+tmp3 <- key_data %>%
+  group_by(phase) %>%
+ dplyr::summarize(count = n(),
+                  freq_of_dup = sum(phase_dup) / count * 100) %>%
+   ungroup() %>%
+  dplyr::summarize(freq_of_dup = mean(freq_of_dup))
+
+tmp4 <- key_data %>%
+  group_by(phase_plate) %>%
+ dplyr::summarize(count = n(),
+                  freq_of_dup = sum(plate_dup) / count * 100 )%>%
+  ungroup() %>%
+  dplyr::summarize(freq_of_dup = mean(freq_of_dup))
+
+
+ebv_read_dup <- plyr::rbind.fill(tmp1 %>% mutate(Core = "All Reads"),
+                 tmp2,
+               #  tmp3 %>% mutate(Core = "Within Phase"),
+                 tmp4 %>% mutate(Core = "Within Batch")) %>%
+  filter(!is.na(Core)) %>%
+  mutate(Core = factor(Core, levels = c("All Reads",
+                                        "Eckalbar_UCSF", "Bosinger_Emory",
+                                        "Within Phase", "Within Batch"))) %>%
+  mutate(label = paste0(round(freq_of_dup, 1), "%")) %>%
+  ggplot(aes(x=Core, y=freq_of_dup)) +
+    geom_bar(stat = "identity", color = "black", fill = "#BF5700") +
+  geom_text(aes(label = label), 
+    vjust = -0.5
+  ) +
+    theme_classic() +
+  ylab("% of Duplicated Reads") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black")) +
+  ggtitle("EBV in PBMCs") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  coord_cartesian(ylim = c(0, 50))
+ebv_read_dup
+ggsave(paste0(out_dir, "FigureS1G_part1.pdf"), width = 2.5, height = 3)
+write.csv(ebv_read_dup$data, paste0(out_dir, "source_data_FigureS1G_part1.csv"))
+```
+
+#### CMV in PBMCs
+```{r, fig.width = 2.5, fig.height = 3}
+#| eval: false
+## Takes a long time to run (hence eval: false), presaved results in repo
+pbmc_metadata <- read_csv("/data/pbmc-transcriptomics/current/pbmc-transcriptomics-Metadata.csv")
+cmv_pbmc_reads <- read_csv("/scratch/metagenomics/viral_reactivation/CMV_pbmc_reads.csv") %>%
+  mutate(sample_id = gsub(".*_", "", gsub(".*\\/", "", gsub("_S.*", "",i))))
+  
+key_data <- cmv_pbmc_reads %>%
+  left_join(pbmc_metadata) %>%
+  mutate(phase = paste0(Core, "_", phase)) %>%
+  mutate(plate = paste0(Core, "_", plate_num)) %>%
+  mutate(phase_plate = paste0(phase, "__", plate_num))
+
+for(read in 1:length(key_data$tmp_reads)){ #
+  print(read)
+  test <- key_data %>%
+    filter(sample_id != key_data$sample_id[read])
+  
+  key_data$global_dup[read] <- ifelse(sum(grepl(key_data$tmp_reads[read], test$tmp_reads)) > 0, TRUE, FALSE)
+  
+  ## Exclude reads from the other core in the case of PBMCs
+  test_core <- test %>%
+    filter(Core == test$Core[read])
+  key_data$core_dup[read] <- ifelse(sum(grepl(key_data$tmp_reads[read], test_core$tmp_reads)) > 0, TRUE, FALSE)
+  
+  ## Exclude reads from the wrong phase of the project
+  test_phase <- test_core %>%
+    filter(phase == test$phase[read])
+  key_data$phase_dup[read] <- ifelse(sum(grepl(key_data$tmp_reads[read], test_phase$tmp_reads)) > 0, TRUE, FALSE)
+  
+  ## Exclude reads from other plates/batches from that phase
+  test_phase_plate <- test_phase %>%
+    filter(phase_plate == test$phase_plate[read])
+  key_data$plate_dup[read] <- ifelse(sum(grepl(key_data$tmp_reads[read], test_phase_plate$tmp_reads)) > 0, TRUE, FALSE)
+}
+
+tmp1 <- key_data %>%
+ dplyr::summarize(count = n(),
+                  freq_of_dup = sum(global_dup) / count * 100)
+
+tmp2 <- key_data %>%
+  group_by(Core) %>%
+ dplyr::summarize(count = n(),
+                  freq_of_dup = sum(core_dup) / count * 100)
+
+tmp3 <- key_data %>%
+  group_by(phase) %>%
+ dplyr::summarize(count = n(),
+                  freq_of_dup = sum(phase_dup) / count * 100) %>%
+   ungroup() %>%
+  dplyr::summarize(freq_of_dup = mean(freq_of_dup))
+
+tmp4 <- key_data %>%
+  group_by(phase_plate) %>%
+ dplyr::summarize(count = n(),
+                  freq_of_dup = sum(plate_dup) / count * 100 )%>%
+  ungroup() %>%
+  dplyr::summarize(freq_of_dup = mean(freq_of_dup))
+
+
+cmv_read_dup <- plyr::rbind.fill(tmp1 %>% mutate(Core = "All Reads"),
+                 tmp2,
+               #  tmp3 %>% mutate(Core = "Within Phase"),
+                 tmp4 %>% mutate(Core = "Within Batch")) %>%
+  filter(!is.na(Core)) %>%
+  mutate(Core = factor(Core, levels = c("All Reads",
+                                        "Eckalbar_UCSF", "Bosinger_Emory",
+                                        "Within Phase", "Within Batch"))) %>%
+  mutate(label = paste0(round(freq_of_dup, 1), "%")) %>%
+  ggplot(aes(x=Core, y=freq_of_dup)) +
+    geom_bar(stat = "identity", color = "black", fill = "#005F86") +
+  geom_text(aes(label = label), 
+    vjust = -0.5
+  ) +
+    theme_classic() +
+  ylab("% of Duplicated Reads") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black")) +
+  ggtitle("CMV in PBMCs") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  coord_cartesian(ylim = c(0, 25))
+
+cmv_read_dup
+ggsave(paste0(out_dir, "FigureS1G_part2.pdf"), width = 2.5, height = 3)
+write.csv(cmv_read_dup$data, paste0(out_dir, "source_data_FigureS1G_part2.csv"))
+```
+
+
+### Figure S1H: Average E Score of Taxonomic Alignment
+
+```{r}
+library(scales)
+
+## Report from CZID includes E Score
+pbmc_reports <- fread("/scratch/metagenomics/viral_reactivation/data/phase1_4_pbmc_transcriptomics_v2.csv.gz") %>%
+  filter(category == "viruses" & is_phage == FALSE) %>%
+  filter(nr_rpm > 0) %>%
+  filter(nt_rpm > 0)
+
+Anelloviridae_genera <- c("Alphatorquevirus", "Betatorquevirus",
+                         "Gammatorquevirus", "non-genus-specific reads in family Anelloviridae")
+pbmc_ready <- pbmc_reports %>%
+  mutate(name = gsub("Cytomegalovirus",
+                                      "Human betaherpesvirus 5 (CMV)",
+                         gsub("Lymphocryptovirus",
+                              "Human gammaherpesvirus 4 (EBV)",
+                                   name))) %>%
+   mutate(name = stringi::stri_replace_all_regex(name,
+                       pattern = Anelloviridae_genera,
+                       replacement = rep("Anelloviridae", 4),
+                       vectorize_all = TRUE)) %>%
+  filter(name %in% viruses_of_interest) %>%
+  filter(name != "Betacoronavirus") %>%
+  rowwise() %>%
+  mutate(nt_e_value2 = (eval(parse(text = nt_e_value)))) %>%
+  group_by(czid_id, full_czid_id, name) %>% 
+  dplyr::summarize(nt_e_value3 = mean(rep(nt_e_value2, nt_count)))
+```
+
+```{r}
+
+### Nasal ####
+nasal_metagenomics_metadata <- read_csv("/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv")
+nasal_viral_samples <- fread("/scratch/metagenomics/viral_reactivation/data/nasal_virus_samples_analyzed.csv.gz")
+nasal_samples <- nasal_metagenomics_metadata %>%
+              filter(core_specific_ID %in% nasal_viral_samples$samples) %>%
+              filter(sample_status == "IMPACC sample assayed and passed QC") %>%
+              filter(internal_control != "yes") %>%
+              distinct(core_specific_ID, sample_id)
+nasal_reports <- fread("/scratch/metagenomics/viral_reactivation/data/nasal_virus_transcriptomic_v1.csv.gz") %>%
+  filter(category == "viruses" & is_phage == FALSE) %>%
+  filter(nr_rpm > 0) %>%
+  filter(nt_rpm > 0) %>%
+  filter(full_czid_id %in% nasal_metagenomics_metadata$core_specific_ID)
+
+nasal_ready <- nasal_reports %>%
+  mutate(name = gsub("Cytomegalovirus",
+                                      "Human betaherpesvirus 5 (CMV)",
+                         gsub("Lymphocryptovirus",
+                              "Human gammaherpesvirus 4 (EBV)",
+                                   name))) %>%
+   mutate(name = stringi::stri_replace_all_regex(name,
+                       pattern = Anelloviridae_genera,
+                       replacement = rep("Anelloviridae", 4),
+                       vectorize_all = TRUE)) %>%
+  filter(name %in% viruses_of_interest) %>%
+  filter(name != "Betacoronavirus") %>%
+  rowwise() %>%
+  mutate(nt_e_value2 = (eval(parse(text = nt_e_value)))) %>%
+  group_by(full_czid_id, name) %>% 
+  dplyr::summarize(nt_e_value3 = mean(rep(nt_e_value2, nt_count))) ## weighted average
+## Have to combine the Anelloviridae RPMs (with a weighted average)
+
+
+### EA ####
+ea_metagenomics_metadata <- read_csv("/data/ea-metagenomics/current/ea-metagenomics-Metadata.csv")
+ea_metagenomics_rowfeature <- read_csv("/data/ea-metagenomics/current/ea-metagenomics-AllGenera-RowFeatures.csv", skip = 1)
+ea_viral_samples <- fread("/scratch/metagenomics/viral_reactivation/data/ea_virus_samples_analyzed.csv.gz")
+
+ea_reports <- fread("/scratch/metagenomics/viral_reactivation/data/ea_virus_transcriptomic_v1.csv.gz") %>%
+  filter(category == "viruses" & is_phage == FALSE) %>%
+  filter(nr_rpm > 0) %>%
+  filter(nt_rpm > 0) %>%
+  filter(full_czid_id %in% ea_metagenomics_metadata$core_specific_ID)
+ea_ready <- ea_reports %>%
+  mutate(name = gsub("Cytomegalovirus",
+                                      "Human betaherpesvirus 5 (CMV)",
+                         gsub("Lymphocryptovirus",
+                              "Human gammaherpesvirus 4 (EBV)",
+                                   name))) %>%
+   mutate(name = stringi::stri_replace_all_regex(name,
+                       pattern = Anelloviridae_genera,
+                       replacement = rep("Anelloviridae", 4),
+                       vectorize_all = TRUE)) %>%
+  filter(name %in% viruses_of_interest) %>%
+  filter(name != "Betacoronavirus") %>%
+  rowwise() %>%
+  mutate(nt_e_value2 = (eval(parse(text = nt_e_value)))) %>%
+  group_by(full_czid_id, name) %>% 
+  dplyr::summarize(nt_e_value3 = mean(rep(nt_e_value2, nt_count)))
+
+##### Combine them all #####
+all_ready <- plyr::rbind.fill(pbmc_ready %>% mutate(omic = "PBMC"),
+                              nasal_ready %>% mutate(omic = "Nasal"),
+                              ea_ready %>% mutate(omic = "EA"))
+
+ggS1H <- all_ready %>%
+  mutate(omic = factor(omic, levels = c("PBMC", "Nasal", "EA"))) %>%
+  ggplot(aes(y=-log10(nt_e_value3), x= name)) +
+  geom_boxplot(outlier.shape = NA) +
+  #ggbeeswarm::geom_quasirandom() +
+  geom_jitter(size = 0.7) +
+  theme_classic() +
+  #scale_y_continuous(trans='log10') +
+  #coord_trans(y = "log10") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black")) +
+  ylab("-log10(Average E Value)") +
+  facet_grid(~omic, scales = "free", space = "free") +
+  geom_hline(yintercept = -log10(1e-5), color = "red", linetype = "dashed") +
+  xlab("Virus")
+ggS1H
+ggsave(paste0(out_dir, "FigureS1H.pdf"), width =6,height = 4)
+write_csv(ggS1H$data %>% select(-czid_id, -full_czid_id),
+          paste0(out_dir, "source_data_FigureS1H.csv"))
+
+```
+
+## Supplemental Figure 2
+
+### Figure S2A: Viral Reads per Million Graph Over Acute Period
+
+```{r, fig.width = 10, fig.height = 6}
+## This is the same comb_data that was generated at the top of this script
+comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.csv") %>% select(-1)
+
+ggS2 <- comb_data %>%
+  pivot_longer(-event_id) %>%
+  mutate(compartment = gsub(".*\\.", "", name),
+         virus = gsub("\\..*", "", name)) %>% 
+  filter(compartment != "ea") %>%
+  filter(!grepl("SARS-CoV-2", virus)) %>%
+  filter(!grepl("syn", virus)) %>%
+  filter(!name %in% c("Simplexvirus.pbmc", "Enterovirus.pbmc")) %>%
+  filter(!grepl("7|6|8|immuno", name)) %>%
+  mutate(name = gsub(".*\\(", "", gsub(")", "", name))) %>%
+  left_join(clinical_data %>% distinct(event_id, participant_id, event_date)) %>%
+  filter(event_date <= 40) %>%
+  ggplot(aes(x=event_date, y= value)) +
+  geom_line(aes(group = participant_id), alpha = 0.4, color = "darkgray") +
+  geom_point(aes(color = virus), alpha = 0.3, size = 1.6, stroke=NA) +
+  facet_wrap(~name) +
+  theme_classic() +
+  scale_y_continuous(trans='log10') +
+  xlab("Days from Hospitalization") +
+  ylab("Reads per Million") +
+  scale_color_manual(values = c("#86005F", "#01a8a0", "#1b820d", "#cba90a",
+                                "#005F86", "#BF5700"),
+                     name = "Virus") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+ggS2
+ggsave(paste0(out_dir, "FigureS2A.pdf"), width = 10, height = 6)
+write_csv(ggS2$data %>%
+            mutate(participant_id = as.numeric(as.factor(participant_id))) %>%
+            select(-event_id), paste0(out_dir, "source_data_FigureS2A.csv"))
+```
+
+Alternative graph as days from symptom onset instead of days from hospitalization
+
+```{r, fig.width = 10, fig.height = 6}
+## This is the same comb_data that was generated at the top of this script
+comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.csv") %>% select(-1)
+
+ggS2_alt <- comb_data %>%
+  pivot_longer(-event_id) %>%
+  mutate(compartment = gsub(".*\\.", "", name),
+         virus = gsub("\\..*", "", name)) %>% 
+  filter(compartment != "ea") %>%
+  filter(!grepl("SARS-CoV-2", virus)) %>%
+  filter(!grepl("syn", virus)) %>%
+  filter(!name %in% c("Simplexvirus.pbmc", "Enterovirus.pbmc")) %>%
+  filter(!grepl("7|6|8|immuno", name)) %>%
+  mutate(name = gsub(".*\\(", "", gsub(")", "", name))) %>%
+  left_join(clinical_data %>% distinct(event_id, participant_id, event_date,
+                                       symptom_date)) %>%
+  rowwise() %>%
+  mutate(event_date = event_date-symptom_date) %>% ungroup() %>%
+  filter(event_date <= 40) %>%
+  ggplot(aes(x=event_date, y= value)) +
+  geom_line(aes(group = participant_id), alpha = 0.4, color = "darkgray") +
+  geom_point(aes(color = virus), alpha = 0.3, size = 1.6, stroke=NA) +
+  facet_wrap(~name) +
+  theme_classic() +
+  scale_y_continuous(trans='log10') +
+  xlab("Days from Symptom Onset") +
+  ylab("Reads per Million") +
+  scale_color_manual(values = c("#86005F", "#01a8a0", "#1b820d", "#cba90a",
+                                "#005F86", "#BF5700"),
+                     name = "Virus") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+ggS2_alt
+ggsave(paste0(out_dir, "FigureS2A_DFSO.pdf"), width = 10, height = 6)
+write_csv(ggS2_alt$data %>%
+            mutate(participant_id = as.numeric(as.factor(participant_id))) %>%
+            select(-event_id),
+          ## Removing participant_id (has new id system in ImmPort and we cannot)
+          ## make participant_id widely available with this data release
+          paste0(out_dir, "source_data_FigureS2A_DFSO.csv"))
+```
+
+### Figure S2B-E: Expanded Smoothed Reactivation Curves
 
 ```{r}
 kernel_size = 5 ## days
 
 kernel_smoothed_values <- data.frame()
+tg_comp_all <- data.frame()
 for(days in 1:40){
   event_range = (days-((kernel_size-1) / 2)):(days+((kernel_size-1) / 2))
-  tmp <- comb_data %>%
+  tmp1 <- comb_data %>%
     left_join(clinical_data %>% distinct(event_id, event_date)) %>%
     #select(-ends_with(".ea")) %>%
     pivot_longer(cols = c(-event_id, -event_date)) %>%
     mutate(value = ifelse(value > 0, 1, 0)) %>%
     filter(!is.na(value)) %>%
-    filter(event_date %in% event_range) %>%
+    filter(event_date %in% event_range) 
+  
+  tg_comp <- tmp1 %>%
+    left_join(clinical_data %>% distinct(event_id, participant_id, trajectory_group)) %>%
+    mutate(tissue = gsub(".*\\.", "", name)) %>%
+    group_by(tissue, trajectory_group) %>%
+    dplyr::summarize(count = n()) %>%
+    mutate(freq = count / sum(count) * 100) %>%
+    mutate(day = days)
+  
+  tmp <- tmp1 %>%
     group_by(name) %>%
     dplyr::summarize(percent = mean(value) * 100) %>%
     mutate(day = days)
   
   kernel_smoothed_values <- rbind.data.frame(kernel_smoothed_values, tmp)
+  tg_comp_all <- rbind.data.frame(tg_comp_all, tg_comp)
 }
+
 
 smooth_traj <- kernel_smoothed_values %>%
   ungroup() %>%
@@ -683,25 +1487,230 @@ ggg <- ggg +
   coord_cartesian(ylim = c(0, 20))
 ggh$data <- ggzoom$data %>% filter(grepl(".pbmc$", name))
 
-write_csv(gge$data, paste0(out_dir, "source_data_FigureS1E.csv"))
-write_csv(ggf$data, paste0(out_dir, "source_data_FigureS1F.csv"))
-write_csv(ggg$data, paste0(out_dir, "source_data_FigureS1G.csv"))
-write_csv(ggh$data, paste0(out_dir, "source_data_FigureS1H.csv"))
-```
+write_csv(gge$data, paste0(out_dir, "source_data_FigureS2B.csv"))
+write_csv(ggf$data, paste0(out_dir, "source_data_FigureS2C.csv"))
+write_csv(ggg$data, paste0(out_dir, "source_data_FigureS2D.csv"))
+write_csv(ggh$data, paste0(out_dir, "source_data_FigureS2E.csv"))
 
-```{r, fig.width = 8, fig.height = 9}
-top <- ggarrange(gga, ggb, nrow =1, ncol =2, labels = c("A", "B"))
-bottom <- ggarrange(gge, ggf + ylab("Percent of EA Samples (%)"),
-                    nrow =1, ncol =2, labels = c("E", "F"), common.legend = TRUE,legend = "right")
-bottom2 <- ggarrange(ggg + ylab("Percent of Nasal Samples (%)"),
-                     ggh + ylab("Percent of PBMC Samples (%)"), nrow =1, ncol =2, labels = c("G", "H"), common.legend = TRUE,legend = "right")
-ggarrange(top, bottom, bottom2, nrow = 3, ncol =1)
-ggsave(paste0(out_dir, "FigureS1A-B_E-H.pdf"), width = 8, height = 9)
 ```
-
-### Figure S1I: Conditional Probability of Latent Viral Transcript
 
 ```{r}
+tg_comp_all <- as.data.frame(tg_comp_all)
+gg_pbmc_comp <- tg_comp_all %>%
+  filter(tissue == "pbmc") %>%
+  mutate(trajectory_group = as.factor(trajectory_group)) %>%
+  ggplot(aes(x=day, y= freq, fill = trajectory_group)) +
+  geom_bar(stat = "identity") +
+  theme_classic() +
+  scale_fill_manual(values = TrajGrpCol)+
+  ylab("% of PBMC")+
+  xlab("Days from Hospitalization") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+gg_nasal_comp <- tg_comp_all %>%
+  filter(tissue == "nasal") %>%
+  mutate(trajectory_group = as.factor(trajectory_group)) %>%
+  ggplot(aes(x=day, y= freq, fill = trajectory_group)) +
+  geom_bar(position = "stack", stat = "identity") +
+  theme_classic() +
+  scale_fill_manual(values = TrajGrpCol) +
+  ylab("% of Nasal") +
+  xlab("Days from Hospitalization") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+gg_ea_comp <- tg_comp_all %>%
+  filter(tissue == "ea") %>%
+  mutate(trajectory_group = as.factor(trajectory_group)) %>%
+  ggplot(aes(x=day, y= freq, fill = trajectory_group)) +
+  geom_bar(position = "stack", stat = "identity") +
+  theme_classic() +
+  scale_fill_manual(values = TrajGrpCol) +
+  ylab("% of EA") +
+  xlab("Days from Hospitalization") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+ggpubr::ggarrange(gg_pbmc_comp,
+                  gg_nasal_comp,
+                  gg_ea_comp,
+                  align = "hv", nrow = 3, common.legend = T, heights = c(1,1,1))
+write_csv(gg_pbmc_comp$data, paste0(out_dir, "source_data_FigureS2C_part2.csv"))
+write_csv(gg_pbmc_comp$data, paste0(out_dir, "source_data_FigureS2D_part2.csv"))
+write_csv(gg_pbmc_comp$data, paste0(out_dir, "source_data_FigureS2E_part2.csv"))
+```
+
+```{r, fig.width = 8, fig.height = 7.5}
+bottom <- ggarrange(gge, ggf + ylab("Percent of EA Samples (%)"),
+                    NA, gg_ea_comp,
+                    align = "hv", heights = c(3,1.5),
+                    nrow =2, ncol =2, labels = c("B", "C", "", ""),
+                    common.legend = TRUE,legend = "right")
+bottom2 <- ggarrange(ggg + ylab("Percent of Nasal Samples (%)"),
+                     ggh + ylab("Percent of PBMC Samples (%)"),
+                     gg_nasal_comp,
+                     gg_pbmc_comp,
+                     nrow =2, ncol =2, align = "hv",
+                     labels = c("D", "E"),
+                      heights = c(3,1.5),
+                     common.legend = TRUE,legend = "right")
+ggarrange(bottom, bottom2, nrow = 2, ncol =1,
+          heights = c(1, 1))
+ggsave(paste0(out_dir, "FigureS2_B-E.pdf"), width = 8, height = 7.5)
+```
+
+### Figure S2F-I: Days from Symptom Onset Smoothed Reactivation Curves
+
+```{r}
+kernel_size = 5 ## days
+
+kernel_smoothed_values <- data.frame()
+tg_comp_all <- data.frame()
+for(days in 1:40){
+  event_range = (days-((kernel_size-1) / 2)):(days+((kernel_size-1) / 2))
+  tmp1 <- comb_data %>%
+    left_join(clinical_data %>% distinct(event_id, event_date, symptom_date) %>%
+                rowwise() %>%
+                mutate(event_date = event_date-symptom_date) %>% ungroup() %>%
+                distinct(event_id, event_date)) %>%
+    #select(-ends_with(".ea")) %>%
+    pivot_longer(cols = c(-event_id, -event_date)) %>%
+    mutate(value = ifelse(value > 0, 1, 0)) %>%
+    filter(!is.na(value)) %>%
+    filter(event_date %in% event_range) 
+  
+  tg_comp <- tmp1 %>%
+    left_join(clinical_data %>% distinct(event_id, participant_id, trajectory_group)) %>%
+    mutate(tissue = gsub(".*\\.", "", name)) %>%
+    group_by(tissue, trajectory_group) %>%
+    dplyr::summarize(count = n()) %>%
+    mutate(freq = count / sum(count) * 100) %>%
+    mutate(day = days)
+  
+  tmp <- tmp1 %>%
+    group_by(name) %>%
+    dplyr::summarize(percent = mean(value) * 100) %>%
+    mutate(day = days)
+  
+  kernel_smoothed_values <- rbind.data.frame(kernel_smoothed_values, tmp)
+  tg_comp_all <- rbind.data.frame(tg_comp_all, tg_comp)
+}
+
+
+smooth_traj <- kernel_smoothed_values %>%
+  ungroup() %>%
+  mutate(compartment = gsub(".*\\.", "", name),
+         virus = gsub("\\..*", "", name)) %>% 
+  filter(!name %in% c("Simplexvirus.pbmc", "Enterovirus.pbmc")) %>%
+  filter(!grepl("7|6|8|immuno", name)) %>%
+  ggplot(aes(x=day, y=percent, color = virus, linetype = compartment)) +
+  geom_smooth(se = F) +
+  theme_classic() +
+  xlab("Days from Symptom Onset") +
+  ylab("Percent of Samples") +
+  scale_color_manual(values = c("Anelloviridae" ="#86005F",
+                                "Enterovirus" ="#01a8a0",
+                                "Human alphaherpesvirus 1 (HSV1)" ="#1b820d",
+                                "Human alphaherpesvirus 2 (HSV2)" ="#cba90a",
+                                "Human betaherpesvirus 5 (CMV)" = "#005F86",
+                                "Human gammaherpesvirus 4 (EBV)" ="#BF5700",
+                                "SARS-CoV-2" ="black"),
+                     name = "Virus") +
+  scale_linetype_manual(values = c("ea"= "dotted","nasal" = "22","pbmc" =  "solid"),
+                        name = "Compartment") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+gge <- smooth_traj
+
+
+ggzoom <- smooth_traj
+ggh <- ggg <- ggf <- ggzoom
+ggf$data <- ggzoom$data %>% filter(grepl(".ea$", name))
+ggg$data <- ggzoom$data %>% filter(grepl(".nasal$", name))
+ggg <- ggg +
+  coord_cartesian(ylim = c(0, 20))
+ggh$data <- ggzoom$data %>% filter(grepl(".pbmc$", name))
+
+write_csv(gge$data, paste0(out_dir, "source_data_FigureS2F.csv"))
+write_csv(ggf$data, paste0(out_dir, "source_data_FigureS2G.csv"))
+write_csv(ggg$data, paste0(out_dir, "source_data_FigureS2H.csv"))
+write_csv(ggh$data, paste0(out_dir, "source_data_FigureS2I.csv"))
+
+```
+
+```{r}
+tg_comp_all <- as.data.frame(tg_comp_all)
+gg_pbmc_comp <- tg_comp_all %>%
+  filter(tissue == "pbmc") %>%
+  mutate(trajectory_group = as.factor(trajectory_group)) %>%
+  ggplot(aes(x=day, y= freq, fill = trajectory_group)) +
+  geom_bar(stat = "identity") +
+  theme_classic() +
+  scale_fill_manual(values = TrajGrpCol)+
+  ylab("% of PBMC")+
+  xlab("Days from Hospitalization") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+gg_nasal_comp <- tg_comp_all %>%
+  filter(tissue == "nasal") %>%
+  mutate(trajectory_group = as.factor(trajectory_group)) %>%
+  ggplot(aes(x=day, y= freq, fill = trajectory_group)) +
+  geom_bar(position = "stack", stat = "identity") +
+  theme_classic() +
+  scale_fill_manual(values = TrajGrpCol) +
+  ylab("% of Nasal") +
+  xlab("Days from Hospitalization") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+gg_ea_comp <- tg_comp_all %>%
+  filter(tissue == "ea") %>%
+  mutate(trajectory_group = as.factor(trajectory_group)) %>%
+  ggplot(aes(x=day, y= freq, fill = trajectory_group)) +
+  geom_bar(position = "stack", stat = "identity") +
+  theme_classic() +
+  scale_fill_manual(values = TrajGrpCol) +
+  ylab("% of EA") +
+  xlab("Days from Hospitalization") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+
+ggpubr::ggarrange(gg_pbmc_comp,
+                  gg_nasal_comp,
+                  gg_ea_comp,
+                  align = "hv", nrow = 3, common.legend = T, heights = c(1,1,1))
+write_csv(gg_pbmc_comp$data, paste0(out_dir, "source_data_FigureS2G_part2.csv"))
+write_csv(gg_pbmc_comp$data, paste0(out_dir, "source_data_FigureS2H_part2.csv"))
+write_csv(gg_pbmc_comp$data, paste0(out_dir, "source_data_FigureS2I_part2.csv"))
+```
+
+```{r, fig.width = 8, fig.height = 7.5}
+bottom <- ggarrange(gge, ggf + ylab("Percent of EA Samples (%)"),
+                    NA, gg_ea_comp,
+                    align = "hv", heights = c(3,1.5),
+                    nrow =2, ncol =2, labels = c("F", "G", "", ""),
+                    common.legend = TRUE,legend = "right")
+bottom2 <- ggarrange(ggg + ylab("Percent of Nasal Samples (%)"),
+                     ggh + ylab("Percent of PBMC Samples (%)"),
+                     gg_nasal_comp,
+                     gg_pbmc_comp,
+                     nrow =2, ncol =2, align = "hv",
+                     labels = c("H", "I"),
+                      heights = c(3,1.5),
+                     common.legend = TRUE,legend = "right")
+ggarrange(bottom, bottom2, nrow = 2, ncol =1,
+          heights = c(1, 1))
+ggsave(paste0(out_dir, "FigureS2_F-I.pdf"), width = 8, height = 7.5)
+```
+
+## Supplemental Figure 3
+
+### Figure S3A: Viral Co-incidence on an event basis
+
+```{r}
+comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.csv") %>% select(-1) 
 conincidence_func <- function(matrix){
   out <- data.frame()
   for(i in colnames(matrix)){
@@ -746,15 +1755,153 @@ rownames(pilot_2) <- pilot$name
 pilot_2 <- pilot_2[,order(colnames(pilot_2))]
 pilot_2 <- pilot_2[order(rownames(pilot_2)),]
 
-pdf(paste0(out_dir, "FigureS1I.pdf"), width = 5.5, height = 5.5)
-corrplot(t(as.matrix(pilot_2)), is.corr = F,
-         #method = "number",
-         tl.col = "black",outline = TRUE, tl.srt = 45,
-         col=colorRampPalette(c("white","darkred"))(100),)
-dev.off()
-### 5.5 x 5.5
+write_csv(as.data.frame(t(as.matrix(pilot_2))), paste0(out_dir, "source_data_FigureS3A.csv"))
 
-write_csv(as.data.frame(t(as.matrix(pilot_2))), paste0(out_dir, "source_data_FigureS1I.csv"))
+ggS3A <- as.data.frame(t(as.matrix(pilot_2))) %>%
+  rownames_to_column("Rows") %>%
+  pivot_longer(cols = -Rows) %>%
+  ggplot(aes(x=name, y= Rows)) +
+  geom_tile(aes(fill = value)) +
+  geom_text(aes(label = round(value, 2))) +
+  theme_classic() +
+    scale_y_discrete(limits=rev) +
+  scale_fill_gradient(low = "white", high = "red", name = "Percent") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  xlab("This virus was present X%") +
+  ylab("If the event is positive for this virus")
+ggS3A
+ggsave(paste0(out_dir, "FigureS3A.pdf"), width = 10, height = 6)
+
+```
+
+### Figure S3B: Viral Co-incidence on a participant basis
+
+##### Key Viruses
+
+```{r}
+comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.csv") %>% select(-1) %>%
+  select(-starts_with("Human betaherpesvirus 6"),
+         -starts_with("Human gammaherpesvirus 8"),
+         -starts_with("Human betaherpesvirus 7"),
+         -starts_with("Respiratory syncytial virus"),
+         -starts_with("Human immunodeficiency virus 1"),
+         -starts_with("SARS-CoV-2.pbmc"),
+         -starts_with("Enterovirus.ea"),
+         -starts_with("Enterovirus.pbmc"),
+         -starts_with("Anelloviridae.ea"),
+         -starts_with("Anelloviridae.nasal"),
+         -ends_with(".ea")) %>%
+  dplyr::rename("Betacoronavirus.nasal" = "SARS-CoV-2.nasal")
+event_date_cutoff = 40
+max_part <- comb_data %>%
+    pivot_longer(cols = -event_id) %>%
+    left_join(clinical_data %>%
+                distinct(event_id, participant_id, event_date)) %>%
+    filter(event_date >= 0) %>%
+    filter(event_date <= event_date_cutoff) %>%
+    group_by(participant_id, name) %>%
+    filter(name != "Betacoronavirus.nasal") %>%
+    dplyr::summarize(value = max(value, na.rm = TRUE)) %>%
+    filter(value != -Inf) %>%
+    distinct() %>%
+    pivot_wider(names_from = name, values_from = value) %>%
+    ungroup() %>%
+    dplyr::select(-starts_with("Betacoronavirus"))
+
+conincendence_data <- max_part[,-1]
+conincendence_data <- conincendence_data[,!grepl("8|6|7|immuno|Respir", colnames(conincendence_data))]
+colnames(conincendence_data) <- gsub("\\)", "", gsub(".* \\(", "", colnames(conincendence_data)))
+conincendence_data[conincendence_data>0] <- 1
+conincendence_data <- as.data.frame(conincendence_data)
+rownames(conincendence_data) <- max_part$participant_id
+pilot <- conincidence_func(conincendence_data)
+pilot[is.na(pilot)] <- 0
+
+pilot_2 <-as.data.frame(pilot[,-1])
+rownames(pilot_2) <- pilot$name
+pilot_2 <- pilot_2[,order(colnames(pilot_2))]
+pilot_2 <- pilot_2[order(rownames(pilot_2)),]
+
+write_csv(as.data.frame(t(as.matrix(pilot_2))), paste0(out_dir, "source_data_FigureS3B.csv"))
+
+ggs3B <- as.data.frame(t(as.matrix(pilot_2))) %>%
+  rownames_to_column("Rows") %>%
+  pivot_longer(cols = -Rows) %>%
+  ggplot(aes(x=name, y= Rows)) +
+  geom_tile(aes(fill = value)) +
+  geom_text(aes(label = round(value, 1))) +
+  theme_classic() +
+    scale_y_discrete(limits=rev) +
+  scale_fill_gradient(low = "white", high = "red", name = "Percent") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  xlab("Also at one point had") +
+  ylab("If they had this virus")
+ggs3B
+ggsave(paste0(out_dir, "FigureS3B_key_viruses.pdf"), width = 6, height = 4)
+```
+
+##### All Viruses
+
+```{r}
+comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.csv") %>% select(-1)
+max_part <- comb_data %>%
+    pivot_longer(cols = -event_id) %>%
+    left_join(clinical_data %>%
+                distinct(event_id, participant_id, event_date)) %>%
+    filter(event_date >= 0) %>%
+    filter(event_date <= event_date_cutoff) %>%
+    group_by(participant_id, name) %>%
+    filter(name != "Betacoronavirus.nasal") %>%
+    dplyr::summarize(value = max(value, na.rm = TRUE)) %>%
+    filter(value != -Inf) %>%
+    distinct() %>%
+    pivot_wider(names_from = name, values_from = value) %>%
+    ungroup() %>%
+    dplyr::select(-starts_with("Betacoronavirus"))
+
+conincendence_data <- max_part[,-1]
+conincendence_data <- conincendence_data[,!grepl("8|6|7|immuno|Respir", colnames(conincendence_data))]
+colnames(conincendence_data) <- gsub("\\)", "", gsub(".* \\(", "", colnames(conincendence_data)))
+conincendence_data[conincendence_data>0] <- 1
+conincendence_data <- as.data.frame(conincendence_data)
+rownames(conincendence_data) <- max_part$participant_id
+pilot <- conincidence_func(conincendence_data)
+pilot[is.na(pilot)] <- 0
+
+pilot_2 <-as.data.frame(pilot[,-1])
+rownames(pilot_2) <- pilot$name
+pilot_2 <- pilot_2[,order(colnames(pilot_2))]
+pilot_2 <- pilot_2[order(rownames(pilot_2)),]
+
+ggs3b_alt <- as.data.frame(t(as.matrix(pilot_2))) %>%
+  rownames_to_column("Rows") %>%
+  pivot_longer(cols = -Rows) %>%
+  ggplot(aes(x=name, y= Rows)) +
+  geom_tile(aes(fill = value)) +
+  geom_text(aes(label = round(value, 1))) +
+  theme_classic() +
+    scale_y_discrete(limits=rev) +
+  scale_fill_gradient(low = "white", high = "red", name = "Percent") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  xlab("Also at one point had") +
+  ylab("If they had this virus")
+ggsave(paste0(out_dir, "FigureS3B_all_viruses.pdf"), width = 10, height = 6)
+ggs3b_alt
+write_csv(ggs3b_alt$data, paste0(out_dir, "source_data_FigureS3B_all_viruses.csv"))
+```
+
+```{r, fig.width = 10, fig.height = 10}
+
+ggarrange(ggS3A,
+          ggarrange(ggs3B, NA, nrow = 1, ncol = 2, widths = c(6, 4)),
+          ncol = 1, nrow = 2, heights = c(6, 4))
+ggsave(paste0(out_dir, "FigureS3.pdf"), width = 10, height = 10)
 ```
 
 # Session Info

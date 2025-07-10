@@ -13,20 +13,18 @@ Enterovirus.nasal,minimal,16,61.53846153846154,"n=16
 (61.5%)"
 Enterovirus.nasal,physical,5,19.230769230769234,"n=5
 (19.2%)"
-HSV1.nasal,cognitive,13,21.666666666666668,"n=13
-(21.7%)"
-HSV1.nasal,global,6,10,"n=6
-(10%)"
-HSV1.nasal,minimal,31,51.66666666666667,"n=31
-(51.7%)"
-HSV1.nasal,physical,10,16.666666666666664,"n=10
-(16.7%)"
-HSV2.nasal,cognitive,1,10,"n=1
-(10%)"
-HSV2.nasal,global,3,30,"n=3
-(30%)"
-HSV2.nasal,minimal,6,60,"n=6
-(60%)"
+HSV1.nasal,cognitive,9,20.930232558139537,"n=9
+(20.9%)"
+HSV1.nasal,global,4,9.30232558139535,"n=4
+(9.3%)"
+HSV1.nasal,minimal,23,53.48837209302325,"n=23
+(53.5%)"
+HSV1.nasal,physical,7,16.27906976744186,"n=7
+(16.3%)"
+HSV2.nasal,global,1,50,"n=1
+(50%)"
+HSV2.nasal,minimal,1,50,"n=1
+(50%)"
 CMV.pbmc,cognitive,1,6.25,"n=1
 (6.2%)"
 CMV.pbmc,minimal,13,81.25,"n=13
@@ -49,11 +47,11 @@ EBV.pbmc,minimal,70,56.451612903225815,"n=70
 (56.5%)"
 EBV.pbmc,physical,22,17.741935483870968,"n=22
 (17.7%)"
-Virus Negative,cognitive,49,14.411764705882351,"n=49
-(14.4%)"
-Virus Negative,global,30,8.823529411764707,"n=30
-(8.8%)"
-Virus Negative,minimal,206,60.588235294117645,"n=206
-(60.6%)"
-Virus Negative,physical,55,16.176470588235293,"n=55
-(16.2%)"
+Virus Negative,cognitive,50,14.450867052023122,"n=50
+(14.5%)"
+Virus Negative,global,31,8.959537572254336,"n=31
+(9%)"
+Virus Negative,minimal,210,60.69364161849711,"n=210
+(60.7%)"
+Virus Negative,physical,55,15.895953757225435,"n=55
+(15.9%)"

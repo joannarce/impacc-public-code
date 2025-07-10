@@ -4,6 +4,7 @@
 Contact Information: Cole Maguire (colemag@utexas.edu)
 ## Instructions
 This code is for the manuscript titled "Chronic Viral Reactivation and Associated Host Immune Response and Clinical Outcomes in Acute COVID-19 and Post-Acute Sequelae of COVID-19"
+Update 6/16/2025: The codebase has been updated for revisions to the manuscript as part of the peer review process. Due to Figures shifting, particularly the supplement, a mapping of the pre-print supplement to the current supplement is provided at the bottom.
 ### Data availability
 Data used in this study is available at ImmPort Shared Data under the accession number [SDY1760](https://www.immport.org/shared/search?text=SDY1760%20) and in the NLM's
 769 Database of Genotypes and Phenotypes (dbGaP) under the accession number [phs002686.v2.p2](https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs002686.v2.p2). Note this is a controlled database with approval from NIAID required (please follow the instructions as you try to access the data). However, Immport has agreed to provide special access to reviewers of this article upon request by the IMPACC team.
@@ -18,13 +19,13 @@ Scripts used to generate figures and tables.
 
 | Figure |Source File| Output |
 |:-----|:-----|:-----|
-| Figure 1 and S1 | [Figure1.Rmd](Figure1/src/Figure1.qmd) | [Figure1](Figure1/output) |
-| Figure 2 and S2  | [Figure2.Rmd](Figure2/src/Figure2.qmd) | [Figure2](Figure2/output) |
-| Figure 3 and S3  | [Figure3.Rmd](Figure3/src/Figure3.qmd) | [Figure3](Figure3/output) |
-| Figure 4 and S4  | [Figure4.Rmd](Figure4/src/Figure4.qmd) | [Figure4](Figure4/output) |
-| Figure 5 and S5  | [Figure5.Rmd](Figure5/src/Figure5.qmd) | [Figure5](Figure5/output) |
-| Figure 6 and S6 (and Figure 7C)  | [Figure6.Rmd](Figure6/src/Figure6.qmd) | [Figure6](Figure6/output) |
-| Figure 7 and S7  | [Figure7.Rmd](Figure7/src/Figure7.qmd) | [Figure7](Figure7/output) |
+| Figure 1, S1, S2, and S3 | [Figure1.Rmd](Figure1/src/Figure1.qmd) | [Figure1](Figure1/output) |
+| Figure 2 and S4  | [Figure2.Rmd](Figure2/src/Figure2.qmd) | [Figure2](Figure2/output) |
+| Figure 3 and S5  | [Figure3.Rmd](Figure3/src/Figure3.qmd) | [Figure3](Figure3/output) |
+| Figure 4 and S6  | [Figure4.Rmd](Figure4/src/Figure4.qmd) | [Figure4](Figure4/output) |
+| Figure 5 and S7  | [Figure5.Rmd](Figure5/src/Figure5.qmd) | [Figure5](Figure5/output) |
+| Figure 6 and S8 (and Figure 7C)  | [Figure6.Rmd](Figure6/src/Figure6.qmd) | [Figure6](Figure6/output) |
+| Figure 7 and S9  | [Figure7.Rmd](Figure7/src/Figure7.qmd) | [Figure7](Figure7/output) |
 
 </br>
 
@@ -32,8 +33,21 @@ Scripts used to generate figures and tables.
 
 License details: MIT License (see the [LICENSE file](LICENSE))
 
-</br>
-
 ## Required software
 
 The codes were run in R v4.0.3. The sessionInfo() with the package used and their versions are reported at the bottom of each Figures script.
+
+## Mapping of Pre-print to Latest Version of Code and Supplement
+The following shows how the pre-print supplement maps to the current revised copy of the supplement. 
+
+| Pre-print | Current |
+|:-----|:-----|
+| Figure 1 and S1 | Figure 1, S1, S2, and S3 |
+| Figure 2 and S2  | Figure 2 and S4  |
+| Figure 3 and S3  | Figure 3 and S5  |
+| Figure 4 and S4  | Figure 4 and S6 |
+| Figure 5 and S5  | Figure 5 and S7 |
+| Figure 6 and S6 (and Figure 7C)  | Figure 6 and S8 (and Figure 7C) |
+| Figure 7 and S7  | Figure 7 and S9 |
+
+</br>

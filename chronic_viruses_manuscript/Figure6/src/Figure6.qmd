@@ -277,7 +277,7 @@ diff_exp_time_indep <- function(counts, rowfeatures, clinical_data, virus, comb_
     distinct() %>%
     pivot_wider(names_from = name, values_from = value) %>%
     ungroup() %>%
-    dplyr::select(-ends_with(".ea"), -starts_with("Betacorona"), -Simplexvirus.pbmc)
+    dplyr::select(-ends_with(".ea"), -starts_with("Betacorona"))
   ## Filter for participants that we have both a nasal and pbmc sample for
   max_part <- max_part[complete.cases(max_part),]
   ctl_part <- max_part$participant_id[rowSums(max_part[,c(-1)]) == 0]
@@ -455,7 +455,7 @@ write.csv(nasal_enrichment_df, paste0(out_dir, "Supplemental_Data_5_part4.csv"))
 
 ## Figure 6A: PBMC Enrichment
 
-```{r, fig.width=7, fig.height =7}
+```{r, fig.width=6.5, fig.height =7}
 library(scales)
 pbmc_enrichment_df <- read_csv(paste0(out_dir, "Supplemental_Data_5_part3.csv")) 
 tmp <- pbmc_enrichment_df %>%
@@ -487,7 +487,11 @@ cluster_order[is.na(cluster_order)] <- 0
 heir_cluster <- hclust(vegan::vegdist(cluster_order,method="jaccard"))
 
 slight_manual_resuffle <- heir_cluster[["labels"]]
-slight_manual_resuffle <- slight_manual_resuffle[c(1,3,8,11,2,10,4:7,36, 12:19, 9, 20:35)]
+slight_manual_resuffle <- slight_manual_resuffle[c(1,3,8,9,
+                                                   2,4:7,35,12:14,11,15,16,17,18,
+                                                   10,
+                                                   19,
+                                                   20:34)]
 
 ggpbmc <- pbmc.plot.data %>%
   mutate(virus = gsub(".*\\(", "", gsub(")", "", virus))) %>%
@@ -514,9 +518,9 @@ ggpbmc <- pbmc.plot.data %>%
    ggtitle("PBMC Transcriptomics")
 
 ggpbmc + theme(legend.position = "none")
-ggsave(paste0(out_dir, "Figure6A.pdf"), width = 7, height = 7)
+ggsave(paste0(out_dir, "Figure6A.pdf"), width = 6.5, height = 7)
 ggpbmc
-ggsave(paste0(out_dir, "Figure6A_color_scale.pdf"), width = 7, height = 7)
+ggsave(paste0(out_dir, "Figure6A_color_scale.pdf"), width = 6.5, height = 7)
 
 write_csv(ggpbmc$data, paste0(out_dir, "source_data_Figure6A.csv"))
 ## Same as supplemental data 6
@@ -525,7 +529,8 @@ write_csv(ggpbmc$data, paste0(out_dir, "source_data_Figure6A.csv"))
 ## Figure 6B: Nasal Enrichment
 
 ```{r, fig.width=8, fig.height =7}
-
+library(vegan)
+library(ape)
 nasal_enrichment_df <- read_csv(paste0(out_dir, "Supplemental_Data_5_part4.csv"))
 
 tmp <- nasal_enrichment_df %>%
@@ -535,7 +540,7 @@ tmp <- nasal_enrichment_df %>%
 mutate(coef = ifelse(dir == "up",1, -1)) %>%
   mutate(log10p = -log10(p.adjust),
          signed_log10p = log10p * coef) %>%
-  slice_max(log10p, n=10) %>%
+  slice_max(log10p, n=13) %>%
   filter(p.adjust <= 0.01) %>%
   ungroup() 
 
@@ -548,17 +553,22 @@ mutate(coef = ifelse(dir == "up",1, -1)) %>%
   mutate(log10p = -log10(p.adjust),
          signed_log10p = log10p * coef)
 
-cluster_order <- nasal.plot.data %>%
-  distinct(Description, virus, signed_log10p) %>%
-  pivot_wider(id_cols = Description, names_from = virus, values_from = signed_log10p) %>%
-  column_to_rownames("Description")
-cluster_order[is.na(cluster_order)] <- 0
-heir_cluster <- hclust(vegan::vegdist(cluster_order,method="jaccard"))
+genes <- unique(unlist(strsplit(nasal.plot.data$geneID, "/")))
 
-manual_ordering <- heir_cluster[["labels"]]#[c(1,7,5,6,19,11,10,13,23,17,21:22,2:4,8,9,12,14:16,18,20, 24:39)]
+fill_matrix <- as.data.frame(matrix(ncol = length(unique(nasal.plot.data$Description)),
+                                    nrow = length(genes)))
+colnames(fill_matrix) <- unique(nasal.plot.data$Description)
+rownames(fill_matrix) <- genes
+for(active_set in unique(nasal.plot.data$Description)){
+  tmp <- nasal.plot.data %>% filter(Description == active_set)
+  tmp_genes <- unique(unlist(strsplit(tmp$geneID, "/")))
+  
+  fill_matrix[,active_set] <- genes %in% tmp_genes
+}
 
-manual_ordering <- c("Class A/1 (Rhodopsin-like receptors)","GPCR ligand binding", "Signaling by GPCR", "Hemostasis", "Platelet activation, signaling and aggregation", "Transcriptional regulation of granulopoiesis", "Neutrophil degranulation", "Dectin-1 mediated noncanonical NF-kB signaling","NIK-->noncanonical NF-kB signaling", "Interleukin-1 signaling", "Interleukin-2 family signaling", "Interleukin-10 signaling", "Signaling by Interleukins", "Chemokine receptors bind chemokines", "Interferon Signaling", "Interferon alpha/beta signaling", "Interferon gamma signaling", "Parasite infection", "Leishmania infection", "Leishmania phagocytosis", "FCGR3A-mediated phagocytosis", "Fcgamma receptor (FCGR) dependent phagocytosis", "Downstream TCR signaling","TCR signaling", "Phosphorylation of CD3 and TCR zeta chains", "PD-1 signaling", "Translocation of ZAP-70 to Immunological synapse", "Generation of second messenger molecules", "Immunoregulatory interactions between a Lymphoid and a non-Lymphoid cell", "Keratinization", "Formation of the cornified envelope", "The citric acid (TCA) cycle and respiratory electron transport", "Respiratory electron transport", "Respiratory electron transport, ATP synthesis by chemiosmotic coupling, and heat production by uncoupling proteins.", "DNA methylation", "Activated PKN1 stimulates transcription of AR (androgen receptor) regulated genes KLK2 and KLK3", "RNA Polymerase I Promoter Opening", "SIRT1 negatively regulates rRNA expression","Senescence-Associated Secretory Phenotype (SASP)" )
+heir_cluster <- hclust(vegan::vegdist(t(fill_matrix),method="jaccard"))
 
+manual_ordering <- heir_cluster[["labels"]][heir_cluster[["order"]]]
 ggb <- nasal.plot.data %>%
   mutate(virus = gsub(".*\\(", "", gsub(")", "", virus))) %>%
   mutate(Description = factor(Description, manual_ordering)) %>%
@@ -587,13 +597,23 @@ ggsave(paste0(out_dir, "Figure6B.pdf"), width = 8, height = 7)
 write_csv(ggb$data, paste0(out_dir, "source_data_Figure6B.csv"))
 ```
 
-## Figure S6: DEGs by Compartment
+```{r, fig.width = 8, fig.height = 18}
+plot(heir_cluster)
+## Shows overlapping leading gene features to find the splits
+```
+
+## Figure S8: DEGs by Compartment
 
 ```{r, fig.width = 5, fig.height = 4}
 pbmc_diff <- read_csv(paste0(out_dir, "Supplemental_Data_5_part1.csv"))
 nasal_diff <- read_csv(paste0(out_dir, "Supplemental_Data_5_part2.csv"))
 
-ggs6 <- rbind.data.frame(pbmc_diff %>% mutate(omic = "PBMC DEGs"),
+## I'm removing the up/down color (by just making them the same color)
+## Because 1) the up/down is not important or highlighted
+## and 2) by putting the values on a sqrt axis, a stacked barplot is 
+## inappropriate (because the heights of the up/down are being inconsistently 
+## transformed). Easiest solution: just remove the color distinguishing
+ggs8 <- rbind.data.frame(pbmc_diff %>% mutate(omic = "PBMC DEGs"),
                  nasal_diff %>% mutate(omic = "Nasal DEGs")) %>%
   mutate(Tissue = ifelse(grepl(".nasal", virus), "Virus in Nasal RNA", "Virus in PBMC RNA")) %>%
   mutate(virus = gsub("\\..*", "", virus)) %>%
@@ -609,15 +629,15 @@ ggs6 <- rbind.data.frame(pbmc_diff %>% mutate(omic = "PBMC DEGs"),
   theme_classic() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
   ylab("Number of DEGs") +
-  scale_fill_manual(values = c("dodgerblue", "red"), name = "DEG Direction") +
+  scale_fill_manual(values = c("red", "red"), name = "DEG Direction") +
   theme(axis.text = element_text(color = "black"),
         axis.ticks = element_line(color = "black"),
          panel.border = element_rect(color = "black", fill = NA, size = 1)) +
   xlab("Virus") +  scale_y_continuous(trans='sqrt')
-ggs6
-ggsave(paste0(out_dir, "FigureS6.pdf"), width = 5, height = 4)
+ggs8
+ggsave(paste0(out_dir, "FigureS8.pdf"), width = 5, height = 4)
 
-write_csv(ggs6$data, paste0(out_dir, "source_data_FigureS6.csv"))
+write_csv(ggs8$data, paste0(out_dir, "source_data_FigureS8.csv"))
 ```
 
 ## Figure 7C: Convalescent Signatures

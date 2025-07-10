@@ -13,6 +13,7 @@ library(tidyverse)
 library(data.table)
 library(viridis)
 library(scales)
+library(ggeffects)
 comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.csv") %>% select(-1) %>%
   select(-starts_with("Human betaherpesvirus 6"),
          -starts_with("Human gammaherpesvirus 8"),
@@ -30,6 +31,7 @@ data_env <- readRDS("/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS
 clinical_data <- data_env$clinical_data
 
 out_dir <- "../output/"
+
 ```
 
 ## Gamm modeling function
@@ -43,6 +45,38 @@ gamm_modeling <- function(counts, viral_load_control, binary = TRUE, event_date_
   model.out <- data.frame()
   plot_list <- list()
   residual_list <- list()
+  
+  old_comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/old_full_comb_data.csv") %>% select(-1) %>%
+  select(-starts_with("Human betaherpesvirus 6"),
+         -starts_with("Human gammaherpesvirus 8"),
+         -starts_with("Human betaherpesvirus 7"),
+         -starts_with("Respiratory syncytial virus"),
+         -starts_with("Human immunodeficiency virus 1"),
+         -starts_with("SARS-CoV-2.pbmc"),
+         -starts_with("Enterovirus.pbmc"),
+         -starts_with("Enterovirus.ea"),
+         -starts_with("Anelloviridae.ea"),
+         -starts_with("Anelloviridae.nasal"),
+         -ends_with(".ea")) %>%
+  dplyr::rename("Betacoronavirus.nasal" = "SARS-CoV-2.nasal")
+  
+  max_part <- old_comb_data %>%
+    pivot_longer(cols = -event_id) %>%
+    left_join(data_env$clinical_data %>%
+                distinct(event_id, participant_id, event_date)) %>%
+    filter(event_date >= 0) %>%
+    filter(event_date <= event_date_cutoff) %>%
+    group_by(participant_id, name) %>%
+    filter(name != "Betacoronavirus.nasal") %>%
+    dplyr::summarize(value = max(value, na.rm = TRUE)) %>%
+    filter(value != -Inf) %>%
+    distinct() %>%
+    pivot_wider(names_from = name, values_from = value) %>%
+    ungroup() %>%
+    dplyr::select(-starts_with("Betacoronavirus"))
+  max_part <- max_part[complete.cases(max_part),]
+  ctl_part <- max_part$participant_id[rowSums(max_part[,c(-1)]) == 0]
+  
   max_part <- comb_data %>%
     pivot_longer(cols = -event_id) %>%
     left_join(data_env$clinical_data %>%
@@ -56,12 +90,15 @@ gamm_modeling <- function(counts, viral_load_control, binary = TRUE, event_date_
     distinct() %>%
     pivot_wider(names_from = name, values_from = value) %>%
     ungroup() %>%
-    select(-starts_with("Betacoronavirus"))
+    dplyr::select(-starts_with("Betacoronavirus"))
   
   ## Filter for participants that we have both a nasal and pbmc sample for
   ## Really not that big of deal because we control for nasal viral load
   max_part <- max_part[complete.cases(max_part),]
-  ctl_part <- max_part$participant_id[rowSums(max_part[,c(-1)]) == 0]
+  
+  ## This is to standardize the control cohort to the prior version
+  ## that did not yet exclude 3B plate 4 for HSV1
+  
   
   for(active_vir in colnames(max_part)[-1]){
     print(paste0("Starting ", match(active_vir, colnames(max_part)[-1]), " out of ", length(colnames(max_part)[-1])))
@@ -77,9 +114,9 @@ gamm_modeling <- function(counts, viral_load_control, binary = TRUE, event_date_
                                                           enrollment_site,
                                                           discretized_admit_age_quantile,
                                                           sex)) %>%
-      inner_join(max_part %>% select(participant_id, .data[[active_vir]]), by = "participant_id") %>%
+      inner_join(max_part %>% dplyr::select(participant_id, .data[[active_vir]]), by = "participant_id") %>%
       inner_join(comb_data %>%
-                   select(event_id, Betacoronavirus.nasal), by = "event_id") %>%
+                   dplyr::select(event_id, Betacoronavirus.nasal), by = "event_id") %>%
       relocate(sample_id, event_id, event_type, event_date,
                participant_id,
                respiratory_status, trajectory_group, enrollment_site,
@@ -212,9 +249,9 @@ gamm_modeling <- function(counts, viral_load_control, binary = TRUE, event_date_
                                                               enrollment_site,
                                                               discretized_admit_age_quantile,
                                                               sex)) %>%
-          inner_join(max_part %>% select(participant_id), by = "participant_id") %>%
+          inner_join(max_part %>% dplyr::select(participant_id), by = "participant_id") %>%
           inner_join(comb_data %>%
-                       select(event_id, Betacoronavirus.nasal), by = "event_id") %>%
+                       dplyr::select(event_id, Betacoronavirus.nasal), by = "event_id") %>%
           relocate(sample_id, event_id, event_type, event_date,
                    participant_id,
                    respiratory_status, trajectory_group, enrollment_site,
@@ -269,7 +306,9 @@ test <- gamm_modeling(counts, viral_load_control = TRUE, binary = TRUE,
                       event_date_cutoff = 40)
 results <- as.data.frame(test[[1]])
 colnames(results) <- c("virus_compartment", "feature", "shape", "average", "summed_virus_smooth_coefficients", "average_virus_smooth_coefficients", "average_coefficient", "virus_n", "control_n")
-results2 <- results %>% group_by(virus_compartment) %>%
+
+results2 <- results %>%
+  group_by(virus_compartment) %>%
   mutate(shape.adj = p.adjust(shape, "fdr"), average.adj = p.adjust(average, "fdr"))
 write.csv(results2, paste0(out_dir, "Supplemental_Data_3_part1.csv"))
 saveRDS(test, paste0(out_dir, "Supplemental_Data_3.RDS"))
@@ -296,7 +335,7 @@ heat_df <- plyr::rbind.fill(so %>% mutate(omic = "serum olink")) %>%
   mutate(value = ifelse(value == 0, 2e-16, value)) %>%
   mutate(log10p = ifelse(name == "shape.adj", -log10(value) * (summed_virus_smooth_coefficients/abs(summed_virus_smooth_coefficients)),
                          -log10(value) * (average_coefficient/abs(average_coefficient)))) %>%
-  filter(value <= 0.01)
+  filter(round(value, 3) <= 0.01)
 
 
 heat_df2 <- heat_df %>%
@@ -309,11 +348,11 @@ heat_df2 <- heat_df %>%
 heat_df3 <- as.data.frame(heat_df2[,-1:-2])
 rownames(heat_df3) <- heat_df2$feature
 heat_df3 <- heat_df3[,order(colnames(heat_df3))]
-heat_df3 <- heat_df3[,c(1,4,6,5,2,3)]
+heat_df3 <- heat_df3[,c(1,3,5,4,2)]
 colnames(heat_df3) <- gsub("\\)", "", gsub(".*\\(", "", colnames(heat_df3)))
 heat_df3[is.na(heat_df3)] <- 0
 
-pdf(paste0(out_dir, "Figure4.pdf"))
+pdf(paste0(out_dir, "Figure4A.pdf"), height = 8, width = 4.5)
 Heatmap(heat_df3, border = TRUE, cluster_column_slices = F,
         col = col_fun, show_row_dend = F, show_column_dend = F,column_title = "Virus",
         column_split = factor(gsub("_.*", "", colnames(heat_df3)),
@@ -400,16 +439,14 @@ viral_colors <- c("Control"="#757575", "EBV.pbmc"="#BF5700", "EBV.nasal"="#00808
 
 ggb <- traj_plot("CXCL10", c("Human betaherpesvirus 5 (CMV).pbmc",
                       "Human gammaherpesvirus 4 (EBV).pbmc",
-                     "Human alphaherpesvirus 1 (HSV1).nasal",
-                     "Human alphaherpesvirus 2 (HSV2).nasal"),
+                     "Human alphaherpesvirus 1 (HSV1).nasal"),
           modeling_results, viral_colors, base_size = 12, log_residuals = T)
 ggb
 ggsave(paste0(out_dir, "Figure4B.pdf"), width = 12.32142, height = 3)
 
 ggc <- traj_plot("CXCL11", c("Human betaherpesvirus 5 (CMV).pbmc",
-                      "Human gammaherpesvirus 4 (EBV).nasal",
+                      "Human gammaherpesvirus 4 (EBV).pbmc",
                      "Human alphaherpesvirus 1 (HSV1).nasal",
-                     "Human alphaherpesvirus 2 (HSV2).nasal",
                      "Anelloviridae.pbmc"), modeling_results, viral_colors,
           base_size = 12, log_residuals = T)
 ggc
@@ -417,7 +454,6 @@ ggsave(paste0(out_dir, "Figure4C.pdf"), width = 15, height = 3)
 
 ggd <- traj_plot("IL18", c("Human betaherpesvirus 5 (CMV).pbmc",
                      "Human alphaherpesvirus 1 (HSV1).nasal",
-                     "Human alphaherpesvirus 2 (HSV2).nasal",
                      "Anelloviridae.pbmc"), modeling_results, viral_colors,
           base_size = 12, log_residuals = T)
 ggd
@@ -440,7 +476,7 @@ ggsave(paste0(out_dir, "Figure4G.pdf"), width = 4.285714, height = 3)
 
 ```
 
-# Supplemental Figure 4
+# Supplemental Figure 6
 
 ```{r}
 
@@ -557,5 +593,468 @@ for(k in 1:length(bins)){
 }
 
 ggarrange(plotlist = ggout2, ncol = 1, nrow = length(ggout2), heights = rep(1, length(ggout2)))
-ggsave(paste0(out_dir, "FigureS4.pdf"), width = 15, height = 15)
+ggsave(paste0(out_dir, "FigureS6.pdf"), width = 15, height = 15)
+```
+
+### TGFB Additional Plots
+
+##### Days from Symptom Onset Version
+
+```{r}
+counts <- as.data.frame(data_env$serum_olink_counts)[, 10, drop = FALSE]
+event_date_cutoff = 40
+viral_load_control = TRUE
+binary = TRUE
+model.out <- data.frame()
+  plot_list <- list()
+  residual_list <- list()
+  max_part <- comb_data %>%
+    pivot_longer(cols = -event_id) %>%
+    left_join(data_env$clinical_data %>%
+                distinct(event_id, participant_id, event_date)) %>%
+    filter(event_date >= 0) %>%
+    filter(event_date <= event_date_cutoff) %>%
+    group_by(participant_id, name) %>%
+    filter(name != "Betacoronavirus.nasal") %>%
+    dplyr::summarize(value = max(value, na.rm = TRUE)) %>%
+    filter(value != -Inf) %>%
+    distinct() %>%
+    pivot_wider(names_from = name, values_from = value) %>%
+    ungroup() %>%
+    dplyr::select(-starts_with("Betacoronavirus"))
+  
+  ## Filter for participants that we have both a nasal and pbmc sample for
+  ## Really not that big of deal because we control for nasal viral load
+  max_part <- max_part[complete.cases(max_part),]
+  ctl_part <- max_part$participant_id[rowSums(max_part[,c(-1)]) == 0]
+  
+  for(active_vir in colnames(max_part)[9]){
+    print(paste0("Starting ", match(active_vir, colnames(max_part)[-1]), " out of ", length(colnames(max_part)[-1])))
+    
+    tmp.data <- counts %>%
+      rownames_to_column("sample_id") %>%
+      inner_join(data_env$clinical_data %>% dplyr::select(sample_id, event_id,
+                                                          participant_id,
+                                                          respiratory_status,
+                                                          trajectory_group,
+                                                          event_type,
+                                                          event_date,
+                                                          enrollment_site,
+                                                          discretized_admit_age_quantile, symptom_date,
+                                                          sex)) %>%
+        mutate(event_date = event_date - symptom_date) %>% dplyr::select(-symptom_date) %>%
+      inner_join(max_part %>% dplyr::select(participant_id, .data[[active_vir]]), by = "participant_id") %>%
+      inner_join(comb_data %>%
+                   dplyr::select(event_id, Betacoronavirus.nasal), by = "event_id") %>%
+      relocate(sample_id, event_id, event_type, event_date,
+               participant_id,
+               respiratory_status, trajectory_group, enrollment_site,
+               sex,discretized_admit_age_quantile, all_of(active_vir), Betacoronavirus.nasal) %>%
+      filter(!is.na(.data[[active_vir]])) %>%
+      mutate(sex = as.factor(sex),
+             participant_id = as.factor(participant_id),
+             event_date = as.numeric(event_date),
+             enrollment_site = as.factor(enrollment_site),
+             trajectory_group = ordered(as.factor(trajectory_group)),
+             respiratory_status = ordered(as.factor(respiratory_status)),
+             discretized_admit_age_quantile = ordered(as.factor(discretized_admit_age_quantile))) %>%
+     filter(.data[[active_vir]] > 0 | participant_id %in% ctl_part)
+    
+    if(viral_load_control){
+      tmp.data <- tmp.data %>%
+        filter(!is.na(Betacoronavirus.nasal)) %>%
+        mutate(Betacoronavirus.nasal = log2(Betacoronavirus.nasal + 1))
+    }
+    
+    if(binary){
+      ## Convert to a binary approach
+      tmp.data[[active_vir]] <- ordered(as.factor(ifelse(tmp.data[[active_vir]] > 0, 1, 0)))
+    } else {
+      tmp.data[[active_vir]] <- log2(tmp.data[[active_vir]] +1)
+    }
+    
+    
+    ## Prepare colnames for formala/modeling
+    colnames(tmp.data) <- gsub(" ", "_",
+                               gsub("-", "_",
+                                    gsub("\\(", "_",sub("\\)", "_",  colnames(tmp.data)))))
+    cleaned_vir <- gsub(" ", "_",
+                        gsub("-", "_",
+                             gsub("\\(", "_",sub("\\)", "_", active_vir))))
+    
+   
+    for(active_feature in colnames(tmp.data)[13:ncol(tmp.data)]){
+      
+      ## GAMM Modeling ####################
+      ## Formula construction
+      active_formula <- formula(paste0(active_feature, "~s(event_date, bs = 'cr') + s(event_date, bs = 'cr', by = ", cleaned_vir, ")+s(event_date, bs = 'cr', by = trajectory_group)+", cleaned_vir, "+sex+trajectory_group+discretized_admit_age_quantile"))
+      
+      if(viral_load_control){
+        active_formula <- formula(paste0(active_feature, "~s(event_date, bs = 'cr') + s(event_date, bs = 'cr', by = ", cleaned_vir, ")+s(event_date, bs = 'cr', by = trajectory_group)+", cleaned_vir, "+sex+trajectory_group+discretized_admit_age_quantile+Betacoronavirus.nasal"))
+      }
+      
+      tmp.data.tmp <- tmp.data %>%
+        dplyr::select(event_date, enrollment_site, participant_id,
+                      trajectory_group, sex, discretized_admit_age_quantile,
+                      any_of(active_feature), any_of(cleaned_vir),
+                      Betacoronavirus.nasal )
+      tmp.data.tmp <- tmp.data.tmp[complete.cases(tmp.data.tmp),]
+      
+      
+      tmp.data.tmp <- tmp.data.tmp %>%
+        filter(event_date >= 0) %>%
+        filter(event_date <= event_date_cutoff) %>%
+        as.data.frame() %>%
+        distinct()
+    
+      fit <- try(gamm4::gamm4(active_formula, random = ~(1|enrollment_site/participant_id), data = as.data.frame(tmp.data.tmp)))
+      
+      if(class(fit) == "try-error"){
+        next
+      }
+      a1 =anova(fit$gam)
+      ## Think about what to do here
+      aa1 = sum(a1$s.table[-c(1), 3]*a1$s.table[-c(1), 2])
+      aa2 = sum(a1$s.table[-c(1), 2])
+      slopep=pchisq(aa1,aa2, lower.tail = F)
+      slopep = a1[["s.pv"]][2]
+      interceptp =a1$pTerms.pv[1]
+      
+      virus_n <- length(unique(tmp.data.tmp$participant_id[tmp.data.tmp[[cleaned_vir]] > 0]))
+      control_n <- length(unique(tmp.data.tmp$participant_id[tmp.data.tmp[[cleaned_vir]] == 0]))
+
+      model.out <- rbind.data.frame(model.out, c(active_vir, active_feature, slopep, unname(interceptp),
+                                 sum(fit$gam$coefficients[grepl(paste0(":", cleaned_vir), names(fit$gam$coefficients))]),
+                                 mean(fit$gam$coefficients[grepl(paste0(":", cleaned_vir), names(fit$gam$coefficients))]),
+                                 fit$gam$coefficients[2], virus_n, control_n))
+      
+      if(slopep <= 1 | interceptp <= 1){
+        pred <- ggpredict(fit, c("event_date", cleaned_vir), type = "fixed",
+                          ci.lvl = 0.95)
+        colnames(pred) <- gsub("x", "event_date", gsub("group", "virus", colnames(pred)))
+        
+        pred <- pred %>%
+          mutate(virus = as.character(virus)) %>%
+          left_join(tmp.data.tmp %>%
+                      dplyr::rename("virus" = 8) %>%
+                      mutate(virus = as.character(virus)) %>%
+                      group_by(virus) %>%
+                      dplyr::summarize(max = max(event_date)), by = "virus") %>%
+          filter(event_date <= max)
+        
+        p1 <-pred %>%
+          ggplot(mapping = aes(x = event_date, y = predicted)) +
+          geom_line(mapping = aes(group = virus, y = predicted, x=event_date,
+                                  color = virus), size = 0.8) +
+          geom_ribbon(aes(x=event_date, ymin = conf.low, ymax = conf.high, fill = virus),
+                      alpha = 0.3) +
+          
+          theme_classic(base_size  = 18) +
+          scale_color_manual(values = c("lightgray", "#BF5700"))+
+          scale_fill_manual(values = c("lightgray", "#BF5700")) +
+          ylab(active_feature) +
+          xlab("Days from Hospitalization") +
+          ggtitle(paste0(active_vir, "\nShape = ",signif(slopep, digits = 3), "\nAverage = ", signif(interceptp, digits = 3)))
+        
+        plot_list <- c(plot_list, list(p1))
+        names(plot_list)[length(plot_list)] <- paste0(active_feature,"___", active_vir)
+        
+      }
+      
+      if(active_vir == colnames(max_part)[2]){
+        
+        ## This next section is to calculate the residuals for a model WITHOUT
+        ## Viral reactivation as a feature. For this reason, it only needs to be
+        ## ran once, which we do during the first loop. (PS This is for the boxplot component of Figure 4)
+        
+        tmp.data2 <- counts %>%
+          rownames_to_column("sample_id") %>%
+          inner_join(data_env$clinical_data %>% dplyr::select(sample_id, event_id,
+                                                              participant_id,
+                                                              respiratory_status,
+                                                              trajectory_group,
+                                                              event_type,
+                                                              event_date,
+                                                              enrollment_site,
+                                                              discretized_admit_age_quantile,
+                                                              sex)) %>%
+          inner_join(max_part %>% dplyr::select(participant_id), by = "participant_id") %>%
+          inner_join(comb_data %>%
+                       dplyr::select(event_id, Betacoronavirus.nasal), by = "event_id") %>%
+          relocate(sample_id, event_id, event_type, event_date,
+                   participant_id,
+                   respiratory_status, trajectory_group, enrollment_site,
+                   sex,discretized_admit_age_quantile, Betacoronavirus.nasal) %>%
+          mutate(sex = as.factor(sex),
+                 participant_id = as.factor(participant_id),
+                 event_date = as.numeric(event_date),
+                 enrollment_site = as.factor(enrollment_site),
+                 trajectory_group = ordered(as.factor(trajectory_group)),
+                 respiratory_status = ordered(as.factor(respiratory_status)),
+                 discretized_admit_age_quantile = ordered(as.factor(discretized_admit_age_quantile)))
+        
+        tmp.data.tmp2 <- tmp.data2 %>%
+        dplyr::select(event_date, enrollment_site, participant_id,
+                      trajectory_group, sex, discretized_admit_age_quantile,
+                      any_of(active_feature),
+                      Betacoronavirus.nasal )
+        tmp.data.tmp2 <- tmp.data.tmp2[complete.cases(tmp.data.tmp2),]
+        tmp.data.tmp2 <- tmp.data.tmp2 %>%
+          filter(event_date >= 0) %>%
+          filter(event_date <= event_date_cutoff) %>%
+          as.data.frame() %>%
+          distinct()
+        
+        ## Construct model without viral reactivation and show residuals
+        active_formula2 <- formula(paste0(active_feature, "~s(event_date, bs = 'cr') +s(event_date, bs = 'cr', by = trajectory_group) + sex+trajectory_group+discretized_admit_age_quantile"))
+        if(viral_load_control){
+          active_formula2 <- formula(paste0(active_feature, "~s(event_date, bs = 'cr') +s(event_date, bs = 'cr', by = trajectory_group) + sex+trajectory_group+discretized_admit_age_quantile+Betacoronavirus.nasal"))
+        }
+        fit2 <- try(gamm4::gamm4(active_formula2, random = ~(1|enrollment_site/participant_id), data = as.data.frame(tmp.data.tmp2)))
+        
+        residuals_df <- cbind.data.frame(fit2$gam$model, as.data.frame(fit2$gam$residuals)) %>%
+          left_join(max_part, by = "participant_id")
+        residual_list <- c(residual_list, list(residuals_df))
+        names(residual_list)[length(residual_list)] <- paste0(active_feature)
+      }
+    }
+    
+  }
+plot(p1 + xlab("Days from Symptom Onset"))
+ggsave(paste0(out_dir, "FigureS6_TGF_DFSO.pdf"), width = 6, height = 4)
+
+```
+
+##### Days from Hospitalization
+
+```{r}
+
+
+
+event_date_cutoff = 40
+viral_load_control = TRUE
+binary = TRUE
+model.out <- data.frame()
+  plot_list <- list()
+  residual_list <- list()
+  max_part <- comb_data %>%
+    pivot_longer(cols = -event_id) %>%
+    left_join(data_env$clinical_data %>%
+                distinct(event_id, participant_id, event_date)) %>%
+    filter(event_date >= 0) %>%
+    filter(event_date <= event_date_cutoff) %>%
+    group_by(participant_id, name) %>%
+    filter(name != "Betacoronavirus.nasal") %>%
+    dplyr::summarize(value = max(value, na.rm = TRUE)) %>%
+    filter(value != -Inf) %>%
+    distinct() %>%
+    pivot_wider(names_from = name, values_from = value) %>%
+    ungroup() %>%
+    dplyr::select(-starts_with("Betacoronavirus"))
+  
+  ## Filter for participants that we have both a nasal and pbmc sample for
+  ## Really not that big of deal because we control for nasal viral load
+  max_part <- max_part[complete.cases(max_part),]
+  ctl_part <- max_part$participant_id[rowSums(max_part[,c(-1)]) == 0]
+  
+  for(active_vir in colnames(max_part)[9]){
+    print(paste0("Starting ", match(active_vir, colnames(max_part)[-1]), " out of ", length(colnames(max_part)[-1])))
+    
+    tmp.data <- counts %>%
+      rownames_to_column("sample_id") %>%
+      inner_join(data_env$clinical_data %>% dplyr::select(sample_id, event_id,
+                                                          participant_id,
+                                                          respiratory_status,
+                                                          trajectory_group,
+                                                          event_type,
+                                                          event_date,
+                                                          enrollment_site,
+                                                          discretized_admit_age_quantile, symptom_date,
+                                                          sex)) %>%
+      dplyr::select(-symptom_date) %>%
+      inner_join(max_part %>% dplyr::select(participant_id, .data[[active_vir]]), by = "participant_id") %>%
+      inner_join(comb_data %>%
+                   dplyr::select(event_id, Betacoronavirus.nasal), by = "event_id") %>%
+      relocate(sample_id, event_id, event_type, event_date,
+               participant_id,
+               respiratory_status, trajectory_group, enrollment_site,
+               sex,discretized_admit_age_quantile, all_of(active_vir), Betacoronavirus.nasal) %>%
+      filter(!is.na(.data[[active_vir]])) %>%
+      mutate(sex = as.factor(sex),
+             participant_id = as.factor(participant_id),
+             event_date = as.numeric(event_date),
+             enrollment_site = as.factor(enrollment_site),
+             trajectory_group = ordered(as.factor(trajectory_group)),
+             respiratory_status = ordered(as.factor(respiratory_status)),
+             discretized_admit_age_quantile = ordered(as.factor(discretized_admit_age_quantile))) %>%
+     filter(.data[[active_vir]] > 0 | participant_id %in% ctl_part)
+    
+    if(viral_load_control){
+      tmp.data <- tmp.data %>%
+        filter(!is.na(Betacoronavirus.nasal)) %>%
+        mutate(Betacoronavirus.nasal = log2(Betacoronavirus.nasal + 1))
+    }
+    
+    if(binary){
+      ## Convert to a binary approach
+      tmp.data[[active_vir]] <- ordered(as.factor(ifelse(tmp.data[[active_vir]] > 0, 1, 0)))
+    } else {
+      tmp.data[[active_vir]] <- log2(tmp.data[[active_vir]] +1)
+    }
+    
+    
+    ## Prepare colnames for formala/modeling
+    colnames(tmp.data) <- gsub(" ", "_",
+                               gsub("-", "_",
+                                    gsub("\\(", "_",sub("\\)", "_",  colnames(tmp.data)))))
+    cleaned_vir <- gsub(" ", "_",
+                        gsub("-", "_",
+                             gsub("\\(", "_",sub("\\)", "_", active_vir))))
+    
+   
+    for(active_feature in colnames(tmp.data)[13:ncol(tmp.data)]){
+      
+      ## GAMM Modeling ####################
+      ## Formula construction
+      active_formula <- formula(paste0(active_feature, "~s(event_date, bs = 'cr') + s(event_date, bs = 'cr', by = ", cleaned_vir, ")+s(event_date, bs = 'cr', by = trajectory_group)+", cleaned_vir, "+sex+trajectory_group+discretized_admit_age_quantile"))
+      
+      if(viral_load_control){
+        active_formula <- formula(paste0(active_feature, "~s(event_date, bs = 'cr') + s(event_date, bs = 'cr', by = ", cleaned_vir, ")+s(event_date, bs = 'cr', by = trajectory_group)+", cleaned_vir, "+sex+trajectory_group+discretized_admit_age_quantile+Betacoronavirus.nasal"))
+      }
+      
+      tmp.data.tmp <- tmp.data %>%
+        dplyr::select(event_date, enrollment_site, participant_id,
+                      trajectory_group, sex, discretized_admit_age_quantile,
+                      any_of(active_feature), any_of(cleaned_vir),
+                      Betacoronavirus.nasal )
+      tmp.data.tmp <- tmp.data.tmp[complete.cases(tmp.data.tmp),]
+      
+      
+      tmp.data.tmp <- tmp.data.tmp %>%
+        filter(event_date >= 0) %>%
+        filter(event_date <= event_date_cutoff) %>%
+        as.data.frame() %>%
+        distinct()
+    
+      fit <- try(gamm4::gamm4(active_formula, random = ~(1|enrollment_site/participant_id), data = as.data.frame(tmp.data.tmp)))
+      
+      if(class(fit) == "try-error"){
+        next
+      }
+      a1 =anova(fit$gam)
+      ## Think about what to do here
+      aa1 = sum(a1$s.table[-c(1), 3]*a1$s.table[-c(1), 2])
+      aa2 = sum(a1$s.table[-c(1), 2])
+      slopep=pchisq(aa1,aa2, lower.tail = F)
+      slopep = a1[["s.pv"]][2]
+      interceptp =a1$pTerms.pv[1]
+      
+      virus_n <- length(unique(tmp.data.tmp$participant_id[tmp.data.tmp[[cleaned_vir]] > 0]))
+      control_n <- length(unique(tmp.data.tmp$participant_id[tmp.data.tmp[[cleaned_vir]] == 0]))
+
+      model.out <- rbind.data.frame(model.out, c(active_vir, active_feature, slopep, unname(interceptp),
+                                 sum(fit$gam$coefficients[grepl(paste0(":", cleaned_vir), names(fit$gam$coefficients))]),
+                                 mean(fit$gam$coefficients[grepl(paste0(":", cleaned_vir), names(fit$gam$coefficients))]),
+                                 fit$gam$coefficients[2], virus_n, control_n))
+      
+      if(slopep <= 1 | interceptp <= 1){
+        pred <- ggpredict(fit, c("event_date", cleaned_vir), type = "fixed",
+                          ci.lvl = 0.95)
+        colnames(pred) <- gsub("x", "event_date", gsub("group", "virus", colnames(pred)))
+        
+        pred <- pred %>%
+          mutate(virus = as.character(virus)) %>%
+          left_join(tmp.data.tmp %>%
+                      dplyr::rename("virus" = 8) %>%
+                      mutate(virus = as.character(virus)) %>%
+                      group_by(virus) %>%
+                      dplyr::summarize(max = max(event_date)), by = "virus") %>%
+          filter(event_date <= max)
+        
+        p1 <-pred %>%
+          ggplot(mapping = aes(x = event_date, y = predicted)) +
+          geom_line(mapping = aes(group = virus, y = predicted, x=event_date,
+                                  color = virus), size = 0.8) +
+          geom_ribbon(aes(x=event_date, ymin = conf.low, ymax = conf.high, fill = virus),
+                      alpha = 0.3) +
+          
+          theme_classic(base_size  = 18) +
+          scale_color_manual(values = c("lightgray", "#BF5700"))+
+          scale_fill_manual(values = c("lightgray", "#BF5700")) +
+          ylab(active_feature) +
+          xlab("Days from Hospitalization") +
+          ggtitle(paste0(active_vir, "\nShape = ",signif(slopep, digits = 3), "\nAverage = ", signif(interceptp, digits = 3)))
+        
+        plot_list <- c(plot_list, list(p1))
+        names(plot_list)[length(plot_list)] <- paste0(active_feature,"___", active_vir)
+        
+      }
+      
+      if(active_vir == colnames(max_part)[2]){
+        
+        ## This next section is to calculate the residuals for a model WITHOUT
+        ## Viral reactivation as a feature. For this reason, it only needs to be
+        ## ran once, which we do during the first loop. (PS This is for the boxplot component of Figure 4)
+        
+        tmp.data2 <- counts %>%
+          rownames_to_column("sample_id") %>%
+          inner_join(data_env$clinical_data %>% dplyr::select(sample_id, event_id,
+                                                              participant_id,
+                                                              respiratory_status,
+                                                              trajectory_group,
+                                                              event_type,
+                                                              event_date,
+                                                              enrollment_site,
+                                                              discretized_admit_age_quantile,
+                                                              sex)) %>%
+          inner_join(max_part %>% dplyr::select(participant_id), by = "participant_id") %>%
+          inner_join(comb_data %>%
+                       dplyr::select(event_id, Betacoronavirus.nasal), by = "event_id") %>%
+          relocate(sample_id, event_id, event_type, event_date,
+                   participant_id,
+                   respiratory_status, trajectory_group, enrollment_site,
+                   sex,discretized_admit_age_quantile, Betacoronavirus.nasal) %>%
+          mutate(sex = as.factor(sex),
+                 participant_id = as.factor(participant_id),
+                 event_date = as.numeric(event_date),
+                 enrollment_site = as.factor(enrollment_site),
+                 trajectory_group = ordered(as.factor(trajectory_group)),
+                 respiratory_status = ordered(as.factor(respiratory_status)),
+                 discretized_admit_age_quantile = ordered(as.factor(discretized_admit_age_quantile)))
+        
+        tmp.data.tmp2 <- tmp.data2 %>%
+        dplyr::select(event_date, enrollment_site, participant_id,
+                      trajectory_group, sex, discretized_admit_age_quantile,
+                      any_of(active_feature),
+                      Betacoronavirus.nasal )
+        tmp.data.tmp2 <- tmp.data.tmp2[complete.cases(tmp.data.tmp2),]
+        tmp.data.tmp2 <- tmp.data.tmp2 %>%
+          filter(event_date >= 0) %>%
+          filter(event_date <= event_date_cutoff) %>%
+          as.data.frame() %>%
+          distinct()
+        
+        ## Construct model without viral reactivation and show residuals
+        active_formula2 <- formula(paste0(active_feature, "~s(event_date, bs = 'cr') +s(event_date, bs = 'cr', by = trajectory_group) + sex+trajectory_group+discretized_admit_age_quantile"))
+        if(viral_load_control){
+          active_formula2 <- formula(paste0(active_feature, "~s(event_date, bs = 'cr') +s(event_date, bs = 'cr', by = trajectory_group) + sex+trajectory_group+discretized_admit_age_quantile+Betacoronavirus.nasal"))
+        }
+        fit2 <- try(gamm4::gamm4(active_formula2, random = ~(1|enrollment_site/participant_id), data = as.data.frame(tmp.data.tmp2)))
+        
+        residuals_df <- cbind.data.frame(fit2$gam$model, as.data.frame(fit2$gam$residuals)) %>%
+          left_join(max_part, by = "participant_id")
+        residual_list <- c(residual_list, list(residuals_df))
+        names(residual_list)[length(residual_list)] <- paste0(active_feature)
+      }
+    }
+    
+  }
+plot(p1 + xlab("Days from Hospitalization"))
+ggsave(paste0(out_dir, "FigureS6_TGF_DSH.pdf"), width = 6, height = 4)
+```
+
+## Session Info
+
+```{r}
+sessionInfo()
 ```

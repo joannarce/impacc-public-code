@@ -1,0 +1,271 @@
+---
+title: "Figure2F"
+format: html
+editor: visual
+---
+
+## ABX5 - Azithromycin
+
+### Load in Chunks
+
+```{r}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggpubr) 
+library(scales)
+library(readxl)
+out_dir <- "../output/"
+TrajGrpCol <- c("1" = "#639A21", "2" = "#39828C", "3" = "#6371AD", "4" = "#BD7D31", "5" = "#9C3418")
+
+ABX_colors <- c("#4268C6", "#E07E3D", "#399960")
+
+nasal_metagenomics_metadata <- read_csv("/data/nasal-metagenomics/current/nasal-metagenomics-Metadata.csv")
+ea_metagenomics_metadata <- read_csv("/data/ea-metagenomics/current/ea-metagenomics-Metadata.csv")
+
+### Load all clinical data straight out of data
+clinical_data_ext <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-supp-locked.csv")
+clinical_data1 <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-sample-locked.csv")
+clinical_data2 <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-locked.csv")
+tj_pred <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-locked.csv") %>%
+  distinct(participant_id, trajectory_group)
+clinical_data3 <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-event-locked.csv")
+clinical_data <- merge(clinical_data1, clinical_data2, by = "participant_id")
+clinical_data <- merge(clinical_data, clinical_data3, by= c("event_id", "participant_id"))
+clinical_data<-merge(clinical_data,clinical_data_ext, by="participant_id")
+clinical_data$discretized_admit_age_quantile <- cut(clinical_data$admit_age, breaks = c(17,46,54,62,70, 96), include.lowest = FALSE)
+rm(clinical_data2, clinical_data3)
+## These are the Age quantiles for Van/Alexandra's analysis in case Chaz asks for something by their age groupings
+
+### Load Antibiotic data sent by Chaz
+antibiotic_data <- read_csv("/scratch/metagenomics/antibiotic_data/antibiotics_data.csv")
+colnames(antibiotic_data)[1] <- "participant_id" ## Make this matching to make merging easier with other IMPACC dataframes
+
+ABXcoverage <- read_excel("/scratch/metagenomics/antibiotic_data/Antibiotic coverage.xls", sheet = 1)%>%
+  dplyr::select(-X_ANTIMICROBIALMED, -scale) %>%
+  filter(!is.na(`Score Total`)) %>%
+  rowwise() %>%
+  mutate(`Score Total` = sum(`GP Coverage`, `GN coverage`, `Anaerobic Coverage`)) %>%
+  distinct()
+Gerbercoverage <- read_excel("/scratch/metagenomics/antibiotic_data/Antibiotic coverage.xls", sheet = 2)
+
+
+antibiotic_class_mapping <- read_excel("/scratch/metagenomics/antibiotic_data/Antibiotic_data_table_CL.xlsx")  %>%
+  filter(!grepl("Ignore", `Med group`)) %>%
+  left_join(ABXcoverage) %>%
+  rename(med_group = `Med group`)
+unique(antibiotic_class_mapping$med_group)
+
+### Large color palette, useful for taxa colorings where you need alot of distinct colors
+library(RColorBrewer)
+n <- 100
+qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
+col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+
+exclude_participant <- antibiotic_data %>% filter(conmed_dose_start > conmed_dose_stop)
+exclude_ABX_metadata <- plyr::rbind.fill(nasal_metagenomics_metadata, ea_metagenomics_metadata) %>%
+  dplyr::select(sample_id) %>%
+  left_join(clinical_data %>% dplyr::select(sample_id, participant_id)) %>%
+  filter(participant_id %in% exclude_participant$participant_id)
+exclude_samples = c("0865-00F2MG00-001", "0865-003Y5D00-001_REMOVE", "0865-004KMH00-001", "0865-00DGJG00-001", "0865-004FWA00-001")
+exclude_samples <- unique(c(exclude_samples, exclude_ABX_metadata$sample_id ))
+```
+
+### Metagenomics ###
+
+```{r}
+nasal_long_ancom<-read_csv("/scratch/metagenomics/batch_corrected/NS_genus_data_090723.csv") %>%
+  filter(p_adj<0.05) %>%
+  dplyr::rename("core_specific_ID_SUFFIX" = "sample_name") %>%
+  inner_join(nasal_metagenomics_metadata) %>%
+  filter(!sample_id %in% exclude_samples) %>%
+  filter(internal_control != "yes") %>%
+  filter(!sample_id %in% exclude_samples) %>%
+  left_join(clinical_data %>% dplyr::select(sample_id, event_date, participant_id)) %>%
+  filter(!is.na(event_date)) %>% dplyr::select(-event_date)
+```
+### Antibiotic Data ###
+
+```{r}
+ABX_days_df <- read_csv("/scratch/metagenomics/antibiotic_data/ABX_days_unweighted_v4.csv") %>%
+ rowwise() %>%
+   mutate(ABX_days = sum(as.numeric(c_across(Cefepime:Clindamycin)))) %>%
+ ungroup()
+```
+
+### Assign Groups
+
+```{r}
+#### Total AMR DPM ###
+all_data <- nasal_metagenomics_metadata %>%
+  left_join(clinical_data %>% dplyr::select(sample_id, participant_id, event_date)) %>%
+  filter(!is.na(participant_id)) %>%
+  left_join(ABX_days_df %>% dplyr::select(sample_id, Azithromycin, ABX_days)) %>%
+  filter(!is.na(ABX_days)) %>%
+  mutate(group_id = ifelse(Azithromycin > 0, "Azithromycin",
+                                      ifelse(ABX_days == 0, "No ABX", "Other ABX"))) %>%
+  mutate(timepoint = ifelse((group_id == "Azithromycin" & Azithromycin<=2)|
+                              (group_id == "Other ABX" & ABX_days<=2) |
+                              (group_id=="No ABX" & event_date<=40 & row_number()%%2==1), "Day 0-2",
+                            ifelse((group_id == "Azithromycin" & Azithromycin>=4  & Azithromycin<=6)|
+                                     (group_id == "Other ABX" & ABX_days<=6 & ABX_days>=4)|
+                                     (group_id=="No ABX" & event_date>=3 & event_date<=40 & row_number()%%2==0), "Day 4-6", "Other"))) %>%
+ 
+  filter(timepoint != "Other") 
+
+### Rarefy No ABX samples ###
+trim <- all_data %>% filter(group_id=="No ABX") %>%
+  arrange(timepoint) %>%
+  mutate(keep=case_when(row_number()%%2==0 ~ "yes", row_number()%%2==1 ~ "no"))
+
+data_trimmed <- all_data %>%
+  left_join(trim) %>%
+  filter(keep=="yes" | is.na(keep))
+```
+## Differential Taxonomic Abundance (ANCOM)
+
+```{r}
+library(phyloseq)
+library(ape)
+library(ade4)
+
+### read in NCBI phylogeny ###
+tree <- ape::read.tree("../../annotation_files/phyliptree.phy")
+
+### read in taxid map to full path ###
+taxa_table <- read_csv("../../annotation_files/ancom_input.csv") %>%
+  filter(!is.na(tax_id)) 
+taxa_table_final <- as.matrix(taxa_table)
+rownames(taxa_table_final) <- rownames(taxa_table)
+
+phylogeny <- as.data.frame(lapply(taxa_table, as.factor), stringsAsFactors =TRUE)
+rownames(phylogeny) <- paste0(rownames(taxa_table_final))
+
+nasal_metagenomics_counts_everything <- nasal_long_ancom %>%
+  distinct(tax_id, nt_count, sample_id) %>%
+  pivot_wider(names_from = tax_id, values_from = nt_count, id_cols = sample_id) %>%
+  column_to_rownames("sample_id")
+nasal_metagenomics_counts_everything[is.na(nasal_metagenomics_counts_everything)] <- 0
+metadata <- merge(nasal_metagenomics_metadata, clinical_data, by.x = "sample_id", by.y = "sample_id", suffixes = c(".nasal", ".clinical"))
+rownames(metadata) <- metadata[,1]
+metadata <- metadata[,colnames(metadata) != "Row.names"]
+metadata$trajectory_group <- as.factor(metadata$trajectory_group)
+
+metadata <- metadata %>%
+  filter(!is.na(participant_id.nasal)) %>%
+  left_join(ABX_days_df %>% dplyr::select(sample_id, Azithromycin, ABX_days, Ceftriaxone, Vancomycin, Cefepime, Piperacillin_Tazobactam, Doxycycline, Meropenem)) %>%
+  filter(!is.na(ABX_days)) %>%
+  left_join(data_trimmed %>% distinct(sample_id, timepoint)) %>%
+  mutate(Azithromycin_binary = ifelse(Azithromycin > 0, "Azithromycin",
+                                      ifelse(ABX_days == 0, "No ABX", "Other ABX"))) %>%
+  as.data.frame() %>%
+  column_to_rownames("sample_id") %>%
+  #filter(Azithromycin_binary != "Other ABX") %>%
+  mutate(Azithromycin_binary = factor(Azithromycin_binary, c("No ABX", "Azithromycin", "Other ABX")))
+
+nasal_metagenomics_counts_int <- apply(nasal_metagenomics_counts_everything, 2, function(x){as.integer(ceiling(x))})
+rownames(nasal_metagenomics_counts_int) <- rownames(nasal_metagenomics_counts_everything)
+nasal_metagenomics_counts_int <- nasal_metagenomics_counts_int[,colnames(nasal_metagenomics_counts_int) %in% rownames(taxa_table_final)]
+
+otu <- otu_table(as.matrix(nasal_metagenomics_counts_int), taxa_are_rows = FALSE)
+phylotree <- phyloseq(otu, sample_data(metadata), tax_table(taxa_table_final))
+```
+
+```{r ANCOM}
+packageVersion("phyloseq")
+library(ANCOMBC)
+
+metadata <- merge(nasal_metagenomics_metadata, clinical_data, by.x = "sample_id", by.y = "sample_id", suffixes = c(".nasal", ".clinical"))
+rownames(metadata) <- metadata[,1]
+metadata <- metadata[,colnames(metadata) != "Row.names"]
+metadata$trajectory_group <- as.factor(metadata$trajectory_group)
+
+metadata <- metadata %>%
+  filter(!is.na(participant_id.nasal)) %>%
+  left_join(ABX_days_df %>% dplyr::select(sample_id, Azithromycin, ABX_days, Ceftriaxone, Vancomycin, Cefepime, Piperacillin_Tazobactam, Doxycycline, Meropenem)) %>%
+  filter(!is.na(ABX_days)) %>%
+  left_join(data_trimmed %>% distinct(sample_id, timepoint)) %>%
+  mutate(Azithromycin_binary = ifelse(Azithromycin > 0, "Azithromycin",
+                                      ifelse(ABX_days == 0, "No ABX", "Other ABX"))) %>%
+  mutate(severity = ifelse(trajectory_group == "4", "severe",
+                                      ifelse(trajectory_group == "5", "severe", "mild"))) %>%
+  as.data.frame() %>%
+  column_to_rownames("sample_id") %>%
+  #filter(Azithromycin_binary != "Other ABX") %>%
+  mutate(Azithromycin_binary = factor(Azithromycin_binary, c("No ABX", "Azithromycin", "Other ABX")))
+
+### Make new phylotree
+phylotree <- phyloseq(otu, sample_data(metadata), tax_table(taxa_table_final))
+phylotree_filtered = subset_samples(phylotree, !is.na(Azithromycin_binary))
+
+
+### run Day 4-6
+phylotree_filtered = subset_samples(phylotree, !is.na(Azithromycin_binary))
+phylotree_filtered4 = subset_samples(phylotree_filtered, timepoint == "Day 4-6")
+out = ancombc(
+  phyloseq = phylotree_filtered4, 
+  formula = "Azithromycin_binary + Ceftriaxone + Vancomycin + Cefepime + Piperacillin_Tazobactam + Doxycycline + Meropenem + trajectory_group + ever_steroids + sex + discretized_admit_age_quantile", 
+  p_adj_method = "fdr", 
+  zero_cut = 0.97 , # by default prevalence filter of 10% is applied
+  lib_cut = 0, 
+  group = "Azithromycin_binary", 
+  struc_zero = TRUE, 
+  neg_lb = TRUE, 
+  tol = 1e-5, 
+  max_iter = 100, 
+  conserve = TRUE, 
+  alpha = 0.05, 
+  global = TRUE
+)
+res_ANCOMBC_v4 <- as.data.frame(out$res)
+
+```
+
+
+```{r select significant taxa}
+tmp <- res_ANCOMBC_v4 %>% rownames_to_column("tax_id")
+
+test <- tmp %>%
+  left_join(nasal_long_ancom %>% 
+              distinct(tax_id, name, category) %>% 
+              mutate(tax_id = as.character(tax_id))) %>%
+              rowwise() %>% 
+              filter(category == "bacteria") %>%
+  mutate(log10p = (beta.Azithromycin_binaryAzithromycin / abs(beta.Azithromycin_binaryAzithromycin)) * -log10(q_val.Azithromycin_binaryAzithromycin)) %>%
+  mutate(log10p = ifelse(log10p == -Inf, log10(2.2e-16), log10p)) %>%
+  mutate(log10p = ifelse(log10p == Inf, -log10(2.2e-16), log10p)) 
+                
+
+heat_df <- test %>%
+  filter(q_val.Azithromycin_binaryAzithromycin < 0.1) %>%
+  column_to_rownames("name") %>%
+  dplyr::select(beta.Azithromycin_binaryAzithromycin)
+```
+
+```{r visualize results}
+library(circlize)
+library(ComplexHeatmap)
+
+f1 = colorRamp2(seq(min(heat_df), max(heat_df), length = 2), c("red", "#EEEEEE"))
+f1 = colorRamp2(c(min(heat_df), 0, max(heat_df)), c("blue", "#EEEEEE", "red"))
+
+colnames(heat_df) <- c("Day 4-6")
+mat<-as.matrix(heat_df)
+## All the p-values are less than 0.001 so just manually indicating stars
+## See the test df, particularly column q_val.Azithromycin_binaryAzithromycin
+## for p-values
+Heat<-Heatmap(mat,  width = unit(3, "cm"), cell_fun = function(j, i, x, y, width, height, fill) {
+          grid.text("***", x = x, y = y, gp = gpar(fontsize = 14, col = "black"))
+        },col = f1, name = "Log fold change (LFC)", cluster_columns = F, show_row_dend = F)
+Heat
+
+pdf(file=paste0(out_dir, "Figure2F.pdf"), width=4, height=5.5)
+Heat
+invisible(capture.output(dev.off()))
+
+write.csv(mat, paste0(out_dir, "Figure2F.csv"))
+```
+
