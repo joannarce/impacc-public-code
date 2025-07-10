@@ -1,0 +1,452 @@
+---
+title: "External_Cohort_Validation"
+output: pdf_document
+---
+
+## PMG - Su et al 2020
+
+### Panel C
+```{r, fig.height=2.5, fig.width=4.5}
+library(tidyverse)
+library(readxl)
+metadata <- read_csv("pmg/pmg_Metadata.csv")
+metadata <- read_xlsx("pmg/Su_COVID19_clinical.xlsx", sheet = 2)
+key <- read_csv("pmg/pmg_key.csv") %>% dplyr::select(-1)
+prediction <- readRDS("pmg/predicted_subtype_PMG.rds")
+
+max_subtype <- prediction %>%
+  as.data.frame() %>%
+  rownames_to_column("sample") %>%
+  pivot_longer(-sample) %>%
+  group_by(sample) %>%
+  slice_max(value)
+
+max_subtype %>%
+  left_join(key %>% dplyr::rename("sample"=1)) %>%
+  group_by(name, `Who Ordinal Scale`) %>%
+  filter(!is.na(`Who Ordinal Scale`)) %>%
+  dplyr::summarize(count = n()) %>%
+  mutate(freq = count / sum(count) * 100) %>%
+  mutate(`Who Ordinal Scale` = as.factor(`Who Ordinal Scale`)) %>%
+  ggplot(aes(x=name, y= freq, fill = `Who Ordinal Scale`)) +
+  geom_bar(stat = "identity") +
+  theme_classic() +
+  ylab("Percent (%)") +
+  xlab("Predicted Subtype")
+
+gg_pmga <- prediction %>% as.data.frame() %>%
+  rownames_to_column("sample") %>%
+  rowwise() %>%
+  mutate(Critical = E+`F`) %>%
+  left_join(key %>% dplyr::rename("sample"=1)) %>%
+  filter(!is.na(`Who Ordinal Scale`)) %>%
+  mutate(`Who Ordinal Scale` = factor(`Who Ordinal Scale`, as.character(c(7:0)))) %>%
+  filter(!grepl("AC", sample_id)) %>%
+  ggplot(aes(y=Critical, x= `Who Ordinal Scale`, fill = `Who Ordinal Scale`)) +
+  #geom_bar(stat = "identity") +
+  geom_boxplot(outlier.shape = NA) +
+  ggbeeswarm::geom_quasirandom(size = 0.7) +
+  theme_classic() +
+  ylab("P(E or F)") +
+  xlab("WHO Ordinal Score")
+gg_pmga
+```
+
+### Panel G1
+```{r, fig.width = 3, fig.height = 2.5}
+### Check if it is one samples
+pmg_data <- read_csv("pmg/pmg_normalized_data.csv") %>%
+  as.data.frame() %>%
+  dplyr::rename("SAMPLE_ID" = 1) %>%
+  left_join(prediction %>% as.data.frame() %>% rownames_to_column("SAMPLE_ID")) %>%
+  filter(SAMPLE_ID %in% key$`Healthy donor sample or COVID19 sample`[!grepl("AC",key$sample_id)])
+
+metabolites <- colnames(pmg_data)[-1]
+LCPUFA_n3 <- metabolites[grepl("n3", metabolites) & 
+                       !grepl("n6", metabolites) &
+                       !grepl("or 6", metabolites)]
+
+LCPUFA_n6 <- metabolites[grepl("n6",metabolites) & 
+                       !grepl("n3", metabolites)]
+pmg_data$N3 <- rowMeans(pmg_data[,colnames(pmg_data) %in% LCPUFA_n3])
+pmg_data$N6 <- rowMeans(pmg_data[,colnames(pmg_data) %in% LCPUFA_n6])
+
+gg_pmgb <- pmg_data %>%
+  mutate(ratio = `docosadienoate (22:2n6)` - `docosahexaenoate (DHA; 22:6n3)`) %>%
+  #filter(ratio >-4) %>%
+  ggplot(aes(x=ratio, y=`F`)) +
+  geom_point(size = 0.7) +
+  geom_smooth(method = "lm", se = FALSE) +
+  theme_classic() +
+  xlab("N6 - N3 Ratio") +
+  ylab("P(F)")
+
+gg_pmgb
+what <- pmg_data %>%
+  mutate(ratio = `docosadienoate (22:2n6)` - `docosahexaenoate (DHA; 22:6n3)`)
+cor.test(what$ratio, what$`F`, method = "spearman")
+
+fit <- lm(ratio ~ `F`, data = what)
+anova(fit)
+```
+
+### Panel G2
+```{r, fig.width = 3, fig.height = 2.5}
+gg2 <- pmg_data %>%
+   left_join(key %>% dplyr::rename("SAMPLE_ID"=1)) %>%
+  filter(!is.na(`Who Ordinal Scale`)) %>%
+  filter(`Who Ordinal Scale` %in% c(7, 6, 5, 4)) %>%
+  mutate(ratio = `docosadienoate (22:2n6)` - `docosahexaenoate (DHA; 22:6n3)`) %>%
+  #filter(ratio >-4) %>%
+  ggplot(aes(x=ratio, y=`F`)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_point(size = 0.7) +
+  theme_classic() +
+  xlab("N6 - N3 Ratio") +
+  ylab("P(F)")
+
+gg2
+what2 <- pmg_data %>%
+   left_join(key %>% dplyr::rename("SAMPLE_ID"=1)) %>%
+  filter(!is.na(`Who Ordinal Scale`)) %>%
+  filter(`Who Ordinal Scale` %in% c(7, 6, 5, 4)) %>%
+  mutate(ratio = `docosadienoate (22:2n6)` - `docosahexaenoate (DHA; 22:6n3)`)
+cor.test(what2$ratio, what2$`F`, method = "spearman")
+
+fit <- lm(ratio ~ `F`, data = what2)
+anova(fit)
+```
+
+## PBMC Transcriptomics - Hanson et al 2024
+
+### Panel D
+```{r, fig.height=2.5, fig.width=4.5}
+
+library(tidyverse)
+metadata <- read_csv("pbmc/Hanson_Manifest_long.csv") %>% dplyr::select(-1) %>%
+  left_join(read_csv("pbmc/hanson_Metadata.csv") %>%
+  distinct(Record.Id, symptom.group))
+prediction <- readRDS("pbmc/predicted_subtype_Hanson_PBMC.rds")
+
+gg_hanson_a <- prediction %>% as.data.frame() %>%
+  rownames_to_column("SAMPLE_ID") %>%
+  rowwise() %>%
+  mutate(Critical = E+`F`) %>%
+  left_join(metadata) %>%
+  filter(!is.na(severity_group)) %>%
+  mutate(severity_group = factor(severity_group, c("E", "D", "C", "B", "A", "control"))) %>%
+  group_by(Record.Id) %>% slice_min(days_since) %>%
+  filter(days_since < 14 | is.na(days_since)) %>%
+  ggplot(aes(y=Critical, x= severity_group, fill = severity_group)) +
+  #geom_bar(stat = "identity") +
+  geom_boxplot(outlier.shape = NA) +
+  ggbeeswarm::geom_quasirandom(size = 0.7) +
+  theme_classic() +
+  ylab("P(E or F)") +
+  xlab("Severity Group")
+gg_hanson_a
+```
+
+### Panels I
+```{r,fig.height=3, fig.width=3.5}
+
+library(tidyverse)
+metadata <- read_csv("pbmc/Hanson_Manifest_long.csv") %>% dplyr::select(-1) %>%
+  left_join(read_csv("pbmc/hanson_Metadata.csv") %>%
+  distinct(Record.Id, symptom.group))
+prediction <- readRDS("pbmc/predicted_subtype_Hanson_PBMC.rds")
+
+
+model.df <- prediction %>% as.data.frame() %>%
+  rownames_to_column("SAMPLE_ID") %>%
+  rowwise() %>%
+  mutate(Critical = E+`F`) %>%
+  left_join(metadata) %>%
+  filter(!is.na(symptom.group)) %>%
+ # mutate(severity_group = factor(severity_group, c("E", "D", "C", "B", "A", "control"))) %>%
+  group_by(Record.Id) %>% slice_min(days_since) %>%
+  filter(days_since < 14 | is.na(days_since))
+
+fit <- lm(`F` ~ symptom.group, data = model.df %>%
+            filter(!is.na(`F`)) %>%
+            filter(!is.na(symptom.group)))
+
+gg_hanson_b <- prediction %>% as.data.frame() %>%
+  rownames_to_column("SAMPLE_ID") %>%
+  rowwise() %>%
+  mutate(Critical = E+`F`) %>%
+  left_join(metadata) %>%
+  filter(severity_group %in% c("E", "D")) %>%
+  filter(!is.na(symptom.group)) %>%
+ # mutate(severity_group = factor(severity_group, c("E", "D", "C", "B", "A", "control"))) %>%
+  group_by(Record.Id) %>% slice_min(days_since) %>%
+  filter(days_since < 14 | is.na(days_since)) %>%
+  # mutate(symptom.group = ifelse(symptom.group == "NPS",
+  #                               "No Physical Symptoms",
+  #                               "Physical Symptoms")) %>%
+  ggplot(aes(y=`F`/Critical, x= symptom.group, fill = symptom.group)) +
+  #geom_bar(stat = "identity") +
+  geom_boxplot(outlier.shape = NA) +
+  ggbeeswarm::geom_quasirandom(size = 0.7) +
+  theme_classic() +
+  ylab("P(F) / P(F)+P(E)") +
+  xlab("Outcome")  +
+  ggpubr::stat_compare_means(comp = list(c("NPS",
+                                   "PS"))) +
+  scale_y_continuous(expand = c(0, 0.1))
+
+gg_hanson_b
+
+
+gg_hanson_c <- prediction %>% as.data.frame() %>%
+  rownames_to_column("SAMPLE_ID") %>%
+  rowwise() %>%
+  mutate(Moderate = C+B+A) %>%
+  left_join(metadata) %>%
+  filter(severity_group %in% c("C")) %>%
+  filter(!is.na(symptom.group)) %>%
+ # mutate(severity_group = factor(severity_group, c("E", "D", "C", "B", "A", "control"))) %>%
+  group_by(Record.Id) %>% slice_min(days_since) %>%
+  filter(days_since < 14 | is.na(days_since)) %>%
+  # mutate(symptom.group = ifelse(symptom.group == "NPS",
+  #                               "No Physical Symptoms",
+  #                               "Physical Symptoms")) %>%
+  ggplot(aes(y=C/Moderate, x= symptom.group, fill = symptom.group)) +
+  #geom_bar(stat = "identity") +
+  geom_boxplot(outlier.shape = NA) +
+  ggbeeswarm::geom_quasirandom(size = 0.7) +
+  theme_classic() +
+  ylab("P(C) / P(A)+P(B)+P(C)") +
+  xlab("Outcome") +
+  ggpubr::stat_compare_means(comp = list(c("NPS",
+                                   "PS"))) +
+  scale_y_continuous(expand = c(0, 0.1))
+
+gg_hanson_c
+```
+
+```{r, fig.width = 3, fig.height = 2.5}
+ggpubr::ggarrange(gg_hanson_b,
+                  gg_hanson_c,
+                  common.legend = T, nrow = 1, align = "hv",
+                  ncol = 2)
+```
+
+## PBMC Tran & Cytokiens - COMBAT
+
+### Panel E1
+```{r, fig.width = 4.5, height = 2.5}
+library(tidyverse)
+library(readxl)
+metadata <- read_xlsx("COMBAT/so/COMBAT_Luminex_metadata.xlsx")
+prediction <- readRDS("COMBAT/so/predicted_subtype_COMBAT_SO.rds")
+
+gg_combat_so_a <- prediction %>% as.data.frame() %>%
+  rownames_to_column("COMBAT_Luminex_sample_ID") %>%
+  rowwise() %>%
+  mutate(Critical = E+`F`) %>%
+  left_join(metadata) %>%
+  mutate(TimeSinceOnset = as.numeric(TimeSinceOnset)) %>%
+  mutate(TimeSinceOnset = ifelse(Source %in% c("HV", "Flu"), 0, TimeSinceOnset)) %>%
+  group_by(COMBAT_ID) %>% filter(TimeSinceOnset <= 20) %>% slice_min(TimeSinceOnset) %>%
+  mutate(Outcome = ifelse(Outcome == "NA" | Source %in% c("HV", "Flu"), Source, as.character(Outcome))) %>%
+  mutate(`Outcome` = factor(`Outcome`, c("1", "2", "3", "4", "5", "6", "Sepsis", "Flu", "HV"))) %>%
+  ggplot(aes(y=Critical, x= `Outcome`, fill = `Outcome`)) +
+  #geom_bar(stat = "identity") +
+  geom_boxplot(outlier.shape = NA) +
+  ggbeeswarm::geom_quasirandom(size = 0.7) +
+  theme_classic() +
+  ylab("P(E or F)") +
+  xlab("Clinical Outcome")
+gg_combat_so_a
+```
+
+### Panel E2
+```{r, fig.width = 4.5, height = 2.5}
+library(tidyverse)
+metadata <- read_csv("COMBAT/pbmc/COMBAT_Metadata.csv")
+prediction <- readRDS("COMBAT/pbmc/predicted_subtype_COMBAT_PBMC.rds")
+
+max_subtype <- prediction %>%
+  as.data.frame() %>%
+  rownames_to_column("RNASeq_sample_ID") %>%
+  pivot_longer(-RNASeq_sample_ID) %>%
+  group_by(RNASeq_sample_ID) %>%
+  slice_max(value)
+
+gg_combat_pmbc_a <- prediction %>% as.data.frame() %>%
+  rownames_to_column("RNASeq_sample_ID") %>%
+  rowwise() %>%
+  mutate(Critical = E+`F`) %>%
+  left_join(metadata) %>%
+  mutate(TimeSinceOnset = ifelse(Source == "HV", 0, TimeSinceOnset)) %>%
+  group_by(COMBAT_ID) %>% filter(TimeSinceOnset <= 20) %>% slice_min(TimeSinceOnset) %>%
+  mutate(Outcome = ifelse(is.na(Outcome) |Source == "HV", Source, as.character(Outcome))) %>%
+  mutate(`Outcome` = factor(`Outcome`, c("1", "2", "3", "4", "5", "6", "Sepsis","Flu", "HV"))) %>%
+  ggplot(aes(y=Critical, x= `Outcome`, fill = `Outcome`)) +
+  #geom_bar(stat = "identity") +
+  geom_boxplot(outlier.shape = NA) +
+  ggbeeswarm::geom_quasirandom(size = 0.7) +
+  theme_classic() +
+  ylab("P(E or F)") +
+  xlab("Clinical Outcome")
+
+gg_combat_pmbc_a
+```
+
+### Panel F1
+```{r, fig.height=3, fig.width=3}
+library(tidyverse)
+library(readxl)
+so_factors <- read.csv("COMBAT/so/COMBAT_so_projections.csv") %>%
+  dplyr::rename("COMBAT_Luminex_sample_ID" = "X") %>%
+  dplyr::select(COMBAT_Luminex_sample_ID, Factor1) %>%
+  left_join(read_xlsx("COMBAT/so/COMBAT_Luminex_metadata.xlsx") %>%
+              distinct(COMBAT_Luminex_sample_ID, COMBAT_ID,
+                       COMBAT_participant_timepoint_ID)) %>%
+  dplyr::select(-COMBAT_Luminex_sample_ID)
+  
+pbmc_factors <- read.csv("COMBAT/pbmc/COMBAT_PBMC_RNA-seq_projections.csv") %>%
+  dplyr::rename("RNASeq_sample_ID" = "X") %>%
+   dplyr::select(RNASeq_sample_ID, Factor1) %>%
+  left_join(read_csv("COMBAT/pbmc/COMBAT_Metadata.csv") %>%
+              distinct(RNASeq_sample_ID, COMBAT_ID,
+                       COMBAT_participant_timepoint_ID)) %>%
+  dplyr::select(-RNASeq_sample_ID)
+
+so_factors %>%
+  left_join(pbmc_factors, by = c("COMBAT_ID", "COMBAT_participant_timepoint_ID")) %>%
+  filter(!is.na(Factor1.x)) %>%
+  filter(!is.na(Factor1.y)) %>%
+  ggplot(aes(x=Factor1.x, y=Factor1.y)) +
+  geom_point() +
+  theme_classic() +
+  ggpubr::stat_cor(method = "spearman") +
+  xlab("Factor 1 (SO)") +
+  ylab("Factor 1 (PBMC)") +
+  geom_smooth(method = "lm", se = F)
+```
+
+### Panel F2
+```{r, fig.height=3, fig.width=3}
+metadata <- read_xlsx("COMBAT/so/COMBAT_Luminex_metadata.xlsx")
+prediction <- readRDS("COMBAT/so/predicted_subtype_COMBAT_SO.rds")
+
+so_pred <- prediction %>% as.data.frame() %>%
+  rownames_to_column("COMBAT_Luminex_sample_ID") %>%
+  rowwise() %>%
+  mutate(Critical = E+`F`) %>%
+  left_join(metadata) %>%
+  mutate(TimeSinceOnset = as.numeric(TimeSinceOnset)) %>%
+  mutate(TimeSinceOnset = ifelse(Source == "HV", 0, TimeSinceOnset)) %>%
+  group_by(COMBAT_ID) %>% filter(TimeSinceOnset <= 20) %>% slice_min(TimeSinceOnset) %>%
+  mutate(Outcome = ifelse(Outcome == "NA" | Source == "HV", Source, as.character(Outcome))) %>%
+  mutate(`Outcome` = factor(`Outcome`, c("1", "2", "3", "4", "5", "6", "Sepsis", "HV")))
+
+
+metadata <- read_csv("COMBAT/pbmc/COMBAT_Metadata.csv")
+prediction <- readRDS("COMBAT/pbmc/predicted_subtype_COMBAT_PBMC.rds")
+
+pbmc_pred <- prediction %>% as.data.frame() %>%
+  rownames_to_column("RNASeq_sample_ID") %>%
+  rowwise() %>%
+  mutate(Critical = E+`F`) %>%
+  left_join(metadata) %>%
+  mutate(TimeSinceOnset = ifelse(Source == "HV", 0, TimeSinceOnset)) %>%
+  group_by(COMBAT_ID) %>% filter(TimeSinceOnset <= 20) %>% slice_min(TimeSinceOnset) %>%
+  mutate(Outcome = ifelse(is.na(Outcome) |Source == "HV", Source, as.character(Outcome))) %>%
+  mutate(`Outcome` = factor(`Outcome`, c("1", "2", "3", "4", "5", "6", "Sepsis", "HV")))
+
+so_pred %>%
+  distinct(COMBAT_ID, Critical, COMBAT_participant_timepoint_ID) %>%
+  inner_join(pbmc_pred %>%
+  distinct(COMBAT_ID, Critical, COMBAT_participant_timepoint_ID), by = c("COMBAT_ID", "COMBAT_participant_timepoint_ID") ) %>%
+  ggplot(aes(x=Critical.x, y=Critical.y)) +
+  geom_point() +
+  theme_classic() +
+  #ggpubr::stat_cor(method = "spearman") +
+  xlab("P(E or F) Serum Cytokines") +
+  ylab("P(E or F) PBMC") +
+  geom_smooth(method = "lm", se = F)
+fit <- lm(Critical.x ~ Critical.y, data = so_pred %>%
+  distinct(COMBAT_ID, Critical, COMBAT_participant_timepoint_ID) %>%
+  inner_join(pbmc_pred %>%
+  distinct(COMBAT_ID, Critical, COMBAT_participant_timepoint_ID), by = c("COMBAT_ID", "COMBAT_participant_timepoint_ID") ))
+anova(fit)
+model_df <- so_pred %>%
+  distinct(COMBAT_ID, Critical, COMBAT_participant_timepoint_ID) %>%
+  inner_join(pbmc_pred %>%
+  distinct(COMBAT_ID, Critical, COMBAT_participant_timepoint_ID), by = c("COMBAT_ID", "COMBAT_participant_timepoint_ID") )
+cor(model_df$Critical.x, model_df$Critical.y, method = "spearman")
+
+```
+
+### Panel H
+```{r, fig.height = 6, fig.width = 6.75}
+so_projection <- read_csv("COMBAT/so/COMBAT_so_projections.csv") 
+so_data <- read_csv("COMBAT/so/combat_so_normalized_data.csv")%>%
+  dplyr::rename("COMBAT_Luminex_sample_ID" = 1)
+metadata <- read_xlsx("COMBAT/so/COMBAT_Luminex_metadata.xlsx")
+prediction <- readRDS("COMBAT/so/predicted_subtype_COMBAT_SO.rds")
+
+model_data <- so_projection %>%
+  dplyr::rename("COMBAT_Luminex_sample_ID" = 1) %>%
+  dplyr::select(1:2) %>%
+  left_join(so_data %>%
+  dplyr::rename("COMBAT_Luminex_sample_ID" = 1) %>%
+    dplyr::select(COMBAT_Luminex_sample_ID, CSF1, CCL19, IL17A, TNF, IL10)) %>%
+  left_join(prediction %>% as.data.frame() %>%
+  rownames_to_column("COMBAT_Luminex_sample_ID") %>%
+  rowwise() %>%
+  mutate(Critical = E+`F`)) %>%
+  mutate(Factor1=Factor1*-1) %>%
+  left_join(metadata %>% dplyr::select(COMBAT_Luminex_sample_ID, Outcome)) %>%
+  mutate(Outcome = ifelse(Outcome %in% c(1:3), "Critical",
+                          ifelse(Outcome %in% c(4:5), "Severe", NA)))
+
+gglist <- list()
+for(cytokine in c("CSF1", "CCL19", "IL17A", "TNF")){
+  formula_t = paste0(cytokine, "~Factor1*Critical")
+  fit <- lm(formula_t, data = model_data)
+  print(anova(fit))
+  
+  gga_0 <- model_data %>%
+    filter(!is.na(Outcome)) %>%
+    ggplot(aes_string(x=cytokine, y= "Critical")) +
+    geom_point(size = 0.5) +
+    theme_classic() +
+    geom_smooth(method = "lm", se = FALSE, color = "#a82bba") +
+    ylab("P(E or F)")
+  
+  gga_1 <- model_data %>%
+    filter(!is.na(Outcome)) %>%
+    mutate(ratio = `F` / Critical) %>%
+    filter(Outcome == "Critical") %>%
+    ggplot(aes_string(x=cytokine, y= "ratio", group ="Outcome",
+                      color = "Outcome")) +
+    geom_point(size = 0.5) +
+    theme_classic() +
+    geom_smooth(aes(color = Outcome), method = "lm", se = FALSE) +
+    ylab("P(F) /\nP(E) + P(F)") +
+    scale_color_manual(values = c("red", "blue")) +
+    theme(legend.position = "none")
+
+  gga_2 <- model_data %>%
+    filter(!is.na(Outcome)) %>%
+    mutate(ratio = `A` / (`C` +`B` +`A`)) %>%
+    filter(Outcome == "Severe") %>%
+    ggplot(aes_string(x=cytokine, y= "ratio", group ="Outcome",
+                      color = "Outcome")) +
+    geom_point(size = 0.5) +
+    theme_classic() +
+    geom_smooth(aes(color = Outcome), method = "lm", se = FALSE) +
+    ylab("P(A) /\nP(A) + P(B) + P(C)") +
+    scale_color_manual(values = c( "blue")) +
+    theme(legend.position = "none")
+  
+  gglist <- c(gglist, list(gga_0), list(gga_1), list(gga_2))
+}
+
+cowplot::plot_grid(plotlist = gglist,
+                   ncol = 3, nrow = 4)
+```

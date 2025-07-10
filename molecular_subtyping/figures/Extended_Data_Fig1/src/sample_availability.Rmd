@@ -1,0 +1,141 @@
+---
+title: "sample availability"
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+subtype_hcl = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_aligned = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+```
+
+# Sample availability across subtypes (Extended Data Fig1D)
+```{r, fig.width = 13, fig.height = 5}
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+
+total_table <- subtype_hcl %>%
+  mutate(label = paste0("Subtype ", label)) %>%
+  group_by(label) %>%
+  dplyr::summarize(total = n())
+gg_list <- list()
+for(omic in names(organized_data$datasets)){
+  tmp.data <- organized_data$datasets[[omic]]
+  tmp2 <- as.data.frame(rowSums(is.na(tmp.data)))
+  graph_df <- tmp2 %>%
+    dplyr::rename("missing_features" = 1) %>%
+    filter(missing_features == 0) %>%
+    rownames_to_column("event_id") %>%
+    left_join(organized_data$clinical_data %>%
+                distinct(event_id, participant_id, event_type)) %>%
+    left_join(subtype_hcl %>% rownames_to_column("participant_id"))  %>%
+    filter(!is.na(label)) %>%
+    filter(label != "D") %>%
+     mutate(label = paste0("Subtype ", label)) %>%
+    group_by(label, event_type) %>%
+    dplyr::summarize(count = n()) %>%
+    left_join(total_table) %>%
+    filter(!grepl("Esc", event_type)) %>%
+    mutate(label = factor(label, levels = paste0("Subtype ", c("F", "E", "C", "B", "A"))),
+           event_type = as.factor(event_type)) %>%
+    mutate(percent = count / total * 100) 
+  
+  gg_tmp <- graph_df %>%
+  mutate(xmin = match(event_type, levels(graph_df$event_type)) - 0.5,
+         xmax = match(event_type, levels(graph_df$event_type)) + ((percent/100)-0.5) ,
+         ymin = match(label, levels(graph_df$label)) - 0.5,
+         ymax = match(label, levels(graph_df$label)) + 0.5) %>%
+  ggplot(aes(x=event_type, y=label)) +
+  geom_tile(fill = NA, color = "black", size = 0.5) +
+   geom_rect(aes(xmin=xmin, xmax = xmax,
+                ymin = ymin, ymax = ymax, fill = label),  alpha = 0.6,
+             color = NA) +
+  geom_tile(fill = NA, color = "black", size = 0.5) +
+  geom_tile(fill = NA, color = "black") +
+  theme_classic() +
+   theme(legend.position = "none") +
+  geom_text(aes(label=count), size = 3.88) +
+  ylab("Subtype") +
+  xlab("Visit") +
+  scale_fill_manual(values = rev(c("Subtype A" = "#20854EB2", "Subtype B" = "#0072B5B2",
+              "Subtype C" = "#E18727B2", "Subtype D" = "#FFDC91B2",
+              "Subtype E" = "#EE4C97B2", "Subtype F" = "#BC3C29B2")),
+              name = "Subtype") +
+  #scale_y_discrete(limits=rev) +
+  ggtitle(str_to_title(gsub("_", " ", omic))) +
+    theme(axis.text = element_text(color = "black"))
+  
+  gg_list <- c(gg_list, list(gg_tmp))
+}
+
+library(cowplot)
+
+plot_grid(plotlist = gg_list)
+```
+
+# Sample availability across TG (Extended Data Fig1C)
+```{r, fig.width = 10, fig.height = 5}
+total_table <- subtype_hcl %>%
+  mutate(TG = paste0("TG", TG)) %>%
+  group_by(TG) %>%
+  dplyr::summarize(total = n())
+gg_list <- list()
+for(omic in names(organized_data$datasets)){
+  tmp.data <- organized_data$datasets[[omic]]
+  tmp2 <- as.data.frame(rowSums(is.na(tmp.data)))
+  graph_df <- tmp2 %>%
+    dplyr::rename("missing_features" = 1) %>%
+    filter(missing_features == 0) %>%
+    rownames_to_column("event_id") %>%
+    left_join(organized_data$clinical_data %>%
+                distinct(event_id, participant_id, event_type)) %>%
+    left_join(subtype_hcl %>% rownames_to_column("participant_id"))  %>%
+    filter(!is.na(TG)) %>%
+    # filter(label != "D") %>%
+    mutate(TG = paste0("TG", TG)) %>%
+    group_by(TG, event_type) %>%
+    dplyr::summarize(count = n(), .groups = "drop") %>%
+    complete(
+      TG = paste0("TG", 1:5),
+      event_type = paste0("Visit ", 1:6),
+      fill = list(count = 0)
+    ) %>%
+  arrange(TG, event_type) %>%
+    left_join(total_table) %>%
+    filter(!grepl("Esc", event_type)) %>%
+    mutate(TG = factor(TG, levels = paste0("TG", c(5, 4, 3, 2, 1))),
+           event_type = as.factor(event_type)) %>%
+    mutate(percent = count / total * 100) 
+  
+  gg_tmp <- graph_df %>%
+  mutate(xmin = match(event_type, levels(graph_df$event_type)) - 0.5,
+         xmax = match(event_type, levels(graph_df$event_type)) + ((percent/100)-0.5) ,
+         ymin = match(TG, levels(graph_df$TG)) - 0.5,
+         ymax = match(TG, levels(graph_df$TG)) + 0.5) %>%
+  ggplot(aes(x=event_type, y=TG)) +
+  geom_tile(fill = NA, color = "black", size = 0.5) +
+   geom_rect(aes(xmin=xmin, xmax = xmax,
+                ymin = ymin, ymax = ymax, fill = TG),  alpha = 0.6,
+             color = NA) +
+  geom_tile(fill = NA, color = "black", size = 0.5) +
+  geom_tile(fill = NA, color = "black") +
+  theme_classic() +
+   theme(legend.position = "none") +
+  geom_text(aes(label =count), size = 3.88) +
+  ylab("TG") +
+  xlab("Visit") +
+  scale_fill_manual(values = c("TG1" = "#639A21", "TG2" = "#39828C", 
+                               "TG3" = "#6371AD", "TG4" = "#BD7D31", 
+                               "TG5" = "#9C3418"),
+              name = "TG") +
+  #scale_y_discrete(limits=rev) +
+  ggtitle(str_to_title(gsub("_", " ", omic))) +
+    theme(axis.text = element_text(color = "black"))
+  
+  gg_list <- c(gg_list, list(gg_tmp))
+}
+
+library(cowplot)
+
+plot_grid(plotlist = gg_list)
+```
+

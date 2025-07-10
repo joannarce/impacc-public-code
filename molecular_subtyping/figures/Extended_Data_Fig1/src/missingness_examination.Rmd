@@ -1,0 +1,119 @@
+---
+title: "missingness examination"
+output: html_document
+---
+
+```{r load library}
+library(ade4) #used in mcia
+library(mogsa)
+library(factoextra)
+library(cluster)
+library(nnet)
+library(survival)
+library(ordinal)
+library(ggeffects)
+library(openxlsx)
+library(network)
+library(GGally)
+library(ggalt)
+library(metafor)
+library(cowplot)
+library(survminer)
+require(nlme) # directly provides p-values, unlike lme4
+require(splines)
+require(dplyr)
+library(fgsea)
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+source(paste0(codebase_path,"/codebase_subtype.R"))
+```
+
+# Load subtype assignment and clinical data
+```{r load subtype assignment and clinical data}
+visit_max = 6; n_factor = 40
+nclust_tree_all = 6
+subtype_hcl = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_aligned = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+extended_data = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/extended_data.rds")
+X = extended_data$X
+clin_data_patient = clin_data_aligned[clin_data_aligned$event_type == "Visit 1",]
+demo_data_adjust = clin_data_patient[, c("discretized_admit_age_quantile", 
+                                         "sex")]
+```
+
+# Generate null data
+```{r generate null data}
+generate_null_data <- function(X) {
+  X <- as.matrix(X)
+  nrow_X <- nrow(X)
+  ncol_X <- ncol(X)
+  null_data <- matrix(nrow = nrow_X, ncol = ncol_X)
+  for (i in 1:ncol_X) {
+    column_data <- X[, i]
+    col_mean <- mean(column_data, na.rm = TRUE)
+    col_sd <- sd(column_data, na.rm = TRUE)
+    # generate random numbers with the same mean and sd as the current column
+    null_data[, i] <- rnorm(nrow_X, mean = col_mean, sd = col_sd)
+    # preserve NA values
+    null_data[is.na(column_data), i] <- NA
+  }
+
+  return(null_data)
+}
+
+set.seed(123)
+n_iter <- 1000
+model_loglik_values <- numeric(n_iter)
+model_AIC_values <- numeric(n_iter)
+for (i in 1:n_iter) {
+  print(i)
+  X_null <- generate_null_data(X)
+  dist_mat_null <- calculate_distance_matrix(X_null, n_factor, visit_max = visit_max)
+  hcl_null <- hclust(d = dist_mat_null, method = "ward.D2")
+  subtype_null <- cutree(hcl_null, k = 6)
+  test_tg_null <- test_ordinal_demo(
+    subtype = subtype_null,
+    response = subtype_hcl$TG,
+    demo_data = demo_data_adjust
+  )
+  
+  model_loglik_values[i] <- as.numeric(test_tg_null$model_loglik)
+  model_AIC_values[i] <- as.numeric(test_tg_null$model_AIC)
+}
+```
+
+# Log-likelihood comparison (Extended Data Fig1E)
+```{r log-likelihood comparison, fig.height=6, fig.width=8}
+full_test <- test_ordinal_demo(
+  subtype = subtype_hcl$label,
+  response = subtype_hcl$TG,
+  demo_data = demo_data_adjust)
+
+df_loglik <- data.frame(value = model_loglik_values)
+ggplot(df_loglik, aes(x = value)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.4, 
+                 color = "black", fill = "gray") +
+  geom_vline(xintercept = as.numeric(full_test$model_loglik), 
+             color = "darkblue", linetype = "dashed", size = 0.6) +
+  annotate("text", x = max(df_loglik$value)+20, y = 0.2, label = "Null Data", 
+           color = "black", size = 6) +
+  annotate("text", x = full_test$model_loglik-20, y = 0.2, label = "True Data", 
+           color = "darkblue", size = 6) +
+  labs(title = "Histogram of Log-Likelihood Values", 
+       x = "Log-Likelihood Values", y = "Density") +
+  theme_minimal() +
+  theme(axis.title.x = element_text(size = 15, color = "black"),
+        axis.title.y = element_text(size = 15, color = "black"),
+        axis.text.x = element_text(size = 15, color = "black"),
+        axis.text.y = element_text(size = 15, color = "black"),
+        axis.line.x = element_line(linewidth = 1),
+        axis.line.y = element_line(linewidth = 1),
+        title = element_text(size = 15, color = "black"))
+```
+
+

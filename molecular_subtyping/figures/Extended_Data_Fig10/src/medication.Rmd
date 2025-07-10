@@ -1,0 +1,241 @@
+---
+title: "medication"
+output: pdf_document
+---
+
+```{r load library}
+library(ade4) #used in mcia
+library(mogsa)
+library(factoextra)
+library(cluster)
+library(nnet)
+library(survival)
+library(ordinal)
+library(ggeffects)
+library(openxlsx)
+library(network)
+library(GGally)
+library(ggalt)
+library(metafor)
+library(cowplot)
+library(survminer)
+require(nlme) # directly provides p-values, unlike lme4
+require(splines)
+require(dplyr)
+library(fgsea)
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+source(paste0(codebase_path,"/codebase_subtype.R"))
+
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+mcia_results = readRDS(paste0(intermediate_results_outdir_DR,"MCIA_phase123_20230726.rds"))
+
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+```
+
+# Load subtype assignment and clinical data
+```{r load subtype assignment and clinical data}
+nclust_tree_all = 6
+subtype_hcl = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_aligned = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+extended_data = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/extended_data.rds")
+```
+
+# Medication (Extended Data Fig10G)
+```{r, fig.height=6, fig.width=5.5, warning=FALSE}
+clin_data_patient <- clin_data_aligned[clin_data_aligned$event_type == "Visit 1",]
+demo_data <- clin_data_patient[, c("admit_age", "sex", "ethnicity",
+                                   "discretized_admit_age_quantile",
+                                   "bmicat", "enrollment_site", "race")]
+demo_data_adjust <- demo_data[, c("discretized_admit_age_quantile", "sex")]
+
+med_data_logit <- clin_data_patient %>%
+  dplyr::select(matches("^ever")) %>%
+  dplyr::select(-ever_ever_esc, -ever_icu) %>%
+  select_if(~sum(.x, na.rm = TRUE) > 0)
+
+sub_idx <- which(subtype_hcl$label != "D")
+med_test_logit <- test_clinical_logit_demo(subtype_hcl$label[sub_idx],
+                                           med_data_logit[sub_idx,],
+                                           demo_data_adjust[sub_idx,])
+med_test_logit$p_lr_adj <- p.adjust(med_test_logit$p_lr, method = "BH")
+
+pvec <- as.vector(as.matrix(med_test_logit$p_logit))
+pvec_bh <- p.adjust(pvec, method = "BH")
+med_test_logit$p_adj <- matrix(pvec_bh, nrow = nrow(med_test_logit$p_logit), 
+                          ncol = ncol(med_test_logit$p_logit))
+rownames(med_test_logit$p_adj) <- rownames(med_test_logit$p_logit)
+colnames(med_test_logit$p_adj) <- colnames(med_test_logit$p_logit)
+# med_test_logit$p_adj <- apply(med_test_logit$p_logit, 2, 
+#                               function(p) p.adjust(p, method = "BH"))
+
+med_names <- c("ever_remdes" = "Remdesivir",
+               "ever_steroids" = "Steroids",
+               "ever_azithro" = "Azithromycin",
+               "ever_otherabx" = "Other Antibiotics",
+               "ever_conplas" = "Convalescent Plasma",
+               "ever_monoclonal" = "Monoclonal Antibodies",
+               "ever_immsupp" = "Immunosuppressives")
+heatmap_med(med_test_logit, med_names)
+```
+
+# Medication - global test (Extended Data Fig10G)
+```{r medication - global test, fig.height=1.5, fig.width=5.5, warning=FALSE}
+heatmap_med_global(med_test_logit, med_names)
+```
+
+# Test missingness adjusted for medications (Extended Data Fig10H)
+```{r test missingness adjusted for medications, fig.height=6, fig.width=2.3}
+sample_meta_participant = extended_data$sample_meta_participant_level
+sample_meta_participant$death_date[sample_meta_participant$death_date<0] = 999
+censoring_date_death = 200
+death_surv = cbind(sample_meta_participant$death_date,
+                   sample_meta_participant$death_date)
+death_surv[death_surv[,2]>censoring_date_death,2] = censoring_date_death+1
+death_surv[,1] = ifelse(death_surv[,2]<=censoring_date_death,1,0)
+death_surv = data.frame(death_surv)
+colnames(death_surv) = c("state", "time")
+
+id_post_acute <- which(death_surv$time > 28 & subtype_hcl$label != "D")
+post_acute_label = array("Non-respondent",
+                         nrow(extended_data$sample_meta_participant_level))
+idx_PASC = which(!is.na(subtype_hcl$PASC))
+post_acute_label[idx_PASC] = "Any Deficit"
+post_acute_label[subtype_hcl$PASC == "minimal"] = "Minimal Deficit"
+post_acute_label = factor(post_acute_label, 
+                          levels = c("Minimal Deficit", "Any Deficit",
+                                     "Non-respondent"))
+
+clin_data_patient <- clin_data_aligned[clin_data_aligned$event_type == "Visit 1",]
+demo_data_adjust <- clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
+ww <- ifelse(post_acute_label == "Non-respondent", 1, 0)
+sig_med = names(med_test_logit$p_lr_adj)[med_test_logit$p_lr_adj <= 0.05]
+med_data_adjust = clin_data_patient[, sig_med]
+
+idx_non_resp = which(post_acute_label == "Minimal Deficit" |
+                       post_acute_label == "Non-respondent")
+idx_non_resp = intersect(idx_non_resp, id_post_acute)
+
+missing_demo_adjusted_test <- test_clinical_binomial_demo(
+  subtype_hcl$label[idx_non_resp],
+  ww[idx_non_resp],
+  demo_data_adjust[idx_non_resp,])
+
+missing_demo_rem_adjusted_test <- test_clinical_binomial_demo(
+  subtype_hcl$label[idx_non_resp],
+  ww[idx_non_resp],
+  cbind(demo_data_adjust, 
+        clin_data_patient[,c("ever_remdes")])[idx_non_resp,])
+
+missing_demo_med_adjusted_test <- test_clinical_binomial_demo(
+  subtype_hcl$label[idx_non_resp],
+  ww[idx_non_resp],
+  cbind(demo_data_adjust,
+        med_data_adjust)[idx_non_resp,])
+
+heatmap_binomial(missing_demo_adjusted_test, col_name = "Non-\nrespondent")
+heatmap_binomial(missing_demo_rem_adjusted_test, col_name = "Non-\nrespondent")
+heatmap_binomial(missing_demo_med_adjusted_test, col_name = "Non-\nrespondent")
+```
+
+# Test any deficit adjusted for medications (Extended Data Fig10H)
+```{r test any deficit adjusted for medications, fig.height=6, fig.width=2.3}
+id_pasc = which(!is.na(subtype_hcl$PASC) & subtype_hcl$label != "D")
+ww = ifelse(subtype_hcl$PASC == "minimal", 0, 1)
+clin_data_patient = clin_data_aligned[clin_data_aligned$event_type == "Visit 1", ]
+demo_data_adjust = clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
+sig_med = names(med_test_logit$p_lr_adj)[med_test_logit$p_lr_adj <= 0.05]
+med_data_adjust = clin_data_patient[, sig_med]
+
+any_deficit_demo_adjusted_test <- test_clinical_binomial_demo(
+  subtype = subtype_hcl$label[id_pasc],
+  response_binary = ww[id_pasc],
+  demo_data = demo_data_adjust[id_pasc,])
+
+any_deficit_demo_rem_adjusted_test <- test_clinical_binomial_demo(
+  subtype = subtype_hcl$label[id_pasc],
+  response_binary = ww[id_pasc],
+  demo_data = cbind(demo_data_adjust,
+                    clin_data_patient[, c("ever_remdes")])[id_pasc,])
+
+any_deficit_demo_med_adjusted_test <- test_clinical_binomial_demo(
+  subtype = subtype_hcl$label[id_pasc],
+  response_binary = ww[id_pasc],
+  demo_data = cbind(demo_data_adjust,
+                    med_data_adjust)[id_pasc,])
+
+heatmap_binomial(any_deficit_demo_adjusted_test, col_name = "Any Deficit")
+heatmap_binomial(any_deficit_demo_rem_adjusted_test, col_name = "Any Deficit")
+heatmap_binomial(any_deficit_demo_med_adjusted_test, col_name = "Any Deficit")
+```
+
+# Test PASC adjusted for medications (Extended Data Fig10H)
+```{r test PASC adjusted for medications, fig.height=6, fig.width=4.2}
+full_clust_test = list(); full_clust_test[["PASC"]] = list()
+clin_data_patient = clin_data_aligned[clin_data_aligned$event_type == "Visit 1", ]
+demo_data_adjust = clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
+sig_med = names(med_test_logit$p_lr_adj)[med_test_logit$p_lr_adj <= 0.05]
+med_data_adjust = clin_data_patient[, sig_med]
+
+full_clust_test[["PASC"]][["regression_demo"]] = test_multi_pasc_demo(
+  subtype = subtype_hcl$label,
+  response = subtype_hcl$PASC,
+  demo_data = demo_data_adjust)
+
+full_clust_test[["PASC"]][["regression_remdes"]] = test_multi_pasc_demo(
+  subtype = subtype_hcl$label,
+  response = subtype_hcl$PASC,
+  demo_data = cbind(demo_data_adjust, 
+                    clin_data_patient[,c("ever_remdes")]))
+
+full_clust_test[["PASC"]][["regression_med"]] = test_multi_pasc_demo(
+  subtype = subtype_hcl$label,
+  response = subtype_hcl$PASC,
+  demo_data = cbind(demo_data_adjust, med_data_adjust))
+
+heatmap_pasc_multi(full_clust_test[["PASC"]][["regression_demo"]],
+                   "Demographics Adjusted")
+heatmap_pasc_multi(full_clust_test[["PASC"]][["regression_remdes"]],
+                   "Demographics + Remdesivir")
+heatmap_pasc_multi(full_clust_test[["PASC"]][["regression_med"]],
+                   "Demographics + Medications")
+```
+
+# Test PASC adjusted for medications - global test (Extended Data Fig10H)
+```{r test PASC adjusted for medications - global test, fig.height=6, fig.width=2}
+clin_data_patient = clin_data_aligned[clin_data_aligned$event_type == "Visit 1", ]
+demo_data_adjust = clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
+sig_med = names(med_test_logit$p_lr_adj)[med_test_logit$p_lr_adj <= 0.05]
+med_data_adjust = clin_data_patient[, sig_med]
+
+global_test_demo = test_global_multi_pasc(
+  subtype = subtype_hcl$label,
+  response = subtype_hcl$PASC,
+  demo_data = demo_data_adjust)
+
+global_test_remdes = test_global_multi_pasc(
+  subtype = subtype_hcl$label,
+  response = subtype_hcl$PASC,
+  demo_data = cbind(demo_data_adjust, 
+                    clin_data_patient[,c("ever_remdes")]))
+
+global_test_med = test_global_multi_pasc(
+  subtype = subtype_hcl$label,
+  response = subtype_hcl$PASC,
+  demo_data = cbind(demo_data_adjust, med_data_adjust))
+
+heatmap_multi_global(global_test_demo)
+heatmap_multi_global(global_test_remdes)
+heatmap_multi_global(global_test_med)
+```
+
+
+

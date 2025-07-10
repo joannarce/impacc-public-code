@@ -1,0 +1,637 @@
+---
+title: "R Notebook"
+output: pdf_document
+---
+
+```{r}
+library(GGally)
+library(tidyverse)
+library(readr)
+library(dplyr)
+
+severity_colors = c(
+  "Sepsis" = "grey40",
+  "ECMO or Mortality" = "#F8766D",
+  "Non-invasive Ventilation / High-Oxygen" = "#F564E3",
+  "Oxygen Support" = "#B79F00",
+  "No Support" = "#00BA38",
+  "Healthy" = "#619CFF"
+)
+```
+
+# Subtyping cohort
+```{r, fig.height=6, fig.width=6}
+pred_subtype = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_probs.rds")
+pred_subtype = pred_subtype[, c("A", "B", "C", "E", "F")]
+pred_subtype = pred_subtype / rowSums(pred_subtype)
+metadata = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+metadata = as.data.frame(metadata)
+metadata = metadata[metadata$event_type == "Visit 1",]
+
+df_prob = data.frame(participant_id = rownames(pred_subtype))
+df_prob$EF = (pred_subtype[,"E"] + pred_subtype[,"F"]) / 
+  (1 - (pred_subtype[,"E"] + pred_subtype[,"F"]))
+df_prob$log_EF = log(df_prob$EF)
+df_prob$A = pred_subtype[,"A"] / 
+  (pred_subtype[,"A"] + pred_subtype[,"B"] + pred_subtype[,"C"])
+df_prob$log_A = log(df_prob$A)
+df_prob$PF = pred_subtype[,"F"] / 
+  (pred_subtype[,"E"] + pred_subtype[,"F"])
+df_prob$log_F = log(df_prob$PF)
+
+rownames(metadata) = metadata$participant_id
+df_prob = inner_join(df_prob, metadata, by = "participant_id")
+# df_prob = df_prob %>% filter(grepl("_D0$", SAMPLE_ID))
+
+df_prob$severity = df_prob$respiratory_status
+# df_prob$severity[df_prob$severity == 3] = "No Oxygen"
+# df_prob$severity[df_prob$severity == 4] = "Supplemental Oxygen"
+# df_prob$severity[df_prob$severity == 5] = "High Flow Oxygen / Non-invasive Ventilation"
+# df_prob$severity[df_prob$severity == 6] = "Mechanical Ventilation / ECMO"
+df_prob$severity[df_prob$severity == 3] = "No Support"
+df_prob$severity[df_prob$severity == 4] = "Oxygen Support"
+df_prob$severity[df_prob$severity == 5] = "Non-invasive Ventilation / High-Oxygen"
+df_prob$severity[df_prob$severity == 6] = "ECMO or Mortality"
+
+dummy = df_prob[1, ]
+dummy[,1:(ncol(dummy)-1)] = NA
+dummy$severity = "Sepsis"
+df_prob = rbind(df_prob, dummy)
+
+dummy = df_prob[1, ]
+dummy[,1:(ncol(dummy)-1)] = NA
+dummy$severity = "Healthy"
+df_prob = rbind(df_prob, dummy)
+
+df_prob$severity = factor(df_prob$severity)
+df_prob$severity = factor(df_prob$severity, 
+                          levels = c("Sepsis", "ECMO or Mortality",
+                                     "Non-invasive Ventilation / High-Oxygen",
+                                     "Oxygen Support", "No Support", "Healthy"))
+
+num_subtype = table(df_prob$severity)
+var12_A = var(df_prob$log_A[df_prob$severity %in%
+                            c("Oxygen Support", "No Support")])
+var34_A = var(df_prob$log_A[df_prob$severity %in%
+                            c("Non-invasive Ventilation / High-Oxygen",
+                              "ECMO or Mortality")])
+varA_subtype = var34_A / var12_A
+
+var12_F = var(df_prob$log_F[df_prob$severity %in%
+                            c("Oxygen Support", "No Support")])
+var34_F = var(df_prob$log_F[df_prob$severity %in%
+                            c("Non-invasive Ventilation / High-Oxygen",
+                              "ECMO or Mortality")])
+varF_subtype = var34_F / var12_F
+
+subtype_A <- ggplot(df_prob, aes(x = log_A, y = log_EF, color = severity)) +
+  geom_point(size = 2) +
+  labs(
+    title = "Molecular Subtyping",
+    x = "log[P(A)/(P(A)+P(B)+P(C))]",
+    y = "log[P(E)+P(F)/(1-P(E)-P(F))]",
+    color = "Severity") +
+  theme_classic() +
+  scale_color_manual(values = severity_colors, drop = TRUE) +
+  theme(panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line.x = element_line(linewidth = 1),
+    axis.line.y = element_line(linewidth = 1),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(color = "black", size = 15),  
+    axis.text.y = element_text(color = "black", size = 15),
+    axis.title.x = element_text(color = "black", size = 15),
+    axis.title.y = element_text(color = "black", size = 15),
+    axis.ticks.length = unit(0.15, "cm"),
+    plot.title = element_text(size = 15, face = "bold"),
+    legend.position = "top",
+    legend.text = element_text(size = 15),
+    legend.title = element_text(size = 15),
+    aspect.ratio = 1) +
+  guides(color = guide_legend(nrow = 2))
+
+subtype_F <- ggplot(df_prob, aes(x = log_F, y = log_EF, color = severity)) +
+  geom_point(size = 2) +
+  labs(
+    title = "Molecular Subtyping",
+    x = "log[P(F)/(P(E)+P(F)]",
+    y = "log[P(E)+P(F)/(1-P(E)-P(F))]",
+    color = "Severity") +
+  theme_classic() +
+  scale_color_manual(values = severity_colors, drop = TRUE) +
+  theme(panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line.x = element_line(linewidth = 1),
+    axis.line.y = element_line(linewidth = 1),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(color = "black", size = 15),  
+    axis.text.y = element_text(color = "black", size = 15),
+    axis.title.x = element_text(color = "black", size = 15),
+    axis.title.y = element_text(color = "black", size = 15),
+    axis.ticks.length = unit(0.15, "cm"),
+    plot.title = element_text(size = 15, face = "bold"),
+    legend.position = "top",
+    legend.text = element_text(size = 15),
+    legend.title = element_text(size = 15),
+    aspect.ratio = 1) +
+  guides(color = guide_legend(nrow = 2))
+```
+
+# Hanson pbmc
+```{r, fig.height=6, fig.width=6}
+library(tidyverse)
+metadata = read_csv("~/impacc/Analysis/molecular_subtyping/revisions/External_Datasets/pbmc/Hanson_Manifest_long.csv") %>% dplyr::select(-1) %>%
+  left_join(read_csv("~/impacc/Analysis/molecular_subtyping/revisions/External_Datasets/pbmc/hanson_Metadata.csv") %>%
+  distinct(Record.Id, symptom.group))
+metadata = as.data.frame(metadata)
+pred_subtype = readRDS("~/impacc/Analysis/molecular_subtyping/revisions/External_Datasets/pbmc/predicted_subtype_Hanson_PBMC.rds")
+
+df_prob = data.frame(SAMPLE_ID = rownames(pred_subtype))
+df_prob$EF = (pred_subtype[,"E"] + pred_subtype[,"F"]) / 
+  (1 - (pred_subtype[,"E"] + pred_subtype[,"F"]))
+df_prob$log_EF = log(df_prob$EF)
+df_prob$A = pred_subtype[,"A"] / 
+  (pred_subtype[,"A"] + pred_subtype[,"B"] + pred_subtype[,"C"])
+df_prob$log_A = log(df_prob$A)
+df_prob$PF = pred_subtype[,"F"] / 
+  (pred_subtype[,"E"] + pred_subtype[,"F"])
+df_prob$log_F = log(df_prob$PF)
+
+metadata = metadata[!is.na(metadata$severity_group),]
+df_prob = inner_join(df_prob, metadata, by = "SAMPLE_ID")
+df_prob = df_prob %>%
+  group_by(Record.Id) %>% 
+  slice_min(days_since) %>%
+  filter(days_since < 14 | is.na(days_since))
+df_prob$severity = df_prob$severity_group
+# df_prob$severity[df_prob$severity == "A"] = "Asymptomatic"
+# df_prob$severity[df_prob$severity == "B"] = "Mild Symptomatic"
+# df_prob$severity[df_prob$severity == "C"] = "Moderate without O2"
+# df_prob$severity[df_prob$severity == "D"] = "Severe with O2"
+# df_prob$severity[df_prob$severity == "E"] = "Mechanical Ventilation"
+# df_prob$severity[df_prob$severity == "control"] = "Healthy Volunteer"
+df_prob$severity[df_prob$severity == "A"] = "No Support"
+df_prob$severity[df_prob$severity == "B"] = "No Support"
+df_prob$severity[df_prob$severity == "C"] = "Oxygen Support"
+df_prob$severity[df_prob$severity == "D"] = "Non-invasive Ventilation / High-Oxygen"
+df_prob$severity[df_prob$severity == "E"] = "ECMO or Mortality"
+df_prob$severity[df_prob$severity == "control"] = "Healthy"
+df_prob$severity = factor(df_prob$severity)
+df_prob$severity = factor(df_prob$severity, 
+                          levels = c("Sepsis", "ECMO or Mortality",
+                                     "Non-invasive Ventilation / High-Oxygen",
+                                     "Oxygen Support", "No Support", "Healthy"))
+
+num_hanson = table(df_prob$severity)
+var12_A = var(df_prob$log_A[df_prob$severity %in%
+                            c("Oxygen Support", "No Support")])
+var34_A = var(df_prob$log_A[df_prob$severity %in%
+                            c("Non-invasive Ventilation / High-Oxygen",
+                              "ECMO or Mortality")])
+varA_hanson = var34_A / var12_A
+
+var12_F = var(df_prob$log_F[df_prob$severity %in%
+                            c("Oxygen Support", "No Support")])
+var34_F = var(df_prob$log_F[df_prob$severity %in%
+                            c("Non-invasive Ventilation / High-Oxygen",
+                              "ECMO or Mortality")])
+varF_hanson = var34_F / var12_F
+
+hanson_A <- ggplot(df_prob, aes(x = log_A, y = log_EF, color = severity)) +
+  geom_point(size = 2) +
+  labs(
+    title = "Hanson PBMC",
+    x = "log[P(A)/(P(A)+P(B)+P(C))]",
+    y = "log[P(E)+P(F)/(1-P(E)-P(F))]",
+    color = "Severity") +
+  theme_classic() +
+  scale_color_manual(values = severity_colors, drop = FALSE) +
+  theme(panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line.x = element_line(linewidth = 1),
+    axis.line.y = element_line(linewidth = 1),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(color = "black", size = 15),  
+    axis.text.y = element_text(color = "black", size = 15),
+    axis.title.x = element_text(color = "black", size = 15),
+    axis.title.y = element_text(color = "black", size = 15),
+    axis.ticks.length = unit(0.15, "cm"),
+    plot.title = element_text(size = 15, face = "bold"),
+    legend.position = "top",
+    legend.text = element_text(size = 15),
+    legend.title = element_text(size = 15),
+    aspect.ratio = 1) +
+  guides(color = guide_legend(nrow = 2))
+
+hanson_F <- ggplot(df_prob, aes(x = log_F, y = log_EF, color = severity)) +
+  geom_point(size = 2) +
+  labs(
+    title = "Hanson PBMC",
+    x = "log[P(F)/(P(E)+P(F)]",
+    y = "log[P(E)+P(F)/(1-P(E)-P(F))]",
+    color = "Severity") +
+  theme_classic() +
+  scale_color_manual(values = severity_colors, drop = FALSE) +
+  theme(panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line.x = element_line(linewidth = 1),
+    axis.line.y = element_line(linewidth = 1),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(color = "black", size = 15),  
+    axis.text.y = element_text(color = "black", size = 15),
+    axis.title.x = element_text(color = "black", size = 15),
+    axis.title.y = element_text(color = "black", size = 15),
+    axis.ticks.length = unit(0.15, "cm"),
+    plot.title = element_text(size = 15, face = "bold"),
+    legend.position = "top",
+    legend.text = element_text(size = 15),
+    legend.title = element_text(size = 15),
+    aspect.ratio = 1) +
+  guides(color = guide_legend(nrow = 2))
+```
+
+# COMBAT pbmc
+```{r, fig.height=6, fig.width=6}
+pred_subtype = readRDS("~/impacc/Analysis/molecular_subtyping/revisions/External_Datasets/COMBAT/pbmc/predicted_subtype_COMBAT_PBMC.rds")
+metadata = read.csv("~/impacc/Analysis/molecular_subtyping/revisions/External_Datasets/COMBAT/pbmc/COMBAT_Metadata.csv")
+
+df_prob = data.frame(RNASeq_sample_ID = rownames(pred_subtype))
+df_prob$EF = (pred_subtype[,"E"] + pred_subtype[,"F"]) / 
+  (1 - (pred_subtype[,"E"] + pred_subtype[,"F"]))
+df_prob$log_EF = log(df_prob$EF)
+df_prob$A = pred_subtype[,"A"] / 
+  (pred_subtype[,"A"] + pred_subtype[,"B"] + pred_subtype[,"C"])
+df_prob$log_A = log(df_prob$A)
+df_prob$PF = pred_subtype[,"F"] / 
+  (pred_subtype[,"E"] + pred_subtype[,"F"])
+df_prob$log_F = log(df_prob$PF)
+
+df_prob = inner_join(df_prob, metadata, by = "RNASeq_sample_ID")
+df_prob = df_prob %>%
+  mutate(TimeSinceOnset = ifelse(Source == "HV", 0, TimeSinceOnset)) %>%
+  group_by(COMBAT_ID) %>% 
+  filter(TimeSinceOnset <= 20) %>% slice_min(TimeSinceOnset) %>%
+  mutate(Outcome = ifelse(is.na(Outcome) |Source == "HV", Source, as.character(Outcome)))
+
+df_prob = df_prob[df_prob$Outcome != 6,] # not hospitalized
+df_prob$severity = df_prob$Outcome
+# df_prob$severity[df_prob$severity == "1"] = "Death"
+# df_prob$severity[df_prob$severity == "2"] = "Mechanical Ventilation"
+# df_prob$severity[df_prob$severity == "3"] = "Non-invasive Ventilation"
+# df_prob$severity[df_prob$severity == "4"] = "Hospitalized with O2"
+# df_prob$severity[df_prob$severity == "5"] = "Hospitalized without O2"
+df_prob$severity[df_prob$severity == "1"] = "ECMO or Mortality"
+df_prob$severity[df_prob$severity == "2"] = "ECMO or Mortality"
+df_prob$severity[df_prob$severity == "3"] = "Non-invasive Ventilation / High-Oxygen"
+df_prob$severity[df_prob$severity == "4"] = "Oxygen Support"
+df_prob$severity[df_prob$severity == "5"] = "No Support"
+df_prob$severity[df_prob$severity == "HV"] = "Healthy"
+
+df_prob$severity = factor(df_prob$severity)
+df_prob$severity = factor(df_prob$severity, 
+                          levels = c("Sepsis", "ECMO or Mortality",
+                                     "Non-invasive Ventilation / High-Oxygen",
+                                     "Oxygen Support", "No Support", "Healthy"))
+
+num_combat_pbmc = table(df_prob$severity)
+var12_A = var(df_prob$log_A[df_prob$severity %in%
+                            c("Oxygen Support", "No Support")])
+var34_A = var(df_prob$log_A[df_prob$severity %in%
+                            c("Non-invasive Ventilation / High-Oxygen",
+                              "ECMO or Mortality")])
+var5_A = var(df_prob$log_A[df_prob$severity == "Sepsis"])
+varA_combat_pbmc = var34_A / var12_A
+var5A_combat_pbmc = var5_A / var12_A
+
+var12_F = var(df_prob$log_F[df_prob$severity %in%
+                            c("Oxygen Support", "No Support")])
+var34_F = var(df_prob$log_F[df_prob$severity %in%
+                            c("Non-invasive Ventilation / High-Oxygen",
+                              "ECMO or Mortality")])
+var5_F = var(df_prob$log_F[df_prob$severity == "Sepsis"])
+varF_combat_pbmc = var34_F / var12_F
+var5F_combat_pbmc = var5_F / var12_F
+
+combat_pbmc_A <- ggplot(df_prob, aes(x = log_A, y = log_EF, color = severity)) +
+  geom_point(size = 2) +
+  labs(
+    title = "COMBAT PBMC",
+    x = "log[P(A)/(P(A)+P(B)+P(C))]",
+    y = "log[P(E)+P(F)/(1-P(E)-P(F))]",
+    color = "Severity") +
+  theme_classic() +
+  scale_color_manual(values = severity_colors, drop = FALSE) +
+  theme(panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line.x = element_line(linewidth = 1),
+    axis.line.y = element_line(linewidth = 1),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(color = "black", size = 15),  
+    axis.text.y = element_text(color = "black", size = 15),
+    axis.title.x = element_text(color = "black", size = 15),
+    axis.title.y = element_text(color = "black", size = 15),
+    axis.ticks.length = unit(0.15, "cm"),
+    plot.title = element_text(size = 15, face = "bold"),
+    legend.position = "top",
+    legend.text = element_text(size = 15),
+    legend.title = element_text(size = 15),
+    aspect.ratio = 1) +
+  guides(color = guide_legend(nrow = 2))
+
+combat_pbmc_F <- ggplot(df_prob, aes(x = log_F, y = log_EF, color = severity)) +
+  geom_point(size = 2) +
+  labs(
+    title = "COMBAT PBMC",
+    x = "log[P(F)/(P(E)+P(F)]",
+    y = "log[P(E)+P(F)/(1-P(E)-P(F))]",
+    color = "Severity") +
+  theme_classic() +
+  scale_color_manual(values = severity_colors, drop = FALSE) +
+  theme(panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line.x = element_line(linewidth = 1),
+    axis.line.y = element_line(linewidth = 1),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(color = "black", size = 15),  
+    axis.text.y = element_text(color = "black", size = 15),
+    axis.title.x = element_text(color = "black", size = 15),
+    axis.title.y = element_text(color = "black", size = 15),
+    axis.ticks.length = unit(0.15, "cm"),
+    plot.title = element_text(size = 15, face = "bold"),
+    legend.position = "top",
+    legend.text = element_text(size = 15),
+    legend.title = element_text(size = 15),
+    aspect.ratio = 1) +
+  guides(color = guide_legend(nrow = 2))
+```
+
+# COMBAT SO
+```{r, fig.height=6, fig.width=6, warning=FALSE}
+pred_subtype = readRDS("~/impacc/Analysis/molecular_subtyping/revisions/External_Datasets/COMBAT/so/predicted_subtype_COMBAT_SO.rds")
+metadata = read_excel("~/impacc/Analysis/molecular_subtyping/revisions/External_Datasets/COMBAT/so/COMBAT_Luminex_metadata.xlsx")
+metadata = as.data.frame(metadata)
+
+df_prob = data.frame(sample_ID = rownames(pred_subtype))
+df_prob$EF = (pred_subtype[,"E"] + pred_subtype[,"F"]) / 
+  (1 - (pred_subtype[,"E"] + pred_subtype[,"F"]))
+df_prob$log_EF = log(df_prob$EF)
+df_prob$A = pred_subtype[,"A"] / 
+  (pred_subtype[,"A"] + pred_subtype[,"B"] + pred_subtype[,"C"])
+df_prob$log_A = log(df_prob$A)
+df_prob$PF = pred_subtype[,"F"] / 
+  (pred_subtype[,"E"] + pred_subtype[,"F"])
+df_prob$log_F = log(df_prob$PF)
+
+
+rownames(metadata) = metadata$COMBAT_Luminex_sample_ID
+metadata$sample_ID = rownames(metadata)
+df_prob = inner_join(df_prob, metadata, by = "sample_ID")
+df_prob = df_prob %>% mutate(TimeSinceOnset = as.numeric(TimeSinceOnset)) %>%
+  mutate(TimeSinceOnset = ifelse(Source %in% c("HV", "Flu"), 0, TimeSinceOnset)) %>%
+  group_by(COMBAT_ID) %>% 
+  filter(TimeSinceOnset <= 20) %>% slice_min(TimeSinceOnset) %>%
+  mutate(Outcome = ifelse(Outcome == "NA" | Source %in% c("HV", "Flu"), Source, as.character(Outcome)))
+
+df_prob = df_prob[df_prob$Outcome != 6,] # not hospitalized
+df_prob$severity = df_prob$Outcome
+# df_prob$severity[df_prob$severity == "1"] = "Death"
+# df_prob$severity[df_prob$severity == "2"] = "Mechanical Ventilation"
+# df_prob$severity[df_prob$severity == "3"] = "Non-invasive Ventilation"
+# df_prob$severity[df_prob$severity == "4"] = "Hospitalized with O2"
+# df_prob$severity[df_prob$severity == "5"] = "Hospitalized without O2"
+df_prob$severity[df_prob$severity == "1"] = "ECMO or Mortality"
+df_prob$severity[df_prob$severity == "2"] = "ECMO or Mortality"
+df_prob$severity[df_prob$severity == "3"] = "Non-invasive Ventilation / High-Oxygen"
+df_prob$severity[df_prob$severity == "4"] = "Oxygen Support"
+df_prob$severity[df_prob$severity == "5"] = "No Support"
+df_prob$severity[df_prob$severity == "HV"] = "Healthy"
+df_prob$severity = factor(df_prob$severity)
+df_prob$severity = factor(df_prob$severity, 
+                          levels = c("Sepsis", "ECMO or Mortality",
+                                     "Non-invasive Ventilation / High-Oxygen",
+                                     "Oxygen Support", "No Support", "Healthy"))
+
+num_combat_so = table(df_prob$severity)
+var12_A = var(df_prob$log_A[df_prob$severity %in%
+                            c("Oxygen Support", "No Support")])
+var34_A = var(df_prob$log_A[df_prob$severity %in%
+                            c("Non-invasive Ventilation / High-Oxygen",
+                              "ECMO or Mortality")])
+var5_A = var(df_prob$log_A[df_prob$severity == "Sepsis"])
+varA_combat_so = var34_A / var12_A
+var5A_combat_so = var5_A / var12_A
+
+var12_F = var(df_prob$log_F[df_prob$severity %in%
+                            c("Oxygen Support", "No Support")])
+var34_F = var(df_prob$log_F[df_prob$severity %in%
+                            c("Non-invasive Ventilation / High-Oxygen",
+                              "ECMO or Mortality")])
+var5_F = var(df_prob$log_F[df_prob$severity == "Sepsis"])
+varF_combat_so = var34_F / var12_F
+var5F_combat_so = var5_F / var12_F
+
+combat_so_A <- ggplot(df_prob, aes(x = log_A, y = log_EF, color = severity)) +
+  geom_point(size = 2) +
+  labs(
+    title = "COMBAT Cytokines",
+    x = "log[P(A)/(P(A)+P(B)+P(C))]",
+    y = "log[P(E)+P(F)/(1-P(E)-P(F))]",
+    color = "Severity") +
+  theme_classic() +
+  scale_color_manual(values = severity_colors, drop = FALSE) +
+  theme(panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line.x = element_line(linewidth = 1),
+    axis.line.y = element_line(linewidth = 1),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(color = "black", size = 15),  
+    axis.text.y = element_text(color = "black", size = 15),
+    axis.title.x = element_text(color = "black", size = 15),
+    axis.title.y = element_text(color = "black", size = 15),
+    axis.ticks.length = unit(0.15, "cm"),
+    plot.title = element_text(size = 15, face = "bold"),
+    legend.position = "top",
+    legend.text = element_text(size = 15),
+    legend.title = element_text(size = 15),
+    aspect.ratio = 1) +
+  guides(color = guide_legend(nrow = 2))
+
+combat_so_F <- ggplot(df_prob, aes(x = log_F, y = log_EF, color = severity)) +
+  geom_point(size = 2) +
+  labs(
+    title = "COMBAT Cytokines",
+    x = "log[P(F)/(P(E)+P(F)]",
+    y = "log[P(E)+P(F)/(1-P(E)-P(F))]",
+    color = "Severity") +
+  theme_classic() +
+  scale_color_manual(values = severity_colors, drop = FALSE) +
+  theme(panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line.x = element_line(linewidth = 1),
+    axis.line.y = element_line(linewidth = 1),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(color = "black", size = 15),  
+    axis.text.y = element_text(color = "black", size = 15),
+    axis.title.x = element_text(color = "black", size = 15),
+    axis.title.y = element_text(color = "black", size = 15),
+    axis.ticks.length = unit(0.15, "cm"),
+    plot.title = element_text(size = 15, face = "bold"),
+    legend.position = "top",
+    legend.text = element_text(size = 15),
+    legend.title = element_text(size = 15),
+    aspect.ratio = 1) +
+  guides(color = guide_legend(nrow = 2))
+```
+
+# PMG
+```{r, fig.height=6, fig.width=6}
+pred_subtype = readRDS("~/impacc/Analysis/molecular_subtyping/revisions/External_Datasets/pmg/predicted_subtype_PMG.rds")
+metadata = read.csv("~/impacc/Analysis/molecular_subtyping/revisions/External_Datasets/pmg/pmg_key.csv")
+metadata = as.data.frame(metadata)
+metadata = metadata[,-1]
+colnames(metadata) = c("ID", "sample_id", "WHO")
+
+df_prob = data.frame(ID = rownames(pred_subtype))
+df_prob$EF = (pred_subtype[,"E"] + pred_subtype[,"F"]) / 
+  (1 - (pred_subtype[,"E"] + pred_subtype[,"F"]))
+df_prob$log_EF = log(df_prob$EF)
+df_prob$A = pred_subtype[,"A"] / 
+  (pred_subtype[,"A"] + pred_subtype[,"B"] + pred_subtype[,"C"])
+df_prob$log_A = log(df_prob$A)
+df_prob$PF = pred_subtype[,"F"] / 
+  (pred_subtype[,"E"] + pred_subtype[,"F"])
+df_prob$log_F = log(df_prob$PF)
+
+df_prob = inner_join(df_prob, metadata, by = "ID")
+df_prob = df_prob %>%
+  filter(!is.na(WHO)) %>%
+  filter(!grepl("AC", sample_id))
+df_prob$severity = df_prob$WHO
+df_prob$severity[df_prob$severity == "0"] = "Healthy"
+df_prob$severity[df_prob$severity == "1"] = "No Support"
+df_prob$severity[df_prob$severity == "2"] = "No Support"
+df_prob$severity[df_prob$severity == "3"] = "No Support"
+df_prob$severity[df_prob$severity == "4"] = "Oxygen Support"
+df_prob$severity[df_prob$severity == "5"] = "Non-invasive Ventilation / High-Oxygen"
+df_prob$severity[df_prob$severity == "6"] = "ECMO or Mortality"
+df_prob$severity[df_prob$severity == "7"] = "ECMO or Mortality"
+
+dummy = df_prob[1, ]
+dummy[,1:(ncol(dummy)-1)] = NA
+dummy$severity = "Sepsis"
+df_prob = rbind(df_prob, dummy)
+
+df_prob$severity = factor(df_prob$severity)
+df_prob$severity = factor(df_prob$severity, 
+                          levels = c("Sepsis", "ECMO or Mortality",
+                                     "Non-invasive Ventilation / High-Oxygen",
+                                     "Oxygen Support", "No Support", "Healthy"))
+
+num_pmg = table(df_prob$severity)
+var12_A = var(df_prob$log_A[df_prob$severity %in%
+                            c("Oxygen Support", "No Support")])
+var34_A = var(df_prob$log_A[df_prob$severity %in%
+                            c("Non-invasive Ventilation / High-Oxygen",
+                              "ECMO or Mortality")])
+varA_pmg = var34_A / var12_A
+
+var12_F = var(df_prob$log_F[df_prob$severity %in%
+                            c("Oxygen Support", "No Support")])
+var34_F = var(df_prob$log_F[df_prob$severity %in%
+                            c("Non-invasive Ventilation / High-Oxygen",
+                              "ECMO or Mortality")])
+varF_pmg = var34_F / var12_F
+
+pmg_A <- ggplot(df_prob, aes(x = log_A, y = log_EF, color = severity)) +
+  geom_point(size = 2) +
+  labs(
+    title = "Plasma Metabolomics",
+    x = "log[P(A)/(P(A)+P(B)+P(C))]",
+    y = "log[P(E)+P(F)/(1-P(E)-P(F))]",
+    color = "Severity") +
+  theme_classic() +
+  scale_color_manual(values = severity_colors, drop = FALSE) +
+  theme(panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line.x = element_line(linewidth = 1),
+    axis.line.y = element_line(linewidth = 1),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(color = "black", size = 15),  
+    axis.text.y = element_text(color = "black", size = 15),
+    axis.title.x = element_text(color = "black", size = 15),
+    axis.title.y = element_text(color = "black", size = 15),
+    axis.ticks.length = unit(0.15, "cm"),
+    plot.title = element_text(size = 15, face = "bold"),
+    legend.position = "top",
+    legend.text = element_text(size = 15),
+    legend.title = element_text(size = 15),
+    aspect.ratio = 1) +
+  guides(color = guide_legend(nrow = 2))
+
+pmg_F <- ggplot(df_prob, aes(x = log_F, y = log_EF, color = severity)) +
+  geom_point(size = 2) +
+  labs(
+    title = "Plasma Metabolomics",
+    x = "log[P(F)/(P(E)+P(F)]",
+    y = "log[P(E)+P(F)/(1-P(E)-P(F))]",
+    color = "Severity") +
+  theme_classic() +
+  scale_color_manual(values = severity_colors, drop = FALSE) +
+  theme(panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line.x = element_line(linewidth = 1),
+    axis.line.y = element_line(linewidth = 1),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(color = "black", size = 15),  
+    axis.text.y = element_text(color = "black", size = 15),
+    axis.title.x = element_text(color = "black", size = 15),
+    axis.title.y = element_text(color = "black", size = 15),
+    axis.ticks.length = unit(0.15, "cm"),
+    plot.title = element_text(size = 15, face = "bold"),
+    legend.position = "top",
+    legend.text = element_text(size = 15),
+    legend.title = element_text(size = 15),
+    aspect.ratio = 1) +
+  guides(color = guide_legend(nrow = 2))
+```
+
+# Probability plot
+```{r, fig.height=12, fig.width=25, warning=FALSE}
+ggarrange(subtype_A, pmg_A, hanson_A, combat_so_A, combat_pbmc_A,
+          subtype_F, pmg_F, hanson_F, combat_so_F, combat_pbmc_F,
+          ncol = 5, nrow = 2, common.legend = TRUE, legend = "top")
+```
+
+# Variance table
+```{r}
+library(knitr)
+var_table = cbind(c(varA_subtype, varA_pmg, varA_hanson, varA_combat_so, varA_combat_pbmc),
+                  c(varF_subtype, varF_pmg, varF_hanson, varF_combat_so, varF_combat_pbmc))
+colnames(var_table) = c("A/(A+B+C)", "F/(E+F)")
+rownames(var_table) = c("Subtype", "PMG", "Hanson PBMC", "COMBAT Cytokines", "COMBAT PBMC")
+var_table
+
+var5_combat = cbind(c(var5A_combat_so, var5A_combat_pbmc),
+                    c(var5F_combat_so, var5F_combat_pbmc))
+colnames(var5_combat) = c("A/(A+B+C)", "F/(E+F)")
+rownames(var5_combat) = c("COMBAT Cytokines", "COMBAT PBMC")
+var5_combat
+```
+
+# Number table
+```{r}
+num_table = rbind(num_subtype, num_pmg, num_hanson, num_combat_so, num_combat_pbmc)
+rownames(num_table) = c("Subtype", "PMG", "Hanson PBMC", "COMBAT Cytokines", "COMBAT PBMC")
+num_table
+```
+

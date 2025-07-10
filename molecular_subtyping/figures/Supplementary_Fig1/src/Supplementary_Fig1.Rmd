@@ -1,0 +1,37 @@
+---
+title: "Supplementary Fig1"
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+subtype_hcl = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_aligned = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+```
+
+# By Enrollment Site
+```{r, fig.width = 5, fig.height = 4}
+site_df <- subtype_hcl %>%
+  rownames_to_column("participant_id") %>%
+  left_join(clin_data_aligned %>% distinct(participant_id, enrollment_site))
+pdf("~/code/Revision/site_plot/enrollment_site_subtype.pdf", height = 4, width = 5)
+site_df %>%
+  filter(label != "D") %>%
+  group_by(enrollment_site, label) %>%
+  dplyr::summarize(count = n()) %>%
+  mutate(freq = count / sum(count) * 100) %>%
+  mutate(label = paste0("Subtype ", label)) %>%
+  ggplot(aes(x=freq, y= enrollment_site, fill = label)) +
+  geom_bar(stat = "identity") +
+  theme_classic() +
+  xlab("Percent of Participants (%)") +
+  ylab("Enrollment Site") +
+  scale_fill_manual(values = c("Subtype A" = "#20854EB2", "Subtype B" = "#0072B5B2",
+              "Subtype C" = "#E18727B2", #"Subtype D" = "#FFDC91B2",
+              "Subtype E" = "#EE4C97B2", "Subtype F" = "#BC3C29B2"),
+              name = "Subtype")+
+  scale_y_discrete(limits=rev) +
+  theme(axis.text = element_text(color = "black"))
+dev.off()
+```
+

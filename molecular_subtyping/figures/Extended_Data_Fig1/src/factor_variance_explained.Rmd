@@ -1,0 +1,234 @@
+---
+title: "factor variance explained"
+output: pdf_document
+---
+
+```{r load library}
+require(openxlsx)
+library(factoextra)
+library(cluster)
+require(nlme) # directly provides p-values, unlike lme4
+require(splines)
+require(dplyr)
+library(fgsea)
+library(knitr)
+library(kableExtra)
+library(tidyverse)
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+source(paste0(codebase_path,"/codebase_subtype.R"))
+
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+mcia_results = readRDS(paste0(intermediate_results_outdir_DR,"MCIA_phase123_20230726.rds"))
+
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+
+base_obj = readRDS(file ="/scratch/data-integration/cleanedup/mod1_interpretation_base.rds")
+```
+
+# Load preliminary results
+```{r load subtype assignment and clinical data}
+# load subtype assignment and clinical data
+nclust_tree_all = 6
+subtype_hcl = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_aligned = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+extended_data = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/extended_data.rds")
+```
+
+# Factor evaluation
+```{r}
+projection_coef_func = function(mcia_factors, datasets){
+  # datasest 
+  xlist = datasets
+  xlist1 = datasets
+  factors_mcia = mcia_factors
+  projection_coef = list()
+  projection_pval = list()
+  ave_variance_explained = matrix(0, nrow = ncol(factors_mcia), ncol = length(xlist))
+  total_variance_explained = matrix(0, nrow = ncol(factors_mcia), ncol = length(xlist))
+  corr_ave_variance_explained = matrix(0, nrow = ncol(factors_mcia), ncol = length(xlist))
+  corr_total_variance_explained = matrix(0, nrow = ncol(factors_mcia), ncol = length(xlist))
+  colnames(ave_variance_explained) <- colnames(total_variance_explained) <-
+    colnames(corr_ave_variance_explained) <-
+    colnames(corr_total_variance_explained) <- names(xlist)
+  # standardize data with quantile normalization (for raw features with missing data)
+  for(d in 1:length(xlist1)){
+    llkeep = which(!is.na(xlist1[[d]][,1]))
+    xlist[[d]] = apply(xlist[[d]],2, function(z){
+      idx = which(!is.na(z))
+      zobs = qqnorm(z[idx], plot.it = F)$x
+      zout = z
+      zout[idx] = zobs
+      return(zout)
+    })
+    xlist1[[d]][,] = NA
+    xlist1[[d]][llkeep,] = xlist[[d]][llkeep,]
+  }
+  # standardize factor
+  factors_normalized = apply(as.matrix(factors_mcia), 2,
+                             function(z) qqnorm(z,plot.it = F)$x)
+  for(d in 1:length(xlist)){
+    print(d)
+    # use observed features
+    idx_keep = which(!is.na(xlist1[[d]][,1]))
+    tmp = lm(as.matrix(xlist1[[d]][idx_keep,])~ scale(as.matrix(factors_normalized[idx_keep,])))
+    tmp1 = summary(tmp)
+    projection_coef[[d]] = data.frame(t(tmp$coefficients[-1,]))
+    projection_coef[[d]][is.na(projection_coef[[d]])] = 0
+    projection_pval[[d]] = array(NA, dim = dim(projection_coef[[d]]))
+    for(j in 1:ncol(xlist[[d]])){
+      projection_pval[[d]][j,] = tmp1[[j]]$coefficients[-1,4]
+    }
+    projection_pval[[d]] = data.frame(projection_pval[[d]])
+    # projection_coef[[d]]: assay d, p by K (p features, K factors)
+    ave_variance_explained[,d] = apply(projection_coef[[d]]^2,2,mean)
+    total_variance_explained[,d] = ave_variance_explained[,d]*nrow(projection_pval[[d]])
+    # correlated coefficients
+    coef_mat = as.matrix(projection_coef[[d]])
+    factor_mat = scale(as.matrix(factors_normalized[idx_keep,]))
+    sigma = cov(factor_mat)
+    corr_ave_variance_explained[,d] = apply(coef_mat*(coef_mat %*% sigma), 2, mean)
+    corr_total_variance_explained[,d] = corr_ave_variance_explained[,d] *
+      nrow(projection_pval[[d]])
+    tmp_name = colnames(xlist1[[d]])
+    tmp_name = sapply(strsplit(tmp_name, "_"),function(z) z[length(z)])
+    rownames(projection_coef[[d]]) <- rownames(projection_pval[[d]]) <- tmp_name
+  }
+  projection_evaluation = list()
+  projection_evaluation$projection_coef = projection_coef
+  projection_evaluation$projection_pval = projection_pval
+  # ave_variance_explained: (K factor by d assay)
+  projection_evaluation$ave_variance_explained = ave_variance_explained
+  # total_variance_explained: (K factor by d assay)
+  projection_evaluation$total_variance_explained = total_variance_explained
+  projection_evaluation$corr_ave_variance_explained = corr_ave_variance_explained
+  projection_evaluation$corr_total_variance_explained = corr_total_variance_explained
+  return(projection_evaluation)
+}
+
+# mcia_projection_evaluation = projection_coef_func(mcia_factors = mcia_factors,
+#                                                   datasets = data_list)
+```
+
+# Variance explained
+```{r}
+variance_explained_total = array(NA, length(organized_data$datasets))
+K = 40
+for (d in 1:length(organized_data$datasets)) {
+  print(d)
+  data_omics = organized_data$datasets[[d]]
+  ll = which(rownames(data_omics) %in% clin_data_aligned$event_id)
+  data_omics = data_omics[ll,]
+  factor_tmp = mcia_results$mcia_factors[ll, 1:K]
+  ss = 0
+  for (j in 1:ncol(data_omics)) {
+    idx = !is.na(data_omics[, j])
+    y_omics = data_omics[idx, j]
+    x_factor = factor_tmp[idx,]
+    m = lm(y_omics ~ x_factor)$residuals
+    ss = ss + (1-var(m)/var(y_omics))
+  }
+  variance_explained_total[d] = ss/ncol(data_omics)
+}
+names(variance_explained_total) = names(organized_data$datasets)
+variance_explained_total
+```
+
+# Cumulative variance explained
+```{r}
+n_factor = 100
+cum_variance_explained = matrix(NA, nrow = 100, ncol = length(organized_data$datasets))
+for (d in 1:length(organized_data$datasets)) {
+  print(d)
+  data_omics = organized_data$datasets[[d]]
+  keep_idx = which(rownames(data_omics) %in% clin_data_aligned$event_id)
+  data_omics = data_omics[keep_idx,]
+  factor_tmp = mcia_results$mcia_factors[keep_idx,]
+  for (k in 1:n_factor) {
+    current = n_factor+1-k
+    ss = 0
+    for (j in 1:ncol(data_omics)) {
+      idx = !is.na(data_omics[, j])
+      y_omics = data_omics[idx, j]
+      x_factor = factor_tmp[idx, 1:current]
+      m = lm(y_omics ~ x_factor)$residuals
+      ss = ss + (1-var(m)/var(y_omics))
+    }
+    cum_variance_explained[current, d] <- ss / ncol(data_omics)
+    # cum_variance_explained[current, d] <- ss
+  }
+}
+colnames(cum_variance_explained) = names(organized_data$datasets)
+rownames(cum_variance_explained) = paste0("Factor", 1:100)
+factor_variance_explained = cum_variance_explained
+
+for (d in 1:length(organized_data$datasets)) {
+  cum_variance_explained[, d] <- cum_variance_explained[, d] / ncol(organized_data$datasets[[d]])
+}
+```
+
+# MCIA factor accumulated percentage of variance explained (Extended Data Fig1B)
+```{r MCIA factor accumulated percentage of variance explained, fig.height=6, fig.width=6}
+omics_name_mapping = c(
+  "plasma_proteomics_targeted" = "PPT",
+  "plasma_proteomics_global_dda" = "PPG",
+  "serum_olink" = "SPT",
+  "plasma_metabolomics_global" = "PMG",
+  "nasal_transcriptomics" = "NGX",
+  "pbmc_transcriptomics" = "PGX")
+
+# accumulated average variance explained
+colnames(cum_variance_explained) = omics_name_mapping[colnames(cum_variance_explained)]
+df_cum_variance_explained = as.data.frame(cum_variance_explained)
+df_cum_variance_explained = df_cum_variance_explained*100
+df_cum_variance_explained$factor = 1:nrow(cum_variance_explained)
+
+df_cum_variance_explained = pivot_longer(
+  df_cum_variance_explained, cols = -factor, names_to = "omics", 
+  values_to = "variance")
+
+ggplot(df_cum_variance_explained, aes(x = factor, y = variance, color = omics)) +
+  geom_line(linewidth = 0.65) +
+  geom_vline(xintercept = 40, linetype = "dashed", 
+             color = "grey40", linewidth = 0.65) +
+  theme_classic() +
+  ylim(0, 100) +
+  labs(x = "Factor",
+       y = "Cumulative Percentage of Variance Explained",
+       color = "") +
+  theme(panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line.x = element_line(linewidth = 1),
+    axis.line.y = element_line(linewidth = 1),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(color = "black", size = 15),  
+    axis.text.y = element_text(color = "black", size = 15),
+    axis.title.x = element_text(color = "black", size = 15),
+    axis.title.y = element_text(color = "black", size = 15),
+    strip.text = element_text(color = "black", size = 15),
+    axis.ticks.length = unit(0.15, "cm"),
+    legend.position = "bottom",
+    legend.text = element_text(size = 15),
+    legend.title = element_text(size = 15),
+    legend.key.size = unit(2.5, "lines"),
+    aspect.ratio = 0.85)
+```
+
+# Percentage of variance explained
+```{r percentage of variance explained}
+cum_variance_explained[40,]
+# cum_variance_explained[30,]
+rowSums(cum_variance_explained)[1]/6
+```
+
+
+

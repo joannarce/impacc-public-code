@@ -1,0 +1,622 @@
+---
+title: "Fig2"
+output: pdf_document
+---
+
+```{r load library}
+library(ade4) #used in mcia
+library(mogsa)
+library(factoextra)
+library(cluster)
+library(nnet)
+library(survival)
+library(ordinal)
+library(ggeffects)
+library(openxlsx)
+library(network)
+library(GGally)
+library(ggalt)
+library(metafor)
+library(cowplot)
+library(survminer)
+require(nlme) # directly provides p-values, unlike lme4
+require(splines)
+require(dplyr)
+library(fgsea)
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+source(paste0(codebase_path,"/codebase_subtype.R"))
+
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+mcia_results = readRDS(paste0(intermediate_results_outdir_DR,"MCIA_phase123_20230726.rds"))
+
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+```
+
+# Load subtype assignment and clinical data
+```{r load subtype assignment and clinical data}
+nclust_tree_all = 6
+subtype_hcl = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_aligned = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+```
+
+# Clinical names correspondence
+```{r clinical names correspondence}
+clin_names <- c("sex" = "Sex (Female)",
+                "ethnicity" = "Ethnicity (Hispanic or Latino)",
+                "admit_age" = "Admission age",
+                "discretized_admit_age_quantile" = "Admission age quantile",
+                "raceAmerican Indian / Alaska Native" = "American Indian/Alaska Native",
+                "raceAsian" = "Asian",
+                "raceBlack / African American" = "Black/African American",
+                "raceBlack...African.American" = "Black/African American",
+                "raceMultiple" = "Multiple Races",
+                "raceNative Hawaiian / Pacific Islander" = "Native Hawaiian/Pacific Islander",
+                "raceWhite" = "White",
+                "bmicat" = "BMI category",
+                "comorb_htn" = "Hypertension",
+                "comorb_isaric_dm" = "Diabetes",
+                "comorb_anyresp_noasthma" = "Pulmonary (excludes asthma)",
+                "comorb_isaric_asthma" = "Asthma",
+                "comorb_isaric_cardiac" = "Chronic cardiac disease",
+                "comorb_isaric_ckd" = "Chronic kidney disease",
+                "comorb_isaric_neoplasm" = "Malignant neoplasm",
+                "comorb_neuro" = "Chronic neurological disorder",
+                "comorb_isaric_liver" = "Liver disease",
+                "comorb_hxtrans" = "History of solid organ or bone marrow transplant",
+                "comorb_hiv2" = "HIV",
+                "comorb_eversmkvape" = "Current or former smoking and/or vaping",
+                "comorb_anysubstance" = "Drug or alcohol abuse or cannabis use",
+                "comp_seizure" = "Seizures",
+                "comp_meningitis" = "Meningitis/encephalitis",
+                "comp_stroke" = "Stroke/CVA",
+                "comp_afib" = "Atrial fibrillation",
+                "comp_ventricular_arr" = "Ventricular arrhythmia",
+                "comp_endo" = "Endocarditis",
+                "comp_myocard" = "Myocarditis/pericarditis",
+                "comp_cardarrest" = "Cardiac arrest",
+                "comp_stemi" = "ST-elevation MI (STEMI)",
+                "comp_nstemi" = "Non-ST elevation MI (NSTEMI) or other cardiac ischemia",
+                "comp_chf" = "CHF/cardiomyopathy",
+                "comp_pneumonia" = "Pneumonia",
+                "comp_bronch" = "Bronchiolitis",
+                "comp_pneumo" = "Pneumothorax",
+                "comp_pneumomed" = "Pneumomediastinum",
+                "comp_aat" = "Acute arterial thromboembolism excluding stroke/CVA or myocardial infarction",
+                "comp_avthromb" = "Acute venous thromboembolism",
+                "comp_shock" = "Shock (use of vasopressors)",
+                "comp_bac" = "Bacteremia",
+                "comp_coag" = "Coagulation disorder/disseminated intravascular coagulation",
+                "comp_hypogly" = "Symptomatic hypoglycemia",
+                "comp_bleed" = "Bleeding",
+                "comp_anemia" = "Anemia",
+                "comp_pancreas" = "Pancreatitis",
+                "comp_renal" = "Acute renal injury/failure",
+                "comp_liver" = "Liver dysfunction/failure",
+                "comp_othlab" = "Other lab abnormality",
+                "comp_electrolyte" = "Electrolyte abnormality",
+                "comp_othinf" = "Other infection (non-pulmonary)",
+                "comp_othpulm" = "Other pulmonary complication",
+                "comp_unddisease" = "Exacerbation of underlying disease",
+                "comp_enceph" = "Encephalopathy",
+                "comp_othneuro" = "Other neurologic complication",
+                "comp_hypergly" = "Hyperglycemia",
+                "comp_psych" = "Psychiatric complication",
+                "comp_mis" = "Multisystem inflammatory syndrome (MIS)",
+                "comp_gastroent" = "Gastroenteritis",
+                "comp_pulmvas" = "Pulmonary vascular disease",
+                "comp_other2" = "Other complications",
+                "ever_azithro" = "Azithromycin",
+                "ever_icu" = "Ever in ICU",
+                "ever_otherabx" = "Other Antibiotics",
+                "ever_remdes" = "Remdesivir",
+                "ever_steroids" = "Steroids",
+                "ever_ever_esc" = "Ever required escalation of care",
+                "ever_immsupp" = "Immunosuppressives",
+                "baseline_anyimg" = "Any chest imaging at baseline",
+                "baseline_img_infil" = "Radiographic findings on chest imaging",
+                "baseline_lymph_abn" = "Abnormal Lymphocyte count",
+                "baseline_platelets_abn" = "Abnormal Platelets",
+                "baseline_alt_abn" = "Abnormal ALT",
+                "baseline_cr_abn" = "Abnormal Creatinine",
+                "baseline_crp_abn" = "Abnormal CRP",
+                "baseline_ddimer_abn" = "Abnormal D-dimer",
+                "baseline_trop_abn" = "Abnormal Troponin")
+```
+
+# Demographic, comorbidity, baseline, and complication (Figure 2A)
+```{r clinical heatmap, fig.height=8, fig.width=14}
+clin_data_patient <- clin_data_aligned[clin_data_aligned$event_type == "Visit 1",]
+demo_data <- clin_data_patient[, c("admit_age", "sex", "ethnicity",
+                                   "discretized_admit_age_quantile",
+                                   "bmicat", "enrollment_site", "race")]
+demo_data$ethnicity[demo_data$ethnicity == "Not Specified"] <- NA
+demo_data$bmicat[demo_data$bmicat == 999] <- NA
+demo_data$bmicat_test <- demo_data$bmicat
+# group obesity together
+demo_data$bmicat_test[demo_data$bmicat_test == 5] <- 4
+demo_data$race <- as.factor(demo_data$race)
+race_one_hot <- model.matrix(~ race-1, data = demo_data)
+race_one_hot <- race_one_hot[, !(colnames(race_one_hot) %in%
+                                   c("raceOther / Declined", 
+                                     "raceUnknown / Unavailable"))]
+demo_data_adjust <- demo_data[, c("discretized_admit_age_quantile", "sex")]
+
+clin_data_logit <- clin_data_patient %>%
+  dplyr::select(matches("^(comorb|comp)"), ever_icu, ever_ever_esc) %>%
+  dplyr::select(-comorb_count, -comorb_countcat) %>%
+  select_if(~sum(.x, na.rm = TRUE) > 0)
+clin_data_demo_logit <- cbind(demo_data[, c("sex", "ethnicity")], race_one_hot)
+clin_data_demo_logit$sex <- ifelse(clin_data_demo_logit$sex == "Female", 1, 0)
+clin_data_demo_logit$ethnicity <- ifelse(clin_data_demo_logit$ethnicity == 
+                                           "Hispanic or Latino", 1, 0)
+
+clin_data_baseline <- clin_data_patient %>%
+  dplyr::select(matches("^baseline")) %>%
+  dplyr::select(-baseline_anyimg) %>%
+  mutate(across(everything(), ~replace(., . == 999, NA)))
+clin_data_baseline_logit <- clin_data_baseline %>%
+  dplyr::select(ends_with("_abn"))
+
+sub_idx <- which(subtype_hcl$label != "D")
+clin_test_logit <- test_clinical_logit_demo(
+  subtype_hcl$label[sub_idx],
+  clin_data_logit[sub_idx,],
+  demo_data_adjust[sub_idx,])
+demo_test_logit <- test_clinical_logit(
+  subtype_hcl$label[sub_idx],
+  clin_data_demo_logit[sub_idx,])
+baseline_test_logit <- test_clinical_logit_demo(
+  subtype_hcl$label[sub_idx],
+  clin_data_baseline_logit[sub_idx,],
+  demo_data_adjust[sub_idx,])
+bmi_test_ordinal <- test_ordinal(
+  subtype_hcl$label[sub_idx],
+  demo_data$bmicat_test[sub_idx])
+age_test_ordinal <- test_ordinal(
+  subtype_hcl$label[sub_idx],
+  demo_data$discretized_admit_age_quantile[sub_idx])
+baseline_test_ordinal <- test_ordinal_demo(
+  subtype_hcl$label[sub_idx],
+  clin_data_baseline$baseline_img_infil[sub_idx],
+  demo_data_adjust[sub_idx,])
+
+clin_test_logit$p_lr_adj <- p.adjust(clin_test_logit$p_lr, method = "BH")
+demo_test_logit$p_lr_adj <- p.adjust(demo_test_logit$p_lr, method = "BH")
+
+# full table for clinical tests
+test_Fig2A <- clin_test_logit
+test_Fig2A$est_logit <- cbind(clin_test_logit$est_logit, 
+                              demo_test_logit$est_logit,
+                              baseline_test_logit$est_logit,
+                              bmi_test_ordinal$est_ordinal,
+                              age_test_ordinal$est_ordinal,
+                              baseline_test_ordinal$est_ordinal)
+colnames(test_Fig2A$est_logit)[ncol(test_Fig2A$est_logit)-2] <- "bmicat"
+colnames(test_Fig2A$est_logit)[ncol(test_Fig2A$est_logit)-1] <- 
+  "discretized_admit_age_quantile"
+colnames(test_Fig2A$est_logit)[ncol(test_Fig2A$est_logit)] <- "baseline_img_infil"
+test_Fig2A$p_logit <- cbind(clin_test_logit$p_logit, 
+                            demo_test_logit$p_logit,
+                            baseline_test_logit$p_logit,
+                            bmi_test_ordinal$p_ordinal,
+                            age_test_ordinal$p_ordinal,
+                            baseline_test_ordinal$p_ordinal)
+colnames(test_Fig2A$p_logit)[ncol(test_Fig2A$p_logit)-2] <- "bmicat"
+colnames(test_Fig2A$p_logit)[ncol(test_Fig2A$p_logit)-1] <- 
+  "discretized_admit_age_quantile"
+colnames(test_Fig2A$p_logit)[ncol(test_Fig2A$p_logit)] <- "baseline_img_infil"
+pvec <- as.vector(as.matrix(test_Fig2A$p_logit))
+pvec_bh <- p.adjust(pvec, method = "BH")
+test_Fig2A$p_adj <- matrix(pvec_bh, nrow = nrow(test_Fig2A$p_logit), 
+                          ncol = ncol(test_Fig2A$p_logit))
+
+logit_features <- c(colnames(clin_test_logit$est_logit),
+                    colnames(demo_test_logit$est_logit),
+                    colnames(baseline_test_logit$est_logit))
+df_logit <- cbind(clin_data_patient, race_one_hot)[, logit_features]
+df_logit$sex <- ifelse(df_logit$sex == "Female", 1, 0)
+df_logit$ethnicity <- ifelse(df_logit$ethnicity == "Hispanic or Latino", 1, 0)
+df_logit$subtype <- subtype_hcl$label
+test_Fig2A$count <- df_logit %>%
+  group_by(subtype) %>%
+  summarise(across(everything(), ~ sum(. == 1, na.rm = TRUE)))
+test_Fig2A$count <- as.data.frame(test_Fig2A$count[-4, -1])
+rownames(test_Fig2A$count) <- paste0("Subtype ", c("A", "B", "C", "E", "F"))
+colnames(test_Fig2A$count) <- clin_names[colnames(test_Fig2A$count)]
+rownames(test_Fig2A$est_logit) <- paste0("Subtype ", c("A", "B", "C", "E", "F"))
+colnames(test_Fig2A$est_logit) <- clin_names[colnames(test_Fig2A$est_logit)]
+rownames(test_Fig2A$p_logit) <- paste0("Subtype ", c("A", "B", "C", "E", "F"))
+colnames(test_Fig2A$p_logit) <- clin_names[colnames(test_Fig2A$p_logit)]
+rownames(test_Fig2A$p_adj) <- paste0("Subtype ", c("A", "B", "C", "E", "F"))
+colnames(test_Fig2A$p_adj) <- colnames(test_Fig2A$p_logit)
+names(test_Fig2A$p_lr) <- clin_names[names(test_Fig2A$p_lr)]
+names(test_Fig2A$p_lr_adj) <- clin_names[names(test_Fig2A$p_lr_adj)]
+
+# clinical test featuring variables of interest
+interest_clin_id <- names(clin_test_logit$p_lr_adj)[clin_test_logit$p_lr_adj < 0.001]
+interest_demo_id <- names(demo_test_logit$p_lr_adj)[demo_test_logit$p_lr_adj < 0.001]
+select_id <- c(interest_clin_id, interest_demo_id, 
+               colnames(baseline_test_logit$est_logit),
+               "bmicat", "discretized_admit_age_quantile", "baseline_img_infil")
+
+clin_test <- clin_test_logit
+clin_test$est_logit <- cbind(clin_test_logit$est_logit, 
+                             demo_test_logit$est_logit,
+                             baseline_test_logit$est_logit,
+                             bmi_test_ordinal$est_ordinal,
+                             age_test_ordinal$est_ordinal,
+                             baseline_test_ordinal$est_ordinal)
+colnames(clin_test$est_logit)[ncol(clin_test$est_logit)-2] <- "bmicat"
+colnames(clin_test$est_logit)[ncol(clin_test$est_logit)-1] <- 
+  "discretized_admit_age_quantile"
+colnames(clin_test$est_logit)[ncol(clin_test$est_logit)] <- "baseline_img_infil"
+
+clin_test$p_logit <- cbind(clin_test_logit$p_logit, 
+                           demo_test_logit$p_logit,
+                           baseline_test_logit$p_logit,
+                           bmi_test_ordinal$p_ordinal,
+                           age_test_ordinal$p_ordinal,
+                           baseline_test_ordinal$p_ordinal)
+colnames(clin_test$p_logit)[ncol(clin_test$p_logit)-2] <- "bmicat"
+colnames(clin_test$p_logit)[ncol(clin_test$p_logit)-1] <- 
+  "discretized_admit_age_quantile"
+colnames(clin_test$p_logit)[ncol(clin_test$p_logit)] <- "baseline_img_infil"
+
+pvec <- as.vector(as.matrix(clin_test$p_logit))
+pvec_bh <- p.adjust(pvec, method = "BH")
+clin_test$p_adj <- matrix(pvec_bh, nrow = nrow(clin_test$p_logit), 
+                          ncol = ncol(clin_test$p_logit))
+rownames(clin_test$p_adj) <- rownames(clin_test$p_logit)
+colnames(clin_test$p_adj) <- colnames(clin_test$p_logit)
+
+clin_test$est_logit <- clin_test$est_logit[, select_id]
+clin_test$p_logit <- clin_test$p_logit[, select_id]
+clin_test$p_adj <- clin_test$p_adj[, select_id]
+heatmap_clinical(clin_test, clin_names, adjust_p = TRUE)
+```
+
+# Admission age (Figure 2B)
+```{r age barplot, fig.height=8, fig.width=8}
+df_age <- data.frame(data.frame(subtype = factor(subtype_hcl$label),
+                                age = clin_data_patient$admit_age))
+df_age <- df_age[df_age$subtype != "D", ]
+
+ggplot(df_age, aes(x = subtype, y = age, color = subtype)) + 
+  geom_boxplot(outlier.size = 0.8, size = 1.5) +
+  geom_jitter(width = 0.2, size = 0.8, alpha = 0.8)+
+  theme_classic() +
+  scale_fill_manual(values = c("#20854EB2", "#0072B5B2", "#E18727B2",
+                               "#EE4C97B2", "#BC3C29B2")) +
+  scale_color_manual(values = c("#20854EB2", "#0072B5B2", "#E18727B2",
+                                "#EE4C97B2", "#BC3C29B2")) +
+  theme(panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line.x = element_line(linewidth = 1),
+    axis.line.y = element_line(linewidth = 1),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(color = "black", size = 18),  
+    axis.text.y = element_text(color = "black", size = 18, 
+                               margin = margin(l = 12, r = 2)),
+    axis.title.x = element_text(color = "black", size = 18),
+    axis.title.y = element_text(color = "black", size = 18),
+    axis.ticks.length = unit(0.15, "cm"),
+    legend.position = "top",
+    legend.text = element_text(size = 18),
+    legend.title = element_text(size = 18),
+    legend.key.size = unit(2.5, "lines")) +
+    labs(y = "Admission Age")
+```
+
+# Sex, BMI, ethnicity, race (Figure 2C)
+```{r donut plot, fig.height=6, fig.width=8, message=FALSE, warning=FALSE}
+library(patchwork)
+library(ggrepel)
+sex_plot_A <- clin_donut_plot(clin_data_patient$sex, "A", 
+                              "Greens", label_position = 3.4)
+sex_plot_B <- clin_donut_plot(clin_data_patient$sex, "B", 
+                              "Blues", label_position = 3.4)
+sex_plot_C <- clin_donut_plot(clin_data_patient$sex, "C", 
+                              "Oranges", label_position = 3.4)
+sex_plot_E <- clin_donut_plot(clin_data_patient$sex, "E", 
+                              "Reds", label_position = 3.4)
+sex_plot_F <- clin_donut_plot(clin_data_patient$sex, "F", 
+                              "Purples", label_position = 3.4)
+(sex_plot_A | sex_plot_B | sex_plot_C)/(sex_plot_E | sex_plot_F) + 
+  plot_annotation("Sex", 
+                  theme = theme(plot.title = element_text(hjust = 0.5, size = 20)))
+
+donut_ethnicity <- clin_data_patient$ethnicity
+donut_ethnicity[clin_data_patient$ethnicity == "Not Hispanic or Latino"] = 
+  "Not\nHispanic\nor Latino"
+donut_ethnicity[clin_data_patient$ethnicity == "Hispanic or Latino"] = 
+  "Hispanic\nor Latino"
+ethnicity_plot_A <- clin_donut_plot(donut_ethnicity, "A", 
+                                    "Greens", label_position = 3.4)
+ethnicity_plot_B <- clin_donut_plot(donut_ethnicity, "B", 
+                                    "Blues", label_position = 3.4)
+ethnicity_plot_C <- clin_donut_plot(donut_ethnicity, "C", 
+                                    "Oranges", label_position = 3.4)
+ethnicity_plot_E <- clin_donut_plot(donut_ethnicity, "E", 
+                                    "Reds", label_position = 3.4)
+ethnicity_plot_F <- clin_donut_plot(donut_ethnicity, "F", 
+                                    "Purples", label_position = 3.4)
+(ethnicity_plot_A | ethnicity_plot_B | ethnicity_plot_C)/
+  (ethnicity_plot_E | ethnicity_plot_F) + 
+  plot_annotation("Ethnicity", 
+                  theme = theme(plot.title = element_text(hjust = 0.5, size = 20)))
+
+donut_bmi <- clin_data_patient$bmicat
+donut_bmi[clin_data_patient$bmicat == 1] <- "Underweight"
+donut_bmi[clin_data_patient$bmicat == 2] <- "Normal\nweight"
+donut_bmi[clin_data_patient$bmicat == 3] <- "Overweight"
+donut_bmi[clin_data_patient$bmicat == 4] <- "Class 1-2\nObesity"
+donut_bmi[clin_data_patient$bmicat == 5] <- "Class 3\nObesity"
+donut_bmi[clin_data_patient$bmicat == 999] = "NA"
+bmi_plot_A <- clin_donut_plot(donut_bmi, "A", 
+                              "Greens", label_position = 3.4)
+bmi_plot_B <- clin_donut_plot(donut_bmi, "B", 
+                              "Blues", label_position = 3.4)
+bmi_plot_C <- clin_donut_plot(donut_bmi, "C", 
+                              "Oranges", label_position = 3.4)
+bmi_plot_E <- clin_donut_plot(donut_bmi, "E", 
+                              "Reds", label_position = 3.4, label_vjust = 0.6)
+bmi_plot_F <- clin_donut_plot(donut_bmi, "F", 
+                              "Purples", label_position = 3.4)
+(bmi_plot_A | bmi_plot_B | bmi_plot_C)/(bmi_plot_E | bmi_plot_F) + 
+  plot_annotation("BMI", 
+                  theme = theme(plot.title = element_text(hjust = 0.5, size = 20)))
+
+donut_race <- clin_data_patient$race
+donut_race[clin_data_patient$race == "Black / African American"] = 
+  "Black /\nAfrican American"
+donut_race[clin_data_patient$race == "American Indian / Alaska Native"] = 
+  "American Indian /\nAlaska Native"
+donut_race[clin_data_patient$race == "Unknown / Unavailable"] = 
+  "Unknown /\nUnavailable"
+donut_race[clin_data_patient$race == "Other / Declined"] = 
+  "Other /\nDeclined"
+donut_race[clin_data_patient$race == "Native Hawaiian / Pacific Islander"] = 
+  "Native Hawaiian /\nPacific Islander"
+ethnicity_plot_A <- clin_donut_plot(donut_race, "A", 
+                                    "Greens", label_position = 3.4)
+ethnicity_plot_B <- clin_donut_plot(donut_race, "B", 
+                                    "Blues", label_position = 3.4)
+ethnicity_plot_C <- clin_donut_plot(donut_race, "C", 
+                                    "Oranges", label_position = 3.4)
+ethnicity_plot_E <- clin_donut_plot(donut_race, "E", 
+                                    "Reds", label_position = 3.4)
+ethnicity_plot_F <- clin_donut_plot(donut_race, "F", 
+                                    "Purples", label_position = 3.4)
+
+(ethnicity_plot_A | ethnicity_plot_B | ethnicity_plot_C)/
+  (ethnicity_plot_E | ethnicity_plot_F) + 
+  plot_annotation("Race", 
+                  theme = theme(plot.title = element_text(hjust = 0.5, size = 20)))
+```
+
+# Significant comorbidities (Figure 2D)
+```{r significant comorbidities, fig.height=3, fig.width=4}
+subtype_remove_idx <- which(subtype_hcl$label != "D")
+mosaic_plot_clinical(subtype_hcl$label[subtype_remove_idx], 
+                     clin_data_patient$comorb_isaric_cardiac[subtype_remove_idx], 
+                     "Chronic cardiac disease")
+mosaic_plot_clinical(subtype_hcl$label[subtype_remove_idx], 
+                     clin_data_patient$comorb_isaric_ckd[subtype_remove_idx], 
+                     "Chronic kidney disease")
+mosaic_plot_clinical(subtype_hcl$label[subtype_remove_idx],
+                     clin_data_patient$comorb_hxtrans[subtype_remove_idx], 
+                     "History of solid organ or bone marrow transplant",
+                     cex_title = 0.8)
+mosaic_plot_clinical(subtype_hcl$label[subtype_remove_idx], 
+                     clin_data_patient$comorb_htn[subtype_remove_idx], 
+                     "Hypertension")
+mosaic_plot_clinical(subtype_hcl$label[subtype_remove_idx], 
+                     clin_data_patient$comorb_anyresp_noasthma[subtype_remove_idx], 
+                     "Pulmonary (excludes asthma)")
+```
+
+# Normalized frequency of significant complications (Figure 2E)
+```{r significant complications, fig.height=9, fig.width=12, warning=FALSE}
+df_comp = clin_data_patient %>%
+  dplyr::select(matches("^(comp)"))
+sig_comp = colnames(clin_test$p_logit)
+sig_comp = grep("^comp", sig_comp, value = TRUE)
+df_comp = clin_data_patient[, sig_comp]
+demo_data_adjust = clin_data_patient[, c("discretized_admit_age_quantile", 
+                                         "sex")]
+comp_demo_adjust = comp_comparison_adjust(df_comp, demo_data_adjust,
+                                          subtype_hcl$label)
+pvec <- as.vector(as.matrix(comp_demo_adjust$p_logit))
+pvec_bh <- p.adjust(pvec, method = "BH")
+comp_demo_adjust$p_adj <- matrix(pvec_bh, nrow = nrow(comp_demo_adjust$p_logit), 
+                          ncol = ncol(comp_demo_adjust$p_logit),
+                          dimnames = list(rownames(comp_demo_adjust$p_logit),
+                                          colnames(comp_demo_adjust$p_logit)))
+
+test_Fig2E = comp_demo_adjust
+colnames(test_Fig2E$est_logit) = clin_names[colnames(test_Fig2E$est_logit)]
+colnames(test_Fig2E$p_logit) = clin_names[colnames(test_Fig2E$p_logit)]
+colnames(test_Fig2E$p_adj) = clin_names[colnames(test_Fig2E$p_adj)]
+
+df_comp = clin_data_patient %>%
+  dplyr::select(matches("^(comp)"))
+sig_comp = colnames(clin_test$p_logit)
+sig_comp = grep("^comp", sig_comp, value = TRUE)
+idx_comp = match(sig_comp, colnames(clin_test$p_logit))
+df_comp = clin_data_patient[, sig_comp]
+df_comp = data.frame(data.frame(Subtype = factor(subtype_hcl$label), df_comp))
+df_comp = df_comp %>%
+  group_by(Subtype) %>%
+  summarise(across(starts_with("comp"),
+                   list(mean = ~ mean(.), se = ~ sd(.)/sqrt(n())), 
+                   .names = "{.col}_{.fn}"))
+df_comp = df_comp %>%
+  pivot_longer(cols = -Subtype, names_to = c("comp", ".value"), 
+    names_pattern = "(.*)_(mean|se)")
+
+pval_comp = data.frame(
+  comp = colnames(comp_demo_adjust$p_adj),
+  pval_EFvsABC = comp_demo_adjust$p_adj["EF vs ABC",],
+  pval_FvsE = comp_demo_adjust$p_adj["F vs E",],
+  pval_AvsBC = comp_demo_adjust$p_adj["A vs BC",],
+  pval_BvsAC = comp_demo_adjust$p_adj["B vs AC",],
+  pval_CvsAB = comp_demo_adjust$p_adj["C vs AB",])
+
+df_comp$category = ""
+df_comp$category[df_comp$comp == "comp_stroke"] = "Neuro\nlogic"
+df_comp$category[df_comp$comp == "comp_afib"|
+                      df_comp$comp == "comp_ventricular_arr"|
+                      df_comp$comp == "comp_cardarrest"|
+                      df_comp$comp == "comp_nstemi"|
+                      df_comp$comp == "comp_chf"] = "Cardiac"
+df_comp$category[df_comp$comp == "comp_pneumonia"|
+                   df_comp$comp == "comp_pneumomed"] = "Pulmonary"
+df_comp$category[df_comp$comp == "comp_avthromb"|
+                      df_comp$comp == "comp_bleed"|
+                      df_comp$comp == "comp_anemia"] = "Hematologic"
+df_comp$category[df_comp$comp == "comp_shock"] = "Other"
+df_comp$category[df_comp$comp == "comp_bac"] = "Infectious"
+df_comp$category[df_comp$comp == "comp_renal"] = "Renal"
+
+df_comp = df_comp %>%
+  arrange(Subtype, category, comp)
+comp_max = df_comp %>%
+  group_by(category, comp) %>%
+  summarise(y_max = max(mean + se), .groups = "drop")
+comp_max = left_join(comp_max, pval_comp, by = "comp")
+comp_pval = data.frame(x = seq(1, length(sig_comp), by = 1),
+                       y_EFvsABC = comp_max$y_max + 0.03,
+                       val_EFvsABC = comp_max$pval_EFvsABC,
+                       label_EFvsABC = format(comp_max$pval_EFvsABC, 
+                                              scientific = TRUE, digits = 2),
+                       y_AvsBC = comp_max$y_max + 0.07,
+                       val_AvsBC = comp_max$pval_AvsBC,
+                       label_AvsBC = format(comp_max$pval_AvsBC, 
+                                            scientific = TRUE, digits = 2),
+                       y_BvsAC = comp_max$y_max + 0.11,
+                       val_BvsAC = comp_max$pval_BvsAC,
+                       label_BvsAC = format(comp_max$pval_BvsAC, 
+                                            scientific = TRUE, digits = 2),
+                       y_CvsAB = comp_max$y_max + 0.15,
+                       val_CvsAB = comp_max$pval_CvsAB,
+                       label_CvsAB = format(comp_max$pval_CvsAB, 
+                                            scientific = TRUE, digits = 2),
+                       y_FvsE = comp_max$y_max + 0.19,
+                       val_FvsE = comp_max$pval_FvsE,
+                       label_FvsE = format(comp_max$pval_FvsE, 
+                                           scientific = TRUE, digits = 2))
+
+comp_pval = comp_pval %>% 
+  mutate(sig_EFvsABC = ifelse(val_EFvsABC <= 0.001, "***",
+                       ifelse(val_EFvsABC <= 0.01, "**",
+                              ifelse(val_EFvsABC <= 0.05, " * ", ""))),
+         segment_EFvsABC = sig_EFvsABC != "",
+         sig_AvsBC = ifelse(val_AvsBC <= 0.001, "***",
+                       ifelse(val_AvsBC <= 0.01, "**",
+                              ifelse(val_AvsBC <= 0.05, " * ", ""))),
+         segment_AvsBC = sig_AvsBC != "",
+         sig_BvsAC = ifelse(val_BvsAC <= 0.001, "***",
+                       ifelse(val_BvsAC <= 0.01, "**",
+                              ifelse(val_BvsAC <= 0.05, " * ", ""))),
+         segment_BvsAC = sig_BvsAC != "",
+         sig_CvsAB = ifelse(val_CvsAB <= 0.001, "***",
+                       ifelse(val_CvsAB <= 0.01, "**",
+                              ifelse(val_CvsAB <= 0.05, " * ", ""))),
+         segment_CvsAB = sig_CvsAB != "",
+         sig_FvsE = ifelse(val_FvsE <= 0.001, "***",
+                       ifelse(val_FvsE <= 0.01, "**",
+                              ifelse(val_FvsE <= 0.05, " * ", ""))),
+         segment_FvsE = sig_FvsE != "")
+
+df_comp$comp = factor(df_comp$comp, levels = unique(df_comp$comp))
+df_comp = df_comp[df_comp$Subtype != "D",]
+df_comp$Subtype = factor(df_comp$Subtype)
+
+comp_cat = data.frame(x_raw = as.vector(table(df_comp$category))/nlevels(df_comp$Subtype),
+                      label = levels(as.factor(df_comp$category)))
+comp_cat$x_cum = cumsum(comp_cat$x_raw)
+comp_cat$x = (1+comp_cat$x_cum[1])/2
+for (i in 2:length(comp_cat$x_cum)) {
+  comp_cat$x[i] = (comp_cat$x_cum[i-1]+comp_cat$x_cum[i]+1)/2
+}
+comp_cat$x_left = c(0, head(comp_cat$x_cum, -1))
+comp_cat$x_left = comp_cat$x_left+0.6
+comp_cat$x_right = comp_cat$x_cum+0.4
+
+ggplot(df_comp, aes(comp, mean)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se, color = Subtype),
+                position = position_dodge(0.9), width = 0.6, size = 0.8)+
+  theme_classic() +
+  geom_point(aes(color = Subtype), position = position_dodge(0.9)) +
+  scale_color_manual(values = c("#20854EB2", "#0072B5B2", "#E18727B2",
+                                "#EE4C97B2", "#BC3C29B2")) +
+  theme(axis.title.x = element_text(size = 16, color = "black"),
+        axis.title.y = element_text(size = 16, color = "black"),
+        axis.text.x = element_text(angle = 45, hjust = 1, 
+                                   color = "black", size = 15),
+        axis.text.y = element_text(size = 16, color = "black"),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16),
+        legend.key.size = unit(2, "lines"),
+        axis.line.x = element_line(linewidth = 1),
+        axis.line.y = element_line(linewidth = 1)) +
+  geom_vline(xintercept = seq(1.5, length(sig_comp), by = 1), 
+             linetype = "dotted", colour = "grey50") +
+  scale_x_discrete(labels = clin_names) +
+  labs(x = "Complication", y = "Normalized Frequency") +
+  geom_text(data = comp_pval, aes(x = x, y = y_EFvsABC, label = sig_EFvsABC),
+            position = position_dodge(0.9), hjust = 0.5, 
+            color = "grey40", size = 6) +
+  geom_segment(data = filter(comp_pval, segment_EFvsABC), 
+               aes(x = x-0.4, xend = x+0.4, 
+                   y = y_EFvsABC-0.005, yend = y_EFvsABC-0.005), 
+               color = "grey40", size = 0.5) +
+  geom_text(data = comp_pval, aes(x = x, y = y_AvsBC, label = sig_AvsBC),
+            position = position_dodge(0.9), hjust = 1.1, 
+            color = "#20854EB2", size = 6) +
+  geom_segment(data = filter(comp_pval, segment_AvsBC),
+               aes(x = x-0.4, xend = x, 
+                   y = y_AvsBC-0.005, yend = y_AvsBC-0.005),
+               color = "#20854EB2", size = 0.5) +
+  geom_text(data = comp_pval, aes(x = x, y = y_BvsAC, label = sig_BvsAC),
+            position = position_dodge(0.9), hjust = 1.1, 
+            color = "#0072B5B2", size = 6) +
+  geom_segment(data = filter(comp_pval, segment_BvsAC),
+               aes(x = x-0.4, xend = x, 
+                   y = y_BvsAC-0.005, yend = y_BvsAC-0.005),
+               color = "#0072B5B2", size = 0.5) +
+  geom_text(data = comp_pval, aes(x = x, y = y_CvsAB, label = sig_CvsAB),
+            position = position_dodge(0.9), hjust = 1.1, 
+            color = "#E18727B2", size = 6) +
+  geom_segment(data = filter(comp_pval, segment_CvsAB),
+               aes(x = x-0.4, xend = x, 
+                   y = y_CvsAB-0.005, yend = y_CvsAB-0.005),
+               color = "#E18727B2", size = 0.5) +
+  geom_text(data = comp_pval, aes(x = x, y = y_FvsE, label = sig_FvsE),
+            position = position_dodge(0.9), hjust = -0.28, 
+            color = "#BC3C29B2", size = 6) +
+  geom_segment(data = filter(comp_pval, segment_FvsE),
+               aes(x = x+0.1, xend = x+0.4, 
+                   y = y_FvsE-0.005, yend = y_FvsE-0.005),
+               color = "#BC3C29B2", size = 0.5) +
+  geom_text(data = comp_cat, aes(x = x, y = 1.08, label = label),
+            position = position_dodge(0.9), hjust = 0.45, 
+            color = "black", size = 4.8) +
+  geom_segment(data = comp_cat, aes(x = x_left, xend = x_right, 
+                                    y = 1.025, yend = 1.025), 
+               color = "black", size = 0.6) +
+  coord_cartesian(ylim = c(0, 1), clip = "off") + 
+  theme(plot.margin = margin(t = 25, unit = "pt"))
+```
+
+

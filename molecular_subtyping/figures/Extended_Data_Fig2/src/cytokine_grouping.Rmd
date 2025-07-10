@@ -1,0 +1,315 @@
+---
+title: "cytokine grouping"
+output: pdf_document
+---
+
+```{r load library}
+library(ade4) #used in mcia
+library(mogsa)
+library(factoextra)
+library(cluster)
+library(nnet)
+library(survival)
+library(ordinal)
+library(ggeffects)
+library(openxlsx)
+library(network)
+library(GGally)
+library(ggalt)
+library(metafor)
+library(cowplot)
+library(survminer)
+require(nlme) # directly provides p-values, unlike lme4
+require(splines)
+require(dplyr)
+library(fgsea)
+library(circlize)
+require(rio)
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+source(paste0(codebase_path,"/codebase_subtype.R"))
+
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+mcia_results = readRDS(paste0(intermediate_results_outdir_DR,"MCIA_phase123_20230726.rds"))
+
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+
+base_obj = readRDS(file = "/scratch/data-integration/cleanedup/mod1_interpretation_base.rds")
+```
+
+# Load subtype assignment and data preprocessing
+```{r load subtype assignment and data preprocessing}
+visit_max = 6
+nclust_tree_all = 6
+subtype_hcl = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_aligned = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+extended_data = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/extended_data.rds")
+# viral load
+ct_train = data.frame(
+  "event_id" = rownames(base_obj$others$nasal_viralload$train$nasal_viralload_counts),
+  "N1_CT" = base_obj$others$nasal_viralload$train$nasal_viralload_counts$N1_CT,
+  "RP_CT" = base_obj$others$nasal_viralload$train$nasal_viralload_counts$RP_CT)
+ct_test = data.frame(
+  "event_id" = rownames(base_obj$others$nasal_viralload$test$nasal_viralload_counts),
+  "N1_CT" = base_obj$others$nasal_viralload$test$nasal_viralload_counts$N1_CT,
+  "RP_CT" = base_obj$others$nasal_viralload$test$nasal_viralload_counts$RP_CT)
+ct_df = rbind(ct_train, ct_test)
+ct_df = ct_df[order(ct_df$event_id),]
+rownames(ct_df) = ct_df$event_id
+# remove samples with undetected RP_CT values
+ct_df = ct_df[!is.na(ct_df$RP_CT), ]
+# replace NA (undetermined) in N1_CT to 40
+ct_df$N1_CT[is.na(ct_df$N1_CT)] = 40
+# replace values > 40 to 40
+ct_df$N1_CT[ct_df$N1_CT > 40] = 40
+# flip the sign of N1_CT
+ct_df$N1_CT <- -ct_df$N1_CT
+ct_df = subset(ct_df, select = -c(event_id, RP_CT))
+ct_df = as.data.frame(quantileNormalizeNoTies(ct_df))
+ct_df$event_id = rownames(ct_df)
+colnames(ct_df) <- c("negative N1-CT", "event_id")
+# antibody
+auc_train = data.frame(
+  "event_id" = rownames(base_obj$others$serum_rbd_abtiters$train$serum_rbd_abtiters_counts),
+  "log2_AUC" = base_obj$others$serum_rbd_abtiters$train$serum_rbd_abtiters_counts$`AUC RBD IgG`)
+auc_test = data.frame(
+  "event_id" = rownames(base_obj$others$serum_rbd_abtiters$test$serum_rbd_abtiters_counts),
+  "log2_AUC" = base_obj$others$serum_rbd_abtiters$test$serum_rbd_abtiters_counts$`AUC RBD IgG`)
+auc_df = rbind(auc_train, auc_test)
+auc_df = auc_df[order(auc_df$event_id),]
+rownames(auc_df) = auc_df$event_id
+auc_df = subset(auc_df, select = -event_id)
+auc_df = as.data.frame(quantileNormalizeNoTies(auc_df))
+auc_df$event_id = rownames(auc_df)
+colnames(auc_df) <- c("AUC RBD IgG", "event_id")
+
+# cytof parent preprocess
+cytof_parent_mat_train = base_obj$others$bld_cytof$train$bld_cytof_counts
+cytof_parent_mat_train = base_obj$others$bld_cytof$preprocess_bld_cytof_parent_granulo_separate(counts = cytof_parent_mat_train, rowfeature = base_obj$others$bld_cytof$train$bld_cytof_rowfeatures)
+cytof_parent_mat_test = base_obj$others$bld_cytof$test$bld_cytof_counts
+cytof_parent_mat_test = base_obj$others$bld_cytof$preprocess_bld_cytof_parent_granulo_separate(counts = cytof_parent_mat_test, rowfeature = base_obj$others$bld_cytof$test$bld_cytof_rowfeatures)
+
+cytof_parent_mat = rbind(cytof_parent_mat_train, cytof_parent_mat_test)
+cytof_parent_mat$event_id = rownames(cytof_parent_mat)
+cytof_parent_mat <- cytof_parent_mat %>%
+  left_join(ct_df %>% left_join(auc_df, by = "event_id"), by = "event_id") %>%
+  dplyr::select(-event_id, everything(), event_id)
+cytof_parent_feature_names = setdiff(colnames(cytof_parent_mat), "event_id")
+
+cytof_parent_mat = cytof_mat_preprocess(
+  cytof_parent_mat, subtype_hcl, clin_data_aligned)
+
+# cytof child preprocess
+cytof_child_mat_train = base_obj$others$bld_cytof$train$bld_cytof_counts
+cytof_child_mat_train = preprocess_bld_cytof_child_seperate_granulo(counts = cytof_child_mat_train)
+cytof_child_mat_test = base_obj$others$bld_cytof$test$bld_cytof_counts
+cytof_child_mat_test = preprocess_bld_cytof_child_seperate_granulo(counts = cytof_child_mat_test)
+
+cytof_child_mat = rbind(cytof_child_mat_train, cytof_child_mat_test)
+cytof_child_feature_names = colnames(cytof_child_mat)
+cytof_child_mat$event_id = rownames(cytof_child_mat)
+
+cytof_child_mat = cytof_mat_preprocess(
+  cytof_child_mat, subtype_hcl, clin_data_aligned)
+
+# cytokine preprocess
+cytokine_mat = organized_data$datasets$serum_olink
+cytokine_feature_names = colnames(cytokine_mat)
+cytokine_mat$event_id = rownames(cytokine_mat)
+cytokine_mat = cytof_mat_preprocess(
+  cytokine_mat, subtype_hcl, clin_data_aligned)
+
+# T-cell Cytotoxic preprocess
+pbmc_feature_names = c("PRF1","IFNG","GNLY","NKG7","GZMB","GZMA","GZMH",
+                       "KLRK1","KLRB1","KLRD1","CTSW","GZMK","GZMM")
+pbmc_raw <- as.data.frame(read_csv("/data/pbmc-transcriptomics/current/pbmc-transcriptomics-RowFeature.csv", skip = 1))
+pbmc = organized_data$datasets_imputed[[6]]
+pbmc_raw = pbmc_raw[pbmc_raw$gene_name %in% pbmc_feature_names,]
+pbmc = pbmc[, pbmc_raw$gene_id]
+colnames(pbmc) = pbmc_feature_names
+pbmc$event_id = rownames(pbmc)
+pbmc = cytof_mat_preprocess(pbmc, subtype_hcl, clin_data_aligned)
+```
+
+# Hierarchical clustering on Serum Olink
+```{r hierarchical clustering on Serum Olink}
+serum_olink_core <- organized_data$datasets_imputed$serum_olink
+serum_olink_core$event_id <- rownames(serum_olink_core)
+serum_olink_core <- cytof_mat_preprocess(serum_olink_core, subtype_hcl, 
+                                         clin_data_aligned)
+serum_olink_core <- serum_olink_core_dist_preprocess(serum_olink_core, 1:92, 
+                                                     visit_max)
+n_participant <- nrow(extended_data$X)
+dist_mat_so <- calculate_distance_matrix(serum_olink_core, n_participant, visit_max)
+hcl_so <- hclust(d = dist_mat_so, method = "ward.D2")
+Kmin <- 5; Kmax <- 10
+k.values <- Kmin:Kmax
+sil_values_so <- c()
+avg_sil <- function(dist_obj, cluster) {
+  ss <- silhouette(cluster, dist_obj)
+  mean(ss[, 3])
+}
+for (k in k.values) {
+  cluster_cut <- cutree(hcl_so, k)
+  sil_values_so[k - Kmin+1] <- avg_sil(dist_obj = dist(
+    x = serum_olink_core[,1:n_participant]), cluster_cut)
+}
+nclust_tree_so <- k.values[which.max(sil_values_so)]
+olink_cluster <- cutree(hcl_so, k = nclust_tree_so)
+olink_cluster <- data.frame(feature = names(olink_cluster), 
+                            category = olink_cluster)
+cytokine_cls <- olink_cluster[order(olink_cluster$category), ]
+```
+
+# Serum Olink cluster dendrogram (Extended Data Fig2E)
+```{r Serum Olink cluster dendrogram, fig.height=6, fig.width=11, warning=FALSE}
+cluster_dendrogram <- fviz_dend(hcl_so, k = nclust_tree_so, show_labels = TRUE,
+                                rect = TRUE, lwd = 0.6, cex = 0.5) + 
+  # ggtitle(paste0("Cluster Dendrogram for Serum Protein Profiles")) +
+  ggtitle("") +
+  theme(plot.title = element_text(size = 15),
+        axis.title.y = element_text(size = 12, margin = margin(r = 10)),
+        axis.title.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12, color = "black"),
+        axis.text.x = element_blank())
+cluster_annot <- data.frame(x = c(5.5, 14, 24, 35, 45.5, 60, 73, 79, 84, 89.5),
+                            y = rep(-13, 10),
+                            label = c("mod4", "mod5", "mod8", "mod3",
+                                      "mod9", "mod2", "mod1", "mod6",
+                                      "mod7", "mod10"),
+                            color = rep("gray50", 10), size = rep(4.5, 10),
+                            fontface = rep("bold", 10))
+
+cluster_dendrogram +
+  lapply(seq_len(nrow(cluster_annot)), function(i) {
+    annotate("text", x = cluster_annot$x[i], y = cluster_annot$y[i]-6, 
+             label = cluster_annot$label[i], color = cluster_annot$color[i],
+             size = cluster_annot$size[i], fontface = cluster_annot$font[i])})
+```
+
+# Cytof & Cytokine & Cytotoxic t-test compared to mean
+```{r}
+unique_group = c("A", "B", "C", "E", "F")
+unique_visit = c("V1", "V2", "V3", "V4", "V5", "V6")
+cytof_parent_test = cytof_t_test(
+  cytof_mat = cytof_parent_mat[cytof_parent_mat$label != "D",], 
+  idx = 1:length(cytof_parent_feature_names), 
+  min_sample_size = 5, 
+  unique_group = unique_group, 
+  unique_visit = unique_visit)
+test_ExtendedData3C = cytof_parent_test
+cytokine_test = cytof_t_test(
+  cytof_mat = cytokine_mat[cytokine_mat$label != "D",], 
+  idx = 1:length(cytokine_feature_names), 
+  min_sample_size = 5,
+  unique_group = unique_group,
+  unique_visit = unique_visit)
+test_ExtendedData3B = cytokine_test
+cytotoxic_test = cytof_t_test(
+  cytof_mat = pbmc[pbmc$label != "D",], 
+  idx = 1:length(pbmc_feature_names), 
+  min_sample_size = 5,
+  unique_group = unique_group,
+  unique_visit = unique_visit)
+test_ExtendedData3E = cytotoxic_test
+```
+
+# Cytokine comparison heatmap (Extended Data Fig2F)
+```{r Cytokine comparison heatmap, fig.width = 12, fig.height = 25}
+plotDF <- cytokine_test$effect_size
+max_cutoff = 2
+plotDF[plotDF>max_cutoff] = max_cutoff
+plotDF[plotDF< -max_cutoff] = -max_cutoff
+
+plotDF = as.matrix(plotDF)
+test_types = rep(unique_group, each = length(unique_visit))
+test_types = factor(test_types, levels = unique_group)
+colnames(plotDF) = rep(unique_visit, length(unique_group))
+row_split = cytokine_cls
+row_split = row_split[rownames(plotDF),]
+row_split = row_split$category
+row_split = paste0("SPmod",row_split)
+row_split = factor(row_split, levels = paste0("SPmod",1:10))
+
+cytokine_comparison = ComplexHeatmap::Heatmap(
+  plotDF, column_split =test_types , row_split = row_split,
+  row_names_gp = gpar(fontsize = 15), column_names_gp = gpar(fontsize = 15),
+  column_title_gp = gpar(fontsize = 15), row_title_gp = gpar(fontsize = 15),
+  column_names_rot = 0, column_names_centered = T, row_names_side = "left",
+  # row_title_side = "right",
+  heatmap_legend_param = list(
+    title = "Effect size  ", direction = "horizontal", 
+    title_position = "leftcenter", title_gp = gpar(fontsize = 15), 
+    labels_gp = gpar(fontsize = 15)), col = c("#284AA0", "white", "#BC4A4A"), 
+  na_col = "grey90", border = T, border_gp = gpar(col = "darkgrey", lwd = 0.5), 
+  rect_gp = gpar(col = "darkgrey", lwd = 0.5), show_heatmap_legend = F, 
+  cluster_columns = F, cluster_rows = F, 
+  cell_fun = function(j, i, x, y, w, h, fill) {
+    if (!is.na(cytokine_test$p_adjust[i,j])){
+      if(cytokine_test$p_adjust[i,j] < 0.001) {
+        grid.text("***", x, y-h*0.12)
+        }else if(cytokine_test$p_adjust[i,j] < 0.01) {
+          grid.text("**", x, y-h*0.12)
+          }else if(cytokine_test$p_adjust[i,j] < 0.05) {
+            grid.text("*", x, y-h*0.12)
+    }
+  }
+})
+
+ComplexHeatmap::draw(cytokine_comparison)
+```
+
+# Cytof parent comparison heatmap (Extended Data Fig2G)
+```{r Cytof parent comparison heatmap, fig.width=13, fig.height=5}
+plotDF = cytof_parent_test$effect_size
+max_cutoff = 2
+plotDF[plotDF>max_cutoff] = max_cutoff
+plotDF[plotDF< -max_cutoff] = -max_cutoff
+
+plotDF = as.matrix(plotDF)
+test_types = rep(unique_group, each = length(unique_visit))
+test_types = factor(test_types, levels = unique_group)
+colnames(plotDF) = rep(unique_visit, length(unique_group))
+rownames(plotDF)[rownames(plotDF) == "CD4 T Cell"] <- "CD4+ T Cell"
+rownames(plotDF)[rownames(plotDF) == "CD8 T Cell"] <- "CD8+ T Cell"
+
+cytof_parent_comparison = ComplexHeatmap::Heatmap(
+  plotDF, col = circlize::colorRamp2(c(-max_cutoff, 0, max_cutoff), 
+                                     c("#284AA0", "white", "#BC4A4A")),
+  show_heatmap_legend = TRUE, na_col = "grey90", border=T,
+  border_gp = gpar(col = "darkgrey", lwd = 0.5), 
+  rect_gp = gpar(col = "darkgrey", lwd = 0.5),
+  column_names_gp = gpar(fontsize = 15),
+  row_names_gp = gpar(fontsize = 15),
+  row_names_max_width = unit(6.8, "cm"),
+  column_title_gp = gpar(fontsize = 15),
+  column_names_rot = 0, column_names_centered = T, 
+  row_names_side = "left",
+  heatmap_legend_param = list(
+    title = "Effect size  ", direction = "horizontal",
+    title_position = "leftcenter", title_gp = gpar(fontsize = 15), 
+    labels_gp = gpar(fontsize = 15)), column_split = test_types , 
+  cluster_columns = F, cluster_rows = F, 
+  cell_fun = function(j, i, x, y, w, h, fill) {
+    if (!is.na(cytof_parent_test$p_adjust[i,j])){
+      if(cytof_parent_test$p_adjust[i,j] < 0.001) {
+        grid.text("***", x, y-h*0.12)
+        }else if(cytof_parent_test$p_adjust[i,j] < 0.01) {
+          grid.text("**", x, y-h*0.12)
+          }else if(cytof_parent_test$p_adjust[i,j] < 0.05) {
+            grid.text("*", x, y-h*0.12)
+            }
+      }
+    })
+
+ComplexHeatmap::draw(cytof_parent_comparison,, heatmap_legend_side = "top")
+```
+
