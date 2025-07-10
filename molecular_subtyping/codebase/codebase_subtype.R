@@ -220,7 +220,7 @@ test_clinical_logit_demo <- function(subtype_label, clin_data, demo_data) {
     id_single = (!is.na(subtype_label)) & (!is.na(response))
     subtype = factor(subtype_label[id_single])
     response = response[id_single]
-    demo_data = demo_data[id_single,]
+    demo_data = as.data.frame(demo_data[id_single,])
     names(response) = "response"
     df_lr = cbind(data.frame(response = response), demo_data, subtype)
     model1 = glm(response ~ ., family = binomial, data = df_lr)
@@ -389,7 +389,7 @@ test_ordinal_demo <- function(subtype, response, demo_data) {
               model_AIC = model_AIC, model_loglik = model_loglik))
 }
 
-# Heatmap for clinical characteristics
+# Heatmap for clinical characteristics across subtype
 heatmap_clinical <- function(test_logit, clin_names,
                              adjust_p = TRUE, capped_est = 2) {
   if (adjust_p) {
@@ -410,6 +410,72 @@ heatmap_clinical <- function(test_logit, clin_names,
   df_heatmap$subtype <- rep(
     sapply(gsub("Subtype", "", rownames(test_logit$est_logit)),
            function(i) paste0("Subtype ", i)),
+    each = n_feature)
+  df_heatmap$subtype <- factor(df_heatmap$subtype)
+  df_heatmap$subtype <- factor(df_heatmap$subtype,
+                               levels = rev(levels(df_heatmap$subtype)))
+  
+  df_heatmap <- df_heatmap %>%
+    mutate(category = case_when(name == "ever_icu" ~ " ",
+                                name == "ever_ever_esc" ~ " ",
+                                str_starts(name, "baseline") ~ "Baseline",
+                                str_starts(name, "comorb") ~ "Comorbidity",
+                                str_starts(name, "comp") ~ "Complication"))
+  logit_categories <- c("Baseline", "Comorbidity", "Complication", " ")
+  df_heatmap$category[!(df_heatmap$category %in% logit_categories)] <- "Demographic"
+  df_heatmap$category <- factor(df_heatmap$category, 
+                                levels = c("Demographic", "Comorbidity", "Baseline", 
+                                           "Complication", " "))
+  df_heatmap$name <- clin_names[df_heatmap$name]
+  
+  df_heatmap %>% ggplot(aes(x=name, y = subtype, fill = value)) +
+    geom_tile(color = "grey50", linewidth=0.1) +
+    scale_fill_gradient2(low = "#284AA0", mid="white", high = "#BC4A4A", midpoint=0, 
+                         name = expression("Coefficient"),
+                         limits = c(-capped_est, capped_est)) +
+    cowplot::theme_cowplot() + 
+    theme(axis.line  = element_blank()) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+    ylab("") +
+    xlab("") +
+    facet_grid(.~category, scales = "free", space = "free") +
+    theme(axis.ticks = element_blank(),
+          axis.text.y = element_text(size = 18, hjust = 0),
+          axis.text.x = element_text(size = 15),
+          legend.position = "top",
+          legend.title = element_text(size = 18, vjust = 0.8),
+          legend.text = element_text(size = 18),
+          panel.spacing = unit(0, "lines"),
+          strip.text.x = element_text(size = 18, face = "bold"),
+          strip.background = element_rect(fill = "white"),
+          legend.key.size = unit(7.5, "mm")) +
+    geom_text(aes(label = ifelse(pval <= 0.001, "***",
+                                 ifelse(pval <= 0.01, "**",
+                                        ifelse(pval <= 0.05, "*", "")))),
+              size = 5, vjust = 0.78)
+}
+
+# Heatmap for clinical characteristics across TG
+heatmap_clinical_TG <- function(test_logit, clin_names,
+                             adjust_p = TRUE, capped_est = 2) {
+  if (adjust_p) {
+    pval_heatmap <- as.data.frame(test_logit$p_adj)
+  } else {
+    pval_heatmap <- as.data.frame(test_logit$p_logit)
+  }
+  pval_heatmap <- pivot_longer(pval_heatmap, cols = everything())
+  
+  df_heatmap <- data.frame(test_logit$est_logit)
+  df_heatmap[df_heatmap < -capped_est] = -capped_est
+  df_heatmap[df_heatmap > capped_est] = capped_est
+  n_feature = ncol(df_heatmap)
+  n_subtype = nrow(df_heatmap)
+  
+  df_heatmap <- pivot_longer(df_heatmap, cols = everything())
+  df_heatmap$pval <- pval_heatmap$value
+  df_heatmap$subtype <- rep(
+    sapply(gsub("Subtype", "", rownames(test_logit$est_logit)),
+           function(i) paste0("TG", i)),
     each = n_feature)
   df_heatmap$subtype <- factor(df_heatmap$subtype)
   df_heatmap$subtype <- factor(df_heatmap$subtype,
@@ -678,7 +744,8 @@ helper_trajectory_data_smooth_spline <-
            legend_name = "Subtype", feature_select = FALSE, 
            limits = c(-Inf, Inf), feature_with_ylab = NULL,
            feature_with_xlab = NULL, multiple_correction = TRUE,
-           xlabel = "Days from admission", text_position = 3) {
+           xlabel = "Days from admission", text_position = 3,
+           demo_adjust_plot = TRUE) {
     inputDF <- assay_mat
     inputDF <- inputDF %>%
       gather(key = "name", value = "value", -clin_colnames_select)
@@ -740,7 +807,9 @@ helper_trajectory_data_smooth_spline <-
                                      feature_with_ylab = feature_with_ylab,
                                      feature_with_xlab = feature_with_xlab,
                                      xlabel = xlabel,
-                                     text_position = text_position)
+                                     text_position = text_position,
+                                     demo_adjust_plot = demo_adjust_plot,
+                                     multiple_correction = multiple_correction)
     return(list(test_pval_list = test_pval_list, test_fig_list = test_fig_list,
                 particular_interest_features = particular_interest_features))
   }
@@ -754,7 +823,9 @@ trajectory_plot <- function(inputDF, model_DF, endpoint, feature_names,
                             colors = c("#639A21", "#39828C",
                                        "#6371AD", "#BD7D31", "#9C3418"),
                             limits = c(-Inf, Inf), feature_with_ylab = NULL,
-                            feature_with_xlab = NULL, text_position) {
+                            feature_with_xlab = NULL, text_position,
+                            demo_adjust_plot = TRUE,
+                            multiple_correction = TRUE) {
   plotDF <- inputDF
   plotDF <- plotDF[!is.na(plotDF[[endpoint]]),]
   if(!is.null( endpoint_order)){
@@ -767,9 +838,14 @@ trajectory_plot <- function(inputDF, model_DF, endpoint, feature_names,
     plotExample <- plotDF[plotDF$name == feature,]
     
     # smoothSpline from plot_model in data_analysis_template_codebase.R
-    formula_use <- formula(paste0("value~ s(event_date, bs = 'cr')+
+    if (demo_adjust_plot) {
+      formula_use <- formula(paste0("value~ s(event_date, bs = 'cr')+
               s(event_date, bs = 'cr', by =", endpoint, ")+", endpoint,
-                                  "+ sex + discretized_admit_age_quantile"))
+                                    "+ sex + discretized_admit_age_quantile"))
+    } else {
+      formula_use <- formula(paste0("value~ s(event_date, bs = 'cr')+
+              s(event_date, bs = 'cr', by =", endpoint, ")+", endpoint))
+    }
     fit <- gamm4::gamm4(formula_use, data = plotExample, 
                         random = ~(1|enrollment_site/participant_id))
     plotExample$yhat <- predict(fit$mer)
@@ -844,21 +920,39 @@ trajectory_plot <- function(inputDF, model_DF, endpoint, feature_names,
     p_shape <- model_DF[feature,"p.slope"]
     p_average <- model_DF[feature,"p.intercept"]
     
-    plot_list[[feature]] <- plot_list[[feature]] +
+    if (multiple_correction) {
+      plot_list[[feature]] <- plot_list[[feature]] +
       labs(subtitle = feature) +
       annotate("text", x = min_date+(max_date-min_date)/text_position,
                y = max(plotExample$value, na.rm = TRUE),
                vjust = 0.75, hjust = 0, size = 5,
-               label = paste0("shape p.val = ",
+               label = paste0("shape adj.p = ",
                               ifelse(p_shape < 0.001,
                                      format(p_shape, scientific = TRUE, 
                                             digits = 2),
                                      format(p_shape, digits = 2)), 
-                              "\naverage p.val = ",
+                              "\naverage adj.p = ",
                               ifelse(p_average < 0.001,
                                      format(p_average, scientific = TRUE, 
                                             digits = 2),
                                      format(p_average, digits = 2))))
+    } else {
+      plot_list[[feature]] <- plot_list[[feature]] +
+        labs(subtitle = feature) +
+        annotate("text", x = min_date+(max_date-min_date)/text_position,
+                 y = max(plotExample$value, na.rm = TRUE),
+                 vjust = 0.75, hjust = 0, size = 5,
+                 label = paste0("shape p.val = ",
+                                ifelse(p_shape < 0.001,
+                                       format(p_shape, scientific = TRUE, 
+                                              digits = 2),
+                                       format(p_shape, digits = 2)), 
+                                "\naverage p.val = ",
+                                ifelse(p_average < 0.001,
+                                       format(p_average, scientific = TRUE, 
+                                              digits = 2),
+                                       format(p_average, digits = 2))))
+    }
   }
   return(plot_list)
 }
@@ -998,6 +1092,99 @@ multi_group_mixed_test <- function(feature_name, data_mat, visit_numbers,
 # L <- ginv(S)
 # L %>% fractions()
 # solve(t(S)%*%S)%*%t(S) %>% fractions()
+
+# Muti-group comparison controlling basic demographics, admission date, comorbidities,
+# participant ID, and enrollment site
+multi_group_mixed_test_comorb <- function(feature_name, data_mat, visit_numbers,
+                                          subtype_remove = "D") {
+  if (!"label" %in% names(data_mat)) {
+    stop("Error: 'label'(subtype) column not found in 'data_mat'")
+  }
+  if (!is.null(subtype_remove)) {
+    data_mat = data_mat[data_mat$label != subtype_remove, ]
+  }
+  
+  est = matrix(NA, nrow = 5, ncol = length(feature_name))
+  rownames(est) = c("EF vs ABC", "F vs E", "A vs BC", "B vs AC", "C vs AB")
+  colnames(est) = feature_name
+  pval = matrix(NA, nrow = 5, ncol = length(feature_name))
+  rownames(pval) = c("EF vs ABC", "F vs E", "A vs BC", "B vs AC", "C vs AB")
+  colnames(pval) = feature_name
+  
+  for(j in 1:length(feature_name)) {
+    fname = feature_name[j]
+    tdata = data_mat[data_mat$event_type %in% visit_numbers, ]
+    tdata = tdata[!is.na(tdata[[fname]]),]
+    subtype = factor(tdata$label)
+    
+    x1 = model.matrix(~subtype)
+    colnames(x1) = c("Intercept", "EFvsABC", "FvsE", "AvsBC", "BvsAC")
+    x1[, "EFvsABC"] = -1
+    x1[subtype == "E" | subtype == "F", "EFvsABC"] = 1
+    x1[, "FvsE"] = 0
+    x1[subtype == "E", "FvsE"] = -1
+    x1[subtype == "F", "FvsE"] = 1
+    x1[, "AvsBC"] = 0
+    x1[subtype == "A", "AvsBC"] = 1
+    x1[subtype == "C", "AvsBC"] = -1
+    x1[, "BvsAC"] = 0
+    x1[subtype == "B", "BvsAC"] = 1
+    x1[subtype == "C", "BvsAC"] = -1
+    
+    x2 = model.matrix(~subtype)
+    colnames(x2) = c("Intercept", "EFvsABC", "FvsE", "BvsAC", "CvsAB")
+    x2[, "EFvsABC"] = -1
+    x2[subtype == "E" | subtype == "F", "EFvsABC"] = 1
+    x2[, "FvsE"] = 0
+    x2[subtype == "E", "FvsE"] = -1
+    x2[subtype == "F", "FvsE"] = 1
+    x2[, "BvsAC"] = 0
+    x2[subtype == "B", "BvsAC"] = 1
+    x2[subtype == "A", "BvsAC"] = -1
+    x2[, "CvsAB"] = 0
+    x2[subtype == "C", "CvsAB"] = 1
+    x2[subtype == "A", "CvsAB"] = -1
+    
+    df_gamm1 = cbind(data.frame(fname = tdata[[fname]],
+                                event_date = tdata$event_date,
+                                participant_id = tdata$participant_id,
+                                enrollment_site = tdata$enrollment_site,
+                                age = tdata$discretized_admit_age_quantile,
+                                sex = tdata$sex,
+                                comorb_htn = tdata$comorb_htn,
+                                comorb_anyresp_noasthma = tdata$comorb_anyresp_noasthma,
+                                comorb_isaric_cardiac = tdata$comorb_isaric_cardiac,
+                                comorb_isaric_ckd = tdata$comorb_isaric_ckd,
+                                comorb_hxtrans = tdata$comorb_hxtrans), x1)
+    form1 = as.formula(
+      paste0("fname ~ s(event_date) + age + sex + comorb_htn + comorb_anyresp_noasthma +  comorb_isaric_cardiac + comorb_isaric_ckd + comorb_hxtrans + EFvsABC + FvsE + AvsBC + BvsAC"))
+    fit1 = gamm4::gamm4(formula = form1, data = df_gamm1,
+                        random = ~(1|enrollment_site/participant_id))
+    coef_tab = summary(fit1$gam)$p.table[c("EFvsABC", "FvsE", "AvsBC", "BvsAC"),]
+    est[1:4,j] = coef_tab[,1]
+    pval[1:4,j] = coef_tab[,4]
+    
+    df_gamm2 = cbind(data.frame(fname = tdata[[fname]],
+                                event_date = tdata$event_date,
+                                participant_id = tdata$participant_id,
+                                enrollment_site = tdata$enrollment_site,
+                                age = tdata$discretized_admit_age_quantile,
+                                sex = tdata$sex,
+                                comorb_htn = tdata$comorb_htn,
+                                comorb_anyresp_noasthma = tdata$comorb_anyresp_noasthma,
+                                comorb_isaric_cardiac = tdata$comorb_isaric_cardiac,
+                                comorb_isaric_ckd = tdata$comorb_isaric_ckd,
+                                comorb_hxtrans = tdata$comorb_hxtrans), x2)
+    form2 = as.formula(
+      paste0("fname ~ s(event_date) + age + sex + comorb_htn + comorb_anyresp_noasthma +  comorb_isaric_cardiac + comorb_isaric_ckd + comorb_hxtrans + EFvsABC + FvsE + BvsAC + CvsAB"))
+    fit2 = gamm4::gamm4(formula = form2, data = df_gamm2,
+                        random = ~(1|enrollment_site/participant_id))
+    coef_tab = summary(fit2$gam)$p.table[c("EFvsABC", "FvsE", "BvsAC", "CvsAB"),]
+    est[5,j] = coef_tab["CvsAB",1]
+    pval[5,j] = coef_tab["CvsAB",4]
+  }
+  return(list(est = est, pval = pval))
+}
 
 # Pathway shortlist selection
 pathway_shortlist_selection = function(aggregated_mat, data_base_names, size_max, KEGG_metabo_max){
@@ -1561,7 +1748,7 @@ heatmap_comp_category_subtype <- function(comp_test_category,
     facet_grid(.~group, scales = "free", space = "free") +
     theme(axis.ticks = element_blank(),
           axis.text.y = element_text(size = 15, hjust = 1),
-          axis.text.x = element_text(size = 15),
+          axis.text.x = element_text(color = "black", size = 15),
           legend.position = "top",
           legend.title = element_text(size = 15, vjust = 0.8),
           legend.text = element_text(size = 15),
@@ -1615,7 +1802,7 @@ heatmap_comp_category_comorb <- function(test_logit, comp_names,
     xlab("") +
     theme(axis.ticks = element_blank(),
           axis.text.y = element_text(size = 15, hjust = 1),
-          axis.text.x = element_text(size = 15),
+          axis.text.x = element_text(color = "black", size = 15),
           legend.position = "top",
           legend.title = element_text(size = 15, vjust = 0.8),
           legend.text = element_text(size = 15, hjust = 0.5),
@@ -1668,8 +1855,13 @@ cytof_t_test <- function(cytof_mat, idx, min_sample_size = 5,
   colnames(t_score) = comb
   rownames(effect_size) = colnames(cytof_mat)[idx]
   colnames(effect_size) = comb
-  p_adjust = p_value
-  p_adjust = apply(p_adjust, 2, function(p) p.adjust(p, method = "BH"))
+  pvec = as.vector(as.matrix(p_value))
+  pvec_bh <- p.adjust(pvec, method = "BH")
+  p_adjust <- matrix(pvec_bh, nrow = nrow(p_value), 
+                                   ncol = ncol(p_value),
+                                   dimnames = list(rownames(p_value),
+                                                   colnames(p_value)))
+  # p_adjust = apply(p_adjust, 2, function(p) p.adjust(p, method = "BH"))
   return(list(p_value = p_value, p_adjust = p_adjust, 
               t_score = t_score, effect_size = effect_size))
 }
