@@ -1,6 +1,6 @@
 ---
-title: "Other Clustering Method"
-output: html_notebook
+title: "hierarchical clustering visit1"
+output: pdf_document
 ---
 
 ```{r load library}
@@ -192,7 +192,7 @@ df_summary2 <- df_summary2 %>%
   mutate(percent = Count/sum(Count)*100)
 df_summary2$Subtype <- factor(df_summary2$Subtype, 
                               levels = rev(levels(df_summary2$Subtype)))
-pdf("~/code/Revision/other_clustering/hcl_v1_cut/TG.pdf", height = 6, width = 8)
+
 ggplot(df_summary2, aes(y = Subtype, x = percent, fill = TG)) +
   geom_bar(stat = "identity") +
   theme_minimal() +
@@ -213,7 +213,6 @@ ggplot(df_summary2, aes(y = Subtype, x = percent, fill = TG)) +
   scale_fill_manual(values = c("1" = "#639A21", "2" = "#39828C", 
                                "3" = "#6371AD", "4" = "#BD7D31", 
                                "5" = "#9C3418"))
-dev.off()
 ```
 
 # TG test - V1 hcl
@@ -221,13 +220,24 @@ dev.off()
 clin_data_patient = clin_data_aligned[clin_data_aligned$event_type == "Visit 1", ]
 demo_data_adjust = clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
 V1_clust_test = list(); V1_clust_test[["TG"]] = list()
+
+df_global = cbind(subtype = label_V1, 
+                  response = subtype_hcl$TG, demo_data_adjust)
+m1 = clm(response ~ subtype + discretized_admit_age_quantile + sex, 
+         data = df_global)
+m0 = clm(response ~ discretized_admit_age_quantile + sex, 
+         data = df_global)
+LRT_stat = 2*(as.numeric(logLik(m1))-as.numeric(logLik(m0)))
+df_drop = attr(logLik(m1), "df") - attr(logLik(m0), "df")
+pval_global = pchisq(LRT_stat, df = df_drop, lower.tail = FALSE)
+pval_global
+
 V1_clust_test[["TG"]][["ordinal_demo"]] = test_ordinal_demo(
   subtype = label_V1,
   response = subtype_hcl$TG,
   demo_data = demo_data_adjust)
-pdf("~/code/Revision/other_clustering/hcl_v1_cut/TG_test.pdf", height = 6, width = 2.3)
+
 heatmap_ordinal(V1_clust_test[["TG"]][["ordinal_demo"]])
-dev.off()
 ```
 
 # Factor trajectory - V1 hcl
@@ -255,10 +265,9 @@ factor_trajectory_analysis_results = helper_trajectory_data_smooth_spline(
   assay_mat = assay_mat, clin_colnames_select = clin_colnames_select,
   endpoint = "label", use_endpoint_levels = c("A", "B", "C", "E", "F"),
   max_date = 40, text_position = 2)
-pdf("~/code/Revision/other_clustering/hcl_v1_cut/factor.pdf", height = 6, width = 24)
+
 ggarrange(plotlist = factor_trajectory_analysis_results$test_fig_list, 
           nrow = 1, common.legend = T, legend = "bottom")
-dev.off()
 ```
 
 # Clinical names correspondence
@@ -447,15 +456,14 @@ clin_test$p_logit = clin_test$p_logit[,interest_clin_feature]
 
 clin_test$p_adj <- apply(clin_test$p_logit, 2,
                          function(p) p.adjust(p, method = "BH"))
-pdf("~/code/Revision/other_clustering/hcl_v1_cut/clinical.pdf", height = 8, width = 14)
+
 heatmap_clinical(clin_test, clin_names, adjust_p = TRUE)
-dev.off()
 ```
 
 # Barplot colored by PASC
 ```{r barplot colored by PASC, fig.height=6, fig.width=8}
 df_summary <- data.frame(Subtype = label_V1,
-                         PASC =subtype_hcl$PASC,
+                         PASC = subtype_hcl$PASC,
                          TG = subtype_hcl$TG)
 df_summary <- df_summary[df_summary$Subtype != "D", ]
 df_summary1 <- df_summary %>%
@@ -474,7 +482,7 @@ df_summary1$PASC <- factor(df_summary1$PASC, labels = c("Minimal", "Physical",
                                                         "Cognitive", "Multiple"))
 df_summary1$Subtype <- factor(df_summary1$Subtype, 
                               levels = rev(levels(df_summary1$Subtype)))
-pdf("~/code/Revision/other_clustering/hcl_v1_cut/pasc_dist.pdf", height = 6, width = 8)
+
 ggplot(df_summary1, aes(y = Subtype, x = percent, fill = PASC)) +
   geom_bar(stat = "identity") +
   theme_minimal() +
@@ -493,7 +501,6 @@ ggplot(df_summary1, aes(y = Subtype, x = percent, fill = PASC)) +
         plot.margin = margin(b = 55, t = 5)) +
   scale_fill_manual(values = c("Minimal" = "#999999", "Physical" = "#58B5EA", 
                                "Cognitive" = "#EAAE2A", "Multiple" = "#FF1820"))
-dev.off()
 ```
 
 # PASC test - V1 hcl
@@ -508,15 +515,12 @@ full_clust_test[["PASC"]][["fisher"]] = test_clinical_fisher_exact(
   subtype = label_V1[id],
   response = subtype_hcl$PASC[id],
   response_binary = ww, seed = 123)
-pdf("~/code/Revision/other_clustering/hcl_v1_cut/pasc_test.pdf", height = 6, width = 5)
+
 heatmap_fisher(full_clust_test[["PASC"]][["fisher"]])
-dev.off()
 ```
 
 # PASC global - V1 hcl
 ```{r PASC global - V1 hcl, fig.height=6, fig.width=2}
-pdf("~/code/Revision/other_clustering/hcl_v1_cut/pasc_global_test.pdf", height = 6, width = 2)
 heatmap_fisher_global(full_clust_test[["PASC"]][["fisher"]])
-dev.off()
 ```
 
