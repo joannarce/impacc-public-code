@@ -424,10 +424,12 @@ ggsave(paste0(out_dir, "Figure1B.pdf"), width = 5, height = 2.5)
 
 cutoff = 0
 
-pbmc_percents <- pbmc_reports_subset %>%
+pbmc_percents <- comb_data %>%
+  select("event_id", ends_with(".pbmc")) %>%
   pivot_longer(cols = -event_id) %>%
+  mutate(name = gsub(".pbmc", "", name)) %>%
   inner_join(clinical_data %>% distinct(participant_id, event_id, event_type)) %>%
-  mutate(value = ifelse(is.na(value), 0, value)) %>%
+  filter(!is.na(value)) %>%
   mutate(value = ifelse(value > cutoff, 1, 0)) %>%
   group_by(event_type, name) %>%
   dplyr::summarize(percent_positive = mean(value) * 100,
@@ -435,10 +437,12 @@ pbmc_percents <- pbmc_reports_subset %>%
                    label = paste0(total*percent_positive/100, "/",total)) %>%
   mutate(assay = "PBMC")
 
-nasal_percents <- nasal_reports_subset %>%
+nasal_percents <- comb_data %>%
+  select("event_id", ends_with(".nasal")) %>%
   pivot_longer(cols = -event_id) %>%
+  mutate(name = gsub(".nasal", "", name)) %>%
   inner_join(clinical_data %>% distinct(participant_id, event_id, event_type)) %>%
-  mutate(value = ifelse(is.na(value), 0, value)) %>%
+  filter(!is.na(value)) %>%
   mutate(value = ifelse(value > cutoff, 1, 0)) %>%
   group_by(event_type, name) %>%
   dplyr::summarize(percent_positive = mean(value) * 100,
@@ -446,10 +450,12 @@ nasal_percents <- nasal_reports_subset %>%
                    label = paste0(total*percent_positive/100, "/",total)) %>%
   mutate(assay = "Nasal")
 
-ea_percents <- ea_reports_subset %>%
+ea_percents <- comb_data %>%
+  select("event_id", ends_with(".ea")) %>%
   pivot_longer(cols = -event_id) %>%
+   mutate(name = gsub(".ea", "", name)) %>%
   inner_join(clinical_data %>% distinct(participant_id, event_id, event_type)) %>%
-  mutate(value = ifelse(is.na(value), 0, value)) %>%
+  filter(!is.na(value)) %>%
   mutate(value = ifelse(value > cutoff, 1, 0)) %>%
   group_by(event_type, name) %>%
   dplyr::summarize(percent_positive = mean(value) * 100,
@@ -470,12 +476,11 @@ heatdf <- omic_summary %>%
     pivot_wider(names_from = c(event_type, assay),
                 values_from = percent_positive,
                 id_cols = name)
-heatdf <- heatdf[heatdf$name %in% viruses_of_interest, ]
+heatdf <- heatdf[heatdf$name %in% c(viruses_of_interest, "SARS-CoV-2"), ]
 heatdf <- heatdf %>% column_to_rownames("name")
 heatdf <- heatdf[order(rownames(heatdf)), ]
-rownames(heatdf) <- gsub("Betacoronavirus", "SARS-CoV-2", rownames(heatdf))
 ## Manual reording of rows in heatmap
-heatdf <- heatdf[c(2, 4,5,9,6, 7,8, 10,1, 11, 12,3),]
+heatdf <- heatdf[c(12,3,4,8,5,6,7,9,1,10,11,2),]
 
 
 col_ano = columnAnnotation(Assay = gsub(".*_", "", colnames(heatdf)),
