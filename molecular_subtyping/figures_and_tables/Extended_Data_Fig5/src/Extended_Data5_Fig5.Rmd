@@ -1,0 +1,959 @@
+---
+title: "ExtendedData5"
+output: html_document
+---
+
+```{r load library}
+library(ade4) #used in mcia
+library(mogsa)
+library(factoextra)
+library(cluster)
+library(nnet)
+library(survival)
+library(ordinal)
+library(ggeffects)
+library(openxlsx)
+library(network)
+library(GGally)
+library(ggalt)
+library(metafor)
+library(cowplot)
+library(survminer)
+require(nlme) # directly provides p-values, unlike lme4
+require(splines)
+require(dplyr)
+library(fgsea)
+library(circlize)
+require(rio)
+library(lmerTest)
+library(corrplot)
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+source(paste0(codebase_path,"/codebase_subtype.R"))
+
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+mcia_results = readRDS(paste0(intermediate_results_outdir_DR,"MCIA_phase123_20230726.rds"))
+
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+```
+
+# Load preliminary results
+```{r load subtype assignment and clinical data}
+# load subtype assignment and clinical data
+visit_max = 6
+nclust_tree_all = 6
+subtype_hcl = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_aligned = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+clin_test = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig2/src/clin_test.rds")
+
+# load omics used
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+omic_names =c("plasma_proteomics_targeted","plasma_proteomics_global_dda",
+              "serum_olink","plasma_metabolomics_global","nasal_transcriptomics",
+              "pbmc_transcriptomics")
+
+# load all databases used for enrichment
+kegg_database = readRDS(file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds")
+hallmark_database = readRDS( file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/hallmark0522.rds")
+metabolite_row_DF = data_env0$plasma_metabolomics_global_rowfeature
+rownames(metabolite_row_DF) = metabolite_row_DF[["CHEMICAL_NAME"]]
+metabolite_row_DF=metabolite_row_DF[,c("CHEMICAL_NAME","SUB_PATHWAY","SUPER_PATHWAY")]
+subpath_databse = list()
+subpath_databse[["pmg"]] = data.frame(description =metabolite_row_DF[["SUB_PATHWAY"]],
+                                      CHEMICAL_NAME = metabolite_row_DF[["CHEMICAL_NAME"]])
+for(k in 1:length(kegg_database)){
+  kegg_database[[k]]=kegg_database[[k]][which(kegg_database[[k]]!="Ig"),]
+}
+
+# load enrichment results
+mag_thr=0.3
+enrichment_mhg_list0 = readRDS(file=paste0(intermediate_results_outdir_DR, "pathway_enrichment_mhgF1_2_3_10_LG", mag_thr,".rds"))
+
+projection_coef0 = convert_mciaObj_to_annotation_format(mcia_results$mcia_factor_evaluation$projection_coef, omic_names = names(omics_used_DR))
+projection_pval0 = convert_mciaObj_to_annotation_format(mcia_results$mcia_factor_evaluation$projection_pval, omic_names = names(omics_used_DR))
+K = 10
+projection_coef=projection_coef0[1:K]
+projection_pval=projection_pval0[1:K]
+for(mod_id in c(1:K)){
+  mod_name = paste0("mod", mod_id)
+  print(mod_name)
+  projection_coef[[mod_id]]= coefficient_name_translator(data_env = data_env0, projection_coef_factor = projection_coef[[mod_id]], omic_names = omic_names) 
+  projection_pval[[mod_id]]= coefficient_name_translator(data_env = data_env0, projection_coef_factor = projection_pval[[mod_id]], omic_names = omic_names)
+}
+
+###### FACTOR NEGATION IF NEEDED
+mod_ids = c(1,2, 3,10)
+negation = c(-1, 1, 1, 1)
+# negate factor coefficients
+for(l in 1:length(mod_ids)){
+  mod_id = mod_ids[l]
+  mod_name = paste0("mod", mod_id)
+  print(mod_name)
+  for(i in 1:length(projection_coef[[mod_id]])){
+    projection_coef[[mod_id]][[i]][,1] = negation[l]*
+      projection_coef[[mod_id]][[i]][,1]
+  }
+}
+# negate enrichment results
+enrichment_mhg_list = enrichment_mhg_list0
+for(l in 1:length(enrichment_mhg_list)){
+  for(i in 1:length(mod_ids)){
+    mod_id =mod_ids[i]
+    if(negation[i] == -1){
+      enrichment_mhg_list[[l]][[mod_id]]$pos = enrichment_mhg_list0[[l]][[mod_id]]$neg
+      enrichment_mhg_list[[l]][[mod_id]]$neg = enrichment_mhg_list0[[l]][[mod_id]]$pos
+    }
+  }
+}
+mod_ids = c(2, 3)
+negation = c(1, 1)
+# negate factors
+mcia_factors = t(t(mcia_results$mcia_factors[,mod_ids]) * negation)
+mcia_factors=apply(mcia_factors,2, function(z) qqnorm(z, plot.it = F)$x)
+mcia_factors = data.frame(mcia_factors,row.names = rownames(organized_data$datasets$plasma_proteomics_targeted))
+mcia_factors = mcia_factors[clin_data_aligned$event_id,]
+colnames(mcia_factors) = paste0("Factor", mod_ids)
+```
+
+# Core analytes
+```{r}
+# Truncate the analytes in each assay to keep the most important ones. Look at the unsigned list to keep both the positive and the negative ones.
+K = 10
+mcia_output=mcia_results
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+omic_names =c("plasma_proteomics_targeted","plasma_proteomics_global_dda",
+              "serum_olink","plasma_metabolomics_global","nasal_transcriptomics",
+              "pbmc_transcriptomics")
+projection_coef = convert_mciaObj_to_annotation_format(mcia_output$mcia_factor_evaluation$projection_coef, omic_names = names(omics_used_DR))
+projection_pval = convert_mciaObj_to_annotation_format(mcia_output$mcia_factor_evaluation$projection_pval, omic_names = names(omics_used_DR))
+projection_coef=projection_coef[1:K]
+projection_pval=projection_pval[1:K]
+for(mod_id in c(1:K)){
+  mod_name = paste0("mod", mod_id)
+  print(mod_name)
+  projection_coef[[mod_id]]= coefficient_name_translator(data_env = data_env0, projection_coef_factor = projection_coef[[mod_id]], omic_names = omic_names)
+  projection_pval[[mod_id]]= coefficient_name_translator(data_env = data_env0, projection_coef_factor = projection_pval[[mod_id]], omic_names = omic_names)
+}
+short_list_features = list()
+mag_thr = 0.3; adjp = 0.01
+for(mod_id in c(1:K)){
+  ###extract coefficients for relevant module
+  tmp_coef = projection_coef[[mod_id]]
+  tmp_pval = projection_pval[[mod_id]]
+  short_list_features[[mod_id]] = list()
+  short_list_features[[mod_id]][["unsigned"]]=cutlist(
+    projection_coef = tmp_coef ,
+    projection_pval = tmp_pval,
+    mag_thr = mag_thr, FWER_thr =adjp, direction = NULL)
+  short_list_features[[mod_id]][["pos"]]=cutlist(
+    projection_coef = tmp_coef ,
+    projection_pval = tmp_pval,
+    mag_thr = mag_thr, FWER_thr =adjp, direction =1)
+  short_list_features[[mod_id]][["neg"]]=cutlist(
+    projection_coef = tmp_coef ,
+    projection_pval = tmp_pval,
+    mag_thr = mag_thr, FWER_thr =adjp, direction =-1)
+}
+counts_analyte = lapply(short_list_features,function(z) sapply(z[[1]],dim))
+```
+
+# Core n3 and n6 fatty acids (ExtendedData 5A)
+```{r core n3 and n6 fatty acids, fig.height=6, fig.width=9}
+# load in all databases used for enrichment
+kegg_database = readRDS(file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds")
+hallmark_database = readRDS( file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/hallmark0522.rds")
+metabolite_row_DF = data_env0$plasma_metabolomics_global_rowfeature
+rownames(metabolite_row_DF) = metabolite_row_DF[["CHEMICAL_NAME"]]
+metabolite_row_DF=metabolite_row_DF[,c("CHEMICAL_NAME","SUB_PATHWAY","SUPER_PATHWAY")]
+subpath_databse = list()
+subpath_databse[["pmg"]] = data.frame(description =metabolite_row_DF[["SUB_PATHWAY"]],
+                                      CHEMICAL_NAME = metabolite_row_DF[["CHEMICAL_NAME"]])
+for(k in 1:length(kegg_database)){
+  kegg_database[[k]]=kegg_database[[k]][which(kegg_database[[k]]!="Ig"),]
+}
+
+pathway_prot = c("Complement and coagulation cascades","Cardiac muscle contraction" )
+pathway_met = c("Plasmalogen", "Long Chain Polyunsaturated Fatty Acid (n3 and n6)", 
+                "Tryptophan Metabolism", "Acetylated Peptides")
+pathways0 = c(pathway_prot,pathway_met)
+protein_list = kegg_database$ppgd[kegg_database$ppgd$description%in%pathways0,]
+metabolite_list = subpath_databse$pmg[subpath_databse$pmg$description%in%pathways0,]
+protein_list = unique(protein_list)
+metabolite_list = unique(metabolite_list)
+colnames(metabolite_list) = colnames(protein_list)
+
+pufa_feature = short_list_features[[2]]$neg$pmg
+pufa_feature$gene_name = rownames(pufa_feature)
+pufa_feature = left_join(pufa_feature, metabolite_list, by = "gene_name")
+pufa_metabolite = pufa_feature[pufa_feature$description == 
+                                    "Long Chain Polyunsaturated Fatty Acid (n3 and n6)" &
+                                 !is.na(pufa_feature$description),]
+colnames(pufa_metabolite) = c("Factor2", "feature", "description")
+coef_mat = pufa_metabolite[,c(1,2)]
+coef_mat = coef_mat[order(coef_mat$Factor2),]
+feature_levels = coef_mat$feature
+plotDF = coef_mat
+plotDF$feature = factor(plotDF$feature, 
+                        levels = feature_levels[length(feature_levels):1])
+plotDF = gather(plotDF, key = "Factor", value = "coefficient", -feature)
+plotDF$abs_coef = abs(plotDF$coefficient)
+plotDF$sign = ifelse(plotDF$coefficient > 0, "Positive", "Negative")
+
+ggplot(plotDF, aes(x = abs_coef, y = feature, group = feature, color = sign)) +
+  geom_segment(aes(xend = 0, yend =  feature), linewidth = 1.5) +
+  geom_point(aes(x = abs_coef), size = 3) +
+  scale_color_manual(values = c("Positive" = "#BC4A4A", "Negative" = "#284AA0")) +
+  labs(x = "Absolute Value of Coefficient", y = "Feature", 
+       title = "") +
+  theme_minimal()  +
+  geom_hline(yintercept = -Inf, linetype = "solid") +
+  theme(axis.ticks.x = element_line(linewidth = 0.5),
+        axis.line.x = element_line(linewidth = 1),
+        axis.line.y = element_line(linewidth = 1),
+        axis.ticks = element_line(linewidth = 1),
+        axis.text.x = element_text(color = "black", size = 15),  
+        axis.text.y = element_text(color = "black", size = 15),  
+        axis.title = element_text(color = "black", size = 15),
+        axis.ticks.length = unit(0.15, "cm"),
+        plot.subtitle = element_text(color = "black", hjust = 0.5, size = 15),
+        legend.text = element_text(color = "black", size = 15),
+        legend.title = element_text(color = "black", size = 15)) +
+  annotate("text", x = 0.4, y = Inf, label = "Factor 2", 
+           vjust = 1, hjust = 1, size = 5.5) +
+  scale_x_continuous(labels = function(x) abs(x))
+```
+
+# Scatter plot of TNF (ExtendedData 5B left)
+```{r scatter plot of TNF, fig.height=6, fig.width=6, warning=FALSE, message=FALSE}
+dataDF = organized_data$datasets$plasma_metabolomics_global
+colnames(dataDF) = rownames(projection_coef$mod1$pmg)
+# thrs = -1*mag_thr
+pathway_score_met = NULL
+pathways1 = c("LCPUFA_n3", "LCPUFA_n6")
+weight_lcpufa = pufa_metabolite
+weight_lcpufa$LCPUFA = weight_lcpufa$discription
+weight_lcpufa$LCPUFA[grepl("n3", weight_lcpufa$feature) & 
+                       !grepl("n6", weight_lcpufa$feature) &
+                       !grepl("or 6", weight_lcpufa$feature)] = "LCPUFA_n3"
+weight_lcpufa$LCPUFA[grepl("n6", weight_lcpufa$feature) & 
+                       !grepl("n3", weight_lcpufa$feature)] = "LCPUFA_n6"
+
+mod_id = 2
+for(j in 1:length(pathways1)) {
+  temp1 = weight_lcpufa[weight_lcpufa$LCPUFA == pathways1[j] &
+                          !is.na(weight_lcpufa$LCPUFA), ]
+  temp2 = dataDF[,(temp1$feature)]
+  temp3 = as.matrix(temp2) %*% abs(temp1[[paste0("Factor",mod_id)]])
+  temp3 = data.frame(value = temp3)
+  colnames(temp3)= paste0(pathways1[j],"_Factor",mod_id)
+  if(is.null(pathway_score_met)){
+     pathway_score_met = temp3 
+  } else {
+      pathway_score_met = cbind(pathway_score_met, temp3)
+  }
+}
+
+pathway_score_met$event_id = rownames(dataDF)
+dataDF = pathway_score_met
+dataDF = dataDF[clin_data_aligned$event_id,]
+dataDF = cytof_mat_preprocess(cytof_mat = dataDF, subtype_hcl = subtype_hcl,
+                              clin_data = clin_data_aligned)
+
+cytokDF <- organized_data$datasets$serum_olink[, c("TNF", "IFNG")]
+cytokDF$event_id <- rownames(organized_data$datasets$serum_olink)
+cytokDF <- cytof_mat_preprocess(cytokDF, subtype_hcl, clin_data_aligned)
+
+dataV1 <- data.frame(TNF = cytokDF$TNF[cytokDF$event_type == "V1"],
+                     INFG = cytokDF$IFNG[cytokDF$event_type == "V1"],
+                     n3 = dataDF$LCPUFA_n3_Factor2[dataDF$event_type == "V1"],
+                     n6 = dataDF$LCPUFA_n6_Factor2[dataDF$event_type == "V1"])
+
+dataV1_long <- dataV1 %>%
+  pivot_longer(cols = c(n3, n6), 
+               names_to = "type", values_to = "value")
+
+ggplot(dataV1_long, aes(x = value, y = TNF, color = type)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm", se = TRUE, fill = "gray80") +
+  labs(x = "LCPUFA", y = "TNF", color = "Type") +
+  theme_minimal() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),title = element_text(color = "black", size = 15),
+        axis.line.x = element_line(linewidth = 1),
+        axis.line.y = element_line(linewidth = 1),
+        axis.ticks = element_line(linewidth = 1),
+        axis.text.x = element_text(color = "black", size = 15),  
+        axis.text.y = element_text(color = "black", size = 15),
+        axis.title.x = element_text(color = "black", size = 15),
+        axis.title.y = element_text(color = "black", size = 15),
+        axis.ticks.length = unit(0.15, "cm"),
+        legend.position = "top",
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15),
+        legend.key.size = unit(1.5, "lines"))
+```
+
+# Correlation of TNF vs LCPUFA (ExtendedData 5B right)
+```{r correlation of TNF vs LCPUFA, fig.height=6, fig.width=3, warning=FALSE, message=FALSE}
+data_full <- left_join(dataDF, cytokDF[,c("event_id", "TNF")], by = "event_id")
+data_full$discretized_admit_age_quantile <- as.factor(data_full$discretized_admit_age_quantile)
+data_full$sex <- as.factor(data_full$sex)
+data_full$participant_id <- as.factor(data_full$participant_id)
+data_full$enrollment_site <- as.factor(data_full$enrollment_site)
+
+norm_data <- as.matrix(data_full[,c("TNF", "LCPUFA_n3_Factor2", "LCPUFA_n6_Factor2")])
+norm_data <- apply(norm_data, 2, function(z) qqnorm(z, plot.it = F)$x)
+colnames(norm_data) <- paste0("normalized_", 
+                              c("TNF", "LCPUFA_n3_Factor2", "LCPUFA_n6_Factor2"))
+data_full <- cbind(data_full, norm_data)
+cor_est <- matrix(NA, nrow = 2, ncol = 2)
+m1 <- gamm4::gamm4(normalized_LCPUFA_n3_Factor2 ~ normalized_TNF + 
+             discretized_admit_age_quantile + sex, data = data_full,
+             random = ~(1|enrollment_site))
+m2 <- gamm4::gamm4(normalized_LCPUFA_n6_Factor2 ~ normalized_TNF + 
+             discretized_admit_age_quantile + sex, data = data_full,
+             random = ~(1|enrollment_site))
+
+cor_est <- matrix(c(summary(m1$gam)$p.table["normalized_TNF", "Estimate"],
+                    summary(m2$gam)$p.table["normalized_TNF", "Estimate"]),
+                  nrow = 2, ncol = 1, byrow = TRUE)
+colnames(cor_est) <- c("TNF")
+rownames(cor_est) <- c("n3", "n6")
+cor_pval <- matrix(c(summary(m1$gam)$p.table["normalized_TNF", "Pr(>|t|)"],
+                     summary(m2$gam)$p.table["normalized_TNF", "Pr(>|t|)"]),
+                  nrow = 2, ncol = 1, byrow = TRUE)
+colnames(cor_pval) <- c("TNF")
+rownames(cor_pval) <- c("n3", "n6")
+
+corrplot(cor_est, tl.col = "black", method = "circle", p.mat = cor_pval,
+         sig.level = c(0.001, 0.01, 0.05),
+         insig = "label_sig", tl.cex = 1.3, 
+         col = colorRampPalette(c("#284AA0","white","#BC4A4A"))(200))
+```
+
+# Barplot of (n6 - n3) - all participants
+```{r (n6 - n3) - all participants, fig.height=6, fig.width=4.5, warning=FALSE}
+dataDF3 <- dataDF[dataDF$label != "D", ]
+dataDF3$n6_n3 <- dataDF3$LCPUFA_n6_Factor2 - dataDF3$LCPUFA_n3_Factor2
+dataDF3$label_group <- ifelse(dataDF3$label %in% c("E", "F"), "group2", "group1")
+form1 <- formula("n6_n3 ~ s(event_date) + label + discretized_admit_age_quantile + sex")
+fit1 <- gamm4::gamm4(form1, random = ~(1|participant_id/enrollment_site),
+                     data = dataDF3[dataDF3$label %in% c("E", "F"),])
+# summary(fit1$gam)$p.table[2, "Pr(>|t|)"]
+form2 <- formula("n6_n3 ~ s(event_date) + label_group + discretized_admit_age_quantile + sex")
+fit2 <- gamm4::gamm4(form2, random = ~(1|participant_id/enrollment_site),
+                     data = dataDF3)
+# summary(fit2$gam)$p.table[2, "Pr(>|t|)"]
+
+p_val3 <- data.frame(label_group = c("EvsF", "EFvsABC"),
+                     p_val = c(summary(fit1$gam)$p.table[2, "Pr(>|t|)"],
+                                 summary(fit2$gam)$p.table[2, "Pr(>|t|)"]),
+                     y_pos = c(max(dataDF3$n6_n3[dataDF3$label_group == "group2"],
+                                   na.rm = TRUE)*1.1,
+                               max(dataDF3$n6_n3, na.rm = TRUE)*1.1))
+p_val3 <- p_val3 %>%
+  mutate(sig = ifelse(p_val <= 0.001, "***",
+                       ifelse(p_val <= 0.01, "**",
+                              ifelse(p_val <= 0.05, " * ", ""))),
+         segment = sig != "")
+
+plot_LCPUFA1 = ggplot(dataDF3, aes(x = label, y = n6_n3, color = label)) + 
+  geom_boxplot(outlier.size = 0.6, size = 1.2) +
+  geom_jitter(width = 0.2, size = 0.3, alpha = 0.8) +
+  theme_classic() +
+  scale_fill_manual(values = c("#20854EB2", "#0072B5B2", "#E18727B2",
+                               "#EE4C97B2", "#BC3C29B2")) +
+  scale_color_manual(values = c("#20854EB2", "#0072B5B2", "#E18727B2",
+                                "#EE4C97B2", "#BC3C29B2")) +
+  theme(axis.line.x = element_line(linewidth = 1),
+        axis.line.y = element_line(linewidth = 1),
+        axis.ticks = element_line(linewidth = 1),
+        axis.text.x = element_text(color = "black", size = 15),  
+        axis.text.y = element_text(color = "black", size = 15),
+        axis.title.x = element_text(color = "black", size = 15),
+        axis.title.y = element_text(color = "black", size = 15),
+        axis.ticks.length = unit(0.15, "cm"),
+        legend.position = "top",
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15),
+        legend.key.size = unit(1.5, "lines")) +
+  labs(y = "LCPUFA (n6 - n3)", x = "Subtype", color = "Subtype") +
+  geom_text(data = p_val3[p_val3$label_group == "EvsF",], 
+              aes(x = 4.5, y = y_pos, label = sig),
+              position = position_dodge(0.9), hjust = 0.5, 
+              color = "grey40", size = 8) +
+  geom_segment(data = filter(p_val3, label_group == "EvsF" & segment), 
+               aes(x = 4, xend = 5, y = y_pos - 0.08, yend = y_pos - 0.08), 
+               color = "grey40", size = 0.7)
+```
+
+# Barplot of (n6 - n3) - visit 1
+```{r (n6 - n3) - visit 1, fig.height=6, fig.width=4.5, warning=FALSE}
+dataDF4 <- dataDF[dataDF$label != "D" & dataDF$event_type == "V1", ]
+dataDF4$n6_n3 <- dataDF4$LCPUFA_n6_Factor2 - dataDF4$LCPUFA_n3_Factor2
+dataDF4$label_group <- ifelse(dataDF4$label %in% c("E", "F"), "group2", "group1")
+form1 <- formula("n6_n3 ~ label + discretized_admit_age_quantile + sex")
+fit1 <- gamm4::gamm4(form1, random = ~(1|enrollment_site),
+                     data = dataDF4[dataDF4$label %in% c("E", "F"),])
+# summary(fit1$gam)$p.table[2, "Pr(>|t|)"]
+form2 <- formula("n6_n3 ~ label_group + discretized_admit_age_quantile + sex")
+fit2 <- gamm4::gamm4(form2, random = ~(1|enrollment_site), data = dataDF4)
+# summary(fit2$gam)$p.table[2, "Pr(>|t|)"]
+
+p_val4 <- data.frame(label_group = c("EvsF", "EFvsABC"),
+                     p_val = c(summary(fit1$gam)$p.table[2, "Pr(>|t|)"],
+                                 summary(fit2$gam)$p.table[2, "Pr(>|t|)"]),
+                     y_pos = c(max(dataDF4$n6_n3[dataDF4$label_group == "group2"],
+                                   na.rm = TRUE)*1.1,
+                               max(dataDF4$n6_n3, na.rm = TRUE)*1.1))
+p_val4 <- p_val4 %>%
+  mutate(sig = ifelse(p_val <= 0.001, "***",
+                       ifelse(p_val <= 0.01, "**",
+                              ifelse(p_val <= 0.05, " * ", ""))),
+         segment = sig != "")
+
+plot_LCPUFA2 = ggplot(dataDF4, aes(x = label, y = n6_n3, color = label)) + 
+  geom_boxplot(outlier.size = 0.6, size = 1.2) +
+  geom_jitter(width = 0.2, size = 0.3, alpha = 0.8)+
+  theme_classic() +
+  scale_fill_manual(values = c("#20854EB2", "#0072B5B2", "#E18727B2",
+                               "#EE4C97B2", "#BC3C29B2")) +
+  scale_color_manual(values = c("#20854EB2", "#0072B5B2", "#E18727B2",
+                                "#EE4C97B2", "#BC3C29B2")) +
+  theme(axis.line.x = element_line(linewidth = 1),
+        axis.line.y = element_line(linewidth = 1),
+        axis.ticks = element_line(linewidth = 1),
+        axis.text.x = element_text(color = "black", size = 15),  
+        axis.text.y = element_text(color = "black", size = 15),
+        axis.title.x = element_text(color = "black", size = 15),
+        axis.title.y = element_text(color = "black", size = 15),
+        axis.ticks.length = unit(0.15, "cm"),
+        legend.position = "top",
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15),
+        legend.key.size = unit(1.5, "lines")) +
+  labs(y = "LCPUFA (n6 - n3) (Visit 1)", x = "Subtype", color = "Subtype") +
+  geom_text(data = p_val4[p_val4$label_group == "EvsF",], 
+              aes(x = 4.5, y = y_pos, label = sig),
+              position = position_dodge(0.9), hjust = 0.5, 
+              color = "grey40", size = 8) +
+  geom_segment(data = filter(p_val4, label_group == "EvsF" & segment), 
+               aes(x = 4, xend = 5, y = y_pos - 0.08, yend = y_pos - 0.08), 
+               color = "grey40", size = 0.7)
+```
+
+# Barplot of (n6 - n3) (ExtendedData 5C)
+```{r barplot of (n6 - n3), fig.height=6, fig.width=7.5, warning=FALSE}
+ggarrange(plotlist = list(plot_LCPUFA2, plot_LCPUFA1),
+          nrow = 1, ncol = 2, common.legend = T, legend = "top")
+```
+
+# Pathway activities
+```{r pathway activities}
+pathway_prot = c("Complement and coagulation cascades",
+                 "Cardiac muscle contraction" )
+pathway_met = c("Plasmalogen",
+                "Long Chain Polyunsaturated Fatty Acid (n3 and n6)", 
+                "Tryptophan Metabolism",
+                "Acetylated Peptides")
+pathways0 = c(pathway_prot,pathway_met)
+protein_list = kegg_database$ppgd[kegg_database$ppgd$description%in%pathways0,]
+metabolite_list = subpath_databse$pmg[subpath_databse$pmg$description%in%pathways0,]
+protein_list = unique(protein_list)
+metabolite_list = unique(metabolite_list)
+colnames(metabolite_list) = colnames(protein_list)
+flist = rbind(protein_list,metabolite_list)
+
+weight_comparisons = list()
+for(dataset_id in c(1:6)){
+  temp =intersect(rownames(projection_coef$mod1[[dataset_id]]),flist$gene_name)
+  weight_comparisons[[dataset_id]] = data.frame(feature = temp)
+  for(mod_id in (1:3)){
+    weight_comparisons[[dataset_id]][[paste0("Factor", mod_id)]] =
+      projection_coef[[mod_id]][[dataset_id]][ temp,]
+  }
+  temp2 = flist
+  rownames( temp2) = temp2$gene_name
+  weight_comparisons[[dataset_id]]$pathway = temp2[temp,]$description
+}
+names(weight_comparisons) = names(projection_coef$mod1)
+
+dataDF = organized_data$datasets$plasma_proteomics_global_dda
+colnames(dataDF) = rownames(projection_coef$mod1$ppgd)
+thrs = matrix(0, ncol =2, nrow = 2)
+thrs[1,] = c(1,-1) #cog
+thrs[2,] = c(-1,1) #muscle
+thrs = thrs*mag_thr
+pathway_score_prot = NULL
+pathways1 = pathway_prot
+i=0
+for(mod_id in c(2,3)){
+  i=i+1
+  for(j in 1:length(pathways1)){
+    temp1 = weight_comparisons[[2]][weight_comparisons[[2]]$pathway==pathways1[j],]
+    temp1 = temp1[temp1[,paste0("Factor",mod_id)]/thrs[j,i] >=1,]
+    temp2 = dataDF[,(temp1$feature)]
+    temp3 = as.matrix(temp2)%*%abs(temp1[[paste0("Factor",mod_id)]])
+    temp3 = data.frame(value = temp3)
+    colnames(temp3)= paste0(pathways1[j],"_Factor",mod_id)
+    if(is.null(pathway_score_prot)){
+     pathway_score_prot = temp3 
+    }else{
+      pathway_score_prot = cbind(pathway_score_prot, temp3 )
+    }
+  }
+}
+ll = apply(pathway_score_prot,2,var, na.rm = T)
+pathway_score_prot=pathway_score_prot[,ll>0]
+ii = !is.na(pathway_score_prot[,1])
+pathway_score_prot[ii,] = apply(pathway_score_prot[ii,], 2,
+                                function(z) qqnorm(z, plot.it = F)$x)
+pathway_score_prot$event_id = rownames(dataDF)
+
+
+dataDF = organized_data$datasets$plasma_metabolomics_global
+colnames(dataDF) = rownames(projection_coef$mod1$pmg)
+thrs = matrix(0, ncol =3, nrow = 4)
+thrs[1,] = c(-1,1,1) # Plasmalogen
+thrs[2,] = c(1,-1,-1) # fatty acid
+thrs[3,] = c(1,-1,1) # Peptide
+thrs[4,] = c(1,-1,1) # Trptophan
+thrs = thrs*mag_thr
+pathway_score_met = NULL
+pathways1 = pathway_met
+for(mod_id in c(2,3)){
+  i = mod_id
+  for(j in 1:length(pathways1)){
+    temp1 = weight_comparisons[[4]][weight_comparisons[[4]]$pathway==pathways1[j],]
+    temp1 = temp1[temp1[,paste0("Factor",mod_id)]/thrs[j,i] >=1,]
+    temp2 = dataDF[,(temp1$feature)]
+    temp3 = as.matrix(temp2)%*%abs(temp1[[paste0("Factor",mod_id)]])
+    temp3 = data.frame(value = temp3)
+    colnames(temp3)= paste0(pathways1[j],"_Factor",mod_id)
+    if(is.null(pathway_score_met)){
+     pathway_score_met = temp3 
+    } else {
+      pathway_score_met = cbind(pathway_score_met, temp3 )
+    }
+  }
+}
+ll = apply(pathway_score_met,2,var, na.rm = T)
+pathway_score_met = pathway_score_met[,ll>0]
+ii = !is.na(pathway_score_met[,1])
+pathway_score_met[ii,] = apply(pathway_score_met[ii,], 2,
+                               function(z) qqnorm(z, plot.it = F)$x)
+
+pathway_score_met$event_id = rownames(dataDF)
+```
+
+# Interaction between subtype and factor/pathway
+```{r interaction between subtype and factor/pathway}
+sig_comorb = colnames(clin_test$p_logit)
+sig_comorb = grep("^comorb", sig_comorb, value = TRUE)
+df_comorb = clin_data_aligned[, sig_comorb]
+df_comorb$event_id = clin_data_aligned$event_id
+visits_list = list(c("V1","V2","V3"), c("V4","V5", "V6"))
+# test_fnames = c("Factor2", "Factor3",
+#                 "LCPolyunsaturated", "Tryptophan", "Acetylated",
+#                 "CoagulationBalance", "Cardiac")
+test_fnames = c("Factor3", "Tryptophan", "Acetylated", "Cardiac")
+coef_list = list()
+pval_list = list()
+coef_comorb_list = list()
+pval_comorb_list = list()
+res_list = list()
+label_list = list()
+
+for(l in 1:length(visits_list)){
+  datDF = mcia_factors
+  datDF$event_id = rownames(mcia_factors)
+  datDF = left_join(left_join(datDF[,c(2,3)], pathway_score_met[,c(2,3,4)], 
+                              by = "event_id"),
+                    pathway_score_prot[,c(3,4)], by = "event_id")
+  datDF = cytof_mat_preprocess(cytof_mat = datDF, subtype_hcl = subtype_hcl, 
+                               clin_data = clin_data_aligned)
+  datDF = left_join(datDF, df_comorb, by = "event_id")
+  colnames(datDF)[c(3,4,5)] = c("Tryptophan", "Acetylated", "Cardiac")
+  datDF[, test_fnames] = scale(datDF[,test_fnames])
+  datDF = datDF[datDF$label != "D" & datDF$event_type %in% visits_list[[l]],]
+  
+  coef_list[[l]] = list()
+  coef_list[[l]][["noComorb"]] = matrix(NA, ncol = length(test_fnames), nrow = 5)
+  coef_list[[l]][["Comorb"]] = matrix(NA, ncol = length(test_fnames), nrow = 5)
+  pval_list[[l]] = list()
+  pval_list[[l]][["noComorb"]] = matrix(NA, ncol = length(test_fnames), nrow = 5)
+  pval_list[[l]][["Comorb"]] = matrix(NA, ncol = length(test_fnames), nrow = 5)
+  
+  res_list[[l]] = list()
+  res_list[[l]][["noComorb"]] = list()
+  res_list[[l]][["Comorb"]] = list()
+  
+  label_list[[l]] = list()
+  label_list[[l]][["noComorb"]] = list()
+  label_list[[l]][["Comorb"]] = list()
+
+  coef_comorb_list[[l]] = matrix(NA, ncol = length(test_fnames), 
+                                 nrow = length(sig_comorb))
+  pval_comorb_list[[l]] = matrix(NA, ncol = length(test_fnames), 
+                                 nrow = length(sig_comorb))
+  for(j in 1:length(test_fnames)){
+    fname0 = test_fnames[j]
+    datDF0 = datDF[, setdiff(colnames(datDF), test_fnames[-j])]
+    datDF0 = datDF0[apply(is.na(datDF0[,c(fname0, sig_comorb)]),1,sum)==0, ]
+    
+    out = factor_subtype_interaction(datDF0, fname0, sig_comorb)
+    
+    coef_list[[l]][["noComorb"]][,j] = out$coef_fac0
+    pval_list[[l]][["noComorb"]][,j] = out$pval_fac0
+    
+    coef_list[[l]][["Comorb"]][,j] = out$coef_fac1
+    pval_list[[l]][["Comorb"]][,j] = out$pval_fac1
+    
+    res_list[[l]][["noComorb"]][[fname0]] = out$res0
+    res_list[[l]][["Comorb"]][[fname0]] = out$res1
+    
+    label_list[[l]][["noComorb"]][[fname0]] = out$label_use
+    label_list[[l]][["Comorb"]][[fname0]] = out$label_use
+    
+    coef_comorb_list[[l]][,j] = out$coef_comorb
+    pval_comorb_list[[l]][,j] = out$pval_comorb
+    
+  }
+  colnames(coef_list[[l]][["noComorb"]]) =
+    colnames(coef_list[[l]][["Comorb"]]) =
+    colnames(pval_list[[l]][["noComorb"]]) =
+    colnames(pval_list[[l]][["Comorb"]]) =
+    colnames(coef_comorb_list[[l]]) =
+    colnames(pval_comorb_list[[l]]) = test_fnames
+  rownames(coef_list[[l]][["noComorb"]]) =
+    rownames(pval_list[[l]][["noComorb"]]) =
+    rownames(coef_list[[l]][["Comorb"]]) =
+    rownames(pval_list[[l]][["Comorb"]])= c("EFvsABC", "FvsE",
+                                            "AvsBC", "BvsAC", "CvsAB")
+ rownames(coef_comorb_list[[l]]) = sig_comorb
+ rownames(pval_comorb_list[[l]]) = sig_comorb
+}
+
+names(coef_list) = names(pval_list) = 
+  names(res_list) = names(label_list) =
+  names(coef_comorb_list) = names (pval_comorb_list) = c("early","late")
+```
+
+# Factor 3 and subtype (comorbidity adjusted) - early (ExtendedData 5E left)
+```{r Factor 3 and subtype - early, fig.height=6, fig.width=9, warning=FALSE}
+stage = "early"
+df_out = NULL
+for (i in 1:length(test_fnames)){
+  df_tmp = data.frame(res = res_list[[stage]][["Comorb"]][[i]],
+                      subtype = label_list[[stage]][["Comorb"]][[i]])
+  df_tmp$name = test_fnames[i]
+  if(is.null(df_out)){
+    df_out = df_tmp
+    } else {
+      df_out = rbind(df_out, df_tmp)
+    }
+  }
+df_out$name <- factor(df_out$name)
+df_out$name <- factor(df_out$name, levels = c("Factor3", "Cardiac", 
+                                              "Tryptophan", "Acetylated"))
+
+y_max = df_out %>%
+  group_by(name) %>%
+  summarise(y_max = max(res))
+df_pval = pval_list[[stage]][["Comorb"]]
+df_pval = apply(df_pval, 2, function(p) p.adjust(p, method = "BH"))
+df_pval = as.data.frame(t(df_pval))
+df_pval = df_pval[levels(df_out$name),]
+fct_pval = data.frame(x = seq(1, nrow(df_pval), by = 1),
+                      y_EFvsABC = y_max$y_max,
+                      val_EFvsABC = df_pval$EFvsABC,
+                      y_AvsBC = y_max$y_max + 0.35,
+                      val_AvsBC = df_pval$AvsBC,
+                      y_BvsAC = y_max$y_max + 0.7,
+                      val_BvsAC = df_pval$BvsAC,
+                      y_CvsAB = y_max$y_max + 1.05,
+                      val_CvsAB = df_pval$CvsAB,
+                      y_FvsE = y_max$y_max + 1.4,
+                      val_FvsE = df_pval$FvsE)
+fct_pval = fct_pval %>% 
+  mutate(sig_EFvsABC = ifelse(val_EFvsABC <= 0.001, "***",
+                       ifelse(val_EFvsABC <= 0.01, "**",
+                              ifelse(val_EFvsABC <= 0.05, " * ", ""))),
+         segment_EFvsABC = sig_EFvsABC != "",
+         sig_AvsBC = ifelse(val_AvsBC <= 0.001, "***",
+                       ifelse(val_AvsBC <= 0.01, "**",
+                              ifelse(val_AvsBC <= 0.05, " * ", ""))),
+         segment_AvsBC = sig_AvsBC != "",
+         sig_BvsAC = ifelse(val_BvsAC <= 0.001, "***",
+                       ifelse(val_BvsAC <= 0.01, "**",
+                              ifelse(val_BvsAC <= 0.05, " * ", ""))),
+         segment_BvsAC = sig_BvsAC != "",
+         sig_CvsAB = ifelse(val_CvsAB <= 0.001, "***",
+                       ifelse(val_CvsAB <= 0.01, "**",
+                              ifelse(val_CvsAB <= 0.05, " * ", ""))),
+         segment_CvsAB = sig_CvsAB != "",
+         sig_FvsE = ifelse(val_FvsE <= 0.001, "***",
+                       ifelse(val_FvsE <= 0.01, "**",
+                              ifelse(val_FvsE <= 0.05, " * ", ""))),
+         segment_FvsE = sig_FvsE != "")
+fct_pval$name = y_max$name
+
+ggplot(df_out, aes(x = subtype, y = res)) +
+  geom_boxplot(aes(fill = subtype), outlier.size = 0.3, size = 0.6, alpha = 0.4) +
+  #geom_jitter(width = 0.2, size = 0.3, alpha = 0.3) +
+  facet_wrap(~ name, scales = "free_x", nrow = 1) +
+  theme_minimal() +
+  labs(x = "Subtype", y = "Residuals",
+       title = "Comorbidity Adjusted (V1-V3)") +
+  theme(axis.title.x = element_text(size = 15, color = "black"),
+        axis.title.y = element_text(size = 15, color = "black"),
+        axis.text.x = element_text(color = "black", size = 15),
+        axis.text.y = element_text(size = 15, color = "black"),
+        legend.position = "bottom",
+        panel.spacing = unit(0.5, "lines"),
+        strip.text.x = element_text(size = 15),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15),
+        legend.key.size = unit(2, "lines"),
+        axis.line.x = element_line(linewidth = 1),
+        axis.line.y = element_line(linewidth = 1),
+        plot.title = element_text(size = 15, face = "bold", hjust = 0.5)) +
+  scale_fill_manual(values = c("#20854EB2", "#0072B5B2", "#E18727B2",
+                               "#EE4C97B2", "#BC3C29B2")) +
+  geom_text(data = fct_pval, aes(x = 3, y = y_EFvsABC, label = sig_EFvsABC), 
+            inherit.aes = FALSE, hjust = 0.5, color = "grey40", size = 4) +
+  geom_segment(data = filter(fct_pval, segment_EFvsABC), 
+               aes(x = 1, xend = 5, y = y_EFvsABC-0.05, yend = y_EFvsABC-0.05), 
+               color = "grey40", size = 0.3) +
+  geom_text(data = fct_pval, aes(x = 2, y = y_AvsBC, label = sig_AvsBC),
+            inherit.aes = FALSE, hjust = 0.5, color = "#20854EB2", size = 4) +
+  geom_segment(data = filter(fct_pval, segment_AvsBC),
+               aes(x = 1, xend = 3, y = y_AvsBC-0.05, yend = y_AvsBC-0.05),
+               color = "#20854EB2", size = 0.3) +
+  geom_text(data = fct_pval, aes(x = 2, y = y_BvsAC, label = sig_BvsAC),
+            inherit.aes = FALSE, hjust = 0.5, color = "#0072B5B2", size = 4) +
+  geom_segment(data = filter(fct_pval, segment_BvsAC),
+               aes(x = 1, xend = 3, y = y_BvsAC-0.01, yend = y_BvsAC-0.01),
+               color = "#0072B5B2", size = 0.3) +
+  geom_text(data = fct_pval, aes(x = 2, y = y_CvsAB, label = sig_CvsAB),
+            inherit.aes = FALSE, hjust = 0.5, color = "#E18727B2", size = 4) +
+  geom_segment(data = filter(fct_pval, segment_CvsAB),
+               aes(x = 1, xend = 3, y = y_CvsAB-0.01, yend = y_CvsAB-0.01),
+               color = "#E18727B2", size = 0.3) +
+  geom_text(data = fct_pval, aes(x = 4.5, y = y_FvsE, label = sig_FvsE),
+            inherit.aes = FALSE, hjust = 0.5, color = "#BC3C29B2", size = 4) +
+  geom_segment(data = filter(fct_pval, segment_FvsE),
+               aes(x = 4, xend = 5, y = y_FvsE-0.01, yend = y_FvsE-0.01),
+               color = "#BC3C29B2", size = 0.3)
+```
+
+# Factor 3 and subtype (comorbidity adjusted) - late (ExtendedData 5E right)
+```{r Factor 3 and subtype - late, fig.height=6, fig.width=9, warning=FALSE}
+stage = "late"
+df_out = NULL
+for (i in 1:length(test_fnames)){
+  df_tmp = data.frame(res = res_list[[stage]][["Comorb"]][[i]],
+                      subtype = label_list[[stage]][["Comorb"]][[i]])
+  df_tmp$name = test_fnames[i]
+  if(is.null(df_out)){
+    df_out = df_tmp
+    } else {
+      df_out = rbind(df_out, df_tmp)
+    }
+  }
+df_out$name <- factor(df_out$name)
+df_out$name <- factor(df_out$name, levels = c("Factor3", "Cardiac", 
+                                              "Tryptophan", "Acetylated"))
+
+y_max = df_out %>%
+  group_by(name) %>%
+  summarise(y_max = max(res))
+df_pval = pval_list[[stage]][["Comorb"]]
+df_pval = apply(df_pval, 2, function(p) p.adjust(p, method = "BH"))
+df_pval = as.data.frame(t(df_pval))
+df_pval = df_pval[levels(df_out$name),]
+fct_pval = data.frame(x = seq(1, nrow(df_pval), by = 1),
+                      y_EFvsABC = y_max$y_max,
+                      val_EFvsABC = df_pval$EFvsABC,
+                      y_AvsBC = y_max$y_max + 0.35,
+                      val_AvsBC = df_pval$AvsBC,
+                      y_BvsAC = y_max$y_max + 0.7,
+                      val_BvsAC = df_pval$BvsAC,
+                      y_CvsAB = y_max$y_max + 1.05,
+                      val_CvsAB = df_pval$CvsAB,
+                      y_FvsE = y_max$y_max + 1.4,
+                      val_FvsE = df_pval$FvsE)
+fct_pval = fct_pval %>% 
+  mutate(sig_EFvsABC = ifelse(val_EFvsABC <= 0.001, "***",
+                       ifelse(val_EFvsABC <= 0.01, "**",
+                              ifelse(val_EFvsABC <= 0.05, " * ", ""))),
+         segment_EFvsABC = sig_EFvsABC != "",
+         sig_AvsBC = ifelse(val_AvsBC <= 0.001, "***",
+                       ifelse(val_AvsBC <= 0.01, "**",
+                              ifelse(val_AvsBC <= 0.05, " * ", ""))),
+         segment_AvsBC = sig_AvsBC != "",
+         sig_BvsAC = ifelse(val_BvsAC <= 0.001, "***",
+                       ifelse(val_BvsAC <= 0.01, "**",
+                              ifelse(val_BvsAC <= 0.05, " * ", ""))),
+         segment_BvsAC = sig_BvsAC != "",
+         sig_CvsAB = ifelse(val_CvsAB <= 0.001, "***",
+                       ifelse(val_CvsAB <= 0.01, "**",
+                              ifelse(val_CvsAB <= 0.05, " * ", ""))),
+         segment_CvsAB = sig_CvsAB != "",
+         sig_FvsE = ifelse(val_FvsE <= 0.001, "***",
+                       ifelse(val_FvsE <= 0.01, "**",
+                              ifelse(val_FvsE <= 0.05, " * ", ""))),
+         segment_FvsE = sig_FvsE != "")
+fct_pval$name = y_max$name
+
+ggplot(df_out, aes(x = subtype, y = res)) +
+  geom_boxplot(aes(fill = subtype), outlier.size = 0.3, size = 0.6, alpha = 0.4) +
+  #geom_jitter(width = 0.2, size = 0.3, alpha = 0.3) +
+  facet_wrap(~ name, scales = "free_x", nrow = 1) +
+  theme_minimal() +
+  labs(x = "Subtype", y = "Residuals",
+       title = "Comorbidity Adjusted (V4-V6)") +
+  theme(axis.title.x = element_text(size = 15, color = "black"),
+        axis.title.y = element_text(size = 15, color = "black"),
+        axis.text.x = element_text(color = "black", size = 15),
+        axis.text.y = element_text(size = 15, color = "black"),
+        legend.position = "bottom",
+        panel.spacing = unit(0.5, "lines"),
+        strip.text.x = element_text(size = 15),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15),
+        legend.key.size = unit(2, "lines"),
+        axis.line.x = element_line(linewidth = 1),
+        axis.line.y = element_line(linewidth = 1),
+        plot.title = element_text(size = 15, face = "bold", hjust = 0.5)) +
+  scale_fill_manual(values = c("#20854EB2", "#0072B5B2", "#E18727B2",
+                               "#EE4C97B2", "#BC3C29B2")) +
+  geom_text(data = fct_pval, aes(x = 3, y = y_EFvsABC, label = sig_EFvsABC), 
+            inherit.aes = FALSE, hjust = 0.5, color = "grey40", size = 4) +
+  geom_segment(data = filter(fct_pval, segment_EFvsABC), 
+               aes(x = 1, xend = 5, y = y_EFvsABC-0.05, yend = y_EFvsABC-0.05), 
+               color = "grey40", size = 0.3) +
+  geom_text(data = fct_pval, aes(x = 2, y = y_AvsBC, label = sig_AvsBC),
+            inherit.aes = FALSE, hjust = 0.5, color = "#20854EB2", size = 4) +
+  geom_segment(data = filter(fct_pval, segment_AvsBC),
+               aes(x = 1, xend = 3, y = y_AvsBC-0.05, yend = y_AvsBC-0.05),
+               color = "#20854EB2", size = 0.3) +
+  geom_text(data = fct_pval, aes(x = 2, y = y_BvsAC, label = sig_BvsAC),
+            inherit.aes = FALSE, hjust = 0.5, color = "#0072B5B2", size = 4) +
+  geom_segment(data = filter(fct_pval, segment_BvsAC),
+               aes(x = 1, xend = 3, y = y_BvsAC-0.01, yend = y_BvsAC-0.01),
+               color = "#0072B5B2", size = 0.3) +
+  geom_text(data = fct_pval, aes(x = 2, y = y_CvsAB, label = sig_CvsAB),
+            inherit.aes = FALSE, hjust = 0.5, color = "#E18727B2", size = 4) +
+  geom_segment(data = filter(fct_pval, segment_CvsAB),
+               aes(x = 1, xend = 3, y = y_CvsAB-0.01, yend = y_CvsAB-0.01),
+               color = "#E18727B2", size = 0.3) +
+  geom_text(data = fct_pval, aes(x = 4.5, y = y_FvsE, label = sig_FvsE),
+            inherit.aes = FALSE, hjust = 0.5, color = "#BC3C29B2", size = 4) +
+  geom_segment(data = filter(fct_pval, segment_FvsE),
+               aes(x = 4, xend = 5, y = y_FvsE-0.01, yend = y_FvsE-0.01),
+               color = "#BC3C29B2", size = 0.3)
+```
+
+# Comorbidites and factor/pathway (ExtendedData 5D)
+```{r comorbidites and factor, fig.height=6, fig.width=8}
+comorb_names <- c("comorb_anyresp_noasthma" = "Pulmonary\n(excludes asthma)",
+                  "comorb_htn" = "Hypertension",
+                  "comorb_isaric_asthma" = "Asthma",
+                  "comorb_isaric_cardiac" = "Chronic cardiac disease",
+                  "comorb_isaric_dm" = "Diabetes",
+                  "comorb_isaric_ckd" = "Chronic kidney disease",
+                  "comorb_isaric_liver" = "Liver disease",
+                  "comorb_hxtrans" = "History of solid organ or\nbone marrow transplant",
+                  "comorb_anysubstance" = "Drug or alcohol abuse or cannabis use",
+                  "comorb_isaric_neoplasm" = "Malignant neoplasm",
+                  "comorb_neuro" = "Chronic neurological disorder",
+                  "comorb_hiv2" = "HIV",
+                  "comorb_eversmkvape" = "Current or former smoking and/or vaping")
+
+heatmap_factor_comorb <- function(coef_comorb_v1_3, pval_comorb_v1_3,
+                           coef_comorb_v4_6, pval_comorb_v4_6, clin_names) {
+  df1 <- as.data.frame(coef_comorb_v1_3)
+  df1 <- pivot_longer(df1, cols = everything())
+  df1$comorb <- rep(rownames(coef_comorb_v1_3), each = ncol(coef_comorb_v1_3))
+  df1$visit <- "Visit 1-3"
+  df2 <- as.data.frame(coef_comorb_v4_6)
+  df2 <- pivot_longer(df2, cols = everything())
+  df2$comorb <- rep(rownames(coef_comorb_v4_6), each = ncol(coef_comorb_v4_6))
+  df2$visit <- "Visit 4-6"
+  df_heatmap <- rbind(df1, df2)
+  
+  pval1 <- as.data.frame(pval_comorb_v1_3)
+  pval1 <- pivot_longer(pval1, cols = everything())
+  pval2 <- as.data.frame(pval_comorb_v4_6)
+  pval2 <- pivot_longer(pval2, cols = everything())
+  df_pval <- rbind(pval1, pval2)
+  df_heatmap$pval <- df_pval$value
+  df_heatmap$comorb <- comorb_names[df_heatmap$comorb]
+  
+  df_heatmap$name <- factor(df_heatmap$name)
+  df_heatmap$name <- factor(df_heatmap$name, levels = c("Factor3", "Cardiac",
+                                                        "Tryptophan", "Acetylated"))
+  
+  df_heatmap %>% ggplot(aes(x = name, y = comorb, fill = value)) +
+    geom_tile(color = "grey50", size=0.1) +
+    scale_fill_gradient2(low = "#284AA0", mid="white", high = "#BC4A4A", 
+                         midpoint = 0, name = expression("Coefficient"),
+                         limits = c(-max(abs(df_heatmap$value)),
+                                    max(abs(df_heatmap$value)))) +
+    cowplot::theme_cowplot() + 
+    theme(axis.line  = element_blank()) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+    ylab("") +
+    xlab("") +
+    facet_grid(.~visit, scales = "free", space = "free") +
+    theme(axis.ticks = element_blank(),
+          axis.text.y = element_text(size = 15, hjust = 1),
+          axis.text.x = element_text(size = 15),
+          legend.position = "top",
+          legend.title = element_text(size = 15, vjust = 0.8),
+          legend.text = element_text(size = 15),
+          panel.spacing = unit(0, "lines"),
+          strip.text.x = element_text(size = 15, face = "bold"),
+          strip.background = element_rect(fill = "white"),
+          legend.key.size = unit(7.5, "mm")) +
+    geom_text(aes(label = ifelse(pval <= 0.001, "***",
+                                 ifelse(pval <= 0.01, "**",
+                                        ifelse(pval <= 0.05, "*", "")))),
+              size = 7, vjust = 0.78)
+}
+adjp_comorb_list_early = apply(pval_comorb_list$early, 2, 
+                               function(p) p.adjust(p, method = "BH"))
+adjp_comorb_list_late = apply(pval_comorb_list$late, 2, 
+                               function(p) p.adjust(p, method = "BH"))
+
+heatmap_factor_comorb(coef_comorb_list$early, adjp_comorb_list_early,
+                      coef_comorb_list$late, adjp_comorb_list_late,
+                      clin_names)
+```
+

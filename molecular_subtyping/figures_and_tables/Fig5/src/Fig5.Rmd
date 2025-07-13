@@ -1,6 +1,6 @@
 ---
 title: "Fig5"
-output: html_document
+output: pdf_document
 ---
 
 ```{r load library}
@@ -117,6 +117,15 @@ colnames(mcia_factors) = paste0("Factor", mod_ids)
 
 # Factor trajectory (Figure 5A left & Figure 5E left)
 ```{r factor trajectory, fig.height=6, fig.width=6, warning=FALSE}
+mod_ids = c(1, 2, 3, 10)
+negation = c(-1, 1, 1, 1)
+# negate factors
+mcia_factors = t(t(mcia_results$mcia_factors[,mod_ids]) * negation)
+mcia_factors=apply(mcia_factors,2, function(z) qqnorm(z, plot.it = F)$x)
+mcia_factors = data.frame(mcia_factors,row.names = rownames(organized_data$datasets$plasma_proteomics_targeted))
+mcia_factors = mcia_factors[clin_data_aligned$event_id,]
+colnames(mcia_factors) = paste0("Factor", mod_ids)
+
 assay_mat = mcia_factors
 assay_mat$event_id = rownames(assay_mat)
 assay_mat = cytof_mat_preprocess(cytof_mat = assay_mat, 
@@ -129,11 +138,21 @@ factor_trajectory_analysis_results = helper_trajectory_data_smooth_spline(
   endpoint = "label", use_endpoint_levels = c("A", "B", "C", "E", "F"),
   max_date = 40, text_position = 2)
 test_Fig5_factor_traj = factor_trajectory_analysis_results$test_pval_list
-factor_trajectory_analysis_results$test_fig_list
+factor_trajectory_analysis_results$test_fig_list$Factor2
+factor_trajectory_analysis_results$test_fig_list$Factor3
 ```
 
 # Early/late Factor 2 multi-group comparison (Figure 5A right)
 ```{r early/late Factor 2 multi-group comparison, fig.height=6, fig.width=4}
+mod_ids = c(2, 3)
+negation = c(1, 1)
+# negate factors
+mcia_factors = t(t(mcia_results$mcia_factors[,mod_ids]) * negation)
+mcia_factors=apply(mcia_factors,2, function(z) qqnorm(z, plot.it = F)$x)
+mcia_factors = data.frame(mcia_factors,row.names = rownames(organized_data$datasets$plasma_proteomics_targeted))
+mcia_factors = mcia_factors[clin_data_aligned$event_id,]
+colnames(mcia_factors) = paste0("Factor", mod_ids)
+
 assay_mat = mcia_factors
 assay_mat$event_id = rownames(assay_mat)
 assay_mat = cytof_mat_preprocess(cytof_mat = assay_mat, 

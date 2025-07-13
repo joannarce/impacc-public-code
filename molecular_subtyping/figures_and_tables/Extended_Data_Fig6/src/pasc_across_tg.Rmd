@@ -1,0 +1,101 @@
+---
+title: "PASC across TG"
+output: pdf_document
+---
+
+```{r load library}
+require(openxlsx)
+library(factoextra)
+library(cluster)
+require(nlme) # directly provides p-values, unlike lme4
+require(splines)
+require(dplyr)
+library(fgsea)
+library(knitr)
+library(kableExtra)
+library(tidyverse)
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+source(paste0(codebase_path,"/codebase_subtype.R"))
+
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+mcia_results = readRDS(paste0(intermediate_results_outdir_DR,"MCIA_phase123_20230726.rds"))
+
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+```
+
+# Barplot colored by TG (Extended Data Fig6B)
+```{r barplot colored by TG, fig.height=6, fig.width=8}
+df_summary <- data.frame(PASC = subtype_hcl$PASC,
+                         TG = subtype_hcl$TG)
+df_summary = na.omit(df_summary)
+df_summary$TG = factor(df_summary$TG)
+
+df_summary1 <- df_summary %>%
+  dplyr::group_by(TG, PASC) %>%
+  dplyr::summarise(Count = n(), .groups = "drop")
+df_summary1 <- df_summary1[!is.na(df_summary1$PASC),]
+total_counts1 <- df_summary1 %>%
+  group_by(TG) %>%
+  summarise(Total = sum(Count))
+df_summary1 <- df_summary1 %>%
+  dplyr::group_by(TG) %>%
+  mutate(percent = Count/sum(Count)*100)
+
+df_summary1$TG <- factor(df_summary1$TG)
+df_summary1$PASC <- factor(df_summary1$PASC, labels = c("Minimal", "Physical", 
+                                                        "Cognitive", "Multiple"))
+df_summary1$TG <- factor(df_summary1$TG,
+                         levels = rev(levels(df_summary1$TG)))
+
+ggplot(df_summary1, aes(y = TG, x = percent, fill = PASC)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  geom_text(data = total_counts1,
+            aes(y = TG, x = -6, label = sprintf(" %d", Total)),
+            position = position_dodge(width = 0.9),
+            inherit.aes = FALSE, size = 7)+
+  labs(y = "TG", x = "Percent") +
+  theme(axis.title.x = element_text(size = 15),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(color = "black", size = 15),
+        axis.text.y = element_blank(),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15),
+        legend.key.size = unit(2, "lines"),
+        plot.margin = margin(b = 55, t = 5)) +
+  scale_fill_manual(values = c("Minimal" = "#999999", "Physical" = "#58B5EA", 
+                               "Cognitive" = "#EAAE2A", "Multiple" = "#FF1820"))
+```
+
+# Test hierarchical clustering with PASC (Extended Data Fig6B)
+```{r test hierarchical clustering with PASC, fig.height=6, fig.width=6}
+id = which(!is.na(subtype_hcl$PASC) & !is.na(subtype_hcl$TG))
+full_clust_test= list(); full_clust_test[["PASC"]] = list()
+ww = ifelse(subtype_hcl$PASC[id] == "minimal", 0, 1)
+clin_data_patient = clin_data_aligned[clin_data_aligned$event_type == "Visit 1", ]
+demo_data_adjust = clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
+
+full_clust_test[["PASC"]][["fisher"]] = test_clinical_fisher_exact(
+  subtype = subtype_hcl$TG[id],
+  response = subtype_hcl$PASC[id],
+  response_binary = ww, seed = 123)
+
+heatmap_fisher(full_clust_test[["PASC"]][["fisher"]])
+```
+
+# Test hierarchical clustering with PASC - global (Extended Data Fig6B)
+```{r test hierarchical clustering with PASC - global, fig.height=6, fig.width=2}
+heatmap_fisher_global(full_clust_test[["PASC"]][["fisher"]])
+```
+
+
+

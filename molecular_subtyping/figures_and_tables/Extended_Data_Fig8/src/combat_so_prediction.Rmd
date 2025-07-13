@@ -1,0 +1,273 @@
+---
+title: "External Prediction"
+output: pdf_document
+---
+
+# Load library
+```{r}
+library(readxl)
+library(glmnet)
+library(cutpointr)
+library(tidyverse)
+```
+
+# Load codebase and data
+```{r}
+external_data_path = "/scratch/data-integration/molecular_subtyping/Revisions/External_Datasets/COMBAT/so"
+factor_external = read.csv(paste0(external_data_path, 
+                                  "/COMBAT_so_projections.csv"))
+data_external = read.csv(paste0(external_data_path, 
+                                  "/combat_so_normalized_data.csv"))
+metadata_external = read_excel(paste0(external_data_path,
+                                  "/COMBAT_Luminex_metadata.xlsx"))
+metadata_external = metadata_external[,-1]
+feature_external = colnames(data_external)[-1]
+participant_id_external = data_external$X
+rownames(data_external) = data_external$X
+data_external = data_external[,-1]
+
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+extended_data = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/extended_data.rds")
+subtype_labels = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_used = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+
+
+common_feature = intersect(feature_external,
+                           colnames(organized_data$datasets$serum_olink))
+cat("Total feature: ", ncol(organized_data$datasets$serum_olink), "\n")
+cat("Common feature: ", length(common_feature))
+```
+
+# Visit 1 data
+```{r}
+assays = organized_data$datasets_imputed
+new_names <- gsub('-[0-9]+$', '', rownames(assays[[1]]))
+subtype_labels$merged_labels <- subtype_labels$label
+label_map <- c(A = 1, B = 2, C = 3, D = 4, E = 5, F = 6)
+subtype_labels$merged_labels <- label_map[subtype_labels$merged_labels]
+subtype_labels_copy = subtype_labels[subtype_labels$merged_labels!=4,]
+subtype_labels_copy$merged_labels[subtype_labels_copy$merged_labels==1] = "A"
+subtype_labels_copy$merged_labels[subtype_labels_copy$merged_labels==2] = "B"
+subtype_labels_copy$merged_labels[subtype_labels_copy$merged_labels==3] = "C"
+subtype_labels_copy$merged_labels[subtype_labels_copy$merged_labels==5] = "E"
+subtype_labels_copy$merged_labels[subtype_labels_copy$merged_labels==6] = "F"
+id <- Reduce(intersect, list(new_names, rownames(subtype_labels_copy)))
+for (i in 1:6){
+  assay <- assays[[i]]
+  # keep V1
+  ind <- !duplicated(new_names)
+  assay <- assay[ind,]
+  rownames(assay) <- new_names[ind]
+  assays[[i]] <- assay[id,]
+}
+```
+
+# LASSO for feature selection and radial SVM for model fitting
+```{r}
+# names(assays)
+i = 3
+set.seed(2024) 
+y = factor(subtype_labels_copy[id,]$merged_labels)
+train_id = sample(1:length(y), floor(length(y)*0.7))
+y_train = y[train_id]
+y_test = y[-train_id]
+# x = as.matrix(assays[[i]][, common_feature])
+# # x = as.matrix(assays[[i]])
+# x_train = x[train_id,]
+# x_test = x[-train_id,]
+# glm_model <- cv.glmnet(x_train, y_train, family = "multinomial", alpha = 1, nfolds = 5)
+# pred = predict(glm_model, x_test, s = "lambda.1se", type = 'class')
+# probabilities = as.data.frame(predict(glm_model, x_test, s = "lambda.1se", type = 'response'))
+# colnames(probabilities) = c("A", "B", "C", "E", "F")
+# cat("Assay (LASSO): ", names(assays)[i], "\n")
+# cat("Test accuracy (LASSO): ", mean(pred == y_test), "\n")
+# selected = c()
+# auc = c()
+# for (g in c("A", "B", "C", "E", "F")){
+#   f = names(which(coef(glm_model, s = "lambda.1se")[[g]][-1,] != 0))
+#   selected = unique(c(selected, f))
+#     
+#   y_test1 = as.character(y_test)
+#   y_test1[y_test1 != g] <- 0
+#   y_test1[y_test1 == g] <- 1
+#   y_test1 = as.factor(y_test1)
+#   suppressMessages({
+#   auc = c(auc, pROC::roc(y_test1, probabilities[,g])$auc)
+#   })
+# }
+# selected_features = selected
+# cat("Test AUC (LASSO): ", mean(auc), "(", auc, ") \n")
+# cat("Number of selected features: ", length(selected_features), "\n")
+
+selected_features = common_feature
+
+df = assays[[i]][,selected_features]
+df_train = df[train_id,]
+df_test = df[-train_id,]
+svm_model <- e1071::svm(df_train, y_train, probability = TRUE, kernel = "radial")
+pred = predict(svm_model, df_test, probability = TRUE)
+probabilities <- attr(pred, "probabilities")
+pred = predict(svm_model, df_test, probability = F)
+cat("Assay: ", names(assays)[i], "\n")
+cat("Test accuracy (SVM): ", mean(pred == y_test), "\n")
+auc_svm = c()
+roc_svm = list()
+for (g in c("A", "B", "C", "E", "F")){
+  y_test1 = as.character(y_test)
+  y_test1[y_test1 != g] <- 0
+  y_test1[y_test1 == g] <- 1
+  y_test1 = as.factor(y_test1)
+  suppressMessages({
+  roc_svm[[g]] = pROC::roc(y_test1, probabilities[,g])
+  auc_svm = c(auc_svm, roc_svm[[g]]$auc)
+  })
+}
+cat("Test AUC (SVM): ", mean(auc_svm), "(", auc_svm, ") \n")
+cat("Number of selected features: ", length(selected_features))
+
+# refit SVM using all data
+svm_model <- e1071::svm(df, y, probability = TRUE, kernel = "radial")
+```
+
+# ROC visualization
+```{r, fig.height=6, fig.width=6}
+fig_name = paste0("COMBAT Serum Olink (", length(selected_features), ")")
+roc_data <- data.frame(TPR = seq(0, 1, 0.01), FPR = seq(0, 1, 0.01),
+                       Label = "Chance", Model = fig_name)
+for (j in c("A", "B", "C", "E", "F")){
+  df <- data.frame(
+    TPR = rev(roc_svm[[j]]$sensitivities),
+    FPR = rev(1 - roc_svm[[j]]$specificities),
+    Label = j,
+    Model = fig_name)
+  roc_data <- rbind(roc_data, df)
+}
+
+
+roc_data$Model = factor(roc_data$Model)
+custom_colors <- c("A" = "#2ca02c", "B" = "#1f77b4", "C" = "#ff7f0e",
+                   "E" = "#9C3418", "F" = "#9467bd", 
+                   "Chance" = "red")
+custom_line_types <- c("A" = "solid", "B" = "solid", "C" = "solid", 
+                       "E" = "solid", "F" = "solid",
+                       "Chance" = "dashed")
+custom_line_width <- c("A" = 0.8, "B" = 0.8, "C" = 0.8, 
+                       "E" = 0.8, "F" = 0.8,
+                       "Chance" = 0.8)
+
+custom_text <- paste0("Average AUROC: ", 
+                      sprintf("%.3f", round(mean(auc_svm),3)))
+facet_labels <- data.frame(
+  Model = factor(fig_name),
+  Text = custom_text,
+  xPos = 0.7, 
+  yPos = 0.4)
+
+ggplot() +
+  geom_line(data = roc_data, aes(x = FPR, y = TPR, color = Label, 
+                                 linewidth = Label, linetype = Label)) + 
+  scale_color_manual(values = custom_colors, 
+                     breaks = c("A", "B", "C", "E", "F", "Chance")) +
+  scale_linewidth_manual(values = custom_line_width, 
+                         breaks = c("A", "B", "C", "E", "F", "Chance")) +  
+  scale_linetype_manual(values = custom_line_types, 
+                        breaks = c("A", "B", "C", "E", "F", "Chance")) +
+  labs(title = fig_name,
+       x = "False positive rate", y = "True positive rate") +
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 1), breaks = seq(0, 1, by = 0.2)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), breaks = seq(0, 1, by = 0.2)) +
+  theme_minimal() +
+  theme(panel.spacing = unit(2, "lines"),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.border = element_blank(),
+      axis.line.x = element_line(linewidth = 1),
+      axis.line.y = element_line(linewidth = 1),
+      axis.ticks = element_line(linewidth = 1),
+      axis.text.x = element_text(color = "black", size = 15),
+      axis.text.y = element_text(color = "black", size = 15),
+      axis.title.x = element_text(color = "black", size = 15, margin = margin(t=10)),
+      axis.title.y = element_text(color = "black", size = 15, margin = margin(r=10)),
+      axis.ticks.length = unit(0.15, "cm"),
+      strip.text = element_text(color = "black", size = 15, margin = margin(b = 20)),
+      legend.position = "top",
+      legend.direction = "horizontal",
+      legend.justification = "left",
+      legend.title = element_blank(),
+      legend.text = element_text(color = "black", size = 15),
+      #legend.margin = margin(l = -250, b = 100),
+      legend.spacing.x = unit(0.5, "cm"),
+      legend.key.width = unit(2, "cm"),
+      # plot.margin = margin(r = 150),
+      aspect.ratio = 0.85,
+      plot.title = element_text(hjust = 0.5, color = "black", size = 15)
+    ) + 
+  guides(color = guide_legend(order = 1, keyheight = unit(1, "cm")),
+         linewidth = guide_legend(order = 1, keyheight = unit(1, "cm")),
+         linetype = guide_legend(order = 1, keyheight = unit(1, "cm"))) + 
+  geom_text(color = "black", data = facet_labels, 
+            aes(x = xPos, y = yPos, label = Text), inherit.aes = FALSE, size = 5)
+```
+
+# Prediction using external data
+```{r}
+df_external = data_external[, selected_features]
+pred_external = predict(svm_model, df_external, probability = TRUE)
+prob_external <- attr(pred_external, "probabilities")
+prob_external <- prob_external[, c("A", "B", "C", "E", "F")]
+external_label <- apply(prob_external, 1, function(x) colnames(prob_external)[which.max(x)])
+# table(external_label)
+# saveRDS(prob_external, 
+#         file = paste0(external_data_path, "/predicted_subtype_COMBAT_SO.rds"))
+```
+
+# Factor distribution
+```{r factor distribution, fig.height=6, fig.width=20}
+df_factor = data.frame(subtype = external_label,
+                       factor1 = -factor_external$Factor1,
+                       factor2 = factor_external$Factor2,
+                       factor3 = factor_external$Factor3,
+                       factor10 = factor_external$Factor10)
+# df_factor = df_factor[df_factor$subtype != "D", ]
+df_factor = pivot_longer(df_factor, cols = starts_with("factor"),
+                         names_to = "factor", values_to = "value")
+df_factor$factor = gsub("factor", "Factor ", df_factor$factor)
+df_factor$factor = as.factor(df_factor$factor)
+levels(df_factor$factor) = paste0("Factor ", c(1,2,3,10))
+
+ggplot(df_factor, aes(x = subtype, y = value, color = subtype)) + 
+  geom_boxplot(outlier.size = 0.8, size = 1.5) +
+  geom_jitter(width = 0.2, size = 0.8, alpha = 0.8)+
+  theme_classic() +
+  scale_fill_manual(values = c("#20854EB2", "#0072B5B2", "#E18727B2",
+                               "#EE4C97B2", "#BC3C29B2")) +
+  scale_color_manual(values = c("#20854EB2", "#0072B5B2", "#E18727B2",
+                                "#EE4C97B2", "#BC3C29B2")) +
+  facet_grid(~ factor) +
+  theme(panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line.x = element_line(linewidth = 1),
+    axis.line.y = element_line(linewidth = 1),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(color = "black", size = 15),  
+    axis.text.y = element_text(color = "black", size = 15),
+    axis.title.x = element_text(color = "black", size = 15),
+    axis.title.y = element_text(color = "black", size = 15),
+    strip.text = element_text(color = "black", size = 15),
+    axis.ticks.length = unit(0.15, "cm"),
+    legend.position = "top",
+    legend.text = element_text(size = 15),
+    legend.title = element_text(size = 15),
+    legend.key.size = unit(2.5, "lines")) +
+    labs(y = "normalized value", x = "")
+```
+
+# Association with metadata
+```{r}
+df_metadata = data.frame(RNASeq_sample_ID = names(external_label),
+                         label = external_label)
+df_metadata = left_join(metadata_external, df_metadata, by = "RNASeq_sample_ID")
+
+```
+

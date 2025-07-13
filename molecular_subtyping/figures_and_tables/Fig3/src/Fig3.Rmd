@@ -1,6 +1,6 @@
 ---
 title: "Fig3"
-output: html_notebook
+output: pdf_document
 ---
 
 ```{r load library}
@@ -98,11 +98,10 @@ cytof_parent_mat_test = base_obj$others$bld_cytof$preprocess_bld_cytof_parent_gr
 
 cytof_parent_mat = rbind(cytof_parent_mat_train, cytof_parent_mat_test)
 cytof_parent_mat$event_id = rownames(cytof_parent_mat)
-cytof_parent_mat <- merge(cytof_parent_mat, 
-                          merge(ct_df, auc_df, by = "event_id"), 
-                          by = "event_id")
-cytof_parent_feature_names = colnames(cytof_parent_mat)[-1]
-cytof_parent_mat <- cytof_parent_mat[,c(2:ncol(cytof_parent_mat),1)]
+cytof_parent_mat <- cytof_parent_mat %>%
+  left_join(ct_df %>% left_join(auc_df, by = "event_id"), by = "event_id") %>%
+  dplyr::select(-event_id, everything(), event_id)
+cytof_parent_feature_names = setdiff(colnames(cytof_parent_mat), "event_id")
 
 cytof_parent_mat = cytof_mat_preprocess(
   cytof_parent_mat, subtype_hcl, clin_data_aligned)
@@ -186,7 +185,11 @@ rownames(est_mat)[rownames(est_mat) == "CD8 T Cell"] = "CD8+ T Cell"
 rownames(est_mat)[rownames(est_mat) == "Hematopoetic progrenitor Cell"] = 
   "Hematopoetic progrenitor"
 rownames(pval_mat) = rownames(est_mat)
-adj_p = apply(pval_mat, 2, function(p) p.adjust(p, method = "BH"))
+pvec = as.vector(as.matrix(pval_mat))
+pvec_bh = p.adjust(pvec, method = "BH")
+adj_p = matrix(pvec_bh, nrow = nrow(pval_mat), ncol = ncol(pval_mat),
+               dimnames = list(rownames(pval_mat), colnames(pval_mat)))
+# adj_p = apply(pval_mat, 2, function(p) p.adjust(p, method = "BH"))
 
 test_Fig3A = list()
 test_Fig3A$estimate = est_mat
@@ -236,10 +239,11 @@ cytof_multi_comparison = ComplexHeatmap::Heatmap(
     grid.text("*", x, y-h*0.12)
   }
 })
+
 ComplexHeatmap::draw(cytof_multi_comparison, heatmap_legend_side = "bottom")
 ```
 
-# Cytokine multi-group comparison (Figure 3D)
+# Cytokine multi-group comparison (Figure 3C)
 ```{r Cytokine multi-group comparison, fig.width = 7.85, fig.height = 22}
 max_cutoff = 0.5
 cytokine_test = list()
@@ -254,17 +258,21 @@ est_mat = cbind(t(cytokine_test[["early"]]$est),
                 t(cytokine_test[["late"]]$est))
 pval_mat = cbind(t(cytokine_test[["early"]]$pval), 
                  t(cytokine_test[["late"]]$pval))
-adj_p = apply(pval_mat, 2, function(p) p.adjust(p, method = "BH"))
+pvec = as.vector(as.matrix(pval_mat))
+pvec_bh = p.adjust(pvec, method = "BH")
+adj_p = matrix(pvec_bh, nrow = nrow(pval_mat), ncol = ncol(pval_mat),
+               dimnames = list(rownames(pval_mat), colnames(pval_mat)))
+# adj_p = apply(pval_mat, 2, function(p) p.adjust(p, method = "BH"))
 
-test_Fig3D = list()
-test_Fig3D$estimate = est_mat
-test_Fig3D$pval = pval_mat
-test_Fig3D$adj_p = adj_p
-colnames(test_Fig3D$estimate) = paste0(colnames(test_Fig3D$estimate),
+test_Fig3C = list()
+test_Fig3C$estimate = est_mat
+test_Fig3C$pval = pval_mat
+test_Fig3C$adj_p = adj_p
+colnames(test_Fig3C$estimate) = paste0(colnames(test_Fig3C$estimate),
                                        rep(c(" (V1-V3)"," (V4-V6)"), each = 5))
-colnames(test_Fig3D$pval) = paste0(colnames(test_Fig3D$pval),
+colnames(test_Fig3C$pval) = paste0(colnames(test_Fig3C$pval),
                                    rep(c(" (V1-V3)"," (V4-V6)"), each = 5))
-colnames(test_Fig3D$adj_p) = paste0(colnames(test_Fig3D$adj_p),
+colnames(test_Fig3C$adj_p) = paste0(colnames(test_Fig3C$adj_p),
                                     rep(c(" (V1-V3)"," (V4-V6)"), each = 5))
 
 test_type = factor(colnames(est_mat), 
@@ -303,10 +311,11 @@ cytokine_multi_comparison = ComplexHeatmap::Heatmap(
           grid.text("*", x, y-h*0.12)
           }
     })
+
 ComplexHeatmap::draw(cytokine_multi_comparison, heatmap_legend_side = "bottom")
 ```
 
-# Cytof circular heatmap (Figure 3C)
+# Cytof circular heatmap (Figure 3E)
 ```{r Cytof circular heatmap, fig.height=8, fig.width=8}
 max_cutoff = 1
 cytof_child_test = list()
@@ -324,8 +333,11 @@ pval_mat = cbind(t(cytof_child_test[["early"]]$pval),
 
 est_mat <- est_mat[c(1:30,33:35,39,48,50,51,36:38),]
 pval_mat <- pval_mat[c(1:30,33:35,39,48,50,51,36:38),]
-
-adj_p = apply(pval_mat, 2, function(p) p.adjust(p, method = "BH"))
+pvec = as.vector(as.matrix(pval_mat))
+pvec_bh = p.adjust(pvec, method = "BH")
+adj_p = matrix(pvec_bh, nrow = nrow(pval_mat), ncol = ncol(pval_mat),
+               dimnames = list(rownames(pval_mat), colnames(pval_mat)))
+# adj_p = apply(pval_mat, 2, function(p) p.adjust(p, method = "BH"))
 
 rownames(est_mat)[rownames(est_mat) == "B Cell (CD27+ non-switched memory)"] <- 
   "B Cell (CD27+ non-sM)"
@@ -360,15 +372,15 @@ rownames(est_mat)[rownames(est_mat) == "Basophil"] <- "Basophil (Basophil)"
 rownames(pval_mat) = rownames(est_mat)
 rownames(adj_p) = rownames(est_mat)
 
-test_Fig3C = list()
-test_Fig3C$estimate = est_mat
-test_Fig3C$pval = pval_mat
-test_Fig3C$adj_p = adj_p
-colnames(test_Fig3C$estimate) = paste0(colnames(test_Fig3C$estimate),
+test_Fig3E = list()
+test_Fig3E$estimate = est_mat
+test_Fig3E$pval = pval_mat
+test_Fig3E$adj_p = adj_p
+colnames(test_Fig3E$estimate) = paste0(colnames(test_Fig3E$estimate),
                                        rep(c(" (V1-V3)"," (V4-V6)"), each = 5))
-colnames(test_Fig3C$pval) = paste0(colnames(test_Fig3C$pval),
+colnames(test_Fig3E$pval) = paste0(colnames(test_Fig3E$pval),
                                    rep(c(" (V1-V3)"," (V4-V6)"), each = 5))
-colnames(test_Fig3C$adj_p) = paste0(colnames(test_Fig3C$adj_p),
+colnames(test_Fig3E$adj_p) = paste0(colnames(test_Fig3E$adj_p),
                                     rep(c(" (V1-V3)"," (V4-V6)"), each = 5))
 
 test_type = factor(colnames(est_mat), 
@@ -395,7 +407,13 @@ rownames(parent_est_mat)[rownames(parent_est_mat) == "CD4 T Cell"] = "CD4+ T Cel
 rownames(parent_est_mat)[rownames(parent_est_mat) == "CD8 T Cell"] = "CD8+ T Cell"
 rownames(parent_pval_mat)[rownames(parent_pval_mat) == "CD4 T Cell"] = "CD4+ T Cell"
 rownames(parent_pval_mat)[rownames(parent_pval_mat) == "CD8 T Cell"] = "CD8+ T Cell"
-parent_adj_p = apply(parent_pval_mat, 2, function(p) p.adjust(p, method = "BH"))
+pvec = as.vector(as.matrix(parent_pval_mat))
+pvec_bh = p.adjust(pvec, method = "BH")
+parent_adj_p = matrix(pvec_bh, nrow = nrow(parent_pval_mat), 
+                      ncol = ncol(parent_pval_mat),
+               dimnames = list(rownames(parent_pval_mat), 
+                               colnames(parent_pval_mat)))
+# parent_adj_p = apply(parent_pval_mat, 2, function(p) p.adjust(p, method = "BH"))
 
 parent_est_mat = parent_est_mat[unique(parent_names),]
 parent_adj_p = parent_adj_p[unique(parent_names),]
@@ -506,8 +524,10 @@ cytof_list <- c("Neutrophil", "Monocytes", "CD4+ T Cell",
 cytof_parent_mat <- cytof_parent_mat[, cytof_list]
 cytof_parent_mat$event_id = rownames(cytof_parent_mat)
 
-assay_mat <- merge(merge(ct_df, auc_df, by = "event_id"), 
-                   cytof_parent_mat, by = "event_id")
+# assay_mat <- merge(merge(ct_df, auc_df, by = "event_id"), 
+#                    cytof_parent_mat, by = "event_id")
+assay_mat <- ct_df %>%
+  left_join(auc_df %>% left_join(cytof_parent_mat, by = "event_id"), by = "event_id")
 
 assay_mat <- cytof_mat_preprocess(assay_mat, subtype_hcl, clin_data_aligned)
 assay_mat[, cytof_list] <- scale(assay_mat[, cytof_list])
@@ -521,11 +541,12 @@ cytof_trajectory_analysis_results = helper_trajectory_data_smooth_spline(
   feature_with_ylab = c("negative N1-CT", "CD4+ T Cell"),
   feature_with_xlab = c("CD4+ T Cell", "CD8+ T Cell", "B Cell", "Basophil"))
 test_Fig3B = cytof_trajectory_analysis_results$test_pval_list
+
 ggarrange(plotlist = c(cytof_trajectory_analysis_results$test_fig_list), 
           ncol = 4, nrow = 2, common.legend = T)
 ```
 
-# Cytokine trajectory (Figure 3E)
+# Cytokine trajectory (Figure 3D)
 ```{r cytokine trajectory, fig.width=16, fig.height=9, warning=FALSE}
 cytokine_mat <- organized_data$datasets$serum_olink
 cytokine_list <- c("IL6", "IL10", "IL17C", "MMP10", 
@@ -543,7 +564,8 @@ cytokine_trajectory_analysis_results = helper_trajectory_data_smooth_spline(
   endpoint = "label", use_endpoint_levels = c("A", "B", "C", "E", "F"),
   max_date = 40, feature_with_ylab = c("IL6", "IL12B"),
   feature_with_xlab = c("IL12B", "FLT3LG", "IL10RB", "FGF23"))
-test_Fig3E = cytokine_trajectory_analysis_results$test_pval_list
+test_Fig3D = cytokine_trajectory_analysis_results$test_pval_list
+
 ggarrange(plotlist = c(cytokine_trajectory_analysis_results$test_fig_list), 
           ncol = 4, nrow = 2, common.legend = T)
 ```

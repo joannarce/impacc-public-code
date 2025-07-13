@@ -1,6 +1,6 @@
 ---
 title: "Fig4"
-output: html_document
+output: pdf_document
 ---
 
 ```{r load library}
@@ -107,18 +107,19 @@ for(l in 1:length(enrichment_mhg_list)){
     }
   }
 }
-mod_ids = c(1, 10)
-negation = c(-1, 1)
+```
+
+# Factor trajectory (Figure 4A left & Figure 4C left)
+```{r factor trajectory, fig.height=6, fig.width=6, warning=FALSE}
+mod_ids = c(1, 2, 3, 10)
+negation = c(-1, 1, 1, 1)
 # negate factors
 mcia_factors = t(t(mcia_results$mcia_factors[,mod_ids]) * negation)
 mcia_factors=apply(mcia_factors,2, function(z) qqnorm(z, plot.it = F)$x)
 mcia_factors = data.frame(mcia_factors,row.names = rownames(organized_data$datasets$plasma_proteomics_targeted))
 mcia_factors = mcia_factors[clin_data_aligned$event_id,]
 colnames(mcia_factors) = paste0("Factor", mod_ids)
-```
 
-# Factor trajectory (Figure 4A left & Figure 4C left)
-```{r factor trajectory, fig.height=6, fig.width=6, warning=FALSE}
 assay_mat = mcia_factors
 assay_mat$event_id = rownames(assay_mat)
 assay_mat = cytof_mat_preprocess(cytof_mat = assay_mat, 
@@ -137,6 +138,15 @@ factor_trajectory_analysis_results$test_fig_list$Factor10
 
 # Early/late Factor 1 multi-group comparison (Figure 4A right)
 ```{r early/late Factor 1 multi-group comparison, fig.height=6, fig.width=3.7}
+mod_ids = c(1, 10)
+negation = c(-1, 1)
+# negate factors
+mcia_factors = t(t(mcia_results$mcia_factors[,mod_ids]) * negation)
+mcia_factors=apply(mcia_factors,2, function(z) qqnorm(z, plot.it = F)$x)
+mcia_factors = data.frame(mcia_factors,row.names = rownames(organized_data$datasets$plasma_proteomics_targeted))
+mcia_factors = mcia_factors[clin_data_aligned$event_id,]
+colnames(mcia_factors) = paste0("Factor", mod_ids)
+
 assay_mat = mcia_factors
 assay_mat$event_id = rownames(assay_mat)
 assay_mat = cytof_mat_preprocess(cytof_mat = assay_mat, 

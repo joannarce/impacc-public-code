@@ -1,6 +1,6 @@
 ---
 title: "Fig2"
-output: html_notebook
+output: pdf_document
 ---
 
 ```{r load library}
@@ -113,6 +113,7 @@ clin_names <- c("sex" = "Sex (Female)",
                 "comp_mis" = "Multisystem inflammatory syndrome (MIS)",
                 "comp_gastroent" = "Gastroenteritis",
                 "comp_pulmvas" = "Pulmonary vascular disease",
+                "comp_other2" = "Other complications",
                 "ever_azithro" = "Azithromycin",
                 "ever_icu" = "Ever in ICU",
                 "ever_otherabx" = "Other Antibiotics",
@@ -151,7 +152,7 @@ demo_data_adjust <- demo_data[, c("discretized_admit_age_quantile", "sex")]
 
 clin_data_logit <- clin_data_patient %>%
   dplyr::select(matches("^(comorb|comp)"), ever_icu, ever_ever_esc) %>%
-  dplyr::select(-comorb_count, -comorb_countcat, -comp_other2) %>%
+  dplyr::select(-comorb_count, -comorb_countcat) %>%
   select_if(~sum(.x, na.rm = TRUE) > 0)
 clin_data_demo_logit <- cbind(demo_data[, c("sex", "ethnicity")], race_one_hot)
 clin_data_demo_logit$sex <- ifelse(clin_data_demo_logit$sex == "Female", 1, 0)
@@ -213,8 +214,10 @@ colnames(test_Fig2A$p_logit)[ncol(test_Fig2A$p_logit)-2] <- "bmicat"
 colnames(test_Fig2A$p_logit)[ncol(test_Fig2A$p_logit)-1] <- 
   "discretized_admit_age_quantile"
 colnames(test_Fig2A$p_logit)[ncol(test_Fig2A$p_logit)] <- "baseline_img_infil"
-test_Fig2A$p_adj <- apply(test_Fig2A$p_logit, 2,
-                          function(p) p.adjust(p, method = "BH"))
+pvec <- as.vector(as.matrix(test_Fig2A$p_logit))
+pvec_bh <- p.adjust(pvec, method = "BH")
+test_Fig2A$p_adj <- matrix(pvec_bh, nrow = nrow(test_Fig2A$p_logit), 
+                          ncol = ncol(test_Fig2A$p_logit))
 
 logit_features <- c(colnames(clin_test_logit$est_logit),
                     colnames(demo_test_logit$est_logit),
@@ -234,16 +237,20 @@ colnames(test_Fig2A$est_logit) <- clin_names[colnames(test_Fig2A$est_logit)]
 rownames(test_Fig2A$p_logit) <- paste0("Subtype ", c("A", "B", "C", "E", "F"))
 colnames(test_Fig2A$p_logit) <- clin_names[colnames(test_Fig2A$p_logit)]
 rownames(test_Fig2A$p_adj) <- paste0("Subtype ", c("A", "B", "C", "E", "F"))
-colnames(test_Fig2A$p_adj) <- clin_names[colnames(test_Fig2A$p_adj)]
+colnames(test_Fig2A$p_adj) <- colnames(test_Fig2A$p_logit)
 names(test_Fig2A$p_lr) <- clin_names[names(test_Fig2A$p_lr)]
 names(test_Fig2A$p_lr_adj) <- clin_names[names(test_Fig2A$p_lr_adj)]
 
 # clinical test featuring variables of interest
+interest_clin_id <- names(clin_test_logit$p_lr_adj)[clin_test_logit$p_lr_adj < 0.001]
+interest_demo_id <- names(demo_test_logit$p_lr_adj)[demo_test_logit$p_lr_adj < 0.001]
+select_id <- c(interest_clin_id, interest_demo_id, 
+               colnames(baseline_test_logit$est_logit),
+               "bmicat", "discretized_admit_age_quantile", "baseline_img_infil")
+
 clin_test <- clin_test_logit
-interest_clin_idx <- which(clin_test_logit$p_lr_adj < 0.001)
-interest_demo_idx <- which(demo_test_logit$p_lr_adj < 0.001)
-clin_test$est_logit <- cbind(clin_test_logit$est_logit[,interest_clin_idx], 
-                             demo_test_logit$est_logit[,interest_demo_idx],
+clin_test$est_logit <- cbind(clin_test_logit$est_logit, 
+                             demo_test_logit$est_logit,
                              baseline_test_logit$est_logit,
                              bmi_test_ordinal$est_ordinal,
                              age_test_ordinal$est_ordinal,
@@ -252,8 +259,9 @@ colnames(clin_test$est_logit)[ncol(clin_test$est_logit)-2] <- "bmicat"
 colnames(clin_test$est_logit)[ncol(clin_test$est_logit)-1] <- 
   "discretized_admit_age_quantile"
 colnames(clin_test$est_logit)[ncol(clin_test$est_logit)] <- "baseline_img_infil"
-clin_test$p_logit <- cbind(clin_test_logit$p_logit[,interest_clin_idx], 
-                           demo_test_logit$p_logit[,interest_demo_idx],
+
+clin_test$p_logit <- cbind(clin_test_logit$p_logit, 
+                           demo_test_logit$p_logit,
                            baseline_test_logit$p_logit,
                            bmi_test_ordinal$p_ordinal,
                            age_test_ordinal$p_ordinal,
@@ -262,9 +270,17 @@ colnames(clin_test$p_logit)[ncol(clin_test$p_logit)-2] <- "bmicat"
 colnames(clin_test$p_logit)[ncol(clin_test$p_logit)-1] <- 
   "discretized_admit_age_quantile"
 colnames(clin_test$p_logit)[ncol(clin_test$p_logit)] <- "baseline_img_infil"
-clin_test$p_adj <- apply(clin_test$p_logit, 2,
-                         function(p) p.adjust(p, method = "BH"))
 
+pvec <- as.vector(as.matrix(clin_test$p_logit))
+pvec_bh <- p.adjust(pvec, method = "BH")
+clin_test$p_adj <- matrix(pvec_bh, nrow = nrow(clin_test$p_logit), 
+                          ncol = ncol(clin_test$p_logit))
+rownames(clin_test$p_adj) <- rownames(clin_test$p_logit)
+colnames(clin_test$p_adj) <- colnames(clin_test$p_logit)
+
+clin_test$est_logit <- clin_test$est_logit[, select_id]
+clin_test$p_logit <- clin_test$p_logit[, select_id]
+clin_test$p_adj <- clin_test$p_adj[, select_id]
 heatmap_clinical(clin_test, clin_names, adjust_p = TRUE)
 ```
 
@@ -301,7 +317,7 @@ ggplot(df_age, aes(x = subtype, y = age, color = subtype)) +
     labs(y = "Admission Age")
 ```
 
-# Sex, BMI, ethnicity (Figure 2C)
+# Sex, BMI, ethnicity, race (Figure 2C)
 ```{r donut plot, fig.height=6, fig.width=8, message=FALSE, warning=FALSE}
 library(patchwork)
 library(ggrepel)
@@ -359,6 +375,33 @@ bmi_plot_F <- clin_donut_plot(donut_bmi, "F",
 (bmi_plot_A | bmi_plot_B | bmi_plot_C)/(bmi_plot_E | bmi_plot_F) + 
   plot_annotation("BMI", 
                   theme = theme(plot.title = element_text(hjust = 0.5, size = 20)))
+
+donut_race <- clin_data_patient$race
+donut_race[clin_data_patient$race == "Black / African American"] = 
+  "Black /\nAfrican American"
+donut_race[clin_data_patient$race == "American Indian / Alaska Native"] = 
+  "American Indian /\nAlaska Native"
+donut_race[clin_data_patient$race == "Unknown / Unavailable"] = 
+  "Unknown /\nUnavailable"
+donut_race[clin_data_patient$race == "Other / Declined"] = 
+  "Other /\nDeclined"
+donut_race[clin_data_patient$race == "Native Hawaiian / Pacific Islander"] = 
+  "Native Hawaiian /\nPacific Islander"
+ethnicity_plot_A <- clin_donut_plot(donut_race, "A", 
+                                    "Greens", label_position = 3.4)
+ethnicity_plot_B <- clin_donut_plot(donut_race, "B", 
+                                    "Blues", label_position = 3.4)
+ethnicity_plot_C <- clin_donut_plot(donut_race, "C", 
+                                    "Oranges", label_position = 3.4)
+ethnicity_plot_E <- clin_donut_plot(donut_race, "E", 
+                                    "Reds", label_position = 3.4)
+ethnicity_plot_F <- clin_donut_plot(donut_race, "F", 
+                                    "Purples", label_position = 3.4)
+
+(ethnicity_plot_A | ethnicity_plot_B | ethnicity_plot_C)/
+  (ethnicity_plot_E | ethnicity_plot_F) + 
+  plot_annotation("Race", 
+                  theme = theme(plot.title = element_text(hjust = 0.5, size = 20)))
 ```
 
 # Significant comorbidities (Figure 2D)
@@ -393,8 +436,12 @@ demo_data_adjust = clin_data_patient[, c("discretized_admit_age_quantile",
                                          "sex")]
 comp_demo_adjust = comp_comparison_adjust(df_comp, demo_data_adjust,
                                           subtype_hcl$label)
-comp_demo_adjust$p_adj = apply(comp_demo_adjust$p_logit, 2, 
-                               function(p) p.adjust(p, method = "BH"))
+pvec <- as.vector(as.matrix(comp_demo_adjust$p_logit))
+pvec_bh <- p.adjust(pvec, method = "BH")
+comp_demo_adjust$p_adj <- matrix(pvec_bh, nrow = nrow(comp_demo_adjust$p_logit), 
+                          ncol = ncol(comp_demo_adjust$p_logit),
+                          dimnames = list(rownames(comp_demo_adjust$p_logit),
+                                          colnames(comp_demo_adjust$p_logit)))
 
 test_Fig2E = comp_demo_adjust
 colnames(test_Fig2E$est_logit) = clin_names[colnames(test_Fig2E$est_logit)]
@@ -571,6 +618,5 @@ ggplot(df_comp, aes(comp, mean)) +
   coord_cartesian(ylim = c(0, 1), clip = "off") + 
   theme(plot.margin = margin(t = 25, unit = "pt"))
 ```
-
 
 

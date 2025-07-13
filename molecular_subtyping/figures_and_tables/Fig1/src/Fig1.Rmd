@@ -1,6 +1,6 @@
 ---
 title: "Fig1"
-output: html_notebook
+output: pdf_document
 ---
 
 ```{r load library}
@@ -270,6 +270,17 @@ ggplot(df_summary2, aes(y = Subtype, x = percent, fill = TG)) +
 full_clust_test = list(); full_clust_test[["TG"]] = list()
 clin_data_patient = clin_data_aligned[clin_data_aligned$event_type == "Visit 1", ]
 demo_data_adjust = clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
+
+df_global = cbind(subtype = subtype_hcl$label, 
+                  response = subtype_hcl$TG, demo_data_adjust)
+m1 = clm(response ~ subtype + discretized_admit_age_quantile + sex, 
+         data = df_global)
+m0 = clm(response ~ discretized_admit_age_quantile + sex, 
+         data = df_global)
+LRT_stat = 2*(as.numeric(logLik(m1))-as.numeric(logLik(m0)))
+df_drop = attr(logLik(m1), "df") - attr(logLik(m0), "df")
+pval_global = pchisq(LRT_stat, df = df_drop, lower.tail = FALSE)
+pval_global
 
 full_clust_test[["TG"]][["ordinal_demo"]] = test_ordinal_demo(
   subtype = subtype_hcl$label,

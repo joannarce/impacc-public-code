@@ -1,0 +1,307 @@
+---
+title: "additional PASC checks"
+output: pdf_document
+---
+
+```{r load library}
+library(ade4) #used in mcia
+library(mogsa)
+library(factoextra)
+library(cluster)
+library(nnet)
+library(survival)
+library(ordinal)
+library(ggeffects)
+library(openxlsx)
+library(network)
+library(GGally)
+library(ggalt)
+library(metafor)
+library(cowplot)
+library(survminer)
+require(nlme) # directly provides p-values, unlike lme4
+require(splines)
+require(dplyr)
+library(fgsea)
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+source(paste0(codebase_path,"/codebase_subtype.R"))
+
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+mcia_results = readRDS(paste0(intermediate_results_outdir_DR,"MCIA_phase123_20230726.rds"))
+
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+```
+
+# Load subtype assignment and clinical data
+```{r load subtype assignment and clinical data}
+nclust_tree_all = 6
+subtype_hcl = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_aligned = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+extended_data = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/extended_data.rds")
+```
+
+# Barplot colored by PASC - 6 subtypes (Extended Data Fig6A)
+```{r barplot colored by PASC, fig.height=6, fig.width=6.5}
+df_summary <- data.frame(Subtype = factor(subtype_hcl$label),
+                         PASC =subtype_hcl$PASC,
+                         TG = subtype_hcl$TG)
+
+df_summary1 <- df_summary %>%
+  dplyr::group_by(Subtype, PASC) %>%
+  dplyr::summarise(Count = n(), .groups = "drop")
+df_summary1 <- df_summary1[!is.na(df_summary1$PASC),]
+total_counts1 <- df_summary1 %>%
+  group_by(Subtype) %>%
+  summarise(Total = sum(Count))
+df_summary1 <- df_summary1 %>%
+  dplyr::group_by(Subtype) %>%
+  mutate(percent = Count/sum(Count))
+
+df_summary1$Subtype <- factor(as.character(df_summary1$Subtype))
+df_summary1$PASC <- factor(df_summary1$PASC, labels = c("Minimal", "Physical", 
+                                                        "Cognitive", "Multiple"))
+df_summary1$Subtype <- factor(df_summary1$Subtype, 
+                              levels = rev(levels(df_summary1$Subtype)))
+
+ggplot(df_summary1, aes(y = Subtype, x = percent, fill = PASC)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  geom_text(data = total_counts1,
+            aes(y = Subtype, x = -0.06, label = sprintf(" %d", Total)),
+            position = position_dodge(width = 0.9),
+            inherit.aes = FALSE, size = 7)+
+  labs(y = "Subtype", x = "Percent") +
+  theme(axis.title.x = element_text(size = 15),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(color = "black", size = 15),
+        axis.text.y = element_text(color = "black", size = 15),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15),
+        # legend.key.size = unit(2, "lines"),
+        legend.position = "top",
+        legend.margin = margin(b = 30)) +
+        # plot.margin = margin(b = 55, t = 5)) +
+  scale_fill_manual(values = c("Minimal" = "#999999", "Physical" = "#58B5EA", 
+                               "Cognitive" = "#EAAE2A", "Multiple" = "#FF1820"))
+```
+
+# PASC across subtypes (Extended Data Fig6C)
+```{r PASC across subtypes, fig.height=6, fig.width=6.8}
+df_tg_pasc <- data.frame(
+  "PASC" = subtype_hcl$PASC[subtype_hcl$label != "D"],
+  "TG" = subtype_hcl$TG[subtype_hcl$label != "D"],
+  "subtype" = factor(subtype_hcl$label[subtype_hcl$label != "D"]))
+df_tg_pasc$PASC <- factor(df_tg_pasc$PASC, labels = c("Minimal", "Physical",
+                                                      "Cognitive", "Multiple"))
+df_tg_pasc <- df_tg_pasc[!is.na(df_tg_pasc$PASC),]
+
+
+subtype_use <- c("A", "B", "C", "E", "F")
+test_tg_pasc <- matrix(NA, nrow = 5, ncol = 2)
+colnames(test_tg_pasc) <- c("p_val", "statistics")
+rownames(test_tg_pasc) <- paste0("Subtype ", subtype_use)
+for (i in 1:5) {
+  df_tmp <- df_tg_pasc[df_tg_pasc$subtype == subtype_use[i],]
+  df_tmp$TG <- droplevels(df_tmp$TG)
+  df_tmp$PASC <- droplevels(df_tmp$PASC)
+  results_tmp <- chisq.test(table(df_tmp$TG, df_tmp$PASC))
+  test_tg_pasc[i, "p_val"] <- results_tmp$p.value
+  test_tg_pasc[i, "statistics"] <- results_tmp$statistic
+}
+test_tg_pasc <- data.frame(test_tg_pasc)
+
+
+df_tg_pasc$TG <- droplevels(df_tg_pasc$TG)
+p_val_df <- data.frame(subtype = levels(df_tg_pasc$subtype),
+                       label = paste("p.val =", round(test_tg_pasc$p_val, 2)),
+                       TG = rep(3, length(test_tg_pasc$p_val)))
+
+ggplot(df_tg_pasc, aes(x = TG, fill = PASC)) + 
+  geom_bar(position = "fill") +
+  facet_wrap(~subtype) +
+  geom_text(data = p_val_df, aes(x = TG, label = label),
+                   y = 1,
+                   vjust = -0.6, hjust = 0.3,
+                   size = 5,
+                   color = "black",
+                   inherit.aes = FALSE) +
+  labs(x = "TG",
+       y = "Proportion") +
+  theme_minimal() +
+  theme(axis.title.x = element_text(color = "black", size = 15),
+        axis.title.y = element_text(color = "black", size = 15),
+        axis.text.x = element_text(color = "black", size = 15),
+        axis.text.y = element_text(color = "black", size = 15),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15),
+        # legend.key.size = unit(2, "lines"),
+        legend.margin = margin(b = -5),
+        legend.position = "top",
+        strip.text.x = element_text(size = 15)) +
+  scale_fill_manual(values = c("Minimal" = "#999999", "Physical" = "#58B5EA", 
+                               "Cognitive" = "#EAAE2A", "Multiple" = "#FF1820")) +
+  scale_y_continuous(limits = c(0, 1.1), 
+                     breaks = c(0, 0.25, 0.5, 0.75, 1))
+```
+
+# Missingness across subtypes (Extended Data Fig6D right)
+```{r missingness across subtypes, fig.height=6, fig.width=6,}
+sample_meta_participant = extended_data$sample_meta_participant_level
+sample_meta_participant$death_date[sample_meta_participant$death_date<0] = 999
+censoring_date_death = 200
+death_surv = cbind(sample_meta_participant$death_date,sample_meta_participant$death_date)
+death_surv[death_surv[,2]>censoring_date_death,2] = censoring_date_death+1
+death_surv[,1] = ifelse(death_surv[,2]<=censoring_date_death,1,0)
+death_surv = data.frame(death_surv)
+colnames(death_surv) = c("state", "time")
+id_post_acute <- which(death_surv$time > 28 & subtype_hcl$label != "D")
+
+post_acute_label = array("Non-\nrespondent", 
+                         nrow(extended_data$sample_meta_participant_level))
+idx_PASC = which(!is.na(subtype_hcl$conv))
+post_acute_label[idx_PASC] = "Other\nDeficits"
+post_acute_label[subtype_hcl$PASC == "minimal"] = "Minimal\nDeficit"
+post_acute_label = factor(post_acute_label, 
+                          levels = c("Minimal\nDeficit", "Other\nDeficits",
+                                     "Non-\nrespondent"))
+
+df_post_acute = data.frame(Subtype = factor(subtype_hcl$label[id_post_acute]),
+                           post_acute = factor(post_acute_label)[id_post_acute])
+df_summary1 = df_post_acute %>%
+  dplyr::group_by(Subtype, post_acute) %>%
+  dplyr::summarise(Count = n(), .groups = "drop")
+
+total_counts1 <- df_summary1 %>%
+  group_by(Subtype) %>%
+  summarise(Total = sum(Count))
+
+df_summary1 = df_summary1%>%dplyr::group_by(Subtype) %>%mutate(percent = Count/sum(Count))
+df_summary1$Subtype <- factor(df_summary1$Subtype, levels = rev(levels(df_summary1$Subtype)))
+ggplot(df_summary1 , aes(y = Subtype, x = percent, fill = post_acute)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+    geom_text(data = total_counts1,
+              aes(y = Subtype, x = -0.06,label = sprintf(" %d", Total)),
+            position = position_dodge(width = 0.9),
+            inherit.aes = FALSE, size = 7)+
+  labs(y = "Subtype",
+       x = "Percent", fill = "Post Acute Status") +
+  theme(axis.title.x = element_text(size = 15),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(color = "black", size = 15),
+        axis.text.y = element_blank(),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15),
+        legend.position = "top",
+        legend.margin = margin(b = 16),
+        plot.margin = margin(b = 55, t = 5))
+```
+
+# Test Missingness across subtypes (Extended Data Fig6D left)
+```{r fig.height=6, fig.width=2.2}
+clin_data_patient <- clin_data_aligned[clin_data_aligned$event_type == "Visit 1",]
+demo_data_adjust <- clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
+
+ww = ifelse(df_post_acute$post_acute == "Non-\nrespondent",1,0)
+idx_post_test = which(df_post_acute$post_acute != "Other\nDeficits")
+non_resp_test = test_clinical_fisher_exact(
+  df_post_acute$Subtype[idx_post_test],
+  df_post_acute$post_acute[idx_post_test],
+  ww[idx_post_test], seed = 123)
+
+heatmap_fisher_post_acute(non_resp_test, "Non-\nrespondent", 
+                          plot_margin_b = -7)
+```
+
+# Test missingness adjusted for demographics (Extended Data Fig6E)
+```{r test missingness adjusted for demographics, fig.height=6, fig.width=2.3}
+sample_meta_participant = extended_data$sample_meta_participant_level
+sample_meta_participant$death_date[sample_meta_participant$death_date<0] = 999
+censoring_date_death = 200
+death_surv = cbind(sample_meta_participant$death_date,
+                   sample_meta_participant$death_date)
+death_surv[death_surv[,2]>censoring_date_death,2] = censoring_date_death+1
+death_surv[,1] = ifelse(death_surv[,2]<=censoring_date_death,1,0)
+death_surv = data.frame(death_surv)
+colnames(death_surv) = c("state", "time")
+
+id_post_acute <- which(death_surv$time > 28 & subtype_hcl$label != "D")
+post_acute_label = array("Non-respondent",
+                         nrow(extended_data$sample_meta_participant_level))
+idx_PASC = which(!is.na(subtype_hcl$PASC))
+post_acute_label[idx_PASC] = "Any Deficit"
+post_acute_label[subtype_hcl$PASC == "minimal"] = "Minimal Deficit"
+post_acute_label = factor(post_acute_label, 
+                          levels = c("Minimal Deficit", "Any Deficit",
+                                     "Non-respondent"))
+
+clin_data_patient <- clin_data_aligned[clin_data_aligned$event_type == "Visit 1",]
+demo_data_adjust <- clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
+ww <- ifelse(post_acute_label == "Non-respondent", 1, 0)
+
+idx_non_resp = which(post_acute_label == "Minimal Deficit" |
+                       post_acute_label == "Non-respondent")
+idx_non_resp = intersect(idx_non_resp, id_post_acute)
+
+missing_demo_adjusted_test <- test_clinical_binomial_demo(
+  subtype_hcl$label[idx_non_resp],
+  ww[idx_non_resp],
+  demo_data_adjust[idx_non_resp,])
+
+heatmap_binomial(missing_demo_adjusted_test, col_name = "Non-\nrespondent")
+```
+
+# Test any deficit adjusted for demographics (Extended Data Fig6E)
+```{r test any deficit adjusted for demographics, fig.height=6, fig.width=2.3}
+id_pasc = which(!is.na(subtype_hcl$PASC) & subtype_hcl$label != "D")
+ww = ifelse(subtype_hcl$PASC == "minimal", 0, 1)
+clin_data_patient = clin_data_aligned[clin_data_aligned$event_type == "Visit 1", ]
+demo_data_adjust = clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
+
+any_deficit_demo_adjusted_test <- test_clinical_binomial_demo(
+  subtype = subtype_hcl$label[id_pasc],
+  response_binary = ww[id_pasc],
+  demo_data = demo_data_adjust[id_pasc,])
+
+heatmap_binomial(any_deficit_demo_adjusted_test, col_name = "Any Deficit")
+```
+
+# Test PASC adjusted for demographics (Extended Data Fig6E)
+```{r test PASC adjusted for demographics, fig.height=6, fig.width=4.2}
+full_clust_test = list(); full_clust_test[["PASC"]] = list()
+clin_data_patient = clin_data_aligned[clin_data_aligned$event_type == "Visit 1", ]
+demo_data_adjust = clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
+
+full_clust_test[["PASC"]][["regression_demo"]] = test_multi_pasc_demo(
+  subtype = subtype_hcl$label,
+  response = subtype_hcl$PASC,
+  demo_data = demo_data_adjust)
+
+heatmap_pasc_multi(full_clust_test[["PASC"]][["regression_demo"]],
+                   "Demographics Adjusted")
+```
+
+# Test PASC adjusted for demographics - global test (Extended Data Fig6E)
+```{r test PASC adjusted for demographics - global test, fig.height=6, fig.width=2}
+clin_data_patient = clin_data_aligned[clin_data_aligned$event_type == "Visit 1", ]
+demo_data_adjust = clin_data_patient[, c("discretized_admit_age_quantile", "sex")]
+
+global_test_demo = test_global_multi_pasc(
+  subtype = subtype_hcl$label,
+  response = subtype_hcl$PASC,
+  demo_data = demo_data_adjust)
+
+heatmap_multi_global(global_test_demo)
+```
+
+
+
