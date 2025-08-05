@@ -59,13 +59,17 @@ feature_table <- read_csv(here(input_dir, "filter_best_results_df.csv"))
 
 ## MERGE META WITH CT =====
 
+basic_metadata <- read.csv(here(input_dir, "basic_metadata.csv")) 
+
 test_meta <- rpM_ct_complete %>% 
   select("participant_id", "ct") %>%
-  inner_join(., test_meta, by = "participant_id")
+  inner_join(., test_meta, by = "participant_id") %>%
+  inner_join(., basic_metadata, by = "participant_id")
 
 train_meta <- rpM_ct_complete %>% 
   select("participant_id", "ct") %>%
-  inner_join(., train_meta, by = "participant_id")
+  inner_join(., train_meta, by = "participant_id") %>%
+  inner_join(., basic_metadata, by = "participant_id")
 
 ## SET UP COUNTS =====
 
@@ -159,10 +163,12 @@ determine_performance_gene <- function(counts, train_meta, test_meta, features) 
   
   ## Add additional features
   train_meta_subset <- train_meta %>%
-    select("sample_id", "admit_age", "ct")
+    select("sample_id", "admit_age", "ct", "SOFA", "baseline_lab_lymph", "baseline_lab_crp",
+           "resp_status_v1")
   
   test_meta_subset <- test_meta %>%
-    select("sample_id", "admit_age", "ct")
+    select("sample_id", "admit_age", "ct", "SOFA", "baseline_lab_lymph", "baseline_lab_crp",
+           "resp_status_v1")
   
   x <- x %>%
     as.data.frame(.) %>%
@@ -294,14 +300,26 @@ three_features <- c(my_features[1:3], "admit_age", "ct")
 
 three_genes <- c(my_features[1:3])
 
-sweeney <- c("ENSG00000160883", "ENSG00000112799", "ENSG00000105329",
-             "ENSG00000164821", "ENSG00000156127", "ENSG00000223865",
-             "ct", "admit_age")
+#sweeney <- c("ENSG00000160883", "ENSG00000112799", "ENSG00000105329",
+#            "ENSG00000164821", "ENSG00000156127", "ENSG00000223865",
+#            "ct", "admit_age")
+
 
 # EVALUATE =====
+s.OLAH_eval <- determine_performance_gene(counts, train_meta, test_meta, c("ENSG00000152463", "SOFA"))
+s.OLAH_integrated <- determine_performance_gene(counts, train_meta, test_meta, c("ENSG00000152463", "admit_age", "ct", "SOFA"))
+s.three_eval <- determine_performance_gene(counts, train_meta, test_meta, c(three_features, "SOFA"))
+s.three_genes_eval <- determine_performance_gene(counts, train_meta, test_meta, c(three_genes, "SOFA"))
+
+s.s <- determine_performance_gene(counts, train_meta, test_meta, "SOFA")
+lymph <- determine_performance_gene(counts, train_meta, test_meta, "baseline_lab_lymph")
+crp <- determine_performance_gene(counts, train_meta, test_meta, "baseline_lab_crp")
+resp <- determine_performance_gene(counts, train_meta, test_meta, "resp_status_v1")
+
 OLAH_eval <- determine_performance_gene(counts, train_meta, test_meta, c("ENSG00000152463"))
 OLAH_integrated <- determine_performance_gene(counts, train_meta, test_meta, c("ENSG00000152463", "admit_age", "ct"))
 three_eval <- determine_performance_gene(counts, train_meta, test_meta, three_features)
+OLAH_friends <- determine_performance_gene(counts, train_meta, test_meta, c(three_features, "ENSG00000152463"))
 age_three_features <- determine_performance_gene(counts, train_meta, test_meta, c(three_genes, "admit_age"))
 three_genes_eval <- determine_performance_gene(counts, train_meta, test_meta, three_genes)
 sweeney_complete <- determine_performance_gene(counts, train_meta, test_meta, sweeney)
@@ -309,7 +327,58 @@ sweeney_genes_subset <- determine_performance_gene(counts, train_meta, test_meta
 age_only <- determine_performance_gene(counts, train_meta, test_meta, c("admit_age"))
 ct_only <- determine_performance_gene(counts, train_meta, test_meta, c("ct"))
 
+## De long test
 
+compare_values <- list(
+  list(s.s$roc, three_eval$roc),
+  list(s.s$roc, three_genes_eval$roc),
+  list(s.s$roc, OLAH_integrated$roc),
+  list(s.s$roc, OLAH_eval$roc)
+)
+
+model_names.s <- list(
+  c("sofa", "three_eval"),
+  c("sofa", "three_genes_eval"),
+  c("sofa", "OLAH_integrated"),
+  c("sofa", "OLAH_eval")
+)
+res_compare_sofa_df <- do.call(rbind, lapply(seq_along(compare_values), function(i) {
+  test_res <- roc.test(compare_values[[i]][[1]], compare_values[[i]][[2]], method = "delong")
+  data.frame(
+    model1 = model_names.s[[i]][1],
+    model2 = model_names.s[[i]][2],
+    p_value = test_res$p.value
+  )
+}))
+
+lymph_compare <- list(
+  list(lymph$roc, three_eval$roc),
+  list(lymph$roc, three_genes_eval$roc),
+  list(lymph$roc, OLAH_integrated$roc),
+  list(lymph$roc, OLAH_eval$roc)
+)
+
+
+model_names <- list(
+  c("lymph", "three_eval"),
+  c("lymph", "three_genes_eval"),
+  c("lymph", "OLAH_integrated"),
+  c("lymph", "OLAH_eval")
+)
+
+# Perform roc.test and extract p-values with names
+res_compare_lymph_df <- do.call(rbind, lapply(seq_along(lymph_compare), function(i) {
+  test_res <- roc.test(lymph_compare[[i]][[1]], lymph_compare[[i]][[2]], method = "delong")
+  data.frame(
+    model1 = model_names[[i]][1],
+    model2 = model_names[[i]][2],
+    p_value = test_res$p.value
+  )
+}))
+
+write.csv(res_compare_lymph_df, here(output_dir, "res_compare_lymph_df.csv"))
+
+## Downstream analysis
 
 evaluation_list <- list(three_eval, three_genes_eval, sweeney_complete, sweeney_genes_subset,
                         age_only, ct_only, OLAH_eval, OLAH_integrated)
@@ -487,7 +556,7 @@ ggsave(here(output_dir, "supp_roc_plot.svg"), supp_combined_plot, width = 6, hei
 
 ## Figure 4 e ========
 
-OLAH_roc <- evaluation_list[8]
+OLAH_roc <- OLAH_list[2]
 roc_OLAH_list <- lapply(OLAH_roc, function(x) {
   ggplot_build(x$roc_plot)$data[[1]]
 })
@@ -520,3 +589,26 @@ olah_plot <- ggplot(OLAH_roc_data, aes(x = x, y = y, color = Source)) +
 
 ggsave(here(output_dir, "olah_combined_plot.svg"), olah_plot, width = 4, height = 3.5)
 
+
+## Figure S5A =====
+# Extract ROC data from a single ggplot object
+roc_data <- ggplot_build(OLAH_friends$roc_plot)$data[[1]]
+roc_data$Source <- "Friends"
+
+# Create the plot
+friends_plot <- ggplot(roc_data, aes(x = x, y = y, color = "brown")) +
+  geom_line() +
+  labs(x = "(1 - Specificity)", y = "(Sensitivity)", color = "") +
+  my.theme +
+  theme(
+    legend.position = "none",
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  ) +
+  geom_segment(aes(x = 0, y = 0, xend = 1, yend = 1), 
+               linetype = "dashed", color = "grey")
+
+# Save the plot
+ggsave(here(output_dir, "friends_combined_plot.svg"), friends_plot, width = 4, height = 3.5)
+
+
+write_csv(roc_data, here(output_dir, "supp_olah_friends.csv")) 
