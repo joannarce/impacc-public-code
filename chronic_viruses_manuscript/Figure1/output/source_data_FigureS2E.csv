@@ -1,161 +1,99 @@
-name,percent,day,compartment,virus
-Anelloviridae.pbmc,10.386029411764707,1,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,1.1029411764705883,1,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,18.84191176470588,1,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0.6433823529411764,1,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,10.264150943396226,2,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,1.1320754716981132,2,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,20.075471698113205,2,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0.6037735849056604,2,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,10.304287690179805,3,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,1.2448132780082988,3,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,19.571230982019365,3,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0.5532503457814661,3,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,10.517928286852591,4,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,1.1155378486055778,4,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,20.47808764940239,4,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0.6374501992031872,4,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,11.251435132032148,5,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,1.2629161882893225,5,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,21.23995407577497,5,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0.4592422502870264,5,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,12.093023255813954,6,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,1.1627906976744187,6,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,20.930232558139537,6,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0.3488372093023256,6,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,12.926136363636365,7,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,1.4204545454545454,7,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,17.613636363636363,7,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0.2840909090909091,7,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,13.489208633093524,8,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,1.4388489208633095,8,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,16.906474820143885,8,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0.1798561151079137,8,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,14.460784313725492,9,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,1.715686274509804,9,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,15.441176470588236,9,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,9,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,14.788732394366196,10,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,1.7605633802816902,10,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,11.971830985915492,10,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,10,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,11.052631578947368,11,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,2.631578947368421,11,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,9.473684210526317,11,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,11,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,11.578947368421053,12,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,4.2105263157894735,12,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,13.684210526315791,12,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,12,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,11.48936170212766,13,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,4.25531914893617,13,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,10.638297872340425,13,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,13,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,10.273972602739725,14,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,4.10958904109589,14,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,10.616438356164384,14,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,14,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,10.1010101010101,15,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,4.377104377104377,15,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,9.427609427609427,15,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,15,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,12.313432835820896,16,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,4.477611940298507,16,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,8.955223880597014,16,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,16,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,11.442786069651742,17,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,3.482587064676617,17,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,5.472636815920398,17,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,17,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,8.59375,18,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,3.125,18,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,7.8125,18,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,18,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,12.5,19,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,7.954545454545454,19,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,11.363636363636363,19,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,19,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,12.5,20,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,6.25,20,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,14.583333333333334,20,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,20,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,11.607142857142858,21,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,8.035714285714286,21,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,12.5,21,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,21,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,12.037037037037036,22,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,9.25925925925926,22,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,12.037037037037036,22,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,22,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,13.592233009708737,23,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,9.70873786407767,23,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,11.650485436893204,23,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,23,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,12.359550561797752,24,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,6.741573033707865,24,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,6.741573033707865,24,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,24,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,9.876543209876543,25,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,9.876543209876543,25,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,3.7037037037037033,25,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,25,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,8,26,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,7.000000000000001,26,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,7.000000000000001,26,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,26,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,7.462686567164178,27,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,5.970149253731343,27,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,6.7164179104477615,27,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,27,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,7.027027027027027,28,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,5.9459459459459465,28,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,7.567567567567568,28,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,28,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,6.185567010309279,29,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,5.670103092783505,29,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,8.762886597938143,29,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,29,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,7.142857142857142,30,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,5.4945054945054945,30,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,8.791208791208792,30,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,30,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,7.638888888888889,31,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,5.555555555555555,31,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,7.638888888888889,31,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,31,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,7.6923076923076925,32,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,4.807692307692308,32,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,8.653846153846153,32,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,32,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,7.017543859649122,33,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,5.263157894736842,33,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,7.017543859649122,33,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,33,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,6.382978723404255,34,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,4.25531914893617,34,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,2.127659574468085,34,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,34,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,6.976744186046512,35,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,2.3255813953488373,35,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,4.651162790697675,35,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,35,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,2.7777777777777777,36,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,2.7777777777777777,36,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,5.555555555555555,36,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,36,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,3.225806451612903,37,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,3.225806451612903,37,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,6.451612903225806,37,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,37,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,4,38,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0,38,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,4,38,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,38,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,5.555555555555555,39,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0,39,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,5.555555555555555,39,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,39,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,0,40,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0,40,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,0,40,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,40,pbmc,SARS-CoV-2
+name,enrollment_site,count,freq,total
+Anelloviridae.pbmc,Arizona,6,3.125,192
+Anelloviridae.pbmc,Baylor,9,4.6875,192
+Anelloviridae.pbmc,Boston/BWH,6,3.125,192
+Anelloviridae.pbmc,Case Western,6,3.125,192
+Anelloviridae.pbmc,Drexel/Tower Health,12,6.25,192
+Anelloviridae.pbmc,Emory,27,14.0625,192
+Anelloviridae.pbmc,Florida,12,6.25,192
+Anelloviridae.pbmc,ISMMS (Mt Sinai),9,4.6875,192
+Anelloviridae.pbmc,OHSU (Oregon),6,3.125,192
+Anelloviridae.pbmc,OUHSC (Oklahoma),8,4.166666666666666,192
+Anelloviridae.pbmc,Stanford,15,7.8125,192
+Anelloviridae.pbmc,UCLA,31,16.145833333333336,192
+Anelloviridae.pbmc,UCSF,28,14.583333333333334,192
+Anelloviridae.pbmc,UT Austin,1,0.5208333333333333,192
+Anelloviridae.pbmc,Yale,16,8.333333333333332,192
+Enterovirus.nasal,Arizona,4,7.8431372549019605,51
+Enterovirus.nasal,Baylor,1,1.9607843137254901,51
+Enterovirus.nasal,Boston/BWH,6,11.76470588235294,51
+Enterovirus.nasal,Case Western,7,13.725490196078432,51
+Enterovirus.nasal,Drexel/Tower Health,2,3.9215686274509802,51
+Enterovirus.nasal,Emory,1,1.9607843137254901,51
+Enterovirus.nasal,Florida,5,9.803921568627452,51
+Enterovirus.nasal,ISMMS (Mt Sinai),2,3.9215686274509802,51
+Enterovirus.nasal,OHSU (Oregon),1,1.9607843137254901,51
+Enterovirus.nasal,Stanford,5,9.803921568627452,51
+Enterovirus.nasal,UCSF,11,21.568627450980394,51
+Enterovirus.nasal,UT Austin,5,9.803921568627452,51
+Enterovirus.nasal,Yale,1,1.9607843137254901,51
+HSV1.nasal,Arizona,6,5.88235294117647,102
+HSV1.nasal,Baylor,5,4.901960784313726,102
+HSV1.nasal,Boston/BWH,3,2.941176470588235,102
+HSV1.nasal,Case Western,2,1.9607843137254901,102
+HSV1.nasal,Drexel/Tower Health,10,9.803921568627452,102
+HSV1.nasal,Emory,12,11.76470588235294,102
+HSV1.nasal,Florida,10,9.803921568627452,102
+HSV1.nasal,ISMMS (Mt Sinai),2,1.9607843137254901,102
+HSV1.nasal,OHSU (Oregon),4,3.9215686274509802,102
+HSV1.nasal,OUHSC (Oklahoma),8,7.8431372549019605,102
+HSV1.nasal,Stanford,5,4.901960784313726,102
+HSV1.nasal,UCLA,8,7.8431372549019605,102
+HSV1.nasal,UCSF,17,16.666666666666664,102
+HSV1.nasal,UT Austin,5,4.901960784313726,102
+HSV1.nasal,Yale,5,4.901960784313726,102
+HSV2.nasal,Florida,1,25,4
+HSV2.nasal,ISMMS (Mt Sinai),1,25,4
+HSV2.nasal,OHSU (Oregon),1,25,4
+HSV2.nasal,UCLA,1,25,4
+CMV.nasal,Emory,3,13.043478260869565,23
+CMV.nasal,Florida,1,4.3478260869565215,23
+CMV.nasal,ISMMS (Mt Sinai),1,4.3478260869565215,23
+CMV.nasal,OHSU (Oregon),2,8.695652173913043,23
+CMV.nasal,OUHSC (Oklahoma),7,30.434782608695656,23
+CMV.nasal,Stanford,2,8.695652173913043,23
+CMV.nasal,UCLA,4,17.391304347826086,23
+CMV.nasal,UCSF,3,13.043478260869565,23
+CMV.pbmc,Arizona,1,2.4390243902439024,41
+CMV.pbmc,Baylor,1,2.4390243902439024,41
+CMV.pbmc,Boston/BWH,1,2.4390243902439024,41
+CMV.pbmc,Emory,3,7.317073170731707,41
+CMV.pbmc,Florida,5,12.195121951219512,41
+CMV.pbmc,ISMMS (Mt Sinai),2,4.878048780487805,41
+CMV.pbmc,OHSU (Oregon),3,7.317073170731707,41
+CMV.pbmc,OUHSC (Oklahoma),4,9.75609756097561,41
+CMV.pbmc,Stanford,2,4.878048780487805,41
+CMV.pbmc,UCLA,4,9.75609756097561,41
+CMV.pbmc,UCSF,8,19.51219512195122,41
+CMV.pbmc,UT Austin,1,2.4390243902439024,41
+CMV.pbmc,Yale,6,14.634146341463413,41
+EBV.nasal,Arizona,6,7.792207792207792,77
+EBV.nasal,Baylor,2,2.5974025974025974,77
+EBV.nasal,Boston/BWH,2,2.5974025974025974,77
+EBV.nasal,Case Western,1,1.2987012987012987,77
+EBV.nasal,Drexel/Tower Health,3,3.896103896103896,77
+EBV.nasal,Emory,6,7.792207792207792,77
+EBV.nasal,Florida,8,10.38961038961039,77
+EBV.nasal,ISMMS (Mt Sinai),4,5.194805194805195,77
+EBV.nasal,OHSU (Oregon),6,7.792207792207792,77
+EBV.nasal,OUHSC (Oklahoma),5,6.493506493506493,77
+EBV.nasal,Stanford,6,7.792207792207792,77
+EBV.nasal,UCLA,12,15.584415584415584,77
+EBV.nasal,UCSF,10,12.987012987012985,77
+EBV.nasal,UT Austin,4,5.194805194805195,77
+EBV.nasal,Yale,2,2.5974025974025974,77
+EBV.pbmc,Arizona,19,6.643356643356643,286
+EBV.pbmc,Baylor,13,4.545454545454546,286
+EBV.pbmc,Boston/BWH,7,2.4475524475524475,286
+EBV.pbmc,Case Western,14,4.895104895104895,286
+EBV.pbmc,Drexel/Tower Health,29,10.13986013986014,286
+EBV.pbmc,Emory,36,12.587412587412588,286
+EBV.pbmc,Florida,27,9.44055944055944,286
+EBV.pbmc,ISMMS (Mt Sinai),14,4.895104895104895,286
+EBV.pbmc,OHSU (Oregon),8,2.797202797202797,286
+EBV.pbmc,OUHSC (Oklahoma),11,3.8461538461538463,286
+EBV.pbmc,Stanford,21,7.3426573426573425,286
+EBV.pbmc,UCLA,28,9.79020979020979,286
+EBV.pbmc,UCSF,33,11.538461538461538,286
+EBV.pbmc,UT Austin,11,3.8461538461538463,286
+EBV.pbmc,Yale,15,5.244755244755245,286

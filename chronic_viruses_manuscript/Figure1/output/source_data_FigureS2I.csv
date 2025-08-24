@@ -1,161 +1,1374 @@
-name,percent,day,compartment,virus
-Anelloviridae.pbmc,14.606741573033707,1,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,1.1235955056179776,1,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,14.606741573033707,1,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,1,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,16.233766233766232,2,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0.6493506493506493,2,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,14.285714285714285,2,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0.6493506493506493,2,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,15.853658536585366,3,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0.40650406504065045,3,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,12.601626016260163,3,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0.8130081300813009,3,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,13.94658753709199,4,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0.2967359050445104,4,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,14.540059347181009,4,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0.8902077151335311,4,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,13.002364066193852,5,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0.2364066193853428,5,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,17.96690307328605,5,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,1.6548463356973995,5,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,12.753036437246964,6,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0.20242914979757085,6,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,19.230769230769234,6,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,1.417004048582996,6,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,11.282051282051283,7,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0.3418803418803419,7,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,20.34188034188034,7,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,1.0256410256410255,7,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,10.819672131147541,8,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0.32786885245901637,8,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,22.131147540983605,8,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0.819672131147541,8,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,10.59190031152648,9,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0.3115264797507788,9,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,21.651090342679126,9,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0.6230529595015576,9,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,9.969788519637463,10,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0.3021148036253776,10,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,20.84592145015106,10,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,10,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,9.076433121019107,11,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0.6369426751592357,11,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,20.222929936305732,11,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,11,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,9.236234458259325,12,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0.5328596802841918,12,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,19.893428063943162,12,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,12,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,9.328358208955224,13,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0.5597014925373134,13,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,18.84328358208955,13,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,13,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,10.22964509394572,14,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,1.0438413361169103,14,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,19.41544885177453,14,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,14,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,11.576354679802956,15,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0.9852216748768473,15,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,17.48768472906404,15,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,15,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,13.421052631578947,16,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,0.7894736842105263,16,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,16.315789473684212,16,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,16,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,13.94658753709199,17,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,1.483679525222552,17,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,16.023738872403563,17,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,17,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,11.784511784511785,18,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,2.0202020202020203,18,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,15.488215488215488,18,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,18,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,12.452830188679245,19,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,2.2641509433962264,19,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,13.20754716981132,19,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,19,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,13.191489361702127,20,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,2.553191489361702,20,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,13.617021276595745,20,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,20,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,10.185185185185185,21,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,3.2407407407407405,21,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,15.277777777777779,21,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,21,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,9.183673469387756,22,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,2.5510204081632653,22,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,13.26530612244898,22,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,22,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,10.92896174863388,23,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,2.73224043715847,23,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,13.661202185792352,23,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,23,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,8.670520231213873,24,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,2.8901734104046244,24,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,12.716763005780345,24,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,24,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,8.024691358024691,25,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,5.555555555555555,25,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,12.962962962962962,25,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,25,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,8.724832214765101,26,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,6.0402684563758395,26,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,12.080536912751679,26,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,26,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,9.929078014184398,27,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,7.092198581560284,27,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,11.347517730496454,27,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,27,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,11.38211382113821,28,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,9.75609756097561,28,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,9.75609756097561,28,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,28,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,11.570247933884298,29,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,9.090909090909092,29,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,11.570247933884298,29,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,29,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,8.19672131147541,30,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,8.19672131147541,30,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,9.01639344262295,30,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,30,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,12.096774193548388,31,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,9.67741935483871,31,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,8.870967741935484,31,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,31,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,9.67741935483871,32,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,8.870967741935484,32,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,9.67741935483871,32,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,32,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,8.870967741935484,33,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,8.064516129032258,33,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,11.29032258064516,33,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,33,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,8.695652173913043,34,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,8.695652173913043,34,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,10.434782608695652,34,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0.8695652173913043,34,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,9.90990990990991,35,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,6.306306306306306,35,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,12.612612612612612,35,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0.9009009009009009,35,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,5.1020408163265305,36,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,3.061224489795918,36,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,11.224489795918368,36,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,1.0204081632653061,36,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,7.07070707070707,37,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,3.0303030303030303,37,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,9.090909090909092,37,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,1.0101010101010102,37,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,11.702127659574469,38,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,3.1914893617021276,38,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,7.446808510638298,38,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,1.0638297872340425,38,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,10.75268817204301,39,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,2.1505376344086025,39,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,6.451612903225806,39,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,39,pbmc,SARS-CoV-2
-Anelloviridae.pbmc,10.843373493975903,40,pbmc,Anelloviridae
-Human betaherpesvirus 5 (CMV).pbmc,3.614457831325301,40,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).pbmc,3.614457831325301,40,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.pbmc,0,40,pbmc,SARS-CoV-2
+name,event_id,nt_e_value3,omic
+Human gammaherpesvirus 4 (EBV),007-0003-1,5.388898453732831e-46,PBMC
+Human gammaherpesvirus 4 (EBV),007-0004-1,1.574345329142937e-53,PBMC
+Human gammaherpesvirus 4 (EBV),008-0001-2,5.436257251684087e-57,PBMC
+Human gammaherpesvirus 4 (EBV),007-0003-3,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),008-0006-1,4.1677340679767296e-57,PBMC
+Human immunodeficiency virus 1,009-4004-1,5.802297599818694e-56,PBMC
+Human gammaherpesvirus 4 (EBV),006-0002-1,1.4962356560944725e-136,PBMC
+Human betaherpesvirus 5 (CMV),008-0007-3,3.017171522601757e-52,PBMC
+Human betaherpesvirus 6,006-0002-3,1.3433834696603864e-90,PBMC
+Human gammaherpesvirus 4 (EBV),007-0011-1,4.458615279480711e-56,PBMC
+Human betaherpesvirus 6,008-0002-5,2.42884611514224e-100,PBMC
+Human gammaherpesvirus 4 (EBV),008-1003-1,1.1874080803829607e-78,PBMC
+Human immunodeficiency virus 1,008-1003-1,7.077827926089994e-47,PBMC
+Human gammaherpesvirus 4 (EBV),009-4003-4,9.676092245777308e-56,PBMC
+Human gammaherpesvirus 4 (EBV),008-0002-6,7.84151540528117e-57,PBMC
+Human gammaherpesvirus 4 (EBV),006-0001-31,1.9498445997580415e-41,PBMC
+Anelloviridae,008-0013-3,7.148254395687612e-49,PBMC
+Human gammaherpesvirus 4 (EBV),006-0001-5,1.1251229929657704e-50,PBMC
+Enterovirus,007-0020-1,5.970352865838317e-74,PBMC
+Anelloviridae,007-0018-2,2.3420706947938165e-38,PBMC
+Anelloviridae,008-1004-3,6.718928197763036e-48,PBMC
+Human gammaherpesvirus 4 (EBV),008-0018-1,1.2117136492719595e-79,PBMC
+Human betaherpesvirus 5 (CMV),006-0003-1,1.1194378834671686e-186,PBMC
+Human betaherpesvirus 5 (CMV),006-0003-2,4.634469197362846e-105,PBMC
+Human gammaherpesvirus 4 (EBV),009-3002-1,4.1677340679767296e-57,PBMC
+Human betaherpesvirus 5 (CMV),006-0003-3,4.613175745603659e-140,PBMC
+Human gammaherpesvirus 4 (EBV),008-0022-2,2.3670094946869177e-71,PBMC
+Human gammaherpesvirus 4 (EBV),006-0005-1,1.7518624342085542e-63,PBMC
+Human gammaherpesvirus 4 (EBV),008-0026-1,2.2792921774337344e-46,PBMC
+Human gammaherpesvirus 4 (EBV),007-0028-1,6.187283275532334e-57,PBMC
+Human betaherpesvirus 5 (CMV),006-0003-4,8.241381150129962e-138,PBMC
+Human gammaherpesvirus 4 (EBV),009-3005-1,4.508167045414563e-168,PBMC
+Human gammaherpesvirus 4 (EBV),009-3005-2,1.199499303149361e-128,PBMC
+Human gammaherpesvirus 4 (EBV),009-3005-3,5.146358070137281e-43,PBMC
+Human gammaherpesvirus 4 (EBV),009-3005-5,6.0841512229170646e-49,PBMC
+Anelloviridae,009-4029-1,9.824263447582708e-56,PBMC
+Human betaherpesvirus 5 (CMV),009-4029-1,3.2960971217745827e-193,PBMC
+Human gammaherpesvirus 4 (EBV),009-3042-1,9.18332596483583e-57,PBMC
+Human gammaherpesvirus 4 (EBV),009-4021-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),009-4016-1,9.824263447582708e-56,PBMC
+Human immunodeficiency virus 1,009-4016-1,2.3157944032250705e-54,PBMC
+Anelloviridae,009-3026-1,6.17305291888686e-36,PBMC
+Human gammaherpesvirus 4 (EBV),009-3026-1,1.0136779508886422e-54,PBMC
+Human gammaherpesvirus 4 (EBV),009-3025-1,4.1677340679767296e-57,PBMC
+Anelloviridae,009-3014-1,8.959834752883507e-40,PBMC
+Human gammaherpesvirus 4 (EBV),008-0022-4,1.1950883147362645e-56,PBMC
+Human gammaherpesvirus 4 (EBV),013-0002-1,8.346415482773274e-43,PBMC
+Human gammaherpesvirus 4 (EBV),008-0030-1,3.0130060241861155e-110,PBMC
+Human gammaherpesvirus 4 (EBV),013-0002-2,2.627241526468855e-40,PBMC
+Anelloviridae,008-0029-3,1.0209394837077142e-273,PBMC
+Human betaherpesvirus 5 (CMV),006-0004-4,9.18332596483583e-57,PBMC
+Human gammaherpesvirus 4 (EBV),013-0002-3,4.1677340679767296e-57,PBMC
+Anelloviridae,008-0031-2,3.6625560887919764e-38,PBMC
+Human gammaherpesvirus 4 (EBV),009-3014-2,5.689839291528655e-66,PBMC
+Human gammaherpesvirus 4 (EBV),009-3020-2,1.995262314968932e-160,PBMC
+Human gammaherpesvirus 4 (EBV),009-3042-2,3.026913428101268e-191,PBMC
+Human gammaherpesvirus 4 (EBV),009-3053-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),009-3014-3,9.18332596483583e-57,PBMC
+Anelloviridae,009-3045-3,8.433347577642792e-57,PBMC
+Anelloviridae,009-4015-3,2.3157944032250705e-54,PBMC
+Anelloviridae,008-0031-3,9.427341160284759e-35,PBMC
+Human gammaherpesvirus 4 (EBV),009-3061-1,4.1677340679767296e-57,PBMC
+Anelloviridae,008-0029-4,2.1627185237269184e-290,PBMC
+Human gammaherpesvirus 4 (EBV),008-1011-2,8.483987109860017e-43,PBMC
+Human betaherpesvirus 5 (CMV),009-3006-6,1.0739894123412594e-152,PBMC
+Human gammaherpesvirus 4 (EBV),013-1001-1,8.30998041044437e-63,PBMC
+Anelloviridae,009-3032-3,1.7068682499156882e-97,PBMC
+Human gammaherpesvirus 4 (EBV),009-3032-3,1.1202114309051193e-52,PBMC
+Human gammaherpesvirus 4 (EBV),009-3042-3,9.418895965228188e-193,PBMC
+Human betaherpesvirus 5 (CMV),009-3042-4,5.50807696405421e-138,PBMC
+Human gammaherpesvirus 4 (EBV),009-3042-4,6.698846094165162e-222,PBMC
+Human gammaherpesvirus 4 (EBV),009-3052-4,3.1095675818497953e-66,PBMC
+Human betaherpesvirus 6,009-3059-2,4.680583528968175e-65,PBMC
+Human gammaherpesvirus 4 (EBV),009-3061-2,1.24680920515561e-50,PBMC
+Human gammaherpesvirus 4 (EBV),009-4050-1,5.688529308438355e-105,PBMC
+Human gammaherpesvirus 4 (EBV),009-4050-2,1.9440167385130113e-49,PBMC
+Human gammaherpesvirus 4 (EBV),009-4050-3,2.0234850496919657e-56,PBMC
+Human gammaherpesvirus 4 (EBV),013-1002-1,1.3031667784523268e-158,PBMC
+Human gammaherpesvirus 4 (EBV),007-0039-1,4.1677340679767296e-57,PBMC
+Anelloviridae,011-0008-1,3.0881614691845065e-45,PBMC
+Human gammaherpesvirus 4 (EBV),011-0008-1,2.892677383120101e-54,PBMC
+Human gammaherpesvirus 4 (EBV),007-0042-1,1.3870751779668166e-86,PBMC
+Human betaherpesvirus 6,009-3009-4,2.0007830521523974e-52,PBMC
+Human gammaherpesvirus 4 (EBV),009-3019-1,3.485780210560328e-53,PBMC
+Anelloviridae,009-3019-2,1.5448986725154298e-41,PBMC
+Human betaherpesvirus 5 (CMV),009-3019-6,7.516228940182137e-165,PBMC
+Anelloviridae,009-3037-5,6.6038925747854666e-71,PBMC
+Human gammaherpesvirus 4 (EBV),009-3042-6,6.295061828572071e-162,PBMC
+Human betaherpesvirus 5 (CMV),009-3048-5,2.6302679918953063e-146,PBMC
+Human betaherpesvirus 6,009-4042-4,1.8084229089365147e-55,PBMC
+Human betaherpesvirus 6,009-4058-3,1.2122717925364884e-45,PBMC
+Anelloviridae,009-4061-2,6.902398038402398e-112,PBMC
+Human gammaherpesvirus 4 (EBV),013-1002-3,3.5727283815192664e-122,PBMC
+Human gammaherpesvirus 4 (EBV),011-0008-2,1.4845676750522654e-69,PBMC
+Human gammaherpesvirus 4 (EBV),013-1001-4,7.154841214168946e-54,PBMC
+Human gammaherpesvirus 4 (EBV),006-0007-1,3.139062769137661e-55,PBMC
+Human betaherpesvirus 6,009-4043-5,6.588704043340781e-48,PBMC
+Anelloviridae,008-0031-5,9.631634640239781e-36,PBMC
+Anelloviridae,011-0008-3,1.836961270618986e-55,PBMC
+Human gammaherpesvirus 4 (EBV),011-0008-3,1.135010815672333e-117,PBMC
+Human gammaherpesvirus 4 (EBV),011-0010-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),009-3028-2,2.4660393372343564e-52,PBMC
+Human gammaherpesvirus 4 (EBV),009-3042-21,5.0780853966488946e-57,PBMC
+Human gammaherpesvirus 4 (EBV),009-3052-21,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),009-3052-31,2.880049817442871e-54,PBMC
+Human gammaherpesvirus 4 (EBV),009-4043-31,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),009-4050-31,8.002026771193294e-83,PBMC
+Human betaherpesvirus 6,009-4058-21,9.151662592812774e-47,PBMC
+Anelloviridae,008-0029-6,1.261827534590668e-292,PBMC
+Human gammaherpesvirus 4 (EBV),006-0007-3,8.266087535038511e-51,PBMC
+Human gammaherpesvirus 4 (EBV),011-0010-3,8.609937521846051e-154,PBMC
+Anelloviridae,007-0044-1,1.8407720014689581e-26,PBMC
+Human gammaherpesvirus 4 (EBV),013-0002-8,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),011-0008-4,1.8853847936139348e-58,PBMC
+Human gammaherpesvirus 4 (EBV),007-0045-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),011-0009-4,2.2475015504212612e-60,PBMC
+Anelloviridae,007-0044-2,2.6199922097727724e-71,PBMC
+Anelloviridae,008-0040-1,8.685603503487779e-43,PBMC
+Human gammaherpesvirus 4 (EBV),009-4043-6,3.4040818970099814e-56,PBMC
+Human betaherpesvirus 5 (CMV),009-4051-5,2.9991625189876777e-205,PBMC
+Human gammaherpesvirus 4 (EBV),008-0039-1,3.1253596436133493e-63,PBMC
+Human gammaherpesvirus 4 (EBV),009-4066-1,4.1677340679767296e-57,PBMC
+Anelloviridae,009-4066-2,1.1290157487941974e-69,PBMC
+Human gammaherpesvirus 4 (EBV),009-4066-2,3.1260793671239367e-55,PBMC
+Human betaherpesvirus 6,009-4070-1,1.2861748112359035e-53,PBMC
+Human gammaherpesvirus 4 (EBV),009-4070-2,6.877015449442127e-63,PBMC
+Human gammaherpesvirus 4 (EBV),009-4078-2,8.156427871327944e-84,PBMC
+Human gammaherpesvirus 4 (EBV),009-4079-2,9.345445303153502e-89,PBMC
+Human gammaherpesvirus 4 (EBV),009-3079-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),009-3082-1,2.946456270865024e-44,PBMC
+Human gammaherpesvirus 4 (EBV),009-3082-2,6.823386941416746e-121,PBMC
+Human betaherpesvirus 6,011-0010-4,8.287050779069796e-48,PBMC
+Human gammaherpesvirus 4 (EBV),011-0015-1,1.4584783945478813e-100,PBMC
+Human gammaherpesvirus 4 (EBV),012-0003-1,4.1677340679767296e-57,PBMC
+Anelloviridae,007-0046-1,1.1220184543019652e-26,PBMC
+Human betaherpesvirus 5 (CMV),009-3019-5,3.917418771077863e-113,PBMC
+Human gammaherpesvirus 4 (EBV),013-0008-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),012-0003-2,5.977230446886975e-81,PBMC
+Human betaherpesvirus 5 (CMV),009-4058-6,6.85803978145923e-47,PBMC
+Human betaherpesvirus 5 (CMV),009-3081-1,9.506047936563004e-153,PBMC
+Human betaherpesvirus 5 (CMV),009-3081-3,3.657631930094478e-89,PBMC
+Human betaherpesvirus 5 (CMV),013-0007-4,3.777461093882233e-92,PBMC
+Human gammaherpesvirus 4 (EBV),012-0003-3,4.1677340679767296e-57,PBMC
+Anelloviridae,008-1014-1,7.204436204152926e-81,PBMC
+Human gammaherpesvirus 4 (EBV),009-4085-1,4.1677340679767296e-57,PBMC
+Anelloviridae,008-0047-1,3.40016505804072e-48,PBMC
+Human betaherpesvirus 5 (CMV),009-3081-4,2.6424087573219284e-158,PBMC
+Human gammaherpesvirus 4 (EBV),009-3081-4,1.0108809212209116e-54,PBMC
+Anelloviridae,008-0039-4,1.786898976180423e-39,PBMC
+Human gammaherpesvirus 4 (EBV),009-4088-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),009-4088-2,1.0568175092136606e-102,PBMC
+Human gammaherpesvirus 4 (EBV),009-4087-1,1.6466450767206353e-55,PBMC
+Anelloviridae,009-4087-2,1.1160920123869184e-44,PBMC
+Human gammaherpesvirus 4 (EBV),009-4087-2,6.471426157485936e-213,PBMC
+Human gammaherpesvirus 4 (EBV),009-4085-2,6.776415076106798e-119,PBMC
+Human betaherpesvirus 5 (CMV),009-3019-4,3.507518739525694e-106,PBMC
+Human betaherpesvirus 6,009-3019-4,3.606616788819642e-72,PBMC
+Human gammaherpesvirus 4 (EBV),012-0005-1,4.3913696902440825e-56,PBMC
+Human gammaherpesvirus 4 (EBV),007-0050-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),013-0010-2,1.0616955571987328e-53,PBMC
+Human gammaherpesvirus 4 (EBV),009-4036-2,4.1677340679767296e-57,PBMC
+Anelloviridae,012-0005-2,9.525767998554587e-28,PBMC
+Human gammaherpesvirus 4 (EBV),008-0048-1,9.18332596483583e-57,PBMC
+Human gammaherpesvirus 4 (EBV),007-0050-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),011-0003-2,2.0155798128251969e-56,PBMC
+Human gammaherpesvirus 4 (EBV),012-0003-5,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),008-0048-2,7.617281404686775e-56,PBMC
+Human gammaherpesvirus 4 (EBV),007-0052-1,8.483987109860017e-43,PBMC
+Human gammaherpesvirus 4 (EBV),007-0050-3,7.058298158598246e-57,PBMC
+Human betaherpesvirus 5 (CMV),008-0039-6,4.405548635065589e-258,PBMC
+Human gammaherpesvirus 4 (EBV),008-0048-3,5.199959965335088e-116,PBMC
+Human gammaherpesvirus 4 (EBV),008-0049-1,1.9142559250210703e-40,PBMC
+Human betaherpesvirus 6,009-4051-31,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),009-4051-31,1.0899334970270624e-53,PBMC
+Human gammaherpesvirus 4 (EBV),009-4061-31,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),009-3081-31,9.18332596483583e-57,PBMC
+Human gammaherpesvirus 4 (EBV),011-0024-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),011-0023-2,1.115578151350851e-52,PBMC
+Human gammaherpesvirus 4 (EBV),008-0049-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),012-0005-4,1.253141174941413e-56,PBMC
+Anelloviridae,008-0043-2,4.602565735813676e-295,PBMC
+Human gammaherpesvirus 4 (EBV),011-0024-2,1.5918421496485957e-63,PBMC
+Human gammaherpesvirus 4 (EBV),008-0049-3,5.688529308438448e-54,PBMC
+Human betaherpesvirus 5 (CMV),011-0026-1,2.10668692573941e-55,PBMC
+Human gammaherpesvirus 4 (EBV),009-3047-1,9.824263447582708e-56,PBMC
+Human betaherpesvirus 5 (CMV),009-3081-5,4.830588020397699e-185,PBMC
+Anelloviridae,009-3081-6,1.3873946006030707e-52,PBMC
+Anelloviridae,011-0024-3,5.64157024432984e-19,PBMC
+Human gammaherpesvirus 4 (EBV),011-0024-3,1.3633268876863428e-56,PBMC
+Human gammaherpesvirus 4 (EBV),009-4085-3,5.353033977441431e-52,PBMC
+Human gammaherpesvirus 4 (EBV),009-3085-3,3.747140695144051e-43,PBMC
+Human gammaherpesvirus 4 (EBV),009-4087-3,4.446312674691047e-114,PBMC
+Human gammaherpesvirus 4 (EBV),009-4093-3,1.1950883147362645e-56,PBMC
+Human betaherpesvirus 6,009-4093-4,6.4520838090197195e-55,PBMC
+Human gammaherpesvirus 4 (EBV),009-4088-3,1.0256519262513975e-125,PBMC
+Human gammaherpesvirus 4 (EBV),007-0055-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),007-0055-2,7.071312006812995e-44,PBMC
+Human gammaherpesvirus 4 (EBV),012-0012-1,6.546361740672788e-57,PBMC
+Human gammaherpesvirus 4 (EBV),009-4093-2,1.5003756249395997e-46,PBMC
+Human gammaherpesvirus 4 (EBV),007-0055-3,1.9177853644826607e-63,PBMC
+Human gammaherpesvirus 4 (EBV),011-0029-1,7.058298158598246e-57,PBMC
+Anelloviridae,006-0010-1,7.603262769401823e-145,PBMC
+Anelloviridae,008-0051-2,1.90020300257725e-96,PBMC
+Human betaherpesvirus 6,007-0050-6,7.661256450138086e-52,PBMC
+Human gammaherpesvirus 4 (EBV),007-0050-6,8.203515443298211e-57,PBMC
+Human gammaherpesvirus 4 (EBV),007-0058-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),011-0029-3,3.7316422366470237e-54,PBMC
+Human gammaherpesvirus 4 (EBV),015-0003-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),008-0056-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),011-0033-2,9.18332596483583e-57,PBMC
+Human gammaherpesvirus 4 (EBV),007-0059-2,6.5358187511307545e-56,PBMC
+Anelloviridae,007-0059-3,1.047610879620368e-48,PBMC
+Human gammaherpesvirus 4 (EBV),007-0059-3,6.591738952443037e-176,PBMC
+Human gammaherpesvirus 4 (EBV),013-0017-2,2.095077052365202e-90,PBMC
+Human gammaherpesvirus 4 (EBV),012-0013-4,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),008-0059-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),015-0004-3,1.9498445997580415e-41,PBMC
+Human gammaherpesvirus 4 (EBV),006-0012-1,6.2603699767264e-48,PBMC
+Human gammaherpesvirus 4 (EBV),015-0006-1,4.882025010867073e-57,PBMC
+Human gammaherpesvirus 4 (EBV),015-0007-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),015-0006-2,4.458615279480711e-56,PBMC
+Human gammaherpesvirus 4 (EBV),015-0007-2,1.3212956341866036e-137,PBMC
+Human gammaherpesvirus 4 (EBV),011-0035-2,5.275941847270002e-69,PBMC
+Human gammaherpesvirus 4 (EBV),015-0007-3,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),007-0061-2,1.3197753117071367e-76,PBMC
+Anelloviridae,013-0020-1,3.1031302147533964e-38,PBMC
+Human gammaherpesvirus 4 (EBV),013-0020-1,4.1677340679767296e-57,PBMC
+Anelloviridae,011-0039-2,4.2914099122836553e-54,PBMC
+Human gammaherpesvirus 4 (EBV),008-0065-1,4.2933866347043346e-41,PBMC
+Human gammaherpesvirus 4 (EBV),015-0011-1,1.3530068644919682e-56,PBMC
+Human gammaherpesvirus 4 (EBV),015-0012-1,9.824263447582708e-56,PBMC
+Human gammaherpesvirus 4 (EBV),015-0012-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),015-0013-1,1.5631476426409124e-166,PBMC
+Human betaherpesvirus 5 (CMV),015-0004-8,5.9333504438001245e-78,PBMC
+Human gammaherpesvirus 4 (EBV),007-0068-1,3.105274521697713e-93,PBMC
+Human gammaherpesvirus 4 (EBV),008-0068-1,4.165815197379564e-84,PBMC
+Human gammaherpesvirus 4 (EBV),008-0067-2,4.616363515404645e-55,PBMC
+Human gammaherpesvirus 4 (EBV),008-0065-3,1.190967745995179e-54,PBMC
+Human gammaherpesvirus 4 (EBV),015-0013-2,5.3468746156160476e-52,PBMC
+Human gammaherpesvirus 4 (EBV),008-0065-2,9.431917643879264e-68,PBMC
+Human gammaherpesvirus 4 (EBV),008-0067-1,1.0113465562971188e-56,PBMC
+Human gammaherpesvirus 4 (EBV),006-0017-1,9.18332596483583e-57,PBMC
+Human gammaherpesvirus 4 (EBV),015-0013-3,4.0401733537300107e-50,PBMC
+Human gammaherpesvirus 4 (EBV),007-0068-2,4.497798548932792e-154,PBMC
+Human gammaherpesvirus 4 (EBV),011-0042-1,2.5020731357669395e-90,PBMC
+Human gammaherpesvirus 4 (EBV),011-0046-1,2.2171751377752166e-54,PBMC
+Human gammaherpesvirus 4 (EBV),013-1006-1,6.812397799659174e-49,PBMC
+Human gammaherpesvirus 4 (EBV),013-1006-2,2.2064800240602854e-76,PBMC
+Human betaherpesvirus 6,008-1021-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),008-0068-2,3.977406691050237e-65,PBMC
+Human gammaherpesvirus 4 (EBV),007-0070-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),006-0017-2,6.187283275532334e-57,PBMC
+Human gammaherpesvirus 4 (EBV),007-0067-3,4.084134161710706e-74,PBMC
+Human gammaherpesvirus 4 (EBV),013-0025-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),013-0028-1,2.0234850496919657e-56,PBMC
+Human gammaherpesvirus 4 (EBV),011-0046-2,2.0234850496919657e-56,PBMC
+Human gammaherpesvirus 4 (EBV),011-0047-1,1.9453600816226695e-55,PBMC
+Human gammaherpesvirus 4 (EBV),007-0072-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),013-1006-3,5.942921586155739e-168,PBMC
+Human gammaherpesvirus 4 (EBV),013-0028-2,7.375644909068859e-50,PBMC
+Anelloviridae,007-0071-2,1.8801824734902667e-37,PBMC
+Human betaherpesvirus 5 (CMV),008-0061-4,3.5131767503728474e-54,PBMC
+Human betaherpesvirus 6,008-0061-4,2.2526825765754187e-53,PBMC
+Anelloviridae,007-0071-3,9.261898130960016e-28,PBMC
+Human gammaherpesvirus 4 (EBV),008-0061-6,3.446672348717878e-53,PBMC
+Human betaherpesvirus 5 (CMV),006-0020-2,1.646645076720635e-43,PBMC
+Human betaherpesvirus 6,006-0020-2,1.3019670700641483e-49,PBMC
+Anelloviridae,012-0017-4,2.1912907224144768e-37,PBMC
+Human betaherpesvirus 5 (CMV),006-0020-3,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),011-0042-4,4.458615279480711e-56,PBMC
+Anelloviridae,007-0078-3,4.164856093407398e-33,PBMC
+Human gammaherpesvirus 4 (EBV),012-0019-1,5.134521775029705e-53,PBMC
+Human gammaherpesvirus 4 (EBV),013-0033-2,2.456970827636836e-71,PBMC
+Human gammaherpesvirus 4 (EBV),007-0083-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),013-0034-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),012-0019-3,1.4344981747905366e-82,PBMC
+Human gammaherpesvirus 4 (EBV),007-0088-1,4.478164058439378e-40,PBMC
+Human gammaherpesvirus 4 (EBV),013-0033-3,8.661637419723104e-37,PBMC
+Human gammaherpesvirus 4 (EBV),013-0034-2,1.894959794743578e-78,PBMC
+Human betaherpesvirus 5 (CMV),007-0094-1,2.0234850496919657e-56,PBMC
+Human gammaherpesvirus 4 (EBV),007-0094-1,4.1677340679767296e-57,PBMC
+Human betaherpesvirus 5 (CMV),007-0096-1,7.328245331388955e-65,PBMC
+Human gammaherpesvirus 4 (EBV),007-0090-2,4.477133041763587e-116,PBMC
+Human gammaherpesvirus 4 (EBV),008-0075-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),008-0079-2,8.794274148836872e-53,PBMC
+Human gammaherpesvirus 4 (EBV),013-0038-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),007-0094-2,9.18332596483583e-57,PBMC
+Anelloviridae,007-0099-1,2.763757919170351e-51,PBMC
+Anelloviridae,008-0084-1,6.490826491318416e-15,PBMC
+Human gammaherpesvirus 4 (EBV),008-0075-1,9.18332596483583e-57,PBMC
+Human gammaherpesvirus 4 (EBV),013-0038-2,4.8584753093749507e-54,PBMC
+Human betaherpesvirus 5 (CMV),007-0096-2,2.4547089156850337e-48,PBMC
+Anelloviridae,008-0084-2,3.480166322150031e-29,PBMC
+Human gammaherpesvirus 4 (EBV),007-0090-3,3.9719154946943076e-206,PBMC
+Human gammaherpesvirus 4 (EBV),013-0041-1,6.187283275532334e-57,PBMC
+Human gammaherpesvirus 4 (EBV),013-0042-1,2.978516429429167e-52,PBMC
+Anelloviridae,008-0085-2,1.682674061070464e-288,PBMC
+Human gammaherpesvirus 4 (EBV),008-0085-2,2.4428679967864703e-44,PBMC
+Human gammaherpesvirus 4 (EBV),008-0086-2,2.5061092530321192e-152,PBMC
+Human gammaherpesvirus 4 (EBV),013-0042-4,7.691304402866145e-45,PBMC
+Human immunodeficiency virus 1,006-0023-2,7.133456216702305e-69,PBMC
+Anelloviridae,009-3071-9,1.6398344276265243e-78,PBMC
+Human gammaherpesvirus 4 (EBV),009-4050-21,3.9847400971777555e-50,PBMC
+Anelloviridae,008-0084-5,4.169653822449898e-31,PBMC
+Human gammaherpesvirus 4 (EBV),009-3026-31,5.5513677743520975e-51,PBMC
+Anelloviridae,009-4015-9,3.3197088787467724e-49,PBMC
+Human gammaherpesvirus 4 (EBV),013-0048-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),008-0089-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),008-0092-1,3.5131767503728475e-44,PBMC
+Human gammaherpesvirus 4 (EBV),008-0088-2,3.3235330357748254e-71,PBMC
+Human gammaherpesvirus 4 (EBV),013-0050-1,9.18332596483583e-57,PBMC
+Anelloviridae,008-0085-6,3.5974933515572834e-290,PBMC
+Human gammaherpesvirus 4 (EBV),013-0053-1,7.143318261560503e-29,PBMC
+Human gammaherpesvirus 4 (EBV),015-0039-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),015-0040-1,7.564844408332787e-61,PBMC
+Human gammaherpesvirus 4 (EBV),013-0048-4,6.20297455978814e-57,PBMC
+Human gammaherpesvirus 4 (EBV),013-0053-2,5.788952685656589e-44,PBMC
+Human gammaherpesvirus 4 (EBV),012-0022-2,4.424864743556623e-47,PBMC
+Human gammaherpesvirus 4 (EBV),013-0054-1,9.824263447582708e-56,PBMC
+Human gammaherpesvirus 4 (EBV),013-0053-3,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),013-0050-7,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),008-0095-1,2.970981859118748e-60,PBMC
+Human gammaherpesvirus 4 (EBV),012-0024-1,2.5852348395621992e-51,PBMC
+Human gammaherpesvirus 4 (EBV),008-0096-1,1.3474107253443834e-79,PBMC
+Human gammaherpesvirus 4 (EBV),008-0095-2,7.331620890272138e-91,PBMC
+Human betaherpesvirus 5 (CMV),012-0023-2,2.2542392121524003e-113,PBMC
+Human gammaherpesvirus 4 (EBV),015-0046-1,3.7239170625456675e-177,PBMC
+Human betaherpesvirus 5 (CMV),012-0023-3,2.582260190634633e-192,PBMC
+Anelloviridae,006-0027-3,3.2478801876353812e-24,PBMC
+Human gammaherpesvirus 4 (EBV),012-0028-3,4.1677340679767296e-57,PBMC
+Human betaherpesvirus 6,013-0054-21,1.38388499358418e-47,PBMC
+Human betaherpesvirus 5 (CMV),008-0092-6,6.660395212984273e-51,PBMC
+Human gammaherpesvirus 4 (EBV),013-0054-5,3.584264080437154e-55,PBMC
+Anelloviridae,012-0031-3,4.1543205124185865e-51,PBMC
+Human gammaherpesvirus 4 (EBV),012-0031-3,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),006-0028-1,1.574345329142937e-53,PBMC
+Human gammaherpesvirus 4 (EBV),013-0054-6,1.73620099190143e-55,PBMC
+Human gammaherpesvirus 4 (EBV),012-0035-3,2.3911124459496883e-47,PBMC
+Human betaherpesvirus 5 (CMV),012-0038-1,3.962780342554515e-153,PBMC
+Human gammaherpesvirus 4 (EBV),008-0104-1,1.1601122161480601e-36,PBMC
+Anelloviridae,012-0035-4,8.230003122773414e-41,PBMC
+Human betaherpesvirus 5 (CMV),012-0035-4,7.888601176185388e-152,PBMC
+Human betaherpesvirus 5 (CMV),012-0031-6,2.4154608344449946e-186,PBMC
+Anelloviridae,012-0035-5,4.0907223162166986e-38,PBMC
+Human betaherpesvirus 5 (CMV),012-0035-5,9.14113241470277e-152,PBMC
+Anelloviridae,007-0051-10,2.1907862171648534e-41,PBMC
+Anelloviridae,012-0039-2,1.0909378253153748e-53,PBMC
+Human gammaherpesvirus 4 (EBV),006-1002-1,1.0866758111644186e-47,PBMC
+Human gammaherpesvirus 4 (EBV),015-0054-1,9.30679183162657e-49,PBMC
+Human gammaherpesvirus 4 (EBV),006-1002-2,5.112107761177368e-53,PBMC
+Human gammaherpesvirus 4 (EBV),015-0054-2,1.684224575082697e-44,PBMC
+Human gammaherpesvirus 4 (EBV),012-0041-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),009-4079-10,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),007-0085-9,4.1677340679767296e-57,PBMC
+Anelloviridae,011-0044-10,6.635902555060997e-36,PBMC
+Anelloviridae,006-1002-9,5.458835409516752e-53,PBMC
+Human immunodeficiency virus 1,007-0007-12,6.240221421389785e-52,PBMC
+Anelloviridae,008-0031-11,1.772148045135117e-41,PBMC
+Anelloviridae,008-0056-11,1.3693043883912014e-77,PBMC
+Anelloviridae,007-0025-12,5.188000389289652e-39,PBMC
+Anelloviridae,009-4048-11,3.869902291902704e-22,PBMC
+Human gammaherpesvirus 4 (EBV),009-3082-11,7.828886556130186e-55,PBMC
+Anelloviridae,007-0054-11,1.3477210138513501e-21,PBMC
+Anelloviridae,007-0057-11,3.059144559486396e-44,PBMC
+Human betaherpesvirus 5 (CMV),008-0029-12,1.9032682375763446e-50,PBMC
+Anelloviridae,011-0039-11,1.613243782515922e-46,PBMC
+Anelloviridae,008-0071-11,3.742829122408053e-43,PBMC
+Anelloviridae,008-0031-12,6.753050539950834e-41,PBMC
+Anelloviridae,008-1022-11,9.479818010107128e-80,PBMC
+Anelloviridae,008-0092-10,1.6846124267740565e-47,PBMC
+Human gammaherpesvirus 4 (EBV),008-0092-10,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),009-4079-12,8.808460273622535e-47,PBMC
+Anelloviridae,009-3075-12,1.9248637777825228e-55,PBMC
+Anelloviridae,007-0071-12,1.5999263828685872e-73,PBMC
+Anelloviridae,015-0033-12,6.967869367620774e-48,PBMC
+Human gammaherpesvirus 4 (EBV),015-0054-12,2.0234850496919657e-56,PBMC
+Human gammaherpesvirus 4 (EBV),003-0008-1,1.499684835502331e-132,PBMC
+Anelloviridae,003-0007-4,2.439495380183799e-37,PBMC
+Anelloviridae,004-1004-2,6.151768727098702e-41,PBMC
+Anelloviridae,004-0011-2,3.923737995448592e-52,PBMC
+Human gammaherpesvirus 4 (EBV),003-0028-1,6.3212068200527175e-55,PBMC
+Human gammaherpesvirus 4 (EBV),004-0005-2,2.3768402866249026e-180,PBMC
+Human gammaherpesvirus 4 (EBV),010-0004-2,1.4702798319828361e-82,PBMC
+Human gammaherpesvirus 4 (EBV),003-0033-1,1.1662724050819666e-53,PBMC
+Human gammaherpesvirus 4 (EBV),004-0005-3,1.2779092095662787e-96,PBMC
+Human gammaherpesvirus 4 (EBV),010-0004-1,5.6754460540853496e-167,PBMC
+Human gammaherpesvirus 4 (EBV),002-0008-1,3.0255198038723213e-49,PBMC
+Human gammaherpesvirus 4 (EBV),004-1012-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-0020-1,4.87528490103389e-127,PBMC
+Human gammaherpesvirus 4 (EBV),004-1007-1,1.4897040552577048e-54,PBMC
+Anelloviridae,001-0002-2,2.636938493453482e-52,PBMC
+Human gammaherpesvirus 4 (EBV),010-0006-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),002-0018-1,9.18332596483583e-57,PBMC
+Anelloviridae,010-0020-1,1.103570289964014e-67,PBMC
+Anelloviridae,003-0002-2,1.4780870091029937e-36,PBMC
+Human gammaherpesvirus 4 (EBV),002-0015-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),005-1005-1,8.192189693228594e-75,PBMC
+Human gammaherpesvirus 4 (EBV),003-0038-2,2.0234850496919657e-56,PBMC
+Human gammaherpesvirus 4 (EBV),004-0028-2,1.329535689979108e-88,PBMC
+Human gammaherpesvirus 4 (EBV),004-0027-1,9.567533686182458e-39,PBMC
+Human gammaherpesvirus 4 (EBV),005-1002-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),002-0003-2,2.0234850496919657e-56,PBMC
+Anelloviridae,004-1009-1,7.582283175716347e-46,PBMC
+Human gammaherpesvirus 4 (EBV),002-0020-2,2.492298178052619e-46,PBMC
+Human gammaherpesvirus 4 (EBV),004-1020-3,1.301068013632851e-56,PBMC
+Human gammaherpesvirus 4 (EBV),004-0025-2,7.870457896951001e-107,PBMC
+Human gammaherpesvirus 4 (EBV),003-0029-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-0028-1,2.673006408663309e-50,PBMC
+Human gammaherpesvirus 4 (EBV),004-1020-1,3.0178663320086943e-53,PBMC
+Human betaherpesvirus 6,002-0003-1,3.7549140460983945e-56,PBMC
+Human gammaherpesvirus 4 (EBV),002-0003-1,5.947028229172567e-50,PBMC
+Human gammaherpesvirus 4 (EBV),004-0029-2,4.137137927273531e-55,PBMC
+Human gammaherpesvirus 4 (EBV),004-0015-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-0029-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-1022-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),010-0016-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-1014-2,3.104559588128387e-122,PBMC
+Anelloviridae,005-0005-1,2.4271689070387025e-30,PBMC
+Anelloviridae,003-0034-2,1.8771544183750168e-53,PBMC
+Human gammaherpesvirus 4 (EBV),004-1024-1,2.0234850496919657e-56,PBMC
+Human gammaherpesvirus 4 (EBV),003-0001-3,6.749941361219489e-31,PBMC
+Human gammaherpesvirus 4 (EBV),002-0011-1,6.22873708944023e-97,PBMC
+Human gammaherpesvirus 4 (EBV),003-0001-4,2.0234850496919657e-56,PBMC
+Human gammaherpesvirus 4 (EBV),003-0006-1,1.059985684509171e-64,PBMC
+Anelloviridae,003-0031-1,9.2427243273012e-53,PBMC
+Human gammaherpesvirus 4 (EBV),004-1008-5,4.722804843922306e-55,PBMC
+Human gammaherpesvirus 4 (EBV),002-0014-1,2.0234850496919657e-56,PBMC
+Human alphaherpesvirus 1 (HSV1),003-0014-2,4.560369159512876e-220,PBMC
+Human alphaherpesvirus 2 (HSV2),003-0014-2,2.4660393372343564e-52,PBMC
+Anelloviridae,001-0003-1,9.758880500302966e-56,PBMC
+Human gammaherpesvirus 4 (EBV),003-0006-3,2.2233098906514462e-153,PBMC
+Human gammaherpesvirus 4 (EBV),003-0014-1,1.8858189694904092e-49,PBMC
+Human gammaherpesvirus 4 (EBV),004-0030-1,7.767835143843585e-50,PBMC
+Human gammaherpesvirus 4 (EBV),004-1008-1,1.228004617988783e-56,PBMC
+Human gammaherpesvirus 4 (EBV),003-0020-31,8.871560120379617e-56,PBMC
+Human gammaherpesvirus 4 (EBV),004-1003-1,9.824263447582708e-56,PBMC
+Human gammaherpesvirus 4 (EBV),003-0001-2,4.1677340679767296e-57,PBMC
+Anelloviridae,004-0010-1,7.068056297002469e-30,PBMC
+Human gammaherpesvirus 4 (EBV),003-0033-3,2.1832325618462148e-62,PBMC
+Human immunodeficiency virus 1,003-0016-8,2.0431488145171586e-48,PBMC
+Anelloviridae,004-1015-7,4.400479478359869e-42,PBMC
+Human gammaherpesvirus 4 (EBV),005-0004-8,8.400400652637734e-50,PBMC
+Human immunodeficiency virus 1,005-0004-8,2.834653633489671e-51,PBMC
+Anelloviridae,004-0003-8,1.3611312343313086e-22,PBMC
+Human gammaherpesvirus 4 (EBV),004-0047-1,1.3870751779668165e-53,PBMC
+Human gammaherpesvirus 4 (EBV),003-0059-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-0050-2,5.662392890382534e-51,PBMC
+Anelloviridae,014-0003-1,1.164126029410498e-137,PBMC
+Human gammaherpesvirus 4 (EBV),004-1031-4,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-0047-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-0005-8,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-0030-8,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-0038-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-1037-2,5.0757473902890234e-45,PBMC
+Anelloviridae,004-0043-4,2.631479554020199e-16,PBMC
+Human gammaherpesvirus 4 (EBV),003-0057-2,3.2003685945865334e-53,PBMC
+Human gammaherpesvirus 4 (EBV),004-1023-6,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),010-0024-3,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-1023-5,4.28449854813703e-60,PBMC
+Human gammaherpesvirus 4 (EBV),004-1023-1,3.296097121774583e-123,PBMC
+Human gammaherpesvirus 4 (EBV),003-0044-1,2.0234850496919657e-56,PBMC
+Human gammaherpesvirus 4 (EBV),003-0044-21,5.291758304203437e-52,PBMC
+Human gammaherpesvirus 4 (EBV),004-0045-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-1023-2,5.4450265284242645e-120,PBMC
+Human gammaherpesvirus 4 (EBV),004-0043-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-1023-4,7.058298158598246e-57,PBMC
+Anelloviridae,004-0037-1,6.063173557052495e-41,PBMC
+Human betaherpesvirus 5 (CMV),010-0024-5,3.4546177490582245e-48,PBMC
+Anelloviridae,005-0013-3,4.769798141192211e-55,PBMC
+Human betaherpesvirus 5 (CMV),004-1028-4,4.4957277130190464e-70,PBMC
+Human gammaherpesvirus 4 (EBV),004-1028-4,1.3791134690236048e-71,PBMC
+Human betaherpesvirus 5 (CMV),004-1028-6,7.447319739060132e-141,PBMC
+Human gammaherpesvirus 4 (EBV),004-1028-6,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-1018-2,4.6238102139926696e-125,PBMC
+Human gammaherpesvirus 4 (EBV),014-0002-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-1003-3,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),005-0010-3,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-1003-1,1.4791083881681648e-188,PBMC
+Human gammaherpesvirus 4 (EBV),004-1028-2,2.5585858869056532e-51,PBMC
+Human betaherpesvirus 5 (CMV),004-1028-5,2.0258160145013713e-69,PBMC
+Human betaherpesvirus 6,004-1028-5,1.4541191703751682e-52,PBMC
+Human gammaherpesvirus 4 (EBV),004-1028-5,2.1978598727848186e-78,PBMC
+Human gammaherpesvirus 4 (EBV),005-0007-3,4.390358656409429e-56,PBMC
+Human gammaherpesvirus 4 (EBV),004-1018-5,4.1677340679767296e-57,PBMC
+Anelloviridae,004-0044-1,1.0242359141215615e-52,PBMC
+Human gammaherpesvirus 4 (EBV),004-0044-1,1.1950883147362645e-56,PBMC
+Human gammaherpesvirus 4 (EBV),003-0045-2,1.4763862777538627e-30,PBMC
+Human gammaherpesvirus 4 (EBV),003-0047-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-1028-3,9.206615375019747e-63,PBMC
+Human betaherpesvirus 6,005-0007-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),005-0007-1,6.56145266302895e-72,PBMC
+Human gammaherpesvirus 4 (EBV),014-0002-1,4.690293284059365e-56,PBMC
+Human gammaherpesvirus 4 (EBV),004-1020-2,2.3741054227349734e-76,PBMC
+Human gammaherpesvirus 4 (EBV),003-1003-2,1.513561248436232e-124,PBMC
+Human gammaherpesvirus 4 (EBV),004-0044-3,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-0001-5,1.3530068644919682e-56,PBMC
+Human gammaherpesvirus 4 (EBV),004-0044-2,7.058298158598246e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-0046-31,3.58921934645005e-44,PBMC
+Human gammaherpesvirus 4 (EBV),003-0046-21,5.717418729175501e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-0058-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-0089-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-2035-3,6.880183161430299e-71,PBMC
+Human betaherpesvirus 5 (CMV),010-0051-1,6.02004863684462e-50,PBMC
+Human gammaherpesvirus 4 (EBV),014-0014-2,4.6259400476615885e-55,PBMC
+Human gammaherpesvirus 4 (EBV),001-0077-1,8.50354471999803e-48,PBMC
+Human gammaherpesvirus 4 (EBV),014-1008-2,6.870684400142374e-110,PBMC
+Human gammaherpesvirus 4 (EBV),014-0011-2,1.1950883147362645e-56,PBMC
+Human gammaherpesvirus 4 (EBV),014-0011-4,4.849533904983382e-56,PBMC
+Human gammaherpesvirus 4 (EBV),014-0011-6,7.058298158598246e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-2006-8,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-0089-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-2038-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-0058-1,9.18332596483583e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-0011-3,4.6259400476615885e-55,PBMC
+Human gammaherpesvirus 4 (EBV),014-2035-2,4.1677340679767296e-57,PBMC
+Human betaherpesvirus 5 (CMV),014-0005-8,2.658887730705091e-53,PBMC
+Human gammaherpesvirus 4 (EBV),014-2035-1,3.9454813968330115e-53,PBMC
+Human gammaherpesvirus 4 (EBV),014-2035-8,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),001-0077-2,4.579309531517459e-54,PBMC
+Human gammaherpesvirus 4 (EBV),014-1008-1,2.767578830625923e-65,PBMC
+Human gammaherpesvirus 4 (EBV),003-0088-1,2.0234850496919657e-56,PBMC
+Human gammaherpesvirus 4 (EBV),014-1008-3,9.549925860214447e-113,PBMC
+Human gammaherpesvirus 4 (EBV),014-0011-5,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-0067-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),002-0035-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-2014-1,1.45110888079144e-47,PBMC
+Human gammaherpesvirus 4 (EBV),004-0053-2,9.824263447582708e-56,PBMC
+Anelloviridae,010-0120-2,1.2670682249985542e-51,PBMC
+Human gammaherpesvirus 4 (EBV),010-0120-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-0011-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-0067-3,7.585775750291758e-147,PBMC
+Human gammaherpesvirus 4 (EBV),003-0084-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-2034-2,4.341102097073516e-72,PBMC
+Anelloviridae,005-0020-3,2.210039317349186e-41,PBMC
+Human gammaherpesvirus 4 (EBV),005-0020-3,2.4154608344449946e-177,PBMC
+Human gammaherpesvirus 4 (EBV),005-0020-2,4.588809196198635e-81,PBMC
+Human gammaherpesvirus 4 (EBV),003-0011-2,4.1677340679767296e-57,PBMC
+Human betaherpesvirus 5 (CMV),005-0020-5,2.831391995799367e-145,PBMC
+Human gammaherpesvirus 4 (EBV),005-0020-5,2.8846956523813434e-80,PBMC
+Anelloviridae,004-0051-3,2.0234850496919657e-56,PBMC
+Anelloviridae,004-0051-2,6.614545374840643e-53,PBMC
+Human gammaherpesvirus 4 (EBV),004-0053-1,1.180320635651737e-51,PBMC
+Human betaherpesvirus 5 (CMV),004-0053-6,1.7009831049694427e-74,PBMC
+Human betaherpesvirus 5 (CMV),005-0020-4,2.242848815869319e-77,PBMC
+Human gammaherpesvirus 4 (EBV),005-0020-4,3.227750819048032e-66,PBMC
+Human gammaherpesvirus 4 (EBV),005-0033-4,1.0183568757197832e-54,PBMC
+Human betaherpesvirus 5 (CMV),005-0020-6,1.7139573075084043e-102,PBMC
+Human gammaherpesvirus 4 (EBV),005-0020-6,1.815515662773137e-102,PBMC
+Human gammaherpesvirus 4 (EBV),004-1050-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-0090-2,4.3913696902440825e-56,PBMC
+Human gammaherpesvirus 4 (EBV),002-0036-2,2.9396796094924123e-54,PBMC
+Human gammaherpesvirus 4 (EBV),003-0090-1,1.894959794743547e-54,PBMC
+Human betaherpesvirus 5 (CMV),014-0030-5,1.0529312128434334e-54,PBMC
+Human gammaherpesvirus 4 (EBV),014-0030-5,8.483987109860017e-43,PBMC
+Human betaherpesvirus 5 (CMV),004-0057-2,4.764309868054127e-108,PBMC
+Human gammaherpesvirus 4 (EBV),004-0057-2,6.865939938366501e-55,PBMC
+Human gammaherpesvirus 4 (EBV),005-0043-1,9.18332596483583e-57,PBMC
+Anelloviridae,005-0034-1,7.504123968558048e-38,PBMC
+Human gammaherpesvirus 4 (EBV),002-0036-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),005-0034-2,2.758036440597258e-55,PBMC
+Human gammaherpesvirus 4 (EBV),014-0030-31,4.1677340679767296e-57,PBMC
+Human betaherpesvirus 5 (CMV),001-0061-1,5.081594425605641e-113,PBMC
+Human gammaherpesvirus 4 (EBV),001-0061-1,2.500345361696409e-72,PBMC
+Human gammaherpesvirus 4 (EBV),003-0078-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-0090-3,1.3915537948446817e-47,PBMC
+Human gammaherpesvirus 4 (EBV),003-0071-1,3.3573761424295175e-102,PBMC
+Human gammaherpesvirus 4 (EBV),010-0108-1,9.18332596483583e-57,PBMC
+Human gammaherpesvirus 4 (EBV),010-0071-1,3.46896565446053e-53,PBMC
+Human gammaherpesvirus 4 (EBV),004-0059-8,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),001-0053-1,1.6680151850852957e-52,PBMC
+Human betaherpesvirus 5 (CMV),001-0061-2,2.0169726070330962e-56,PBMC
+Human gammaherpesvirus 4 (EBV),001-0061-2,1.5907429237502163e-66,PBMC
+Human gammaherpesvirus 4 (EBV),010-0094-1,2.2222862543282127e-54,PBMC
+Human betaherpesvirus 5 (CMV),010-0094-4,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-0070-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-0022-2,7.058298158598246e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-2050-1,9.18332596483583e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-0022-7,9.824263447582708e-56,PBMC
+Human gammaherpesvirus 4 (EBV),014-2050-7,2.0234850496919657e-56,PBMC
+Anelloviridae,004-1049-1,1.3592520604236777e-43,PBMC
+Human gammaherpesvirus 4 (EBV),014-0022-1,1.0247077008156365e-54,PBMC
+Human gammaherpesvirus 4 (EBV),001-0029-1,4.508167045414564e-83,PBMC
+Human gammaherpesvirus 4 (EBV),014-0022-8,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),010-0050-1,4.1677340679767296e-57,PBMC
+Anelloviridae,004-0054-1,3.367441036377125e-31,PBMC
+Human gammaherpesvirus 4 (EBV),010-0050-2,1.5728959710650156e-53,PBMC
+Anelloviridae,001-0045-4,7.967095078086474e-45,PBMC
+Human gammaherpesvirus 4 (EBV),004-0019-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),005-0030-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),010-0126-1,4.010513660865767e-47,PBMC
+Human gammaherpesvirus 4 (EBV),010-0085-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),005-0030-4,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),005-0030-2,1.5889125671188486e-79,PBMC
+Human betaherpesvirus 6,014-0008-3,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-1021-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),005-0028-1,2.0234850496919657e-56,PBMC
+Human betaherpesvirus 5 (CMV),014-2020-4,6.18158720057992e-55,PBMC
+Human gammaherpesvirus 4 (EBV),014-2020-4,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),005-0030-3,8.474225179233063e-70,PBMC
+Human betaherpesvirus 5 (CMV),010-0057-2,1.1096857267741093e-67,PBMC
+Human betaherpesvirus 5 (CMV),014-2020-3,7.356987192561507e-78,PBMC
+Human gammaherpesvirus 4 (EBV),014-2020-3,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),010-0127-6,6.02004863684462e-50,PBMC
+Human betaherpesvirus 6,014-0013-7,1.1950883147362645e-56,PBMC
+Human gammaherpesvirus 4 (EBV),014-2003-8,9.824263447582708e-56,PBMC
+Human gammaherpesvirus 4 (EBV),014-0008-4,9.229963848404601e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-0008-1,4.1677340679767296e-57,PBMC
+Human betaherpesvirus 5 (CMV),014-2020-1,3.1260793671239367e-55,PBMC
+Human betaherpesvirus 5 (CMV),010-0080-1,8.992904884011954e-77,PBMC
+Human gammaherpesvirus 4 (EBV),005-0028-2,4.1677340679767296e-57,PBMC
+Human betaherpesvirus 5 (CMV),010-0080-3,1.4203651240480122e-61,PBMC
+Human gammaherpesvirus 4 (EBV),005-0030-5,9.18332596483583e-57,PBMC
+Human gammaherpesvirus 4 (EBV),004-1060-1,2.712064412707193e-75,PBMC
+Human gammaherpesvirus 4 (EBV),003-0081-2,9.18332596483583e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-0081-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),001-0041-1,1.1950883147362645e-56,PBMC
+Human gammaherpesvirus 4 (EBV),014-2007-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),002-0039-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),002-0034-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),005-0038-3,5.423754206960973e-57,PBMC
+Human gammaherpesvirus 4 (EBV),005-0026-1,8.489849665156173e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-2029-4,2.9661970592694444e-64,PBMC
+Human gammaherpesvirus 4 (EBV),003-0081-3,8.889963953045464e-55,PBMC
+Human gammaherpesvirus 4 (EBV),005-0019-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),002-0055-8,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),005-0038-1,2.5698039954022694e-55,PBMC
+Human gammaherpesvirus 4 (EBV),005-0032-1,5.152286445817603e-63,PBMC
+Human betaherpesvirus 5 (CMV),005-0032-6,1.9860949173573798e-128,PBMC
+Human gammaherpesvirus 4 (EBV),005-0032-6,4.3913696902440825e-56,PBMC
+Anelloviridae,010-0048-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-2009-2,4.1677340679767296e-57,PBMC
+Human betaherpesvirus 5 (CMV),005-0032-4,1.3893126817367366e-83,PBMC
+Human gammaherpesvirus 4 (EBV),005-0032-4,3.606616788819583e-43,PBMC
+Human gammaherpesvirus 4 (EBV),003-2009-1,4.1677340679767296e-57,PBMC
+Human betaherpesvirus 5 (CMV),010-0037-1,2.2156440963128664e-54,PBMC
+Human betaherpesvirus 5 (CMV),005-0032-5,1.4852515011766101e-65,PBMC
+Human gammaherpesvirus 4 (EBV),005-0032-5,1.0685626745999534e-53,PBMC
+Human betaherpesvirus 7,014-0012-1,1.376892391200964e-48,PBMC
+Human gammaherpesvirus 4 (EBV),001-0073-2,1.5420554834704926e-72,PBMC
+Human gammaherpesvirus 4 (EBV),001-0073-1,2.291922879265456e-62,PBMC
+Human gammaherpesvirus 4 (EBV),014-2005-2,8.590135215053908e-129,PBMC
+Human gammaherpesvirus 4 (EBV),014-2046-3,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),010-0122-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-2047-3,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-2046-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-1005-1,1.6462659663283106e-56,PBMC
+Human gammaherpesvirus 4 (EBV),005-0048-1,1.0183568757197832e-54,PBMC
+Human immunodeficiency virus 1,002-0040-8,1.1243460539124834e-53,PBMC
+Anelloviridae,001-0073-3,3.112432918767497e-45,PBMC
+Human gammaherpesvirus 4 (EBV),001-0073-3,2.0234850496919657e-56,PBMC
+Human gammaherpesvirus 4 (EBV),014-2046-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-2005-1,8.832832604918231e-67,PBMC
+Human gammaherpesvirus 4 (EBV),004-0060-1,9.18332596483583e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-2028-3,4.1677340679767296e-57,PBMC
+Anelloviridae,014-2025-2,1.3443117666713134e-33,PBMC
+Human gammaherpesvirus 4 (EBV),014-2025-2,2.213094709605632e-54,PBMC
+Anelloviridae,014-2028-2,1.2554516736871302e-36,PBMC
+Human gammaherpesvirus 4 (EBV),014-2028-2,5.538599982773583e-51,PBMC
+Human betaherpesvirus 6,001-0060-4,1.3307608017014371e-48,PBMC
+Human gammaherpesvirus 4 (EBV),001-0060-4,2.223821885615859e-54,PBMC
+Human betaherpesvirus 5 (CMV),014-2025-7,5.895219770654893e-52,PBMC
+Human gammaherpesvirus 4 (EBV),014-2025-1,3.801893963205721e-135,PBMC
+Human gammaherpesvirus 4 (EBV),004-0062-1,2.153773355662166e-55,PBMC
+Human gammaherpesvirus 4 (EBV),014-2017-2,7.657729123418162e-50,PBMC
+Human betaherpesvirus 5 (CMV),014-2025-8,7.058298158598246e-57,PBMC
+Anelloviridae,014-2028-1,5.382697825162904e-47,PBMC
+Anelloviridae,014-2025-3,6.24597152533276e-51,PBMC
+Human gammaherpesvirus 4 (EBV),014-2025-3,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),010-0124-1,3.6897759857015047e-44,PBMC
+Anelloviridae,010-0059-2,2.978516429429118e-275,PBMC
+Human gammaherpesvirus 4 (EBV),010-0049-1,5.57442401543748e-51,PBMC
+Anelloviridae,010-0041-3,2.5579968185550027e-47,PBMC
+Human gammaherpesvirus 4 (EBV),014-2016-2,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-2016-3,4.1677340679767296e-57,PBMC
+Human betaherpesvirus 5 (CMV),014-2048-1,7.058298158598246e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-0033-1,2.4940203914051956e-73,PBMC
+Human gammaherpesvirus 4 (EBV),014-2026-1,3.0725573652674263e-73,PBMC
+Human gammaherpesvirus 4 (EBV),002-0047-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),002-0038-3,4.458615279480711e-56,PBMC
+Human gammaherpesvirus 4 (EBV),003-0085-1,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),003-0085-2,5.423754206960973e-57,PBMC
+Anelloviridae,010-0135-1,6.950243175887721e-267,PBMC
+Anelloviridae,004-1009-9,2.168203294604624e-49,PBMC
+Human gammaherpesvirus 4 (EBV),003-0059-10,4.1677340679767296e-57,PBMC
+Anelloviridae,003-0004-12,1.1043328726700561e-40,PBMC
+Anelloviridae,004-1009-12,3.5974933515574016e-45,PBMC
+Anelloviridae,003-0034-9,6.190133280967237e-57,PBMC
+Anelloviridae,004-0031-9,1.0327614057614213e-290,PBMC
+Human gammaherpesvirus 4 (EBV),005-0004-9,4.1677340679767296e-57,PBMC
+Human alphaherpesvirus 1 (HSV1),003-0029-10,2.0234850496919657e-56,PBMC
+Human gammaherpesvirus 4 (EBV),003-0001-11,1.376892391200964e-48,PBMC
+Human immunodeficiency virus 1,003-0016-9,9.824263447582708e-56,PBMC
+Human gammaherpesvirus 4 (EBV),003-2003-9,7.528353438447538e-57,PBMC
+Anelloviridae,004-1022-11,1.4763862777538627e-30,PBMC
+Human gammaherpesvirus 4 (EBV),003-0001-10,4.1677340679767296e-57,PBMC
+Anelloviridae,003-0001-9,5.57442401543748e-89,PBMC
+Human gammaherpesvirus 4 (EBV),003-0001-9,4.1677340679767296e-57,PBMC
+Human betaherpesvirus 7,004-0058-10,4.1677340679767296e-57,PBMC
+Human betaherpesvirus 7,001-0081-12,2.949171307508296e-48,PBMC
+Human alphaherpesvirus 1 (HSV1),004-1045-12,9.709570065288276e-41,PBMC
+Human alphaherpesvirus 1 (HSV1),003-2006-9,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-0029-12,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),010-0132-11,9.18332596483583e-57,PBMC
+Anelloviridae,004-0010-9,6.30231345990849e-17,PBMC
+Anelloviridae,014-0016-10,4.218907465677971e-45,PBMC
+Anelloviridae,002-0059-11,4.769798141192211e-55,PBMC
+Human gammaherpesvirus 4 (EBV),005-0015-11,4.1677340679767296e-57,PBMC
+Anelloviridae,003-0087-11,1.9333033344965974e-90,PBMC
+Anelloviridae,014-2025-9,1.1089194477242847e-50,PBMC
+Anelloviridae,002-0029-9,3.9174187710778626e-105,PBMC
+Anelloviridae,002-0055-11,1.769293980687271e-43,PBMC
+Human alphaherpesvirus 1 (HSV1),003-0089-12,2.732121443878501e-50,PBMC
+Anelloviridae,004-1053-12,1.9151376754674855e-50,PBMC
+Anelloviridae,001-0055-9,1.798870915128769e-224,PBMC
+Anelloviridae,014-2038-9,5.458835409516752e-53,PBMC
+Anelloviridae,003-0068-11,1.8827818367346718e-40,PBMC
+Anelloviridae,002-0055-12,4.858475309374911e-23,PBMC
+Human gammaherpesvirus 4 (EBV),014-0013-9,4.1677340679767296e-57,PBMC
+Human alphaherpesvirus 1 (HSV1),004-1052-12,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-0022-11,4.1677340679767296e-57,PBMC
+Human gammaherpesvirus 4 (EBV),014-0014-10,1.45110888079144e-47,PBMC
+Human gammaherpesvirus 4 (EBV),004-0005-9,2.1325538179461877e-55,PBMC
+Anelloviridae,003-2010-12,1.0710259659660752e-42,PBMC
+Anelloviridae,010-0127-9,1.7206795610303069e-44,PBMC
+Anelloviridae,005-0018-10,7.680685809900935e-34,PBMC
+Anelloviridae,014-0022-12,2.649720098878972e-52,PBMC
+Human gammaherpesvirus 4 (EBV),014-0022-12,6.883352332539926e-55,PBMC
+Human gammaherpesvirus 4 (EBV),004-0059-9,1.6225571405095404e-55,PBMC
+Anelloviridae,014-2021-9,5.945659032958299e-93,PBMC
+Human gammaherpesvirus 4 (EBV),004-1054-10,4.1677340679767296e-57,PBMC
+Human alphaherpesvirus 1 (HSV1),NA,5.176068319505661e-63,Nasal
+Human gammaherpesvirus 4 (EBV),NA,3.290031075247076e-50,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.792543841237325e-50,Nasal
+Enterovirus,NA,6.59933234263572e-93,Nasal
+Human immunodeficiency virus 1,NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.796955946535179e-51,Nasal
+Human betaherpesvirus 5 (CMV),NA,4.458615279480711e-56,Nasal
+Enterovirus,NA,3.619928562242406e-47,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.4122123332761844e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.7670379898390314e-198,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,1.8130091670170285e-43,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.370281899129744e-75,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Anelloviridae,NA,6.43279927260849e-29,Nasal
+Human betaherpesvirus 5 (CMV),NA,2.0234850496919657e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.6188253626421167e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.4268887043278663e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.0909378253153748e-53,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,5.782291742660292e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,7.925013304804734e-284,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,7.620790100254208e-113,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,4.1677340679767296e-57,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.015711376059828e-202,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,3.4268887043278663e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,6.654263586443662e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.802297599818694e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.4842768936968183e-52,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,6.831247179792906e-59,Nasal
+Human immunodeficiency virus 1,NA,6.546361740672787e-207,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Anelloviridae,NA,7.118688672622853e-48,Nasal
+Anelloviridae,NA,2.67485349396356e-47,Nasal
+Anelloviridae,NA,5.314715449998769e-29,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,3.992087024388067e-54,Nasal
+Human gammaherpesvirus 4 (EBV),NA,1.6266720329719085e-55,Nasal
+Enterovirus,NA,4.437108003572329e-98,Nasal
+Human betaherpesvirus 5 (CMV),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.2735030810166317e-235,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,2.2392366825123436e-49,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.135010815672333e-154,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,9.66050878989812e-41,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Anelloviridae,NA,2.623010324308751e-52,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.17606831950566e-127,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,9.824263447582708e-56,Nasal
+Human betaherpesvirus 5 (CMV),NA,6.251726927756849e-50,Nasal
+Human gammaherpesvirus 4 (EBV),NA,1.797628728208325e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.2097621707502775e-51,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,6.194410750767837e-255,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,1.287656427432767e-53,Nasal
+Human betaherpesvirus 5 (CMV),NA,7.241024217924127e-56,Nasal
+Human betaherpesvirus 7,NA,5.221556720489558e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.820330473801528e-71,Nasal
+Human betaherpesvirus 5 (CMV),NA,5.198762768142809e-53,Nasal
+Human gammaherpesvirus 4 (EBV),NA,3.4268887043278663e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,4.6978592394393775e-55,Nasal
+Human gammaherpesvirus 4 (EBV),NA,5.1713031791696246e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.2034337640199107e-74,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,8.051930173083126e-53,Nasal
+Human immunodeficiency virus 1,NA,1.142089135016053e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.333521432163324e-120,Nasal
+Human betaherpesvirus 5 (CMV),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,5.680675741067682e-49,Nasal
+Human betaherpesvirus 5 (CMV),NA,8.23569017153612e-55,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.5223189341824368e-52,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,6.619116119411185e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,1.0351421666793451e-54,Nasal
+Human gammaherpesvirus 4 (EBV),NA,6.907167693241942e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.0234850496919657e-56,Nasal
+Anelloviridae,NA,1.0759695972076787e-35,Nasal
+Anelloviridae,NA,1.2740896859191215e-52,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.3296608520687864e-46,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.076096814740705e-249,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.1183611352484696e-236,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,6.440209571356536e-49,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,8.883825104030186e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.1647113787030033e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.933748545295257e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,5.823713479437514e-42,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.0234850496919657e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,4.2004904339619975e-52,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.458615279480711e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.769798141192211e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.8479008414447525e-276,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.0234850496919657e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Enterovirus,NA,1.5656691705284984e-51,Nasal
+Enterovirus,NA,4.528975799036269e-308,Nasal
+Human gammaherpesvirus 4 (EBV),NA,6.619116119411185e-56,Nasal
+Enterovirus,NA,1.286470998029103e-51,Nasal
+Human gammaherpesvirus 4 (EBV),NA,4.458615279480711e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,5.458835409516752e-53,Nasal
+Enterovirus,NA,2.3157944032250705e-54,Nasal
+Enterovirus,NA,1.1243460539124834e-53,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.458615279480711e-56,Nasal
+Enterovirus,NA,6.576578373553957e-301,Nasal
+Enterovirus,NA,1.0351421666793113e-303,Nasal
+Enterovirus,NA,1.375624810275309e-51,Nasal
+Enterovirus,NA,3.0324943473296314e-50,Nasal
+Enterovirus,NA,1.5413455041680305e-100,Nasal
+Enterovirus,NA,1.1724653045822932e-52,Nasal
+Human gammaherpesvirus 4 (EBV),NA,1.6580590751089168e-55,Nasal
+Enterovirus,NA,1.0495424286523585e-303,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.4043628000069345e-236,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.783629547845894e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.26934225635505e-61,Nasal
+Enterovirus,NA,4.111497211044994e-306,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.0234850496919657e-56,Nasal
+Human betaherpesvirus 5 (CMV),NA,2.0234850496919657e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.2433653103555685e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.597576014950978e-168,Nasal
+Human betaherpesvirus 5 (CMV),NA,4.458615279480711e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,6.093965623401207e-50,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.9998618696326874e-237,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,3.990249023621412e-39,Nasal
+Human gammaherpesvirus 4 (EBV),NA,8.224320001128418e-56,Nasal
+Anelloviridae,NA,3.0324943473296314e-50,Nasal
+Human gammaherpesvirus 4 (EBV),NA,8.802377705913466e-43,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,1.6394568852635745e-54,Nasal
+Enterovirus,NA,6.120684588704592e-51,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.0234850496919657e-56,Nasal
+Human betaherpesvirus 5 (CMV),NA,4.882025010866993e-95,Nasal
+Human gammaherpesvirus 4 (EBV),NA,4.458615279480711e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,6.180164001384113e-50,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.1647113787030033e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.0234850496919657e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,3.2366817570165406e-61,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.981261008172266e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.1550046233747985e-278,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.010718442871754e-61,Nasal
+Enterovirus,NA,3.3806483620597878e-308,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.458615279480711e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,4.392380956904611e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.0338911841942658e-71,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,1.1950883147362645e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.1647113787030033e-55,Nasal
+Enterovirus,NA,4.1840801956742863e-45,Nasal
+Human gammaherpesvirus 4 (EBV),NA,1.3329074642313395e-49,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.802297599818694e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.0044720273652576e-260,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,7.852356346100903e-169,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,4.1677340679767296e-57,Nasal
+Human betaherpesvirus 7,NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,6.619116119411185e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.799411610955923e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,7.524887301735844e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.0234850496919657e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,4.458615279480711e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.0234850496919657e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Enterovirus,NA,8.619855787057537e-46,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.18332596483583e-57,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.4243761335250705e-55,Nasal
+Human immunodeficiency virus 1,NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.436086439314309e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human immunodeficiency virus 1,NA,2.1647113787030033e-55,Nasal
+Human immunodeficiency virus 1,NA,8.317637711026742e-53,Nasal
+Human immunodeficiency virus 1,NA,4.6419451023934465e-56,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,7.362070974947677e-268,Nasal
+Human immunodeficiency virus 1,NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.128613839913743e-192,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,9.46673020034694e-55,Nasal
+Enterovirus,NA,2.0361042011319602e-53,Nasal
+Anelloviridae,NA,6.717381285473772e-47,Nasal
+Human immunodeficiency virus 1,NA,2.6109586865859443e-52,Nasal
+Human immunodeficiency virus 1,NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.0616955571987503e-279,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.41501918953484e-80,Nasal
+Anelloviridae,NA,5.5975760149509784e-139,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.0234850496919657e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.3157944032250705e-54,Nasal
+Human betaherpesvirus 5 (CMV),NA,5.458835409516752e-53,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.978516429429167e-63,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.7498466886246367e-133,Nasal
+Human gammaherpesvirus 4 (EBV),NA,5.312512929036568e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.0234850496919657e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.8663796908347345e-300,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,2.663176807040519e-30,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.2284351492702986e-104,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,4.1677340679767296e-57,Nasal
+Enterovirus,NA,4.769798141192211e-55,Nasal
+Enterovirus,NA,6.63895920488697e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.8464266703742465e-72,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,9.824263447582708e-56,Nasal
+Anelloviridae,NA,8.574326166361788e-51,Nasal
+Enterovirus,NA,1.5631476426410147e-305,Nasal
+Enterovirus,NA,6.561452663029164e-308,Nasal
+Enterovirus,NA,9.862794856312745e-308,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.0888726265127712e-55,Nasal
+Human gammaherpesvirus 4 (EBV),NA,4.8629521918678575e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.0911890519552045e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.290867652767845e-192,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,7.549183812702765e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.0234850496919657e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.0234850496919657e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.392380956904611e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.176142652572874e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.833316096867415e-53,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.1622776601683794e-229,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,5.0640734952385445e-34,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,7.22769803602185e-247,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,2.2641229140006628e-34,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.6470242744164315e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.807150103801747e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.1571775514357104e-53,Nasal
+Human gammaherpesvirus 4 (EBV),NA,5.188000389289652e-53,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.458615279480711e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,6.619116119411185e-56,Nasal
+Anelloviridae,NA,4.608928809808979e-47,Nasal
+Enterovirus,NA,1.225744632049806e-40,Nasal
+Human betaherpesvirus 5 (CMV),NA,5.782291742660292e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.458615279480711e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.538508854276412e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.4157044735332293e-249,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,5.6728330163097655e-33,Nasal
+Human gammaherpesvirus 4 (EBV),NA,3.110999920424548e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.2977767816857785e-53,Nasal
+Human gammaherpesvirus 4 (EBV),NA,3.869011316551103e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.0234850496919657e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,5.802297599818694e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.714786366718736e-253,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,2.2233098906513005e-308,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.7378008287494118e-180,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human betaherpesvirus 5 (CMV),NA,5.802297599818694e-56,Nasal
+Human betaherpesvirus 5 (CMV),NA,4.458615279480711e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.659316719753493e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.1827314821707856e-54,Nasal
+Enterovirus,NA,2.149314655419159e-41,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.1489470119166697e-52,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Enterovirus,NA,2.6546055619755364e-53,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.802297599818694e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.083193863326827e-156,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.597576014950979e-229,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,1.7167221078580813e-34,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,7.277798045368629e-266,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,1.5335572729958198e-28,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.437810818368755e-273,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,2.1737019751571128e-30,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.638290236239902e-229,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,5.802297599818694e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,6.932661572051164e-55,Nasal
+Enterovirus,NA,2.3157944032250705e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.591980128368751e-253,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,2.7758756035343226e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human betaherpesvirus 5 (CMV),NA,2.0234850496919657e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,6.267581644592111e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.0234850496919657e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,6.619116119411185e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.2756213516313082e-54,Nasal
+Enterovirus,NA,1.2805602007037874e-51,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.797155472803931e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,4.262849498615225e-55,Nasal
+Human betaherpesvirus 5 (CMV),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,2.6546055619755364e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.629417129715619e-56,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,5.649369748122965e-121,Nasal
+Human gammaherpesvirus 4 (EBV),NA,7.937797216901222e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.675446054085721e-277,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1e-200,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,7.531821171741776e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.781377043229884e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.326098541743053e-60,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.766037820686164e-124,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,2.0234850496919657e-56,Nasal
+Human immunodeficiency virus 1,NA,5.802297599818694e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.655860935229658e-196,Nasal
+Human betaherpesvirus 5 (CMV),NA,2.0234850496919657e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.13993213245593e-58,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.2657951880159516e-55,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.0710949036603457e-60,Nasal
+Human gammaherpesvirus 4 (EBV),NA,8.195963204818505e-60,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,7.177942912713527e-214,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,5.530953407403145e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.969246127014554e-55,Nasal
+Enterovirus,NA,2.4154608344448366e-308,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.069021988391171e-48,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.195657223387235e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.045089066974242e-55,Nasal
+Human gammaherpesvirus 4 (EBV),NA,3.418219914176572e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,3.4268887043278663e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,8.005712689353583e-63,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Enterovirus,NA,5.458835409516752e-53,Nasal
+Enterovirus,NA,1.2022644346173688e-261,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,4.458615279480711e-56,Nasal
+Human betaherpesvirus 5 (CMV),NA,4.458615279480711e-56,Nasal
+Human betaherpesvirus 5 (CMV),NA,3.5850894827655273e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.0234850496919657e-56,Nasal
+Human betaherpesvirus 5 (CMV),NA,9.5148073635176e-55,Nasal
+Human betaherpesvirus 5 (CMV),NA,1.1590442052227284e-52,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.3019670700641483e-49,Nasal
+Human betaherpesvirus 5 (CMV),NA,9.749896377173807e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,4.769798141192211e-55,Nasal
+Human betaherpesvirus 5 (CMV),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.1677340679767296e-57,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.0749135174549447e-287,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.1647113787030033e-55,Nasal
+Enterovirus,NA,2.834653633489671e-51,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.027682719521292e-55,Nasal
+Enterovirus,NA,8.076068613289816e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.982896289054717e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,6.619116119411185e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,7.455898720277854e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.2470963266393932e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,8.790225168308896e-110,Nasal
+Enterovirus,NA,6.24597152533276e-51,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.0234850496919657e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,6.407667976494349e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.0760968147407046e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.3474107253444056e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.6508210574890325e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.3728730865887335e-116,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,7.163083273130367e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.5332041990349174e-58,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.092606597300126e-63,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,9.727472237769641e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.491613955526357e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.1470236017056706e-86,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.242036010084586e-53,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,7.661256450138086e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.458615279480711e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.1677340679767296e-57,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.458615279480711e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.6032453906899826e-299,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,3.382205566696536e-29,Nasal
+Human betaherpesvirus 6,NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,8.241381150129962e-294,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,1.6986347325366179e-37,Nasal
+Human betaherpesvirus 5 (CMV),NA,2.617580218703829e-63,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.0892961308540067e-267,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,6.462491724953901e-32,Nasal
+Human betaherpesvirus 5 (CMV),NA,2.800915455382912e-55,Nasal
+Human gammaherpesvirus 4 (EBV),NA,7.163083273130367e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.201157438224033e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,6.256046959640057e-56,Nasal
+Human betaherpesvirus 5 (CMV),NA,1.5177491558612385e-52,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.420581952567515e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.7270933226838833e-54,Nasal
+Human gammaherpesvirus 4 (EBV),NA,7.751754320690843e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.1939881044642682e-248,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.4584783945478813e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.03441424695001e-65,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.059756632515744e-68,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.4584783945478813e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.0183568757197833e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.057304303742185e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.1768740706497885e-55,Nasal
+Enterovirus,NA,8.558546212208263e-69,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.2832358676700294e-55,Nasal
+Enterovirus,NA,5.975854297155761e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,7.70371131697605e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.7807378917032885e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.2464667759918725e-53,Nasal
+Human immunodeficiency virus 1,NA,4.453485062698558e-56,Nasal
+Enterovirus,NA,1.4723125024327164e-49,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.437810818368755e-63,Nasal
+Enterovirus,NA,4.357124805030865e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.5104279030038911e-55,Nasal
+Enterovirus,NA,5.8884365535558355e-123,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.621436704773596e-53,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.5523870099580912e-55,Nasal
+Enterovirus,NA,8.04081370120608e-53,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,8.605973411928276e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.18332596483583e-57,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.0234850496919657e-56,Nasal
+Enterovirus,NA,1.870682140365763e-307,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.4268887043278663e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.530953407403145e-56,Nasal
+Enterovirus,NA,2.4819898435070757e-47,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.8488428581619835e-54,Nasal
+Enterovirus,NA,5.102699578594376e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.3464802883878392e-55,Nasal
+Human immunodeficiency virus 1,NA,7.345138681571144e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.9856577231339806e-51,Nasal
+Human gammaherpesvirus 4 (EBV),NA,1.8268378453085127e-42,Nasal
+Human gammaherpesvirus 4 (EBV),NA,5.406298239953046e-59,Nasal
+Enterovirus,NA,3.413500729493062e-74,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.4121260560925577e-56,Nasal
+Enterovirus,NA,5.00841145299823e-50,Nasal
+Enterovirus,NA,4.874162454431531e-67,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.1647113787030033e-55,Nasal
+Enterovirus,NA,5.152286445817604e-123,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,6.993587292116976e-56,Nasal
+Enterovirus,NA,5.584701947368489e-172,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.7186996953977347e-55,Nasal
+Enterovirus,NA,8.619855787057537e-53,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.0234850496919657e-56,Nasal
+Enterovirus,NA,1.4699413265138375e-53,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Enterovirus,NA,5.458835409516752e-53,Nasal
+Enterovirus,NA,4.646222461325752e-53,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.0234850496919657e-56,Nasal
+Enterovirus,NA,1.5903766838224768e-52,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Enterovirus,NA,1.8762901558378966e-58,Nasal
+Enterovirus,NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.0234850496919657e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.3823194693587427e-238,Nasal
+Human immunodeficiency virus 1,NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.7021585083949292e-232,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,2.6552168778726776e-36,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,6.619116119411185e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.660725059798792e-51,Nasal
+Human immunodeficiency virus 1,NA,7.839710037491995e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.187556016660636e-64,Nasal
+Enterovirus,NA,1.0536588032297173e-48,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.395725457706756e-48,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.108628149933349e-131,Nasal
+Enterovirus,NA,2.506109253032119e-142,Nasal
+Human immunodeficiency virus 1,NA,9.824263447582708e-56,Nasal
+Enterovirus,NA,4.4874538993313325e-52,Nasal
+Human betaherpesvirus 5 (CMV),NA,9.824263447582708e-56,Nasal
+Enterovirus,NA,2.1399321324559303e-49,Nasal
+Enterovirus,NA,5.485295139411991e-53,Nasal
+Human immunodeficiency virus 1,NA,4.458615279480711e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,4.769798141192211e-55,Nasal
+Human immunodeficiency virus 1,NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.2720377500856952e-55,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.739145036236962e-54,Nasal
+Human betaherpesvirus 5 (CMV),NA,2.7758756035343226e-56,Nasal
+Enterovirus,NA,5.102699578594376e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.85288500162121e-59,Nasal
+Human gammaherpesvirus 4 (EBV),NA,6.119275411239136e-50,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,6.109420249055739e-165,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,4.1677340679767296e-57,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,8.84300763535509e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.0234850496919657e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.790615486398088e-53,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human immunodeficiency virus 1,NA,9.824263447582708e-56,Nasal
+Human betaherpesvirus 5 (CMV),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,4.8528850016212894e-133,Nasal
+Human betaherpesvirus 5 (CMV),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.1330449131466145e-273,Nasal
+Human betaherpesvirus 5 (CMV),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,3.820322268844082e-68,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.2714520899170697e-52,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.5870212734646304e-66,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.5118831232760885e-52,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,5.525861556300826e-52,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,1.2456613801138811e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.2469817393824e-246,Nasal
+Human alphaherpesvirus 2 (HSV2),NA,1.8565215723815155e-43,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.3157944032250705e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,9.824263447582708e-56,Nasal
+Human gammaherpesvirus 4 (EBV),NA,4.922661804443351e-54,Nasal
+Human gammaherpesvirus 4 (EBV),NA,1.825576346188076e-54,Nasal
+Human gammaherpesvirus 4 (EBV),NA,9.824263447582708e-56,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,2.5810712896459366e-54,Nasal
+Human alphaherpesvirus 1 (HSV1),NA,1.0509934271862155e-54,Nasal
+Human gammaherpesvirus 4 (EBV),NA,2.36428594240174e-85,EA
+Human alphaherpesvirus 1 (HSV1),NA,4.886523593428257e-240,EA
+Human alphaherpesvirus 1 (HSV1),NA,3.365115693754805e-192,EA
+Human alphaherpesvirus 2 (HSV2),NA,9.727472237769641e-56,EA
+Human alphaherpesvirus 1 (HSV1),NA,6.576578373554387e-137,EA
+Human alphaherpesvirus 1 (HSV1),NA,3.8707934724325825e-87,EA
+Human alphaherpesvirus 1 (HSV1),NA,6.982324040771619e-116,EA
+Human alphaherpesvirus 1 (HSV1),NA,4.988844874600127e-38,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.0209394837076473e-129,EA
+Human alphaherpesvirus 1 (HSV1),NA,7.97260045366535e-88,EA
+Human alphaherpesvirus 1 (HSV1),NA,4.90907876152606e-230,EA
+Human betaherpesvirus 5 (CMV),NA,5.970352865838317e-94,EA
+Human gammaherpesvirus 4 (EBV),NA,1.1950883147362644e-65,EA
+Human alphaherpesvirus 1 (HSV1),NA,2.8379190284415753e-105,EA
+Human alphaherpesvirus 2 (HSV2),NA,1.1953635256737202e-23,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.2661932675109624e-86,EA
+Human betaherpesvirus 5 (CMV),NA,1.7567097026646113e-87,EA
+Human alphaherpesvirus 1 (HSV1),NA,8.152672562240338e-93,EA
+Human betaherpesvirus 6,NA,4.0672418726425793e-42,EA
+Human alphaherpesvirus 1 (HSV1),NA,7.97260045366535e-88,EA
+Human alphaherpesvirus 1 (HSV1),NA,7.97260045366535e-88,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.5627877560300094e-95,EA
+Human alphaherpesvirus 1 (HSV1),NA,3.944573020752817e-239,EA
+Anelloviridae,NA,8.10961057853852e-115,EA
+Human alphaherpesvirus 1 (HSV1),NA,8.745809230752029e-91,EA
+Anelloviridae,NA,3.7462779834405904e-39,EA
+Human alphaherpesvirus 1 (HSV1),NA,7.97260045366535e-88,EA
+Anelloviridae,NA,7.308024590091055e-47,EA
+Anelloviridae,NA,1.6481623915254496e-287,EA
+Anelloviridae,NA,1.3580007193632358e-66,EA
+Human alphaherpesvirus 1 (HSV1),NA,2.549177050509149e-85,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.1994993031494002e-186,EA
+Human alphaherpesvirus 2 (HSV2),NA,5.3888984537328306e-86,EA
+Human alphaherpesvirus 1 (HSV1),NA,2.3496328208483578e-244,EA
+Human alphaherpesvirus 2 (HSV2),NA,5.300294488357952e-11,EA
+Human alphaherpesvirus 1 (HSV1),NA,5.571857489319418e-138,EA
+Human alphaherpesvirus 1 (HSV1),NA,3.497840484251448e-93,EA
+Human betaherpesvirus 7,NA,1.0634081880997095e-82,EA
+Human alphaherpesvirus 1 (HSV1),NA,8.912509381337222e-247,EA
+Human alphaherpesvirus 2 (HSV2),NA,2.2233098906513005e-308,EA
+Human alphaherpesvirus 1 (HSV1),NA,4.753352259427971e-246,EA
+Human alphaherpesvirus 2 (HSV2),NA,6.297961479295158e-49,EA
+Anelloviridae,NA,3.0881614691845063e-50,EA
+Human alphaherpesvirus 1 (HSV1),NA,7.464487584100501e-159,EA
+Human alphaherpesvirus 2 (HSV2),NA,8.727703824424139e-65,EA
+Human alphaherpesvirus 1 (HSV1),NA,2.5621231468290523e-78,EA
+Human betaherpesvirus 5 (CMV),NA,1.1915163332179917e-87,EA
+Human gammaherpesvirus 4 (EBV),NA,6.995197810512235e-67,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.3533184417059222e-79,EA
+Human alphaherpesvirus 2 (HSV2),NA,7.937797216901156e-28,EA
+Human alphaherpesvirus 1 (HSV1),NA,5.078085396648894e-39,EA
+Human alphaherpesvirus 2 (HSV2),NA,1.349584246019776e-25,EA
+Human alphaherpesvirus 1 (HSV1),NA,7.97260045366535e-88,EA
+Human betaherpesvirus 5 (CMV),NA,4.3501076063069035e-81,EA
+Human betaherpesvirus 5 (CMV),NA,4.2657951880158815e-121,EA
+Human gammaherpesvirus 4 (EBV),NA,3.4914031547859124e-127,EA
+Anelloviridae,NA,6.870684400142318e-32,EA
+Human alphaherpesvirus 1 (HSV1),NA,2.8287853879701256e-33,EA
+Human alphaherpesvirus 1 (HSV1),NA,7.97260045366535e-88,EA
+Human betaherpesvirus 5 (CMV),NA,2.6061535499988765e-80,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.0277796158762214e-38,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.599558028614645e-124,EA
+Human betaherpesvirus 5 (CMV),NA,1.0685626745999534e-53,EA
+Human gammaherpesvirus 4 (EBV),NA,3.3411809763304105e-93,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.5346169827993192e-236,EA
+Human alphaherpesvirus 2 (HSV2),NA,6.853304051260433e-26,EA
+Human alphaherpesvirus 1 (HSV1),NA,9.18332596483628e-268,EA
+Human alphaherpesvirus 2 (HSV2),NA,4.4514346292011124e-23,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.3583134465870958e-260,EA
+Human alphaherpesvirus 1 (HSV1),NA,8.076068613289816e-64,EA
+Human alphaherpesvirus 1 (HSV1),NA,8.483987109860017e-43,EA
+Human alphaherpesvirus 1 (HSV1),NA,2.7478941531025323e-292,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.3019670700641483e-48,EA
+Human alphaherpesvirus 1 (HSV1),NA,7.561361470777394e-75,EA
+Human betaherpesvirus 5 (CMV),NA,8.994975815300217e-104,EA
+Human gammaherpesvirus 4 (EBV),NA,2.560353906004187e-72,EA
+Human alphaherpesvirus 1 (HSV1),NA,2.5351286304978862e-197,EA
+Human alphaherpesvirus 1 (HSV1),NA,5.915616341754622e-281,EA
+Human alphaherpesvirus 1 (HSV1),NA,3.244143079048841e-76,EA
+Human betaherpesvirus 5 (CMV),NA,7.552661140948125e-79,EA
+Human alphaherpesvirus 1 (HSV1),NA,8.483987109860017e-93,EA
+Human alphaherpesvirus 1 (HSV1),NA,5.620824170602047e-92,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.633051947894338e-58,EA
+Human alphaherpesvirus 1 (HSV1),NA,4.331117839310419e-84,EA
+Human betaherpesvirus 5 (CMV),NA,1.4938259516663088e-28,EA
+Human alphaherpesvirus 1 (HSV1),NA,5.636376558259238e-284,EA
+Human alphaherpesvirus 2 (HSV2),NA,7.326558134796373e-19,EA
+Human alphaherpesvirus 1 (HSV1),NA,6.964661283938882e-47,EA
+Human alphaherpesvirus 1 (HSV1),NA,2.1330449131466144e-217,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.7676651509282227e-57,EA
+Human alphaherpesvirus 1 (HSV1),NA,6.274801619978559e-58,EA
+Human alphaherpesvirus 1 (HSV1),NA,6.296511487016302e-64,EA
+Human alphaherpesvirus 1 (HSV1),NA,7.97260045366535e-88,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.0447202192208132e-243,EA
+Human alphaherpesvirus 1 (HSV1),NA,7.746401447537521e-63,EA
+Human alphaherpesvirus 1 (HSV1),NA,2.8054336379515785e-260,EA
+Human alphaherpesvirus 2 (HSV2),NA,7.537025766884292e-82,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.653484012171162e-88,EA
+Human alphaherpesvirus 1 (HSV1),NA,2.9040226544644095e-117,EA
+Human alphaherpesvirus 1 (HSV1),NA,7.5509222766543415e-90,EA
+Human alphaherpesvirus 1 (HSV1),NA,2.4154608344449155e-127,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.0727536478355385e-65,EA
+Human alphaherpesvirus 1 (HSV1),NA,2.698360681426305e-93,EA
+Human alphaherpesvirus 1 (HSV1),NA,3.8976245309772117e-87,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.702158508394929e-269,EA
+Human alphaherpesvirus 1 (HSV1),NA,4.069115338091937e-86,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.4487718535447662e-204,EA
+Human alphaherpesvirus 2 (HSV2),NA,8.027863879897904e-88,EA
+Human alphaherpesvirus 1 (HSV1),NA,7.97260045366535e-88,EA
+Human alphaherpesvirus 1 (HSV1),NA,6.5765783735543875e-199,EA
+Human alphaherpesvirus 1 (HSV1),NA,6.625215359025896e-95,EA
+Human betaherpesvirus 6,NA,1.653484012171162e-88,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.461840534478803e-91,EA
+Human alphaherpesvirus 2 (HSV2),NA,7.333309252741591e-87,EA
+Human alphaherpesvirus 1 (HSV1),NA,3.664375746478513e-266,EA
+Human alphaherpesvirus 1 (HSV1),NA,9.624983640175254e-95,EA
+Human alphaherpesvirus 1 (HSV1),NA,2.9785164294292154e-90,EA
+Human gammaherpesvirus 4 (EBV),NA,2.242848815869319e-77,EA
+Human gammaherpesvirus 4 (EBV),NA,1.8361155134491233e-80,EA
+Human alphaherpesvirus 1 (HSV1),NA,3.539973410834169e-261,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.690440931643298e-169,EA
+Human alphaherpesvirus 2 (HSV2),NA,7.97260045366535e-88,EA
+Human alphaherpesvirus 1 (HSV1),NA,3.908408957923881e-269,EA
+Human alphaherpesvirus 1 (HSV1),NA,1e-265,EA
+Human alphaherpesvirus 1 (HSV1),NA,8.66961875758193e-209,EA
+Human immunodeficiency virus 1,NA,1.1681537298613314e-43,EA
+Human betaherpesvirus 5 (CMV),NA,1.5205475297325031e-117,EA
+Human alphaherpesvirus 1 (HSV1),NA,3.3113112148258804e-113,EA
+Human alphaherpesvirus 1 (HSV1),NA,8.928941960649844e-93,EA
+Human betaherpesvirus 5 (CMV),NA,6.230171474290632e-64,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.1220184543019928e-134,EA
+Human gammaherpesvirus 4 (EBV),NA,5.754399373371637e-121,EA
+Human alphaherpesvirus 1 (HSV1),NA,3.477763138547509e-92,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.653484012171162e-88,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.3273944577297102e-131,EA
+Human alphaherpesvirus 1 (HSV1),NA,5.189195108067378e-95,EA
+Human alphaherpesvirus 1 (HSV1),NA,7.16143410212932e-267,EA
+Human gammaherpesvirus 4 (EBV),NA,4.861832584649897e-84,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.0939563662720617e-197,EA
+Human alphaherpesvirus 2 (HSV2),NA,1.7542843942496643e-73,EA
+Human alphaherpesvirus 1 (HSV1),NA,4.375221051582574e-107,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.5240527537972657e-288,EA
+Human betaherpesvirus 6,NA,3.0478949896279456e-123,EA
+Human gammaherpesvirus 4 (EBV),NA,7.97260045366535e-88,EA
+Human betaherpesvirus 5 (CMV),NA,1.5696397920293156e-75,EA
+Human gammaherpesvirus 4 (EBV),NA,1.1740862447096703e-66,EA
+Human gammaherpesvirus 4 (EBV),NA,4.160063884776239e-71,EA
+Human alphaherpesvirus 1 (HSV1),NA,7.834296427662216e-259,EA
+Human alphaherpesvirus 2 (HSV2),NA,4.429961991003636e-85,EA
+Human alphaherpesvirus 1 (HSV1),NA,5.115640300070042e-86,EA
+Human alphaherpesvirus 1 (HSV1),NA,1.445439770746011e-284,EA
+Human alphaherpesvirus 1 (HSV1),NA,2.773320104651736e-272,EA
