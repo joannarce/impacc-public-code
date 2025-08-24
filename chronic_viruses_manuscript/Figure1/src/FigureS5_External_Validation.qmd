@@ -1,0 +1,156 @@
+---
+title: "FigureS5_External_Validation"
+format: html
+editor: visual
+---
+
+# Load Libraries, Data, and Publication Theme
+
+```{r}
+lapply(c("tidyverse", "ggeffects", "dplyr", "ggplot2", "ggridges"), library, character.only = TRUE)
+
+## Please check the README regarding access to these files
+taxon_data <- read.csv("ms_taxon_data.csv")
+metadata_file <- read.csv("ms_metadata.csv")
+survey_file <- read.csv("ms_clinical_data.csv") %>%
+  filter(!is.na(Blood_Sample_ID)) %>%
+  rowwise() %>%
+  mutate(symptom_count = sum(as.numeric(c_across(where(is.logical) & starts_with("Post_COVID19_"))), na.rm = TRUE)) %>%
+  mutate(PASC_status = ifelse(symptom_count > 0, "PASC", "Non-PASC"))
+
+theme_Publication <- function(base_size=14, base_family="sans") {
+  library(grid)
+  library(ggthemes)
+  (theme_foundation(base_size=base_size, base_family=base_family)
+    + theme(plot.title = element_text(face = "bold",
+                                      size = rel(1.2), hjust = 0.5, margin = margin(0,0,20,0)),
+            text = element_text(),
+            panel.background = element_rect(colour = NA),
+            plot.background = element_rect(colour = NA),
+            panel.border = element_rect(colour = NA),
+            axis.title = element_text(face = "bold",size = rel(1)),
+            axis.title.y = element_text(angle=90,vjust =2),
+            axis.title.x = element_text(vjust = -0.2),
+            axis.text = element_text(), 
+            axis.line.x = element_line(colour="black"),
+            axis.line.y = element_line(colour="black"),
+            axis.ticks = element_line(),
+            panel.grid.major = element_line(colour="#f0f0f0"),
+            panel.grid.minor = element_blank(),
+            legend.key = element_rect(colour = NA),
+            legend.position = "bottom",
+            legend.direction = "horizontal",
+            legend.box = "vetical",
+            legend.key.size= unit(0.5, "cm"),
+            #legend.margin = unit(0, "cm"),
+            plot.margin=unit(c(10,5,5,5),"mm"),
+            strip.background=element_rect(colour="#f0f0f0",fill="#f0f0f0"),
+            strip.text = element_text(face="bold")
+    ))
+  }
+
+scale_fill_Publication <- function(...){
+  library(scales)
+  discrete_scale("fill","Publication",manual_pal(values = c("#386cb0","#f87f01","#7fc97f","#ef3b2c","#feca01","#a6cee3","#fb9a99","#984ea3","#8C591D")), ...)}
+
+scale_colour_Publication <- function(...){
+  library(scales)
+  discrete_scale("colour","Publication",manual_pal(values = c("#386cb0","#f87f01","#7fc97f","#ef3b2c","#feca01","#a6cee3","#fb9a99","#984ea3","#8C591D")), ...)}
+
+out_dir <- "../output/"
+```
+
+# Figure S5A - Sampling Timeline
+
+```{r, fig.height = 3.5, fig.width = 5.5}
+viral_pos_df <- taxon_data %>%
+  filter(nr_rpm > 0) %>%
+  filter(grepl("viruses", category, ignore.case = TRUE)) %>%
+  select(name, nt_rpm, nr_rpm, full_czid_id) %>%
+  complete(name, full_czid_id) %>%
+  mutate(nt_rpm = ifelse(is.na(nt_rpm), 0, nt_rpm)) %>%
+  filter(name %in% c("Human gammaherpesvirus 4", "Human betaherpesvirus 5", "non-genus-specific reads in family Anelloviridae")) %>%
+  left_join(metadata_file, by = c("full_czid_id" = "Run")) %>%
+  left_join(survey_file, by = c("blood_sample_id" = "Blood_Sample_ID")) %>%
+  mutate(virus_positive = ifelse(nt_rpm > 0, 1, 0)) %>%
+  filter(COVID19_Days_Since_Symptoms_Reported_Onset <= 40) %>%
+  filter(!is.na(COVID19_Days_Since_Symptoms_Reported_Onset)) %>%
+  mutate(name = ifelse(name == "non-genus-specific reads in family Anelloviridae",
+                       "Anelloviridae", name))
+# Note: Each sample taken was tested for CMV, EBV & ANV at the same time
+# Note: 45 participants of the 165 in viral_pos_df have NA's marked for their COVID Severity...
+
+s5a <- viral_pos_df %>%
+  filter(!is.na(Severity)) %>%
+  mutate(Severity = recode(Severity,
+    "Moderate COVID-19" = "Moderate",
+    "Severe COVID-19" = "Severe",
+    "Severe COVID-19 with EOD" = "Severe w/ EOD")) %>%
+  ggplot(aes(x = COVID19_Days_Since_Symptoms_Reported_Onset, y = Severity, fill = Severity)) +
+  geom_density_ridges2(rel_min_height = 0.01, scale = 0.9, alpha = 0.95, jittered_points = TRUE, point_size = 0.4, point_alpha = 0.6) + 
+  stat_density_ridges(quantile_lines = TRUE, quantiles = 4, alpha = 0.7, rel_min_height = 0.01, scale = 0.9) +
+  scale_fill_manual(values = c(
+    "Moderate" = "#F4C799",
+    "Severe" = "#D6605F",
+    "Severe w/ EOD" = "#B13F63")) +
+  labs(x = "Days Since COVID-19 Symptom Onset", y = "COVID-19 Disease Severity", caption = "*Samples included in this plot were taken between April–June 2020*") +
+  theme_Publication() + 
+  theme(legend.title = element_blank(), legend.text = element_text(size = 10), axis.text.y = element_text(size = 10), plot.caption = element_text(hjust = 0.5))
+s5a
+
+ggsave(paste0(out_dir, "Figure_S5A.pdf"), plot = s5a, width = 5.5, height = 3.5)
+write_csv(viral_pos_df %>% select(Severity, COVID19_Days_Since_Symptoms_Reported_Onset), paste0(out_dir, "source_data_FigureS5A.csv"))
+```
+
+# Figure S5B - EBV, CMV & Anelloviridae Reactivation in Mount Sinai Cohort
+
+```{r, fig.width =5, fig.height = 3.5}
+
+either_side = 3
+percent_overtime <- data.frame()
+for(day in 1:40){
+  date_range <- (day-either_side):(day+either_side)
+  tmp_df <- viral_pos_df %>%
+    filter(COVID19_Days_Since_Symptoms_Reported_Onset %in% date_range) %>%
+    group_by(name) %>%
+    distinct(name, full_czid_id, virus_positive, COVID19_Days_Since_Symptoms_Reported_Onset) %>%
+    dplyr::summarize(percent_pos = mean(virus_positive) * 100) %>%
+    mutate(day = day)
+  percent_overtime <- rbind.data.frame(percent_overtime, tmp_df)}
+
+s5b <- percent_overtime %>%
+  ggplot(aes(x=day, y= percent_pos)) +
+  geom_smooth(se = F, aes(color = name)) +
+  labs(x = "Day Since Onset of COVID-19 Symptoms", y = "Percent of Samples Positive (%)") +
+  scale_color_manual(values = c("#86005F", "#005F86", "#BF5700"), name="Virus:") +
+  theme_Publication() +
+  theme(legend.text = element_text(size = 10), legend.title = element_text(size = 10))
+s5b
+
+ggsave(paste0(out_dir, "Figure_S5B.pdf"), plot = s5b, width = 5, height = 3.5)
+write_csv(percent_overtime, paste0(out_dir, "source_data_FigureS5B.csv"))
+```
+
+# Figure S5C - Viral Nucleotide Reads-per-million Over Time
+
+```{r, fig.width = 6, fig.height = 3.5}
+s5c <- viral_pos_df %>%
+  mutate(name = case_when(
+    name == "Human gammaherpesvirus 4" ~ "EBV",
+    name == "Human betaherpesvirus 5" ~ "CMV",
+    TRUE ~ "Anelloviridae")) %>%
+  mutate(name = as.factor(name)) %>%
+  ggplot(aes(x=COVID19_Days_Since_Symptoms_Reported_Onset, y=nt_rpm)) +
+  geom_line(aes(group = subject_id), alpha = 0.6, color = "lightgray") +
+  geom_point(aes(color = name)) +
+  scale_color_manual(values = c("#86005F", "#005F86", "#BF5700")) + 
+  scale_y_log10() +
+  facet_wrap(~name) +
+  labs(x = "Days Since Symptom Onset", y = "Viral RPM") +
+  theme_Publication() +
+  theme(legend.position = "none") 
+s5c
+write.csv(s5c$data %>% select(name, nt_rpm, subject_id, COVID19_Days_Since_Symptoms_Reported_Onset) %>%
+            mutate(subject_id = as.numeric(as.factor(subject_id))), paste0(out_dir, "source_data_FigureS5C.csv"))
+ggsave(paste0(out_dir, "Figure_S5C.pdf"), plot = s5c, width = 6, height = 3.5)
+```
