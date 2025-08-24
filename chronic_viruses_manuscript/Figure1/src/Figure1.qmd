@@ -735,7 +735,7 @@ tree <- read.tree("enterovirus_2024-08-25_ncbi_taxonomy.phy")
 ggg <- ggtree(tree) +  geom_tiplab(align=TRUE, linesize=.5) +
   ggplot2::xlim(0, 60)
 ggg
-ggsave(paste0(out_dir, "FiguresS2D.pdf"), width = 5, height = 4)
+ggsave(paste0(out_dir, "FigureS2D.pdf"), width = 5, height = 4)
 ## 5x4
 ```
 
