@@ -27,7 +27,9 @@ comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.c
          -starts_with("Enterovirus.ea"),
          -starts_with("Anelloviridae.ea"),
          -starts_with("Anelloviridae.nasal"),
-         -starts_with("Human alphaherpesvirus 2 (HSV2).ea"))
+         -starts_with("Human alphaherpesvirus 2 (HSV2).ea"),
+         -starts_with("Human alphaherpesvirus 1 (HSV1).pbmc"),
+         -starts_with("Human alphaherpesvirus 2 (HSV2).pbmc"))
 data_env <- readRDS("/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS")
 clinical_data <- data_env$clinical_data
 rm(data_env)
@@ -36,7 +38,7 @@ clinical_data_ext <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-
 out_dir <- "../output/"
 ```
 
-### Figure 2A: Severity (and Figure S4A)
+### Figure 2A: Severity (and Figure S6A)
 
 ```{r}
 library(aplot)
@@ -45,7 +47,10 @@ library(ordinal)
 
 ever_reactivate <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
-  left_join(clinical_data %>% select(event_id, participant_id)) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type,
+                                     event_date)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
   group_by(participant_id, name) %>%
   dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
   filter(max != -Inf) %>%
@@ -71,8 +76,10 @@ graph_data <- ever_reactivate %>%
 
 clm_data <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
-  left_join(clinical_data %>% select(event_id, participant_id, event_type, sex)) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type, event_date,
+                                     sex)) %>%
   filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
   group_by(participant_id, name) %>%
   dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
   filter(max != -Inf) %>%
@@ -118,7 +125,7 @@ stat.df <- stat.df %>%
   mutate(y.position = 40)
 write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part1.csv"))
 
-ggS4A <- graph_data %>%
+ggS6A <- graph_data %>%
   ggplot(aes(y=name, x=pos_freq)) +
   geom_bar(stat = "identity", position = "stack", aes(fill = trajectory_group)) +
   theme_classic() + scale_y_discrete(limits = rev(unique(graph_data$name))) +
@@ -129,7 +136,7 @@ ggS4A <- graph_data %>%
         legend.position = "top",
         legend.direction = "vertical",
         axis.ticks = element_line(color = "black"))
-ggS4A
+ggS6A
 
 
 gg1 <- graph_data %>%
@@ -164,8 +171,9 @@ library(ggpattern)
 
 ever_reactivate <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
-  left_join(clinical_data %>% select(event_id, participant_id, trajectory_group, event_type)) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, trajectory_group, event_type, event_date)) %>%
   filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
   group_by(participant_id, trajectory_group, name) %>%
   dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
   filter(max != -Inf) %>%
@@ -180,8 +188,9 @@ ever_reactivate <- comb_data %>%
 
 model_df <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
-  left_join(clinical_data %>% select(event_id, participant_id, trajectory_group, event_type)) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, trajectory_group, event_type, event_date)) %>%
   filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
   group_by(participant_id, trajectory_group, name) %>%
   dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
   filter(max != -Inf) %>%
@@ -278,8 +287,10 @@ library(ggpubr)
 
 ever_reactivate <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
-  left_join(clinical_data %>% select(event_id, participant_id, event_type, sex)) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type, event_date,
+                                     sex)) %>%
   filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
   group_by(participant_id, name) %>%
   dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
   filter(max != -Inf) %>%
@@ -297,8 +308,10 @@ ever_reactivate <- comb_data %>%
 clm_data <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
   mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
-  left_join(clinical_data %>% select(event_id, participant_id, event_type, sex)) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type,
+                                     event_date, sex)) %>%
   filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
   group_by(participant_id, name) %>%
   dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
   filter(max != -Inf) %>%
@@ -379,7 +392,10 @@ ggsave(paste0(out_dir, "Figure2A_B.pdf"), width = 8, height = 6)
 
 ever_reactivate <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
-  left_join(clinical_data %>% select(event_id, participant_id)) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type,
+                                     event_date)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
   group_by(participant_id, name) %>%
   dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
   filter(max != -Inf) %>%
@@ -403,6 +419,8 @@ model_data <- ever_reactivate %>%
                                        enrollment_site))
 
 out_model <- data.frame()
+out_rates <- data.frame()
+out_rates_TG <- data.frame()
 for(active_virus in unique(model_data$name)){
   print(paste0("Starting ", active_virus))
   for(active_var in colnames(clinical_data_ext)[grepl("comorb|comp|symptom|ever", colnames(clinical_data_ext))]){
@@ -428,16 +446,85 @@ for(active_virus in unique(model_data$name)){
     drop1_ress <- try(drop1(fit, test="Chisq"), silent = TRUE)
     if(class(drop1_ress) == "try-error"){next}
     
+    ## Calculate the rate of the event in both groups
+    tmp_rates <- model_data %>%
+      filter(name == active_virus) %>%
+      group_by(binary, .data[[active_var]]) %>%
+      dplyr::summarize(count = n()) %>%
+      filter(!is.na(.data[[active_var]])) %>%
+      ungroup() %>%
+      complete(binary, .data[[active_var]]) %>%
+      group_by(binary) %>%
+      mutate(count = ifelse(is.na(count), 0, count)) %>%
+      mutate(frequency = count / sum(count) * 100,
+             total = sum(count)) %>%
+      mutate(Rate = paste0(round(frequency, 1), "% (", count, "/", total, ")")) %>%
+      filter(.data[[active_var]] == 1) %>%
+      mutate(binary = ifelse(binary == 1, "of Clinical Event in Virus Positive Participants",
+                             "of Clinical Event in Virus Negative Participants")) %>%
+      ungroup() %>%
+      select(-count, -total) %>%
+      select(-.data[[active_var]]) %>%
+      mutate(`Clinical Variable` = active_var) %>%
+      relocate(`Clinical Variable`) %>%
+      pivot_wider(names_from = binary, values_from = c(Rate, frequency),
+                  names_sep = " ") %>%
+      rowwise() %>%
+      mutate(`Percent Difference` = round(`frequency of Clinical Event in Virus Positive Participants` - `frequency of Clinical Event in Virus Negative Participants`, 1)) %>%
+      select(c(1:3,6)) %>%
+      mutate(virus = active_virus)
+    
+    ## Calculate the rate of the event in both groups by TG
+    tmp_rates_TG <- model_data %>%
+      filter(name == active_virus) %>%
+      group_by(trajectory_group, binary, .data[[active_var]]) %>%
+      dplyr::summarize(count = n()) %>%
+      filter(!is.na(.data[[active_var]])) %>%
+      ungroup() %>%
+      complete(trajectory_group, binary, .data[[active_var]]) %>%
+      group_by(trajectory_group, binary) %>%
+      mutate(count = ifelse(is.na(count), 0, count)) %>%
+      mutate(frequency = count / sum(count) * 100,
+             total = sum(count)) %>%
+      mutate(Rate = paste0(round(frequency, 1), "% (", count, "/", total, ")")) %>%
+      filter(.data[[active_var]] == 1)  %>%
+      mutate(binary = ifelse(binary == 1, "of Clinical Event in Virus Positive Participants",
+                             "of Clinical Event in Virus Negative Participants")) %>%
+      ungroup() %>%
+      select(-count, -total) %>%
+      select(-.data[[active_var]]) %>%
+      mutate(`Clinical Variable` = active_var) %>%
+      relocate(`Clinical Variable`) %>%
+      pivot_wider(names_from = binary, values_from = c(Rate, frequency),
+                  names_sep = " ") %>%
+      rowwise() %>%
+      mutate(`Percent Difference` = round(`frequency of Clinical Event in Virus Positive Participants` - `frequency of Clinical Event in Virus Negative Participants`, 1)) %>%
+      select(c(1:4,7)) %>%
+      mutate(trajectory_group = paste0("TG", trajectory_group)) %>%
+      pivot_wider(names_from = trajectory_group, values_from = c(`Rate of Clinical Event in Virus Positive Participants`,
+                                                   `Rate of Clinical Event in Virus Negative Participants`,
+                                                   `Percent Difference`))
+    headers <- gsub(".*_", "", colnames(tmp_rates_TG))
+    headers[1] <- ""
+    colnames(tmp_rates_TG) <- paste0(headers, " ", gsub("_.*", "", colnames(tmp_rates_TG)))
+    tmp_rates_TG <- tmp_rates_TG[, sort(colnames(tmp_rates_TG))]
+    tmp_rates_TG$virus <- active_virus
+    
     out_model <- rbind.data.frame(out_model,
                                 drop1_ress %>%
                                   rownames_to_column("term") %>%
                                   mutate(virus = active_virus,
                                          feature = active_var,
                                          coef_virus = unique(coef(fit)$enrollment_site$binary1)))
+    
+    out_rates <- rbind.data.frame(out_rates, tmp_rates)
+    out_rates_TG <- rbind.data.frame(out_rates_TG, tmp_rates_TG)
   }
 }
 
 write.csv(out_model %>% distinct(), paste0(out_dir, "Supplemental_Data_1_part4.csv"))
+write.csv(out_rates, paste0(out_dir, "Supplemental_Data_1_part4_2.csv"))
+write.csv(out_rates_TG, paste0(out_dir, "Supplemental_Data_1_part4_3.csv"))
 ## This is also reported in the source data (exact same)
 ```
 
@@ -537,16 +624,18 @@ ggsave(paste0(out_dir, "Figure2C.pdf"), width = 8.5, height = 5)
 write_csv(gg2C$data, paste0(out_dir, "source_data_Figure2C.csv"))
 ```
 
-## Supplemental Figure 4
+## Supplemental Figure 6
 
-### Figure S4B: Ethnicity
+### Figure S6B: Ethnicity
 
 ```{r}
 ################ Ethinicity #########################
 ever_reactivate <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
-  left_join(clinical_data %>% select(event_id, participant_id, event_type, sex)) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type,
+                                     event_date, sex)) %>%
   filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
   group_by(participant_id, name) %>%
   dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
   filter(max != -Inf) %>%
@@ -585,7 +674,7 @@ stat.df <- stat.df %>%
 write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part5.csv"))
 
 library(viridis)
-ggS4B <- ever_reactivate %>%
+ggS6B <- ever_reactivate %>%
   ggplot(aes(x=name, y=mean)) +
   geom_bar(stat = "identity", position = position_dodge(preserve = "single"), aes(fill = ethnicity)) +
   theme_classic() + scale_x_discrete(limits = rev(unique(ever_reactivate$name))) +
@@ -606,16 +695,18 @@ ggS4B <- ever_reactivate %>%
 
 ```
 
-### Figure S4C: Sex
+### Figure S6C: Sex
 
 ```{r, fig.width = 8, fig.height = 5}
 
-## S4A is from earlier in the markdown (in the severity chunk)
+## S6A is from earlier in the markdown (in the severity chunk)
 
 ever_reactivate <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
-  left_join(clinical_data %>% select(event_id, participant_id, event_type, sex)) %>%
-  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type,
+                                     event_date, sex)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6))  %>%
+  filter(event_date <= 40) %>%
   group_by(participant_id, name) %>%
   dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
   filter(max != -Inf) %>%
@@ -647,7 +738,7 @@ for(active_virus in unique(ever_reactivate$name)){
 write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part6.csv"))
 
 library(viridis)
-ggS4C <- ever_reactivate %>%
+ggS6C <- ever_reactivate %>%
   ggplot(aes(x=name, y=mean)) +
   geom_bar(stat = "identity", position = position_dodge(preserve = "single"), aes(fill = sex)) +
   theme_classic() + scale_x_discrete(limits = rev(unique(ever_reactivate$name))) +
@@ -661,15 +752,17 @@ ggS4C <- ever_reactivate %>%
 
 ```
 
-### Figure S4D-E: Treatments
+### Figure S6D-E: Treatments
 
 ```{r, fig.width = 5, fig.height = 5}
 library(rstatix)
 
 ever_reactivate <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
-  left_join(clinical_data %>% select(event_id, participant_id, trajectory_group, event_type)) %>%
-  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, trajectory_group,
+                                     event_date, event_type)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6))  %>%
+  filter(event_date <= 40) %>%
   group_by(participant_id, trajectory_group, name) %>%
   dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
   filter(max != -Inf) %>%
@@ -731,8 +824,10 @@ library(rstatix)
 
 ever_reactivate <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
-  left_join(clinical_data %>% select(event_id, participant_id, trajectory_group, event_type)) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, trajectory_group,
+                                     event_date, event_type)) %>%
   filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
   group_by(participant_id, trajectory_group, name) %>%
   dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
   filter(max != -Inf) %>%
@@ -792,30 +887,32 @@ gg3_rem
 ```{r, fig.width = 10, fig.height = 12}
 
 ## 10 x 12
-ggarrange(ggS4A + theme(legend.position = "top",
+ggarrange(ggS6A + theme(legend.position = "top",
                         axis.title.y = element_blank()),
-          ggS4B + theme(legend.position = "top",
+          ggS6B + theme(legend.position = "top",
                         axis.title.y = element_blank()),
-          ggS4C + theme(legend.position = "top",
+          ggS6C + theme(legend.position = "top",
                         axis.title.y = element_blank()),
           gg3_steroids + theme(legend.position = "top",
                         axis.title.y = element_blank()) ,
           gg3_rem + theme(legend.position = "top",
                         axis.title.y = element_blank()),
           align = "hv",nrow = 2, ncol = 3, labels = c("A", "B", "C", "D", "E"), font.label = list(size=18))
-ggsave(paste0(out_dir, "FigureS4.pdf"), width = 10, height = 12)
-write_csv(ggS4A$data, paste0(out_dir, "source_data_FigureS4A.csv"))
-write_csv(ggS4B$data, paste0(out_dir, "source_data_FigureS4B.csv"))
-write_csv(ggS4C$data, paste0(out_dir, "source_data_FigureS4C.csv"))
-write_csv(gg3_steroids$data, paste0(out_dir, "source_data_FigureS4D.csv"))
-write_csv(gg3_rem$data, paste0(out_dir, "source_data_FigureS4E.csv"))
+ggsave(paste0(out_dir, "FigureS6.pdf"), width = 10, height = 12)
+write_csv(ggS6A$data, paste0(out_dir, "source_data_FigureS6A.csv"))
+write_csv(ggS6B$data, paste0(out_dir, "source_data_FigureS6B.csv"))
+write_csv(ggS6C$data, paste0(out_dir, "source_data_FigureS6C.csv"))
+write_csv(gg3_steroids$data, paste0(out_dir, "source_data_FigureS6D.csv"))
+write_csv(gg3_rem$data, paste0(out_dir, "source_data_FigureS6E.csv"))
 ```
 
-### Figure S4F: Percent with Chronic Immunosupression in Anelloviridae+ vs -
+### Figure S6F: Percent with Chronic Immunosupression in Anelloviridae+ vs -
 
 ```{r, fig.height = 3, fig.width = 3}
 core <- comb_data %>%
-  left_join(clinical_data %>% distinct(event_id, participant_id, event_date)) %>%
+  left_join(clinical_data %>% distinct(event_id, participant_id, event_type,
+                                       event_date)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
   filter(event_date <= 40) %>%
   group_by(participant_id) %>%
   slice_max(Anelloviridae.pbmc) %>%
@@ -827,7 +924,7 @@ core <- comb_data %>%
   group_by(ever_immsupp, binary) %>%
   dplyr::summarize(count = n()) %>% ungroup()
 
-ggS4F <- core %>% group_by(binary) %>%
+ggS6F <- core %>% group_by(binary) %>%
   mutate(freq = count / sum(count) * 100) %>%
   mutate(ever_immsupp = as.factor(ever_immsupp)) %>%
   ggplot(aes(x=binary, y= freq, fill = ever_immsupp)) +
@@ -840,9 +937,110 @@ ggS4F <- core %>% group_by(binary) %>%
   ylab("Percent of Participants (%)") +
   scale_fill_manual(values = c("darkgray", "cornflowerblue"))
 ## Anelloviridae are certainly associated with Immunosupression, but only comprise 17.19% of the patient positive during the acute period
-ggS4F
-ggsave(paste0(out_dir, "FigureS4F.pdf"), width = 3, height = 3)
-write_csv(ggS4F$data, paste0(out_dir, "source_data_FigureS4F.csv"))
+ggS6F
+ggsave(paste0(out_dir, "FigureS6F.pdf"), width = 3, height = 3)
+write_csv(ggS6F$data, paste0(out_dir, "source_data_FigureS6F.csv"))
+```
+
+#### Subsampling of Visits to only Visits 1, 2, 4, and 6 for Figure 2A
+
+```{r}
+
+ever_reactivate <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type,
+                                     event_date)) %>%
+  filter(event_type %in% paste0("Visit ", c(1,2,4,6))) %>%
+  filter(event_date <= 40) %>%
+  group_by(participant_id, name) %>%
+  dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
+  filter(max != -Inf) %>%
+  mutate(binary = ifelse(max > 0, 1, 0))
+
+graph_data <- ever_reactivate %>%
+  left_join(clinical_data %>% distinct(participant_id, trajectory_group)) %>%
+  group_by(trajectory_group, name) %>%
+  dplyr::summarize(freq = mean(binary) * 100,
+                   count = n()) %>%
+  filter(count > 10) %>%
+  mutate(trajectory_group = factor(trajectory_group)) %>%
+   mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+  ungroup() %>%
+  complete(trajectory_group, name) %>%
+  mutate(freq = ifelse(is.na(freq), 0, freq),
+         count = ifelse(is.na(count), 0, count)) %>%
+  mutate(positive = freq * count / 100) %>%
+  group_by(name) %>%
+  mutate(pos_freq = positive / sum(positive) *100)
+
+
+clm_data <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type, sex)) %>%
+  filter(event_type %in% paste0("Visit ", c(1,2,4,6))) %>%
+  group_by(participant_id, name) %>%
+  dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
+  filter(max != -Inf) %>%
+  mutate(binary = ifelse(max > 0, 1, 0)) %>%
+  left_join(clinical_data %>% dplyr::select(participant_id, discretized_admit_age_quantile, enrollment_site, trajectory_group)) %>%
+  ungroup() %>%
+  filter(!is.na(discretized_admit_age_quantile)) %>%
+  filter(!is.na(enrollment_site)) %>%
+  filter(!is.na(trajectory_group)) %>%
+  distinct() %>%
+   mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) 
+
+## TG Association Testing
+stat.df <- data.frame()
+for(active_virus in unique(graph_data$name)){
+  tmp.chi <- graph_data %>%
+    filter(name == active_virus) %>%
+    ungroup() %>%
+    mutate(negative = count - positive) %>%
+    select(trajectory_group, positive, negative) %>%
+    column_to_rownames("trajectory_group")
+  
+  clm_data_tmp <- clm_data %>%
+    filter(name == active_virus) %>%
+    mutate(trajectory_group = ordered(factor(trajectory_group))) %>%
+    mutate(enrollment_site = factor(enrollment_site))
+  clmm_res <- clmm2(trajectory_group~binary, data = clm_data_tmp, random = enrollment_site,
+                    Hess = TRUE)
+  
+  stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>%
+                                mutate(name = active_virus,
+                 clm.p = summary(clmm_res)[["coefficients"]][5,4]))
+}
+
+stat.df <- stat.df %>%
+  mutate(p.value = ifelse(grepl("\\.ea", name), p, clm.p)) %>%
+  mutate(p.adj = p.adjust(p.value, "fdr")) %>%
+  add_significance("p.adj") %>%
+  mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+  arrange(name) %>%
+  mutate(xpos = 11:1) %>%
+  mutate(group1 = "filler_text", group2 = "variable") %>%
+  mutate(y.position = 40)
+
+gg1 <- graph_data %>%
+  mutate(trajectory_group = factor(trajectory_group, levels = 5:1)) %>%
+  ggplot(aes(x=name, y=freq)) +
+  geom_bar(stat = "identity", position = position_dodge(preserve = "single"), aes(fill = trajectory_group)) +
+  theme_classic() + scale_x_discrete(limits = rev(unique(graph_data$name))) +
+  scale_fill_manual(values = TrajGrpCol, name = "Trajectory Group") +
+  xlab("Virus and Compartment") +
+  ylab(" ") +
+  stat_pvalue_manual(stat.df %>%
+                       filter(!p.adj.signif %in% c("ns", "", " ")) %>%
+                       mutate(y.position = c(38, 11, 15, 19, 45, 28)),
+                     x= "xpos", label = "p.adj.signif", vjust = 0.7) +
+    coord_flip() +
+  theme(#axis.text.y = element_blank(),
+        #axis.title.y = element_blank(),
+        axis.text = element_text(color="black"),
+        axis.ticks = element_line(color = "black"))
+gg1
+
 ```
 
 # Session Info
