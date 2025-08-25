@@ -78,7 +78,9 @@ comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.c
          -starts_with("Enterovirus.pbmc"),
          -starts_with("Enterovirus.ea"),
          -starts_with("Anelloviridae.ea"),
-         -starts_with("Anelloviridae.nasal"))
+         -starts_with("Anelloviridae.nasal"),
+         -starts_with("Human alphaherpesvirus 1 (HSV1).pbmc"),
+         -starts_with("Human alphaherpesvirus 2 (HSV2).pbmc"))
 
 data_env <- readRDS("/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS")
 clinical_data <- data_env$clinical_data
@@ -319,7 +321,7 @@ write.csv(data.frame(test = "Chi-square",
                      compairson = "CMV Seropositivity"), paste0(out_dir, "Supplemental_Data_2_part2.csv"))
 ```
 
-## Figure 3C: HSV1 Viral Proteomeics
+### Figure 3C: HSV1 Viral Proteomeics
 
 ```{r, fig.width = 3.5, fig.height = 3}
 library(readxl)
@@ -414,7 +416,7 @@ for(i in unique(colnames(comb_data)[c(-1, -12)])){
         
   omic_live <- preprocess_bld_cytof_child_seperate_granulo(cytof_count %>% column_to_rownames("sample_id")) %>%
     rownames_to_column("sample_id") %>%
-    left_join(clinical_data %>% dplyr::select(sample_id, participant_id, event_id, event_type, sex, trajectory_group, enrollment_site, discretized_admit_age_quantile)) %>%
+    left_join(clinical_data %>% dplyr::select(sample_id, participant_id, event_id, event_type, event_date, sex, trajectory_group, enrollment_site, discretized_admit_age_quantile)) %>%
     filter(event_id %in% virus$event_id) %>%
     pivot_longer(cols = c(-sample_id, -participant_id, -event_id, -event_type, -sex, -trajectory_group, -enrollment_site, -discretized_admit_age_quantile)) %>%
     inner_join(virus %>% dplyr::select(name, event_id, value) %>% dplyr::rename("virus" = "name", "virus_positive" = "value")) %>%
@@ -482,9 +484,65 @@ model.out.adj %>%
 ggsave(paste0(out_dir, "Figure3D.pdf"), height = 7, width = 7)
 ```
 
-# Supplemental Figure 5
+# Supplemental Figure 7
 
-### Panel A: TG correcting for cell types in Whole Blood
+### Panel A: HSV1 Proteins by TG
+
+```{r, fig.width = 2.25, fig.height = 2}
+tmp <- data_env$plasma_proteomics_global_dda_metadata %>%
+    rownames_to_column("sample_id") %>%
+    left_join(clinical_data %>% distinct(sample_id, participant_id, event_id, trajectory_group, event_type)) %>%
+    left_join(hsv_proteomics %>% distinct(sample_id, HHV1_1)) %>%
+    mutate(HHV1_1 = ifelse(is.na(HHV1_1), 0, 1)) %>%
+    group_by(participant_id, trajectory_group) %>%
+    slice_max(HHV1_1) %>%
+    distinct(participant_id, trajectory_group, HHV1_1) %>%
+    group_by(trajectory_group, HHV1_1) %>%
+    dplyr::summarize(count = n()) %>% pivot_wider(names_from = HHV1_1, values_from = count)
+
+chi_res <- chisq.test(tmp[,-1])
+
+write_csv(data.frame(test = "Chi-square test",
+                     pvalue = chi_res$p.value,
+                     compaison = "HSV1 Plasma Proteins by TG"),
+          paste0(out_dir, "Supplemental_Data_2_part6.csv"))
+
+
+for(i in c(1,2,3,5)){
+  print(chisq.test(tmp[c(i,4),-1]))
+}
+
+
+ggS2 <- data_env$plasma_proteomics_global_dda_metadata %>%
+  rownames_to_column("sample_id") %>%
+  left_join(clinical_data %>% distinct(sample_id, participant_id, event_id, trajectory_group, event_type)) %>%
+  left_join(hsv_proteomics %>% distinct(sample_id, HHV1_1)) %>%
+  mutate(HHV1_1 = ifelse(is.na(HHV1_1), 0, 1)) %>%
+  group_by(participant_id, trajectory_group) %>%
+  slice_max(HHV1_1) %>%
+  distinct(participant_id, trajectory_group, HHV1_1) %>%
+  group_by(trajectory_group) %>%
+  dplyr::summarize(mean = mean(HHV1_1) * 100) %>%
+  mutate(label = paste0(round(mean, 1), "%")) %>%
+  mutate(trajectory_group = factor(trajectory_group)) %>%
+  ggplot(aes(x=trajectory_group, y= mean, fill = trajectory_group)) +
+  geom_bar(stat = "identity", color = "black") +
+  geom_text(aes(label = label), size = 3, vjust=-0.25) +
+  scale_fill_manual(values = TrajGrpCol) +
+  theme_classic() +
+  theme(legend.position = "none") +
+  ylab("Percent of TG Positive\nfor HHV1 Proteins(%)") +
+  xlab("Trajectory Group") +
+  coord_cartesian(ylim = c(0, 12)) +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+ggS2
+ggsave(paste0(out_dir, "FigureS7A.pdf"), width = 2.25, height = 2)
+
+write_csv(ggS2$data, paste0(out_dir, "source_data_FigureS7A.csv"))
+```
+
+### Panel B: TG correcting for cell types in Whole Blood
 
 ```{r}
 library(aplot)
@@ -640,67 +698,11 @@ gg2 <- graph_data %>%
 gg2
 
 gg2 %>% insert_right(gg3)
-ggsave(paste0(out_dir, "FigureS5A.pdf"), width = 6, height = 3.5)
-write_csv(gg2$data, paste0(out_dir, "source_data_FigureS5A.csv"))
+ggsave(paste0(out_dir, "FigureS7B.pdf"), width = 6, height = 3.5)
+write_csv(gg2$data, paste0(out_dir, "source_data_FigureS7B.csv"))
 ```
 
-### Panel B: HSV1 Proteins by TG
 
-```{r, fig.width = 2.25, fig.height = 2}
-tmp <- data_env$plasma_proteomics_global_dda_metadata %>%
-    rownames_to_column("sample_id") %>%
-    left_join(clinical_data %>% distinct(sample_id, participant_id, event_id, trajectory_group, event_type)) %>%
-    left_join(hsv_proteomics %>% distinct(sample_id, HHV1_1)) %>%
-    mutate(HHV1_1 = ifelse(is.na(HHV1_1), 0, 1)) %>%
-    group_by(participant_id, trajectory_group) %>%
-    slice_max(HHV1_1) %>%
-    distinct(participant_id, trajectory_group, HHV1_1) %>%
-    group_by(trajectory_group, HHV1_1) %>%
-    dplyr::summarize(count = n()) %>% pivot_wider(names_from = HHV1_1, values_from = count)
-
-chi_res <- chisq.test(tmp[,-1])
-
-write_csv(data.frame(test = "Chi-square test",
-                     pvalue = chi_res$p.value,
-                     compaison = "HSV1 Plasma Proteins by TG"),
-          paste0(out_dir, "Supplemental_Data_2_part6.csv"))
-
-
-for(i in c(1,2,3,5)){
-  print(chisq.test(tmp[c(i,4),-1]))
-}
-
-
-ggS2 <- data_env$plasma_proteomics_global_dda_metadata %>%
-  rownames_to_column("sample_id") %>%
-  left_join(clinical_data %>% distinct(sample_id, participant_id, event_id, trajectory_group, event_type)) %>%
-  left_join(hsv_proteomics %>% distinct(sample_id, HHV1_1)) %>%
-  mutate(HHV1_1 = ifelse(is.na(HHV1_1), 0, 1)) %>%
-  group_by(participant_id, trajectory_group) %>%
-  slice_max(HHV1_1) %>%
-  distinct(participant_id, trajectory_group, HHV1_1) %>%
-  group_by(trajectory_group) %>%
-  dplyr::summarize(mean = mean(HHV1_1) * 100) %>%
-  mutate(label = paste0(round(mean, 1), "%")) %>%
-  mutate(trajectory_group = factor(trajectory_group)) %>%
-  ggplot(aes(x=trajectory_group, y= mean, fill = trajectory_group)) +
-  geom_bar(stat = "identity", color = "black") +
-  geom_text(aes(label = label), size = 3, vjust=-0.25) +
-  scale_fill_manual(values = TrajGrpCol) +
-  theme_classic() +
-  theme(legend.position = "none") +
-  ylab("Percent of TG Positive\nfor HHV1 Proteins(%)") +
-  xlab("Trajectory Group") +
-  coord_cartesian(ylim = c(0, 12)) +
-  theme(axis.text = element_text(color = "black"),
-        axis.ticks = element_line(color = "black"))
-ggS2
-ggsave(paste0(out_dir, "FigureS5B.pdf"), width = 2.25, height = 2)
-
-write_csv(ggS2$data, paste0(out_dir, "source_data_FigureS5B.csv"))
-```
-
-For the remaining portion of Supplementary Figure 5 dedicated to validating key viral findings in an external cohort, please see the other script in this folder.
 
 # Session Info
 
