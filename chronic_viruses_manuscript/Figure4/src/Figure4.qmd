@@ -440,7 +440,7 @@ viral_colors <- c("Control"="#757575", "EBV.pbmc"="#BF5700", "EBV.nasal"="#00808
 ggb <- traj_plot("CXCL10", c("Human betaherpesvirus 5 (CMV).pbmc",
                       "Human gammaherpesvirus 4 (EBV).pbmc",
                      "Human alphaherpesvirus 1 (HSV1).nasal"),
-          modeling_results, viral_colors, base_size = 12, log_residuals = T)
+          modeling_results, viral_colors, base_size = 14, log_residuals = T)
 ggb
 ggsave(paste0(out_dir, "Figure4B.pdf"), width = 12.32142, height = 3)
 
@@ -448,35 +448,35 @@ ggc <- traj_plot("CXCL11", c("Human betaherpesvirus 5 (CMV).pbmc",
                       "Human gammaherpesvirus 4 (EBV).pbmc",
                      "Human alphaherpesvirus 1 (HSV1).nasal",
                      "Anelloviridae.pbmc"), modeling_results, viral_colors,
-          base_size = 12, log_residuals = T)
+          base_size = 14, log_residuals = T)
 ggc
 ggsave(paste0(out_dir, "Figure4C.pdf"), width = 15, height = 3)
 
 ggd <- traj_plot("IL18", c("Human betaherpesvirus 5 (CMV).pbmc",
                      "Human alphaherpesvirus 1 (HSV1).nasal",
                      "Anelloviridae.pbmc"), modeling_results, viral_colors,
-          base_size = 12, log_residuals = T)
+          base_size = 14, log_residuals = T)
 ggd
 ggsave(paste0(out_dir, "Figure4D.pdf"), width = 12.32142, height = 3)
 
 gge <- traj_plot("IL6", c("Human gammaherpesvirus 4 (EBV).pbmc"), modeling_results,
-          viral_colors, base_size = 12, log_residuals = T)
+          viral_colors, base_size = 14, log_residuals = T)
 gge
 ggsave(paste0(out_dir, "Figure4E.pdf"), width = 4.285714, height = 3)
 
 ggf <- traj_plot("IL10", c("Human gammaherpesvirus 4 (EBV).pbmc", "Human betaherpesvirus 5 (CMV).pbmc"),
-          modeling_results, viral_colors, base_size = 12, log_residuals = T)
+          modeling_results, viral_colors, base_size = 14, log_residuals = T)
 ggf
 ggsave(paste0(out_dir, "Figure4F.pdf"), width = 6.964285, height = 3)
 
 ggg <- traj_plot("IFNG", c("Human betaherpesvirus 5 (CMV).pbmc"), modeling_results,
-          viral_colors, base_size = 12, log_residuals = T)
+          viral_colors, base_size = 14, log_residuals = T)
 ggg
 ggsave(paste0(out_dir, "Figure4G.pdf"), width = 4.285714, height = 3)
 
 ```
 
-# Supplemental Figure 6
+# Supplemental Figure 8
 
 ```{r}
 
@@ -556,7 +556,7 @@ for(i in unique(heat_df$feature)){
 
 ```
 
-```{r, fig.width = 15, fig.height = 15}
+```{r, fig.width = 18, fig.height = 15}
 ## Arranging these is the NP-Hard problem
 max_row_length <- 6
 ggout <- ggout[!grepl("^IL6|^IL10|^CXCL10|^CXCL11|^IL18",names(ggout))]
@@ -593,7 +593,7 @@ for(k in 1:length(bins)){
 }
 
 ggarrange(plotlist = ggout2, ncol = 1, nrow = length(ggout2), heights = rep(1, length(ggout2)))
-ggsave(paste0(out_dir, "FigureS6.pdf"), width = 15, height = 15)
+ggsave(paste0(out_dir, "FigureS8.pdf"), width = 21, height = 13)
 ```
 
 ### TGFB Additional Plots
@@ -821,7 +821,7 @@ model.out <- data.frame()
     
   }
 plot(p1 + xlab("Days from Symptom Onset"))
-ggsave(paste0(out_dir, "FigureS6_TGF_DFSO.pdf"), width = 6, height = 4)
+ggsave(paste0(out_dir, "FigureS8_TGF_DFSO.pdf"), width = 6, height = 4)
 
 ```
 
@@ -1050,7 +1050,7 @@ model.out <- data.frame()
     
   }
 plot(p1 + xlab("Days from Hospitalization"))
-ggsave(paste0(out_dir, "FigureS6_TGF_DSH.pdf"), width = 6, height = 4)
+ggsave(paste0(out_dir, "FigureS8_TGF_DSH.pdf"), width = 6, height = 4)
 ```
 
 ## Session Info
