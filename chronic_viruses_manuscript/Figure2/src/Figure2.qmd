@@ -619,7 +619,7 @@ gg2C <- tmp %>%
         axis.text = element_text(color = "black")) +
   guides(size = guide_legend(title = "-Log10 adjusted\np-value")) 
 gg2C
-ggsave(paste0(out_dir, "Figure2C.pdf"), width = 8.5, height = 5)
+ggsave(paste0(out_dir, "Figure2C.pdf"), width = 8.5, height = 4.5)
 
 write_csv(gg2C$data, paste0(out_dir, "source_data_Figure2C.csv"))
 ```
