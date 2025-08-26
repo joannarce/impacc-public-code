@@ -171,10 +171,10 @@ The following object is masked from 'package:readr':
 <span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"Betacoronavirus.nasal"</span> <span class="ot">=</span> <span class="st">"SARS-CoV-2.nasal"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>New names:
-Rows: 4654 Columns: 31
+Rows: 4654 Columns: 33
 ── Column specification
 ──────────────────────────────────────────────────────── Delimiter: "," chr
-(1): event_id dbl (30): ...1, Human gammaherpesvirus 4 (EBV).pbmc, Human
+(1): event_id dbl (32): ...1, Human gammaherpesvirus 4 (EBV).pbmc, Human
 betaherpesvirus 5...
 ℹ Use `spec()` to retrieve the full column specification for this data. ℹ
 Specify the column types or set `show_col_types = FALSE` to quiet this message.
@@ -241,7 +241,7 @@ Attaching package: 'lme4'</code></pre>
 <span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>  model.out <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
 <span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>  plot_list <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
 <span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>  residual_list <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">browser</span>()</span>
 <span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>  old_comb_data <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/old_full_comb_data.csv"</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human betaherpesvirus 6"</span>),</span>
 <span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human gammaherpesvirus 8"</span>),</span>
@@ -770,7 +770,7 @@ argument is not numeric or logical: returning NA</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="Figure5_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="Figure5_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
@@ -807,7 +807,7 @@ argument is not numeric or logical: returning NA</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="Figure5_files/figure-html/unnamed-chunk-5-2.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="Figure5_files/figure-html/unnamed-chunk-5-2.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
@@ -1002,11 +1002,11 @@ argument is not numeric or logical: returning NA</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="Figure5_files/figure-html/unnamed-chunk-5-3.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="Figure5_files/figure-html/unnamed-chunk-5-3.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure5B.pdf"</span>), <span class="at">height =</span> <span class="dv">10</span>, <span class="at">width =</span> <span class="dv">8</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure5B.pdf"</span>), <span class="at">height =</span> <span class="dv">13</span>, <span class="at">width =</span> <span class="dv">8</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning in mean.default(sort(x, partial = half + 0L:1L)[half + 0L:1L]):
 argument is not numeric or logical: returning NA
@@ -1227,10 +1227,10 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 <div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure5E.pdf"</span>), <span class="at">width =</span> <span class="fl">14.16</span>, <span class="at">height =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="supplemental-figure-7" class="level2">
-<h2 class="anchored" data-anchor-id="supplemental-figure-7">Supplemental Figure 7</h2>
-<section id="figure-s7a" class="level3">
-<h3 class="anchored" data-anchor-id="figure-s7a">Figure S7A</h3>
+<section id="supplementary-figure-9" class="level2">
+<h2 class="anchored" data-anchor-id="supplementary-figure-9">Supplementary Figure 9</h2>
+<section id="figure-s9a" class="level3">
+<h3 class="anchored" data-anchor-id="figure-s9a">Figure S9A</h3>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ComplexHeatmap)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
@@ -1308,7 +1308,7 @@ This message can be suppressed by:
 <span id="cb66-12"><a href="#cb66-12" aria-hidden="true" tabindex="-1"></a>heat_df3[<span class="fu">is.na</span>(heat_df3)] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
 <span id="cb66-13"><a href="#cb66-13" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(heat_df3) <span class="ot">&lt;-</span> data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME[<span class="fu">match</span>(<span class="fu">rownames</span>(heat_df3), <span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature))]</span>
 <span id="cb66-14"><a href="#cb66-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-15"><a href="#cb66-15" aria-hidden="true" tabindex="-1"></a><span class="fu">pdf</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS7A.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="dv">26</span>)</span>
+<span id="cb66-15"><a href="#cb66-15" aria-hidden="true" tabindex="-1"></a><span class="fu">pdf</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9A.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="dv">26</span>)</span>
 <span id="cb66-16"><a href="#cb66-16" aria-hidden="true" tabindex="-1"></a><span class="fu">Heatmap</span>(heat_df3, <span class="at">border =</span> <span class="cn">TRUE</span>, <span class="at">row_split =</span> data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>SUPER_PATHWAY[<span class="fu">match</span>(<span class="fu">rownames</span>(heat_df3), data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME)],</span>
 <span id="cb66-17"><a href="#cb66-17" aria-hidden="true" tabindex="-1"></a>        <span class="at">col =</span> col_fun, <span class="at">show_row_dend =</span> F, <span class="at">show_column_dend =</span> F,<span class="at">column_title =</span> <span class="st">"Virus"</span>,</span>
 <span id="cb66-18"><a href="#cb66-18" aria-hidden="true" tabindex="-1"></a>        <span class="at">column_split =</span> <span class="fu">gsub</span>(<span class="st">"_.*"</span>, <span class="st">""</span>, <span class="fu">colnames</span>(heat_df3)), <span class="at">cluster_rows =</span> T,</span>
@@ -1322,7 +1322,7 @@ This message can be suppressed by:
 <pre><code>png 
   2 </code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(heat_df3, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS7A.csv"</span>))</span>
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(heat_df3, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9A.csv"</span>))</span>
 <span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(pmg <span class="sc">%&gt;%</span> <span class="fu">left_join</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature <span class="sc">%&gt;%</span> <span class="fu">rownames_to_column</span>(<span class="st">"feature"</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>              <span class="fu">select</span>(feature, CHEMICAL_NAME)), <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_part1_named_compounds.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1331,8 +1331,8 @@ This message can be suppressed by:
 </div>
 </div>
 </section>
-<section id="figure-s7b-f" class="level3">
-<h3 class="anchored" data-anchor-id="figure-s7b-f">Figure S7B-F</h3>
+<section id="figure-s9b-f" class="level3">
+<h3 class="anchored" data-anchor-id="figure-s9b-f">Figure S9B-F</h3>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a>ggb <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"N,N,N-trimethyl-alanylproline betaine (TMAP)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">TMAP"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1350,7 +1350,7 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS7B.pdf"</span>), <span class="at">width =</span> <span class="fl">4.92</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9B.pdf"</span>), <span class="at">width =</span> <span class="fl">4.92</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a>ggc <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"arachidate (20:0)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Arachidate (20:0)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb75-4"><a href="#cb75-4" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1372,7 +1372,7 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS7C.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9C.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a>ggd <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"docosadienoate (22:2n6)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Docosadienoate (22:2n6)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb78-4"><a href="#cb78-4" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1394,7 +1394,7 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS7D.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9D.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb81-3"><a href="#cb81-3" aria-hidden="true" tabindex="-1"></a><span class="do">## Dimethylarginine</span></span>
 <span id="cb81-4"><a href="#cb81-4" aria-hidden="true" tabindex="-1"></a>gge <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"X100001810"</span>, <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Dimethylarginine"</span>, <span class="at">base_size =</span> <span class="dv">12</span>,</span>
@@ -1417,7 +1417,7 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS7E.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9E.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb84-2"><a href="#cb84-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb84-3"><a href="#cb84-3" aria-hidden="true" tabindex="-1"></a>ggf <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"S-methylcysteine sulfoxide"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">S-methylcysteine sulfoxide"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb84-4"><a href="#cb84-4" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>,</span>
@@ -1448,7 +1448,7 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS7F.pdf"</span>), <span class="at">width =</span> <span class="fl">14.16</span>, <span class="at">height =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9F.pdf"</span>), <span class="at">width =</span> <span class="fl">14.16</span>, <span class="at">height =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 </section>
