@@ -195,7 +195,7 @@ write_csv(stat.df, paste0(out_dir, "Supplemental_Data_6_part1.csv"))
 ## Panel B
 
 ```{r, fig.width = 5.5, fig.height = 2.5}
-
+library(lme4)
 ever_reactivate <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
   left_join(clinical_data %>% select(event_id, participant_id, event_date)) %>%
@@ -243,12 +243,13 @@ for(active_virus in unique(graph_data$name)){
   model_df <- ever_reactivate %>%
   filter(!grepl(".ea", name)) %>%
   left_join(clinical_data %>% distinct(participant_id, trajectory_group,
-                                       discretized_admit_age_quantile, sex)) %>%
+                                       discretized_admit_age_quantile, sex,
+                                       enrollment_site)) %>%
    left_join(pro_symptoms %>% distinct(participant_id,conv_cluster6)) %>%
   filter(name == active_virus )
 
-  ## Now fit a glm to also regress trajectory group, sex, admit age, and whether on immunosupressive therapies
-fit <- glm(conv_cluster6 ~ ever_immsupp + binary + trajectory_group + sex + discretized_admit_age_quantile,
+  ## Now fit a glmer to also regress trajectory group, sex, admit age, and whether on immunosupressive therapies
+fit <- glmer(conv_cluster6 ~ ever_immsupp + binary + trajectory_group + sex + discretized_admit_age_quantile + (1|enrollment_site),
            data = model_df %>%
       left_join(clinical_data_ext %>% distinct(participant_id, ever_immsupp)) %>%
         mutate(conv_cluster6 = factor(conv_cluster6),
