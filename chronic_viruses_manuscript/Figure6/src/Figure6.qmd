@@ -24,6 +24,8 @@ comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.c
          -starts_with("Enterovirus"),
          -starts_with("Anelloviridae.ea"),
          -starts_with("Anelloviridae.nasal"),
+         -starts_with("Human alphaherpesvirus 1 (HSV1).pbmc"),
+         -starts_with("Human alphaherpesvirus 2 (HSV2).pbmc"),
          -ends_with(".ea")) %>%
   dplyr::rename("Betacoronavirus.nasal" = "SARS-CoV-2.nasal")
 
@@ -136,9 +138,9 @@ counts <- counts[rownames(counts) %in% tmp$event_id,]
 tmp <- tmp[tmp$event_id %in% rownames(counts), ]
 
 metaa <- tmp %>% left_join(virus_pos)
-design <- model.matrix(~ discretized_admit_age_quantile + sex + event_type + trajectory_group + Betacoronavirus.nasal + group, ## Can consider adding TG back in
+design <- model.matrix(~ discretized_admit_age_quantile + sex + event_type + trajectory_group + Betacoronavirus.nasal + group, 
                        data=metaa) 
-
+browser()
 vwts <- voom(t(counts), 
              design = design,
              normalize.method = "quantile",
@@ -615,6 +617,7 @@ nasal_diff <- read_csv(paste0(out_dir, "Supplemental_Data_5_part2.csv"))
 ## transformed). Easiest solution: just remove the color distinguishing
 ggs8 <- rbind.data.frame(pbmc_diff %>% mutate(omic = "PBMC DEGs"),
                  nasal_diff %>% mutate(omic = "Nasal DEGs")) %>%
+  filter(virus != "Human alphaherpesvirus 2 (HSV2).nasal") %>%
   mutate(Tissue = ifelse(grepl(".nasal", virus), "Virus in Nasal RNA", "Virus in PBMC RNA")) %>%
   mutate(virus = gsub("\\..*", "", virus)) %>%
   mutate(virus = gsub(".*\\(", "", gsub(")", "", virus))) %>%
