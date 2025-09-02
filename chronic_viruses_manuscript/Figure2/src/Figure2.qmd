@@ -165,6 +165,7 @@ gg1
 ```{r, fig.width = 7.5, fig.height = 5.5}
 library(rstatix)
 library(ggpattern)
+library(lme4)
 ## The ggpattern began to gave issues due to a server update that prevent installation of the sf package
 ## Thus, this code generates the exact same plots, just without the stripes on the bar for the right
 ## panel of Figure 2A
@@ -196,13 +197,13 @@ model_df <- comb_data %>%
   filter(max != -Inf) %>%
   mutate(binary = ifelse(max > 0, 1, 0)) %>%
   left_join(clinical_data_ext %>% dplyr::select(participant_id, diedever, ever_steroids, ever_remdes)) %>%
+  left_join(clinical_data %>% dplyr::distinct(participant_id, enrollment_site)) %>%
   ungroup() %>%
   filter(!is.na(trajectory_group)) 
 
 ## TG4 Chi.square survival testing
 stat.df <- data.frame()
 for(active_virus in unique(ever_reactivate$name)){
-  if(active_virus == "Simplexvirus.pbmc"){next}
   tmp.chi <- ever_reactivate %>%
     filter(trajectory_group == 4) %>%
     filter(name == active_virus) %>%
@@ -220,11 +221,13 @@ for(active_virus in unique(ever_reactivate$name)){
            ever_remdes = factor(ever_remdes),
            binary = factor(binary))
   
-  fit <- glm(formula(diedever~ever_steroids+ever_remdes+binary), data = tmp_model_df, family = "binomial")
+  fit <- glmer(formula(diedever~ever_steroids+ever_remdes+binary+(1|enrollment_site)), data = tmp_model_df, family = "binomial")
+  
+  aa <- car::Anova(fit, type = "III")
   
   stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>%
                                 mutate(name = active_virus,
-                           med.adj.p = summary(fit)$coefficients[4,4]))
+                           med.adj.p = aa[4,3]))
 }
 
 stat.df <- stat.df %>%
@@ -259,7 +262,7 @@ gg2 <- ever_reactivate %>%
   scale_x_discrete(limits = rev) +
   scale_color_manual(values = c( "#9E5D10", "#9E5D10"), name = "TG4 >Day 28 \nOutcome") +
   scale_fill_manual(values = c("#9E5D10", "#ffffff00"), name = "TG4 >Day 28 \nOutcome") +
-  scale_pattern_discrete(choices = c("stripe", "none"), name = "TG4 >Day 28 \nOutcome") +
+  #scale_pattern_discrete(choices = c("stripe", "none"), name = "TG4 >Day 28 \nOutcome") +
   xlab("Virus & Compartment") +
   ylab("Percent of Patients (%)") + stat_pvalue_manual(
   stat.df %>% filter(p.adj.med.signif != "ns") %>%
@@ -557,13 +560,12 @@ viral_order <- gsub(".*\\(", "", gsub("\\)", "", colnames(comb_data)[-1][order(c
 out_model <- read_csv(paste0(out_dir, "Supplemental_Data_1_part4.csv")) %>% select(-1)
 library(scales)
 library(ggh4x)
-signif <- as.data.frame(out_model) %>%
+adj_sd14 <- as.data.frame(out_model) %>%
   mutate(`Pr(Chi)` = as.numeric(`Pr(Chi)`)) %>%
   group_by(virus) %>%
   mutate(`Pr(Chi)` = p.adjust(`Pr(Chi)`, 'fdr')) %>%
-  filter(`Pr(Chi)` <= 0.05) %>%
   filter(term == "binary")
-  
+write.csv(adj_sd14, paste0(out_dir, "Supplemental_Data_1_part4_adj.csv"))
 
 ## 8.5 x 4
 tmp <- out_model %>%
@@ -571,7 +573,7 @@ tmp <- out_model %>%
   filter(feature %in% order_of_features) %>%
    group_by(virus) %>%
   mutate(`Pr(Chi)` = p.adjust(`Pr(Chi)`, 'fdr')) %>%
-  filter(term == "binary") %>%
+   filter(term == "binary") %>%
   mutate(direction = (coef_virus/abs(coef_virus)),
          log10p = -log10(`Pr(Chi)`)) %>%
   mutate(signedlog10p = log10p * direction) %>%
@@ -759,8 +761,8 @@ library(rstatix)
 
 ever_reactivate <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
-  left_join(clinical_data %>% select(event_id, participant_id, trajectory_group,
-                                     event_date, event_type)) %>%
+  left_join(clinical_data %>% distinct(event_id, participant_id, trajectory_group,
+                                     event_date, event_type, enrollment_site)) %>%
   filter(event_type %in% paste0("Visit ", 1:6))  %>%
   filter(event_date <= 40) %>%
   group_by(participant_id, trajectory_group, name) %>%
@@ -785,12 +787,23 @@ for(active_virus in unique(ever_reactivate$name)){
     select(ever_steroids, positive, negative) %>%
     column_to_rownames("ever_steroids")
   
-  stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>% mutate(name = active_virus))
+  tmp_model_df <- model_df %>%
+    filter(name == active_virus) %>%
+    mutate(ever_steroids = factor(ever_steroids),
+           binary = factor(binary))
+  
+  fit <- glmer(formula(diedever~ever_steroids+binary+(1|enrollment_site)), data = tmp_model_df, family = "binomial")
+  
+  aa <- car::Anova(fit, type = "III")
+  
+  stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>%
+                                mutate(name = active_virus,
+                           mod.p = aa[3,3]))
 }
 
 stat.df <- stat.df %>%
-  filter(name != "Simplexvirus.pbmc") %>%
   mutate(p.adj = p.adjust(p, "fdr")) %>%
+   mutate(mod.p.adj = p.adjust(mod.p, "fdr")) %>%
   add_significance("p.adj") %>%
   mutate(group1 = "Steroids",
          group2 = "No Steroids",
@@ -850,12 +863,23 @@ for(active_virus in unique(ever_reactivate$name)){
     select(ever_remdes, positive, negative) %>%
     column_to_rownames("ever_remdes")
   
-  stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>% mutate(name = active_virus))
+   tmp_model_df <- model_df %>%
+    filter(name == active_virus) %>%
+    mutate(ever_remdes = factor(ever_remdes),
+           binary = factor(binary))
+  
+  fit <- glmer(formula(diedever~ever_remdes+binary+(1|enrollment_site)), data = tmp_model_df, family = "binomial")
+  
+  aa <- car::Anova(fit, type = "III")
+  
+  stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>%
+                                mutate(name = active_virus,
+                           mod.p = aa[3,3]))
 }
 
 stat.df <- stat.df %>%
-  filter(name != "Simplexvirus.pbmc") %>%
   mutate(p.adj = p.adjust(p, "fdr")) %>%
+   mutate(mod.p.adj = p.adjust(mod.p, "fdr")) %>%
   add_significance("p.adj") %>%
   mutate(group1 = "Remdesivir",
          group2 = "No Remdesivir",
