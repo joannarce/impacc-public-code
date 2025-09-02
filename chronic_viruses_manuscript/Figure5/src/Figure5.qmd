@@ -47,7 +47,7 @@ gamm_modeling <- function(counts, viral_load_control, binary = TRUE, event_date_
   model.out <- data.frame()
   plot_list <- list()
   residual_list <- list()
-  browser()
+
   old_comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/old_full_comb_data.csv") %>% select(-1) %>%
   select(-starts_with("Human betaherpesvirus 6"),
          -starts_with("Human gammaherpesvirus 8"),
