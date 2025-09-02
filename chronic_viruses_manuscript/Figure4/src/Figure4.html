@@ -166,8 +166,10 @@ The following object is masked from 'package:readr':
 <span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Enterovirus.ea"</span>),</span>
 <span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Anelloviridae.ea"</span>),</span>
 <span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Anelloviridae.nasal"</span>),</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">ends_with</span>(<span class="st">".ea"</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"Betacoronavirus.nasal"</span> <span class="ot">=</span> <span class="st">"SARS-CoV-2.nasal"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human alphaherpesvirus 1 (HSV1).pbmc"</span>),</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human alphaherpesvirus 2 (HSV2).pbmc"</span>),</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">ends_with</span>(<span class="st">".ea"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"Betacoronavirus.nasal"</span> <span class="ot">=</span> <span class="st">"SARS-CoV-2.nasal"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>New names:
 Rows: 4654 Columns: 33
@@ -1582,13 +1584,13 @@ Caused by warning:
 <pre><code>Joining with `by = join_by(event_id)`</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Warning: There were 832 warnings in `dplyr::summarize()`.
+<pre><code>Warning: There were 740 warnings in `dplyr::summarize()`.
 The first warning was:
 ℹ In argument: `value = max(value, na.rm = TRUE)`.
-ℹ In group 92: `participant_id = "001-0010"` and `name = "Enterovirus.nasal"`.
+ℹ In group 74: `participant_id = "001-0010"` and `name = "Enterovirus.nasal"`.
 Caused by warning in `max()`:
 ! no non-missing arguments to max; returning -Inf
-ℹ Run `dplyr::last_dplyr_warnings()` to see the 831 remaining warnings.</code></pre>
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 739 remaining warnings.</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>`summarise()` has grouped output by 'participant_id'. You can override using
@@ -1792,7 +1794,7 @@ the `.groups` argument.</code></pre>
 <span id="cb125-196"><a href="#cb125-196" aria-hidden="true" tabindex="-1"></a>    </span>
 <span id="cb125-197"><a href="#cb125-197" aria-hidden="true" tabindex="-1"></a>  }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "Starting 8 out of 10"</code></pre>
+<pre><code>[1] "Starting 8 out of 8"</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Joining with `by = join_by(sample_id)`</code></pre>
@@ -1843,13 +1845,13 @@ the `.groups` argument.</code></pre>
 <pre><code>Joining with `by = join_by(event_id)`</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Warning: There were 832 warnings in `dplyr::summarize()`.
+<pre><code>Warning: There were 740 warnings in `dplyr::summarize()`.
 The first warning was:
 ℹ In argument: `value = max(value, na.rm = TRUE)`.
-ℹ In group 92: `participant_id = "001-0010"` and `name = "Enterovirus.nasal"`.
+ℹ In group 74: `participant_id = "001-0010"` and `name = "Enterovirus.nasal"`.
 Caused by warning in `max()`:
 ! no non-missing arguments to max; returning -Inf
-ℹ Run `dplyr::last_dplyr_warnings()` to see the 831 remaining warnings.</code></pre>
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 739 remaining warnings.</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>`summarise()` has grouped output by 'participant_id'. You can override using
@@ -2053,7 +2055,7 @@ the `.groups` argument.</code></pre>
 <span id="cb136-196"><a href="#cb136-196" aria-hidden="true" tabindex="-1"></a>    </span>
 <span id="cb136-197"><a href="#cb136-197" aria-hidden="true" tabindex="-1"></a>  }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "Starting 8 out of 10"</code></pre>
+<pre><code>[1] "Starting 8 out of 8"</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Joining with `by = join_by(sample_id)`</code></pre>

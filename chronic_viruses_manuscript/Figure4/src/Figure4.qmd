@@ -25,6 +25,8 @@ comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.c
          -starts_with("Enterovirus.ea"),
          -starts_with("Anelloviridae.ea"),
          -starts_with("Anelloviridae.nasal"),
+         -starts_with("Human alphaherpesvirus 1 (HSV1).pbmc"),
+         -starts_with("Human alphaherpesvirus 2 (HSV2).pbmc"),
          -ends_with(".ea")) %>%
   dplyr::rename("Betacoronavirus.nasal" = "SARS-CoV-2.nasal")
 data_env <- readRDS("/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS")
