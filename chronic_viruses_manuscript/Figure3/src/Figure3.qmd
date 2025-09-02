@@ -68,8 +68,8 @@ preprocess_bld_cytof_child_seperate_granulo <- function(counts){
 }
 
 comb_data <- read_csv("/scratch/metagenomics/viral_reactivation/full_comb_data.csv") %>%
-  select(-1) %>%
-  select(-starts_with("Human betaherpesvirus 6"),
+  dplyr::select(-1) %>%
+  dplyr::select(-starts_with("Human betaherpesvirus 6"),
          -starts_with("Human gammaherpesvirus 8"),
          -starts_with("Human betaherpesvirus 7"),
          -starts_with("Respiratory syncytial virus"),
@@ -374,6 +374,7 @@ gg3C <- max_part %>%
   ylab("Percent of Participants (%)") +
   scale_fill_manual(values = c("#1b820d"), name = "HSV1 Proteins") +
   xlab("Nasal Transcripts Detected")
+gg3C
 ggsave(paste0(out_dir, "Figure3C.pdf"), width = 3.5, height = 3)
 
 tmp <- max_part %>%
@@ -421,11 +422,13 @@ for(i in unique(colnames(comb_data)[c(-1, -12)])){
     pivot_longer(cols = c(-sample_id, -participant_id, -event_id, -event_type, -sex, -trajectory_group, -enrollment_site, -discretized_admit_age_quantile)) %>%
     inner_join(virus %>% dplyr::select(name, event_id, value) %>% dplyr::rename("virus" = "name", "virus_positive" = "value")) %>%
     filter(!is.na(value))
-    
-  
+  tmp <- omic_live %>% filter(virus_positive == 1) %>% distinct(participant_id)
+  print(paste0(i, " ", length(unique(tmp$participant_id))))
+   
   for(active_feature in unique(omic_live$name)){
-          fit <- lme(value ~ trajectory_group + sex + discretized_admit_age_quantile + virus_positive + event_type, random = ~1|enrollment_site, data = omic_live %>%
-                       filter(name == active_feature))
+          fit <- try(lme(value ~ trajectory_group + sex + discretized_admit_age_quantile + virus_positive + event_type, random = ~1|enrollment_site/participant_id, data = omic_live %>%
+                       filter(name == active_feature)), silent = T)
+          if(class(fit) == "try-error"){next}
           tmp <- as.data.frame(anova(fit, type = "marginal")) %>% rownames_to_column("variable")
           tmp$feature <- active_feature
           tmp$omic <- "CyTOF"
@@ -444,7 +447,7 @@ model.out.adj <- model.out %>%
 write.csv(model.out.adj, paste0(out_dir, "Supplemental_Data_2_part4.csv"))
 ```
 
-```{r, fig.width = 7, fig.height = 7}
+```{r, fig.width = 6.5, fig.height = 5}
 library(scales)
 
 model.out.adj <- read_csv(paste0(out_dir, "Supplemental_Data_2_part4.csv"))
@@ -466,10 +469,11 @@ model.out.adj %>%
   scale_y_discrete(limits = (c("Anelloviridae.pbmc", 
                               "CMV.pbmc", "EBV.pbmc",
                               "Enterovirus.nasal",
-                              "HSV1.nasal", "HSV2.nasal",
-                              "CMV.nasal", "EBV.nasal",
-                              "HSV1.ea", "HSV2.ea",
-                              "CMV.ea", "EBV.ea")), position = "right") +
+                              "HSV1.nasal", #"HSV2.nasal",
+                              "CMV.nasal", "EBV.nasal"#,
+                              #"HSV1.ea",
+                              #"CMV.ea", "EBV.ea"
+                              )), position = "right") +
   theme(axis.text.x = element_text(angle = 45, vjust = 0, hjust=0),
         axis.ticks = element_line(color = "black"),
         panel.border = element_rect(color="black", size = 1),
@@ -481,7 +485,7 @@ model.out.adj %>%
   guides(size=guide_legend("-log10 Transformed\np-values"))  +
     scale_x_discrete(limits=rev) +
   coord_flip() 
-ggsave(paste0(out_dir, "Figure3D.pdf"), height = 7, width = 7)
+ggsave(paste0(out_dir, "Figure3D.pdf"), height = 5, width = 6.5)
 ```
 
 # Supplemental Figure 7
@@ -551,7 +555,10 @@ library(ordinal)
 
 ever_reactivate <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
-  left_join(clinical_data %>% select(event_id, participant_id)) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type,
+                                     event_date)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
   group_by(participant_id, name) %>%
   dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
   filter(max != -Inf) %>%
@@ -577,8 +584,10 @@ graph_data <- ever_reactivate %>%
 
 clm_data <- comb_data %>%
   pivot_longer(cols = -event_id) %>%
-  left_join(clinical_data %>% select(event_id, participant_id, event_type, sex)) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, event_type,
+                                     event_date, sex)) %>%
   filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
   group_by(participant_id, name) %>%
   dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
   filter(max != -Inf) %>%
@@ -701,8 +710,6 @@ gg2 %>% insert_right(gg3)
 ggsave(paste0(out_dir, "FigureS7B.pdf"), width = 6, height = 3.5)
 write_csv(gg2$data, paste0(out_dir, "source_data_FigureS7B.csv"))
 ```
-
-
 
 # Session Info
 
