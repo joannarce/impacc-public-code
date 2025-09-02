@@ -447,7 +447,7 @@ ggb
 ggsave(paste0(out_dir, "Figure4B.pdf"), width = 12.32142, height = 3)
 
 ggc <- traj_plot("CXCL11", c("Human betaherpesvirus 5 (CMV).pbmc",
-                      "Human gammaherpesvirus 4 (EBV).pbmc",
+                      "Human gammaherpesvirus 4 (EBV).nasal",
                      "Human alphaherpesvirus 1 (HSV1).nasal",
                      "Anelloviridae.pbmc"), modeling_results, viral_colors,
           base_size = 14, log_residuals = T)
@@ -558,10 +558,10 @@ for(i in unique(heat_df$feature)){
 
 ```
 
-```{r, fig.width = 18, fig.height = 15}
+```{r, fig.width = 18, fig.height = 12}
 ## Arranging these is the NP-Hard problem
 max_row_length <- 6
-ggout <- ggout[!grepl("^IL6|^IL10|^CXCL10|^CXCL11|^IL18",names(ggout))]
+ggout <- ggout[!grepl("^IL6_|^IL10_|^CXCL10_|^CXCL11_|^IL18_|^IFNG_",names(ggout))]
 for(i in names(ggout)){
   value <- as.numeric(gsub(".*_", "", i))
   if(i==names(ggout)[1]){
@@ -579,7 +579,7 @@ for(i in names(ggout)){
 ggempty <- ggplot() + theme_void()
 ggout2 <- list()
 counter <- 1
-LETTERS_long <- c(LETTERS, "AA", "AB", "AC")
+LETTERS_long <- c(LETTERS, "AA")
 for(k in 1:length(bins)){
   tmp_plots <- ggout[bins[[k]]]
   true_length <- length(tmp_plots)
@@ -595,7 +595,7 @@ for(k in 1:length(bins)){
 }
 
 ggarrange(plotlist = ggout2, ncol = 1, nrow = length(ggout2), heights = rep(1, length(ggout2)))
-ggsave(paste0(out_dir, "FigureS8.pdf"), width = 21, height = 13)
+ggsave(paste0(out_dir, "FigureS8.pdf"), width = 18, height = 12)
 ```
 
 ### TGFB Additional Plots
