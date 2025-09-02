@@ -531,7 +531,7 @@ write.csv(out_rates_TG, paste0(out_dir, "Supplemental_Data_1_part4_3.csv"))
 ## This is also reported in the source data (exact same)
 ```
 
-```{r, width = 8.5, height = 5}
+```{r, width = 8.5, height = 4.3}
 library(scales)
 
 order_of_features <- c("CHF" = "comp_chf",
@@ -594,9 +594,9 @@ tmp <- out_model %>%
   filter(feature != "ever_ever_esc") %>%
   mutate(panel = ifelse(panel == "ever", "Medication", panel)) %>%
   ungroup() %>%
-  filter(!grepl("Beta", virus))
+  filter(!grepl("Beta", virus)) 
 
-gg2C <- tmp %>%
+gg2C <- tmp %>% ungroup() %>% filter(virus != "HSV2.nasal") %>%
   ggplot(aes(x=interaction(Label), y=virus)) +
   geom_point(aes(size = log10p, color = signedlog10p), shape = 21, fill = NA) +
   geom_point(data = . %>% filter(`Pr(Chi)` <= 0.05),
@@ -604,7 +604,7 @@ gg2C <- tmp %>%
   theme_classic() +
   ylab("Virus and Compartment") +
   facet_grid(~panel,scales = "free_x", space = "free_x") +
-  scale_y_discrete(limits = rev(unique(tmp$virus)[order(unique(tmp$virus))])) +
+  scale_y_discrete(limits = rev(unique(tmp$virus)[order(unique(tmp$virus))])[-1]) +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
   scale_color_distiller(palette = "RdBu", limits = c(-4,4), oob=squish,
                         breaks = c(-3, -2, -1, 0, 1, 2, 3),
@@ -621,7 +621,7 @@ gg2C <- tmp %>%
         axis.text = element_text(color = "black")) +
   guides(size = guide_legend(title = "-Log10 adjusted\np-value")) 
 gg2C
-ggsave(paste0(out_dir, "Figure2C.pdf"), width = 8.5, height = 4.5)
+ggsave(paste0(out_dir, "Figure2C.pdf"), width = 8.5, height = 4.3)
 
 write_csv(gg2C$data, paste0(out_dir, "source_data_Figure2C.csv"))
 ```
