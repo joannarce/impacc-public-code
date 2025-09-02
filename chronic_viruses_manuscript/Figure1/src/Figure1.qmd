@@ -623,15 +623,30 @@ for_cor_data <- for_cor_data[,!grepl("Beta", colnames(for_cor_data))]
 colnames(for_cor_data) <- gsub("\\)", "", gsub(".* \\(", "", colnames(for_cor_data)))
 res <- rcorr(for_cor_data,type = "spearman")
 resdf <- flattenCorrMatrix(res$r, res$P)
+resdf <- resdf %>%
+  adjust_pvalue(p.col = "p", output.col = "adjust.p",
+                method = "fdr")
+
 write.csv(resdf, paste0(out_dir, "source_data_Figure1E.csv"))
-tmpP <- res$P
+
+resdf_f <- resdf
+colnames(resdf_f) <- c("column", "row", "cor", "p", "adjust.p")
+resdf_f <- resdf_f[,c(2,1,3:5)]
+adjp_wide <- rbind(resdf, resdf_f) %>%
+  mutate(adjust.p = ifelse(adjust.p ==0, 2.2e-16, adjust.p)) %>%
+  pivot_wider(names_from = column, values_from = adjust.p, id_cols = row) %>%
+  column_to_rownames("row") %>% as.data.frame()
+adjp_wide <- adjp_wide[, match(rownames(adjp_wide), colnames(adjp_wide))]
+
+tmpP <- adjp_wide
 tmpP[is.na(tmpP)] <- 1
 res$r[is.nan(res$r)] <- 0
+
 pdf(paste0(out_dir, "Figure1E.pdf"), width = 8, height = 8)
 corrplot(res$r, type = "upper", order = "hclust", 
          tl.col = "black",outline = TRUE, tl.srt = 45,
          col=colorRampPalette(c("darkblue","white","darkred"))(100),
-          p.mat = tmpP, sig.level = 0.05, insig = "blank")
+          p.mat = as.matrix(tmpP), sig.level = 0.05, insig = "blank")
 dev.off()
 ## 8 x8
 ```
@@ -1388,7 +1403,11 @@ ggS2I <- all_ready %>%
   xlab("Virus")
 ggS2I
 ggsave(paste0(out_dir, "FigureS2I.pdf"), width =6.5,height = 4)
-write_csv(ggS2I$data %>% select(-czid_id, -full_czid_id),
+## Randomized particpant_id
+write_csv(ggS2I$data %>% select(-czid_id, -full_czid_id) %>%
+            left_join(clinical_data %>% distinct(participant_id, event_id, event_type)) %>%
+            mutate(participant_id = as.numeric(as.factor(participant_id))) %>%
+            select(-event_id),
           paste0(out_dir, "source_data_FigureS2I.csv"))
 
 ```
@@ -1600,8 +1619,8 @@ ggpubr::ggarrange(gg_pbmc_comp,
                   gg_ea_comp,
                   align = "hv", nrow = 3, common.legend = T, heights = c(1,1,1))
 write_csv(gg_pbmc_comp$data, paste0(out_dir, "source_data_FigureS3C_part2.csv"))
-write_csv(gg_pbmc_comp$data, paste0(out_dir, "source_data_FigureS3D_part2.csv"))
-write_csv(gg_pbmc_comp$data, paste0(out_dir, "source_data_FigureS3E_part2.csv"))
+write_csv(gg_nasal_comp$data, paste0(out_dir, "source_data_FigureS3D_part2.csv"))
+write_csv(gg_ea_comp$data, paste0(out_dir, "source_data_FigureS3E_part2.csv"))
 ```
 
 ```{r, fig.width = 8, fig.height = 7.5}
@@ -1745,8 +1764,8 @@ ggpubr::ggarrange(gg_pbmc_comp,
                   gg_ea_comp,
                   align = "hv", nrow = 3, common.legend = T, heights = c(1,1,1))
 write_csv(gg_pbmc_comp$data, paste0(out_dir, "source_data_FigureS3G_part2.csv"))
-write_csv(gg_pbmc_comp$data, paste0(out_dir, "source_data_FigureS3H_part2.csv"))
-write_csv(gg_pbmc_comp$data, paste0(out_dir, "source_data_FigureS3I_part2.csv"))
+write_csv(gg_nasal_comp$data, paste0(out_dir, "source_data_FigureS3H_part2.csv"))
+write_csv(gg_ea_comp$data, paste0(out_dir, "source_data_FigureS3I_part2.csv"))
 ```
 
 ```{r, fig.width = 8, fig.height = 7.5}
