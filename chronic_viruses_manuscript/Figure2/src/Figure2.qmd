@@ -101,11 +101,7 @@ for(active_virus in unique(graph_data$name)){
     mutate(negative = count - positive) %>%
     select(trajectory_group, positive, negative) %>%
     column_to_rownames("trajectory_group")
-  
-  if(grepl(".ea", active_virus)){
-    tmp.chi <- tmp.chi[4:5,]
-  }
-  
+
   clm_data_tmp <- clm_data %>%
     filter(name == active_virus) %>%
     mutate(trajectory_group = ordered(factor(trajectory_group))) %>%
@@ -744,6 +740,13 @@ for(active_virus in unique(ever_reactivate$name)){
   stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>% mutate(name = active_virus))
 }
 
+
+stat.df <- stat.df %>%
+  mutate(p.adj = p.adjust(p, "fdr")) %>%
+  add_significance("p.adj") %>%
+  mutate(xpos = 11:1) %>%
+  mutate(group1 = "filler_text", group2 = "variable") %>%
+  mutate(y.position = 40)
 ## Nothing significant even before corrections
 write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part6.csv"))
 

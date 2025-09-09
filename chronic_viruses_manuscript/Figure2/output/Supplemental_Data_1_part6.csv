@@ -1,12 +1,12 @@
-"","n","statistic","p","df","method","p.signif","name"
-"1",1102,0.901571902702045,0.342,1,"Chi-square test","ns","Anelloviridae.pbmc"
-"2",157,0.595336921035795,0.44,1,"Chi-square test","ns","CMV.ea"
-"3",1030,0.142980095547697,0.705,1,"Chi-square test","ns","CMV.nasal"
-"4",1102,0.0229626753386232,0.88,1,"Chi-square test","ns","CMV.pbmc"
-"5",157,0.00863700748530918,0.926,1,"Chi-square test","ns","EBV.ea"
-"6",1030,3.93646136437438,0.0473,1,"Chi-square test","*","EBV.nasal"
-"7",1102,1.14280198870283,0.285,1,"Chi-square test","ns","EBV.pbmc"
-"8",1030,0.566550012534101,0.452,1,"Chi-square test","ns","Enterovirus.nasal"
-"9",157,1.07488294376964e-30,1,1,"Chi-square test","ns","HSV1.ea"
-"10",1019,1.44722136593488,0.229,1,"Chi-square test","ns","HSV1.nasal"
-"11",1029,1.02325973955438,0.312,1,"Chi-square test","ns","HSV2.nasal"
+"","n","statistic","p","df","method","p.signif","name","p.adj","p.adj.signif","xpos","group1","group2","y.position"
+"1",1102,0.901571902702045,0.342,1,"Chi-square test","ns","Anelloviridae.pbmc",0.710285714285714,"ns",11,"filler_text","variable",40
+"2",157,0.595336921035795,0.44,1,"Chi-square test","ns","CMV.ea",0.710285714285714,"ns",10,"filler_text","variable",40
+"3",1030,0.142980095547697,0.705,1,"Chi-square test","ns","CMV.nasal",0.969375,"ns",9,"filler_text","variable",40
+"4",1102,0.0229626753386232,0.88,1,"Chi-square test","ns","CMV.pbmc",1,"ns",8,"filler_text","variable",40
+"5",157,0.00863700748530918,0.926,1,"Chi-square test","ns","EBV.ea",1,"ns",7,"filler_text","variable",40
+"6",1030,3.93646136437438,0.0473,1,"Chi-square test","*","EBV.nasal",0.5203,"ns",6,"filler_text","variable",40
+"7",1102,1.14280198870283,0.285,1,"Chi-square test","ns","EBV.pbmc",0.710285714285714,"ns",5,"filler_text","variable",40
+"8",1030,0.566550012534101,0.452,1,"Chi-square test","ns","Enterovirus.nasal",0.710285714285714,"ns",4,"filler_text","variable",40
+"9",157,1.07488294376964e-30,1,1,"Chi-square test","ns","HSV1.ea",1,"ns",3,"filler_text","variable",40
+"10",1019,1.44722136593488,0.229,1,"Chi-square test","ns","HSV1.nasal",0.710285714285714,"ns",2,"filler_text","variable",40
+"11",1029,1.02325973955438,0.312,1,"Chi-square test","ns","HSV2.nasal",0.710285714285714,"ns",1,"filler_text","variable",40
