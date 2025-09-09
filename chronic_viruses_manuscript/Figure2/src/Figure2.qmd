@@ -102,6 +102,10 @@ for(active_virus in unique(graph_data$name)){
     select(trajectory_group, positive, negative) %>%
     column_to_rownames("trajectory_group")
   
+  if(grepl(".ea", active_virus)){
+    tmp.chi <- tmp.chi[4:5,]
+  }
+  
   clm_data_tmp <- clm_data %>%
     filter(name == active_virus) %>%
     mutate(trajectory_group = ordered(factor(trajectory_group))) %>%
@@ -109,9 +113,13 @@ for(active_virus in unique(graph_data$name)){
   clmm_res <- clmm2(trajectory_group~binary, data = clm_data_tmp, random = enrollment_site,
                     Hess = TRUE)
   
-  stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>%
+  stat.df <- rbind.data.frame(stat.df, cbind(chisq_test(tmp.chi) %>%
+                                               select(-method, -p,
+                                                      -statistic, -df,
+                                                      -p.signif, -n) %>%
                                 mutate(name = active_virus,
-                 clm.p = summary(clmm_res)[["coefficients"]][5,4]))
+                 clm.p = summary(clmm_res)[["coefficients"]][5,4]),
+                 fisher_test(tmp.chi, simulate.p.value = TRUE)))
 }
 
 stat.df <- stat.df %>%
@@ -149,7 +157,7 @@ gg1 <- graph_data %>%
   ylab(" ") +
   stat_pvalue_manual(stat.df %>%
                        filter(!p.adj.signif %in% c("ns", "", " ")) %>%
-                       mutate(y.position = c(38, 11, 15, 19, 45, 28)),
+                       mutate(y.position = c(38, 20, 11, 15, 19, 45, 28)),
                      x= "xpos", label = "p.adj.signif", vjust = 0.7) +
     coord_flip() +
   theme(#axis.text.y = element_blank(),
