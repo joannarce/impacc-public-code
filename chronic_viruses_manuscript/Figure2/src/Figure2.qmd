@@ -101,6 +101,8 @@ for(active_virus in unique(graph_data$name)){
     mutate(negative = count - positive) %>%
     select(trajectory_group, positive, negative) %>%
     column_to_rownames("trajectory_group")
+  
+    tmp.chi <- tmp.chi[4:5,]
 
   clm_data_tmp <- clm_data %>%
     filter(name == active_virus) %>%
@@ -121,6 +123,7 @@ for(active_virus in unique(graph_data$name)){
 stat.df <- stat.df %>%
   mutate(p.value = ifelse(grepl("\\.ea", name), p, clm.p)) %>%
   mutate(p.adj = p.adjust(p.value, "fdr")) %>%
+  mutate(TG4_v_TG5_p.adj = p.adjust(p, "fdr")) %>%
   add_significance("p.adj") %>%
   mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
   arrange(name) %>%
