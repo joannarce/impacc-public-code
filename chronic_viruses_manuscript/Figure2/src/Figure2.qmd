@@ -124,6 +124,7 @@ stat.df <- stat.df %>%
   mutate(p.value = ifelse(grepl("\\.ea", name), p, clm.p)) %>%
   mutate(p.adj = p.adjust(p.value, "fdr")) %>%
   mutate(TG4_v_TG5_p.adj = p.adjust(p, "fdr")) %>%
+  mutate(p.adj = ifelse(grepl("\\.ea", name), TG4_v_TG5_p.adj, p.adj)) %>%
   add_significance("p.adj") %>%
   mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
   arrange(name) %>%
@@ -156,7 +157,7 @@ gg1 <- graph_data %>%
   ylab(" ") +
   stat_pvalue_manual(stat.df %>%
                        filter(!p.adj.signif %in% c("ns", "", " ")) %>%
-                       mutate(y.position = c(38, 20, 11, 15, 19, 45, 28)),
+                       mutate(y.position = c(38, 11, 15, 19, 45, 28)),
                      x= "xpos", label = "p.adj.signif", vjust = 0.7) +
     coord_flip() +
   theme(#axis.text.y = element_blank(),
