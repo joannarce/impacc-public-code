@@ -374,7 +374,7 @@ p_df <- as.data.frame(p_values) %>%
   mutate(p.adj = p.adjust(p_values, "fdr")) %>%
               rownames_to_column("name") %>%
               mutate(p_values = formatC(p_values, format = "e", digits = 2))
-write_csv(p_df, paste0(out_dir, "Supplemental_Data_6_part3.csv"))                     
+write_csv(p_df, paste0(out_dir, "Supplemental_Data_6_part5.csv"))                     
 ggS11A <- graph_data %>%
   mutate(PASC_status = factor(PASC_status, levels = c("PRO Minimal", "PRO PASC Group", "Non-responders", "Died"))) %>%
   mutate(label = paste0("n=", count, "\n(", round(freq, 1), "%)")) %>%
@@ -461,7 +461,7 @@ stat.df <- stat.df %>%
   mutate(xpos = 6:1) %>%
   mutate(group1 = "filler_text", group2 = "variable") %>%
   mutate(y.position = 40)
-write.csv(stat.df, paste0(out_dir, "Supplemental_data_6_part8.csv"))
+write.csv(stat.df, paste0(out_dir, "Supplemental_data_6_part6.csv"))
 
 
 ggS11B <- graph_data %>%
