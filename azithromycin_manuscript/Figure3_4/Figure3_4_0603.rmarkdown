@@ -1,5 +1,5 @@
 ---
-title: "Figure3_4_052325"
+title: "Figure3_4"
 author: "Abigail Glascock"
 date: "2025-05-09"
 output: html_document
@@ -23,7 +23,6 @@ library(ggbeeswarm) ## For geom_quasirandom(), the best looking jitter plots
 library(readxl)
 library(vegan)
 library(RColorBrewer)
-#source("~/stat_pvalue_manual.R")
 
 ### Load clinical data ###  
 clinical_data_ext <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-supp-locked.csv")
@@ -214,7 +213,9 @@ AMR_NS_GAMM <-AMR_NS_single %>%
     dplyr::filter(sample_id %in% ABX_NS_azithro5$sample_id)
 ```
 
+
 NOTE: Group and time point data is stored on the R studio server (rstudio.impaccstudy.org) at /scratch/metagenomics/antibiotic_data/.
+
 
 ```{r make group and timepoint data}
 #| echo: false
@@ -298,11 +299,13 @@ write.csv(NS_group_timepoint_data_0306,"final_group_assign_resubmit_033025.csv")
 
 ```
 
+
 NOTE: Group and time point data is stored on the R studio server (rstudio.impaccstudy.org) at /scratch/metagenomics/antibiotic_data/.
 
 ## Figure 3 - Nasal AMR Results
 
 ### 3A - Alpha Diversity
+
 
 ```{r, alpha_div}
 new <- as_labeller(c("Day 0-2" = "1 \u00b1 1 Days", "Day 4-6" = "5 \u00b1 1 Days"))
@@ -421,7 +424,7 @@ stats_df_adiv_new2 <- out_df %>%
   add_significance(p.col = "p.adj") 
   
 
-adiv_data_new%>%
+gg3a <- adiv_data_new%>%
   dplyr::mutate(group_id = factor(group_id, c("No ABX", "Azithromycin", "Other ABX"))) %>%
   ggplot(aes(x=group_id, y=shannon, color = group_id,group = group_id)) +
   geom_boxplot(outlier.shape = NA) +
@@ -460,10 +463,19 @@ invisible(capture.output(dev.off()))
 mydata <-adiv_data_new %>% 
   select(group_id, timepoint, shannon)
 
-write.csv(mydata, "~/3A.csv")
+write.csv(mydata, "3A.csv")
+
+write.csv(mydata %>%
+  group_by(group_id, timepoint) %>%
+  dplyr::summarize(mean = mean(shannon),
+                   median = median(shannon),
+                   sd = sd(shannon),
+                   count = n()), "3A_effect_sizes.csv")
 ```
 
+
 ### 3C - MLS ARG Richness
+
 
 ```{r}
 gr_data_new <-AMR_NS_single %>%
@@ -608,10 +620,19 @@ invisible(capture.output(dev.off()))
 mydata <-gr_data2_new %>% 
   select(group_id, timepoint, mls_gene_count)
 
-write.csv(mydata, "~/3C.csv")
+write.csv(mydata, "3C.csv")
+
+write.csv(mydata %>%
+  group_by(group_id, timepoint) %>%
+  dplyr::summarize(mean = mean(mls_gene_count),
+                   median = median(mls_gene_count),
+                   sd = sd(mls_gene_count),
+                   count = n()), "3C_effect_sizes.csv")
 ```
 
+
 ### 4A - Bar Chart of individual MLS genes
+
 
 ```{r bar chart}
 ### ID genes to collapse
@@ -708,11 +729,13 @@ my_data<-data_new %>%
   select(gene_name4,gene_perc_all) %>% 
   distinct()
 
-write.csv(my_data, "~/4A.csv")
+write.csv(my_data, "4A.csv")
 
 ```
 
-### Figure 3F, S4A-C - Post-Azithro Analysis
+
+### Figure 3F, S4 - Post-Azithro Analysis
+
 
 ```{r postazithro}
 stop_dates<-startstop %>% filter(med_group=="Azithromycin")
@@ -791,7 +814,7 @@ fit2 <- lme4::lmer(data=gr_data3_new, formula = mls_gene_count ~ event_date + ev
 an <- anova(fit, fit2)
 out_df <- rbind.data.frame(out_df, data.frame(name = "mls_gene_count", group1 ="5 \u00b1 1 Days\nof Exposure", group2 = "7-10 Days\nAfter Cessation", p = an$`Pr(>Chisq)`[2]))
 out_df2<-out_df %>% dplyr::mutate(p_char = case_when(p<0.01 ~ format(p, scientific=TRUE, digits=2), p>0.045 & p<0.05 ~ as.character(format(round(p,digits=3), nsmall = 2)), p>0.0095 & p<0.01 ~ as.character(format(round(p,digits=3), nsmall = 2)), TRUE ~ as.character(format(round(p,digits=2), nsmall = 2)))) %>% dplyr::mutate(y.position=9) 
-
+write.csv(out_df2, "3F_stats.csv")
 gr_data3_new %>%
   dplyr::mutate(late_compare_new = factor(late_compare_new, c("5 \u00b1 1 Days\nof Exposure", "7-10 Days\nAfter Cessation"))) %>%
   ggplot(aes(x=late_compare_new, y=mls_gene_count, color = late_compare_new, group = late_compare_new)) +
@@ -832,8 +855,14 @@ my_data<-gr_data3_new %>%
   mutate(late_compare_new = factor(late_compare_new, c("5 \u00b1 1 Days\nof Exposure", "7-10 Days\nAfter Cessation"))) %>%
   select(late_compare_new, mls_gene_count)
 
-write.csv(my_data, "~/3F.csv")
+write.csv(my_data, "3F.csv")
 
+write.csv(my_data %>%
+  group_by(late_compare_new) %>%
+  dplyr::summarize(mean = mean(mls_gene_count),
+                   median = median(mls_gene_count),
+                   sd = sd(mls_gene_count),
+                   count = n()), "3F_effect_sizes.csv")
 
 ### Figure S4
 perc_data_new <- AMR_NS_single %>%
@@ -883,7 +912,7 @@ fit2 <- lme4::lmer(data=perc_data_2_new, formula = class_perc ~ event_date + eve
 an <- anova(fit, fit2)
 out_df <- rbind.data.frame(out_df, data.frame(name = "class_perc", group1 ="5 \u00b1 1 Days\nof Exposure", group2 = "7-10 Days\nAfter Cessation", p = an$`Pr(>Chisq)`[2]))
 out_df2<-out_df %>% dplyr::mutate(p_char = case_when(p<0.01 ~ format(p, scientific=TRUE, digits=2), p>0.045 & p<0.05 ~ as.character(format(round(p,digits=3), nsmall = 2)), p>0.0095 & p<0.01 ~ as.character(format(round(p,digits=3), nsmall = 2)), TRUE ~ as.character(format(round(p,digits=2), nsmall = 2)))) %>% dplyr::mutate(y.position=110) 
-
+write.csv(out_df2, "S4_stats.csv")
 perc_data_2_new %>%
   dplyr::mutate(late_compare_new = factor(late_compare_new, c("5 \u00b1 1 Days\nof Exposure", "7-10 Days\nAfter Cessation"))) %>%
   ggplot(aes(x=late_compare_new, y=class_perc, color = late_compare_new, group = late_compare_new)) +
@@ -922,11 +951,49 @@ my_data<-perc_data_2_new %>%
   dplyr::mutate(late_compare_new = factor(late_compare_new, c("5 \u00b1 1 Days\nof Exposure", "7-10 Days\nAfter Cessation"))) %>%
   select(late_compare_new, class_perc)
 
-write.csv(my_data, "~/S4.csv")
+write.csv(my_data, "S4.csv")
 
+write.csv(my_data %>%
+  group_by(late_compare_new) %>%
+  dplyr::summarize(mean = mean(class_perc),
+                   median = median(class_perc),
+                   sd = sd(class_perc),
+                   count = n()), "S4_effect_sizes.csv")
 ```
 
+
+### Figure S4B - MLS Richness Overtime
+
+
+```{r, fig.width = 4, fig.height = 2.5}
+
+## Richness of Genes
+all_late_new %>%
+  left_join(gr_data_new) %>%
+  ggplot(aes(x=days_since_stop, y= mls_gene_count)) +
+  geom_line(aes(group = participant_id, color = participant_id), alpha =0.4) +
+  theme_classic() +
+  ylab("Number of Detectablyn\nExpressed MLS ARGs") +
+  xlab("Days since Cessiation of Azithromycin") +
+  theme(legend.position = "none")
+ggsave("Rishness_of_Genes_Spag_plot.pdf", width = 4, height = 2.5)
+
+## Percent of Resistome
+all_late_new %>%
+  left_join(mls_perc_new) %>%
+  ggplot(aes(x=days_since_stop, y= class_perc)) +
+  geom_line(aes(group = participant_id, color = participant_id), alpha =0.4) +
+  theme_classic() +
+  ylab("Percent of Resistome MLS (%)") +
+  xlab("Days since Cessiation of Azithromycin") +
+  theme(legend.position = "none")
+ggsave("Percent_of_Resistome_Spag_plot.pdf", width = 4, height = 2.5)
+```
+
+
+
 ### Figures 3D-3E
+
 
 ```{r GAMM summary stats new}
 #| echo: false
@@ -974,7 +1041,7 @@ fit <- gamm4::gamm4(data = as.data.frame(mlsdpmgamm_new), formula_fit, random = 
 tmp <- data.frame("feature" = "Azithromycin", "p.value" = anova(fit$gam)[["s.pv"]][1])
 #tmp
 pred <- ggpredict(fit, c("Azithromycin"), type = "fixed", ci_level = CI_interval)
-
+write.csv(pred, "3E_stats.csv")
 p3 <-pred %>%
   ggplot(mapping = aes(x = x, y = predicted, fill=group)) +
   geom_line(mapping = aes(y = predicted, x=x), size = 0.8, color="#E07E3D") +
@@ -991,7 +1058,7 @@ plot(p3)
 my_data<-mlsdpmgamm_new %>%
   select(Azithromycin,perc4)
 
-write.csv(my_data, "~/3E.csv")
+write.csv(my_data, "3E.csv")
 
 ### Figure 3D
 
@@ -1017,7 +1084,7 @@ fit <- gamm4::gamm4(data = as.data.frame(richnessgamm_new), formula_fit, random 
 tmp <- data.frame("feature" = "Azithromycin", "p.value" = anova(fit$gam)[["s.pv"]][1])
 #tmp
 pred <- ggpredict(fit, c("Azithromycin"), type = "fixed", ci_level = CI_interval)
-
+write.csv(pred, "3D_stats.csv")
 p4 <-pred %>%
       ggplot(mapping = aes(x = x, y = predicted, fill=group)) +
       geom_line(mapping = aes(y = predicted, x=x), size = 0.8, color="#E07E3D") +
@@ -1036,14 +1103,11 @@ plot(p4)
 my_data<-richnessgamm_new %>%
   select(Azithromycin, richness)
 
-write.csv(my_data, "~/3D.csv")
-
+write.csv(my_data, "3D.csv")
 
 pdf(file="3E.pdf", width=4, height=2.5)
 plot(p3)
 invisible(capture.output(dev.off()))
-
-
 
 pdf(file="3D.pdf", width=4, height=2.5)
 plot(p4)
@@ -1051,7 +1115,9 @@ invisible(capture.output(dev.off()))
 
 ```
 
+
 ### Figure 3B - Beta Diversity
+
 
 ```{r beta div}
 library(vegan)
@@ -1080,7 +1146,6 @@ AMR.permutest<-permutest(AMR.dispersion)
 set.seed(100)
 AMR.div<-adonis2(dist_bc ~ group2 + event_date + participant_id + discretized_admit_age_quantile + sex + trajectory_group + ever_steroids + Ceftriaxone + Vancomycin + Cefepime + Piperacillin_Tazobactam +  Doxycycline + Meropenem, data=metadata_new, permutations = 1000, method="bray")
 #print(AMR.div)
-
 
 pcoa_result <- cmdscale(dist_bc, k = 2, eig = TRUE)
 #plot(pcoa_result$points, xlab = "PCoA1", ylab = "PCoA2", main = "PCoA Plot")
@@ -1113,11 +1178,13 @@ plot(PCA_plot)
 invisible(capture.output(dev.off()))
 
 rownames(amr_wide_new)<-NULL
-write.csv(amr_wide_new, "~/3B.csv")
+write.csv(amr_wide_new, "3B.csv")
 
 ```
 
+
 ## Figure 4B
+
 
 ```{r corrplot prep}
 library(ggcorrplot)
@@ -1262,8 +1329,11 @@ corrplot(cmatrix, method="circle", type='full', tl.col='black', p.mat=adjusted_p
 invisible(capture.output(dev.off()))
 ```
 
+
 ## Session Info
+
 
 ```{r}
 sessionInfo()
 ```
+
