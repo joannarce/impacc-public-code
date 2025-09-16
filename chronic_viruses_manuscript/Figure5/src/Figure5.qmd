@@ -613,9 +613,9 @@ Heatmap(heat_df3, border = TRUE, row_split = data_env$plasma_metabolomics_global
         column_names_rot = 45, column_names_side = "top",column_title_side = "bottom",
         name = "Signed\n-log10 transformed\nadjusted p.values", cluster_columns = TRUE)
 dev.off()
-write_csv(heat_df3, paste0(out_dir, "source_data_FigureS9A.csv"))
+write.csv(heat_df3, paste0(out_dir, "source_data_FigureS9A.csv"))
 
-write_csv(pmg %>% left_join(data_env$plasma_metabolomics_global_rowfeature %>% rownames_to_column("feature") %>%
+write.csv(pmg %>% left_join(data_env$plasma_metabolomics_global_rowfeature %>% rownames_to_column("feature") %>%
               select(feature, CHEMICAL_NAME)), paste0(out_dir, "Supplemental_Data_part1_named_compounds.csv"))
 ```
 
