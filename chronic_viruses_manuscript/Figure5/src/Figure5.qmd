@@ -533,6 +533,44 @@ traj_plot <- function(feature, viruses, results_obj, colors,
                        nrow = 1, align = "hv"))
 }
 
+
+#####################################
+source_data <- function(feature, viruses, results_obj, colors,
+                      variable_width = 0.6, base_size = 12, better_name){
+  library(ggpubr)
+  if(missing(better_name)){
+    feature_name <- feature
+  } else {
+    feature_name <- better_name
+  }
+  source_data_dfb <- data.frame()
+  
+  for(active_virus in viruses){
+      plots <- results_obj[[2]][[paste0(feature, "___", active_virus)]]
+      plots$data <- plots$data %>%
+        mutate(virus = ifelse(virus == 0, "Control",
+                              gsub("\\)", "", gsub(".*\\(", "", active_virus))))
+      source_data_dfb <- plyr::rbind.fill(source_data_dfb, plots$data)
+  }
+  
+  source_data_dfa <- as.data.frame(results_obj[[3]][[feature]]) %>%
+    dplyr::rename("residuals" = 16) %>%
+    pivot_longer(cols = 17:22) %>%
+    mutate(value = ifelse(value > 0, 1, 0)) %>%
+    group_by(participant_id, name, value) %>%
+    distinct(participant_id, name, value, residuals) %>%
+    slice_max(abs(residuals)) %>%
+    mutate(name = ifelse(participant_id %in%results_obj[[4]], "Control", name)) %>%
+    filter(value!=0|name=="Control") %>%
+    mutate(name = gsub("\\)", "", gsub(".*\\(", "", name))) %>%
+    filter(name %in% c("Control", gsub("\\)", "", gsub(".*\\(", "", viruses)))) %>%
+    distinct() %>%
+    as.data.frame() %>%
+    mutate(name = fct_relevel(name, "Control"))
+    
+  return(list(source_data_dfa, source_data_dfb))
+}
+
 viral_colors <- c("Control"="#757575", "EBV.pbmc"="#BF5700", "EBV.nasal"="#008080",
                   "CMV.pbmc"="#005F86", "Anelloviridae.pbmc" = "#86005F",
                   "HSV1.nasal" = "#1b820d", "HSV2.nasal" = "#cba90a")
@@ -549,11 +587,28 @@ ggc <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_e
 ggc
 ggsave(paste0(out_dir, "Figure5C.pdf"), width = 8, height = 3)
 
+ggc_data <- source_data(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "urea"],
+                 better_name = "\nUrea",base_size = 12,
+                 c("Human betaherpesvirus 5 (CMV).pbmc", "Anelloviridae.pbmc"), modeling_results, viral_colors)
+write.csv(file = paste0(out_dir, "source_data_Figure5C_part1.csv"),
+          x= ggc_data[[1]] %>%
+            ungroup() %>%
+            select(-participant_id))
+write.csv(ggc_data[[2]], paste0(out_dir, "source_data_Figure5C_part2.csv"))
+
 ## LCFAs
 ggd <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "erucate (22:1n9)"], better_name = "\nErucate (22:1n9)",base_size = 12,
           c("Human betaherpesvirus 5 (CMV).pbmc","Anelloviridae.pbmc"), modeling_results, viral_colors)
 ggd
 ggsave(paste0(out_dir, "Figure5D.pdf"), width = 8, height = 3)
+
+ggd_data <- source_data(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "erucate (22:1n9)"], better_name = "\nErucate (22:1n9)",base_size = 12,
+          c("Human betaherpesvirus 5 (CMV).pbmc","Anelloviridae.pbmc"), modeling_results, viral_colors)
+write.csv(ggd_data[[1]] %>%
+            ungroup() %>%
+            select(-participant_id),
+          paste0(out_dir, "source_data_Figure5D_part1.csv"))
+write.csv(ggd_data[[2]], paste0(out_dir, "source_data_Figure5D_part2.csv"))
 
 ## Protectors against Oxidative Stress
 gge <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "6-bromotryptophan"], better_name = "\n6-bromotryptophan", base_size = 12,
@@ -562,6 +617,13 @@ gge <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_e
 gge
 ggsave(paste0(out_dir, "Figure5E.pdf"), width = 14.16, height = 3)
 
+gge_data <- source_data(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "6-bromotryptophan"], better_name = "\n6-bromotryptophan", base_size = 12,
+          c("Human betaherpesvirus 5 (CMV).pbmc","Human gammaherpesvirus 4 (EBV).pbmc",
+                     "Human alphaherpesvirus 1 (HSV1).nasal", "Anelloviridae.pbmc"), modeling_results, viral_colors)
+write.csv(gge_data[[1]] %>%
+            ungroup() %>%
+            select(-participant_id), paste0(out_dir, "source_data_Figure5E_part1.csv") )
+write.csv(gge_data[[2]], paste0(out_dir, "source_data_Figure5E_part2.csv"))
 ```
 
 ## Supplementary Figure 9
@@ -628,27 +690,73 @@ ggb <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_e
 ggb
 ggsave(paste0(out_dir, "FigureS9B.pdf"), width = 4.92, height = 3)
 
+
+ggb_data <- source_data(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "N,N,N-trimethyl-alanylproline betaine (TMAP)"], better_name = "\nTMAP",base_size = 12,
+          c("Human betaherpesvirus 5 (CMV).pbmc"), modeling_results, viral_colors)
+write.csv(file = paste0(out_dir, "source_data_FigureS9B_part1.csv"), x = ggb_data[[1]] %>%
+            ungroup() %>%
+            select(-participant_id))
+write.csv(file=paste0(out_dir, "source_data_FigureS9B_part2.csv"), x=ggb_data[[2]])
+
+
+### C
 ggc <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "arachidate (20:0)"], better_name = "\nArachidate (20:0)",base_size = 12,
           c("Human betaherpesvirus 5 (CMV).pbmc","Anelloviridae.pbmc"), modeling_results, viral_colors)
 ggc
-ggsave(paste0(out_dir, "FigureS9C.pdf"), width = 8, height = 3)
 
+ggc_data <- source_data(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "arachidate (20:0)"], better_name = "\nArachidate (20:0)",base_size = 12,
+          c("Human betaherpesvirus 5 (CMV).pbmc","Anelloviridae.pbmc"), modeling_results, viral_colors)
+ggc_data
+write.csv(file=paste0(out_dir, "source_data_FigureS9C_part1.csv"), x=ggc_data[[1]] %>%
+            ungroup() %>%
+            select(-participant_id))
+write.csv(file=paste0(out_dir, "source_data_FigureS9C_part2.csv"), x=ggc_data[[2]])
+
+### D
 ggd <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "docosadienoate (22:2n6)"], better_name = "\nDocosadienoate (22:2n6)",base_size = 12,
           c("Human betaherpesvirus 5 (CMV).pbmc","Anelloviridae.pbmc"), modeling_results, viral_colors)
 ggd
 ggsave(paste0(out_dir, "FigureS9D.pdf"), width = 8, height = 3)
 
-## Dimethylarginine
+ggd_data <- source_data(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "docosadienoate (22:2n6)"], better_name = "\nDocosadienoate (22:2n6)",base_size = 12,
+          c("Human betaherpesvirus 5 (CMV).pbmc","Anelloviridae.pbmc"), modeling_results, viral_colors)
+ggd_data
+write.csv(file=paste0(out_dir, "source_data_FigureS9D_part1.csv"), x=ggd_data[[1]] %>%
+            ungroup() %>%
+            select(-participant_id))
+write.csv(file=paste0(out_dir, "source_data_FigureS9D_part2.csv"), x=ggd_data[[2]])
+
+
+## E
 gge <- traj_plot("X100001810", better_name = "\nDimethylarginine", base_size = 12,
           c("Human betaherpesvirus 5 (CMV).pbmc", "Anelloviridae.pbmc"), modeling_results, viral_colors)
 gge
 ggsave(paste0(out_dir, "FigureS9E.pdf"), width = 8, height = 3)
 
+gge_data <- source_data("X100001810", better_name = "\nDimethylarginine",
+                        base_size = 12,
+          c("Human betaherpesvirus 5 (CMV).pbmc", "Anelloviridae.pbmc"), modeling_results, viral_colors)
+gge_data
+write.csv(file=paste0(out_dir, "source_data_FigureS9E_part1.csv"), x=gge_data[[1]] %>%
+            ungroup() %>%
+            select(-participant_id))
+write.csv(file=paste0(out_dir, "source_data_FigureS9E_part2.csv"), x=gge_data[[2]])
+
+### F
 ggf <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "S-methylcysteine sulfoxide"], better_name = "\nS-methylcysteine sulfoxide",base_size = 12,
           c("Human betaherpesvirus 5 (CMV).pbmc","Human gammaherpesvirus 4 (EBV).pbmc",
                      "Human alphaherpesvirus 1 (HSV1).nasal", "Anelloviridae.pbmc"), modeling_results, viral_colors)
 ggf
 ggsave(paste0(out_dir, "FigureS9F.pdf"), width = 14.16, height = 3)
+
+ggf_data <- source_data(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "S-methylcysteine sulfoxide"], better_name = "\nS-methylcysteine sulfoxide",base_size = 12,
+          c("Human betaherpesvirus 5 (CMV).pbmc","Human gammaherpesvirus 4 (EBV).pbmc",
+                     "Human alphaherpesvirus 1 (HSV1).nasal", "Anelloviridae.pbmc"), modeling_results, viral_colors)
+ggf_data
+write.csv(file=paste0(out_dir, "source_data_FigureS9F_part1.csv"), x=ggf_data[[1]] %>%
+            ungroup() %>%
+            select(-participant_id))
+write.csv(file=paste0(out_dir, "source_data_FigureS9F_part2.csv"), x=ggf_data[[2]])
 ```
 
 ## Session Info
