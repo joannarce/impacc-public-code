@@ -585,7 +585,7 @@ ggc <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_e
                  better_name = "\nUrea",base_size = 12,
                  c("Human betaherpesvirus 5 (CMV).pbmc", "Anelloviridae.pbmc"), modeling_results, viral_colors)
 ggc
-ggsave(paste0(out_dir, "Figure5C.pdf"), width = 8, height = 3)
+ggsave(paste0(out_dir, "Figure5C.pdf"), width = 8, height = 3) 
 
 ggc_data <- source_data(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "urea"],
                  better_name = "\nUrea",base_size = 12,
@@ -612,13 +612,13 @@ write.csv(ggd_data[[2]], paste0(out_dir, "source_data_Figure5D_part2.csv"))
 
 ## Protectors against Oxidative Stress
 gge <- traj_plot(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "6-bromotryptophan"], better_name = "\n6-bromotryptophan", base_size = 12,
-          c("Human betaherpesvirus 5 (CMV).pbmc","Human gammaherpesvirus 4 (EBV).pbmc",
+          c("Human betaherpesvirus 5 (CMV).pbmc","Human gammaherpesvirus 4 (EBV).nasal",
                      "Human alphaherpesvirus 1 (HSV1).nasal", "Anelloviridae.pbmc"), modeling_results, viral_colors)
 gge
 ggsave(paste0(out_dir, "Figure5E.pdf"), width = 14.16, height = 3)
 
 gge_data <- source_data(rownames(data_env$plasma_metabolomics_global_rowfeature)[data_env$plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "6-bromotryptophan"], better_name = "\n6-bromotryptophan", base_size = 12,
-          c("Human betaherpesvirus 5 (CMV).pbmc","Human gammaherpesvirus 4 (EBV).pbmc",
+          c("Human betaherpesvirus 5 (CMV).pbmc","Human gammaherpesvirus 4 (EBV).nasal",
                      "Human alphaherpesvirus 1 (HSV1).nasal", "Anelloviridae.pbmc"), modeling_results, viral_colors)
 write.csv(gge_data[[1]] %>%
             ungroup() %>%
