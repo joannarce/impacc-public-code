@@ -981,6 +981,43 @@ ggsave(paste0(out_dir, "FigureS6F.pdf"), width = 3, height = 3)
 write_csv(ggS6F$data, paste0(out_dir, "source_data_FigureS6F.csv"))
 ```
 
+#### Supplemental Anelloviridae Modeling
+
+```{r}
+library(lme4)
+model_df <- comb_data %>%
+  left_join(clinical_data %>% distinct(event_id, participant_id,
+                                       trajectory_group,
+                                       event_type,
+                                       enrollment_site,
+                                       event_date,
+                                       discretized_admit_age_quantile,
+                                       sex)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
+  group_by(participant_id) %>%
+  slice_max(Anelloviridae.pbmc) %>%
+  filter(!is.na(Anelloviridae.pbmc)) %>%
+  left_join(clinical_data_ext %>% distinct(participant_id, ever_immsupp)) %>%
+  ungroup() %>% rowwise() %>%
+  mutate(binary = Anelloviridae.pbmc > 0) %>% ungroup() %>%
+  distinct(participant_id, binary, ever_immsupp, discretized_admit_age_quantile,
+           trajectory_group, sex, enrollment_site) %>%
+  mutate(trajectory_group = factor(trajectory_group),
+         discretized_admit_age_quantile = factor(discretized_admit_age_quantile),
+         sex = factor(sex),
+         ever_immsupp = factor(ever_immsupp))
+
+## Generalized linear model of all features
+fit <- glmer(binary ~ ever_immsupp + trajectory_group + sex + discretized_admit_age_quantile + (1|enrollment_site),
+           data = model_df, family = "binomial")
+
+stat.df <- as.data.frame(car::Anova(fit, type = "III")) %>%
+  rownames_to_column("feature")
+write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part9.csv"))
+
+```
+
 #### Subsampling of Visits to only Visits 1, 2, 4, and 6 for Figure 2A
 
 ```{r}
