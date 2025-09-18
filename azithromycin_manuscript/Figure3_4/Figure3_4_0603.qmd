@@ -465,8 +465,11 @@ write.csv(mydata %>%
   group_by(group_id, timepoint) %>%
   dplyr::summarize(mean = mean(shannon),
                    median = median(shannon),
-                   sd = sd(shannon),
-                   count = n()), "3A_effect_sizes.csv")
+                   std_dev = sd(shannon),
+                   count = n(),
+                   se = std_dev / sqrt(n()),
+                   CI_lower = mean - (1.96 * se),
+                   CI_upper = mean + (1.96 * se)), "3A_effect_sizes.csv")
 ```
 
 ### 3C - MLS ARG Richness
@@ -620,8 +623,11 @@ write.csv(mydata %>%
   group_by(group_id, timepoint) %>%
   dplyr::summarize(mean = mean(mls_gene_count),
                    median = median(mls_gene_count),
-                   sd = sd(mls_gene_count),
-                   count = n()), "3C_effect_sizes.csv")
+                   std_dev = sd(mls_gene_count),
+                   count = n(),
+                   se = std_dev / sqrt(n()),
+                   CI_lower = mean - (1.96 * se),
+                   CI_upper = mean + (1.96 * se)), "3C_effect_sizes.csv")
 ```
 
 ### 4A - Bar Chart of individual MLS genes
@@ -851,8 +857,11 @@ write.csv(my_data %>%
   group_by(late_compare_new) %>%
   dplyr::summarize(mean = mean(mls_gene_count),
                    median = median(mls_gene_count),
-                   sd = sd(mls_gene_count),
-                   count = n()), "3F_effect_sizes.csv")
+                   std_dev = sd(mls_gene_count),
+                   count = n(),
+                   se = std_dev / sqrt(n()),
+                   CI_lower = mean - (1.96 * se),
+                   CI_upper = mean + (1.96 * se)), "3F_effect_sizes.csv")
 
 ### Figure S4
 perc_data_new <- AMR_NS_single %>%
@@ -947,8 +956,11 @@ write.csv(my_data %>%
   group_by(late_compare_new) %>%
   dplyr::summarize(mean = mean(class_perc),
                    median = median(class_perc),
-                   sd = sd(class_perc),
-                   count = n()), "S4_effect_sizes.csv")
+                   std_dev = sd(class_perc),
+                   count = n(),
+                   se = std_dev / sqrt(n()),
+                   CI_lower = mean - (1.96 * se),
+                   CI_upper = mean + (1.96 * se)), "S4_effect_sizes.csv")
 ```
 
 ### Figure S4B - MLS Richness Overtime
