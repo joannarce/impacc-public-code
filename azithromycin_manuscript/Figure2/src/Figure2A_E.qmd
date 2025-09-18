@@ -256,7 +256,10 @@ stats_df <- compare_means(data = check, method = "wilcox.test", formula = value 
 effect_sizes <- check %>% group_by(timepoint, name, Azithromycin_binary) %>%
   dplyr::summarize(mean = mean(value, na.rm = T),
                    median = median(value, na.rm = T),
-                   std_dev = sd(value, na.rm = T))
+                   std_dev = sd(value, na.rm = T),
+                   se = std_dev / sqrt(n()),
+                   CI_lower = mean - (1.96 * se),
+                   CI_upper = mean + (1.96 * se))
 write.csv(effect_sizes, paste0(out_dir, "Figure2ABC_effect_sizes.csv"))
 
 stats_df <- check %>%
