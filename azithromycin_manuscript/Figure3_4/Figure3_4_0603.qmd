@@ -1,9 +1,10 @@
 ---
 title: "Figure3_4"
 author: "Abigail Glascock"
-date: "2025-05-09"
+date: "2025-09-24"
 output: html_document
 ---
+## Figure 3 - Nasal AMR Results
 
 ```{r data import and setup}
 #| echo: false
@@ -299,7 +300,21 @@ write.csv(NS_group_timepoint_data_0306,"final_group_assign_resubmit_033025.csv")
 
 NOTE: Group and time point data is stored on the R studio server (rstudio.impaccstudy.org) at /scratch/metagenomics/antibiotic_data/.
 
-## Figure 3 - Nasal AMR Results
+### Supplement: AMR Negative controls
+
+```{r}
+AMR_ns_neg<- AMR_ns_raw %>%
+  left_join(nasal_metagenomics_metadata %>% distinct(sample_id, core_specific_ID_SUFFIX), by = c("sample_name" = "core_specific_ID_SUFFIX")) %>%
+  dplyr::filter(!is.na(sample_id)) %>%
+  dplyr::filter(!sample_id %in% exclude_samples) %>%
+  dplyr::filter(grepl("pc-", sample_id)) %>%
+  pivot_wider(names_from = sample_id,values_from = num_reads,values_fill = 0,id_cols="gene_name")
+
+amr_neg_trimmed<-AMR_ns_neg[,-1]
+rownames(amr_neg_trimmed)<-AMR_ns_neg$gene_name
+colnames(amr_neg_trimmed) <- paste0("Negative_control", 1:22)
+write.csv(amr_neg_trimmed, "Supplement_IMPACC_NS_neg_control_AMR.csv", row.names = T)
+```
 
 ### 3A - Alpha Diversity
 
@@ -731,7 +746,7 @@ write.csv(my_data, "4A.csv")
 
 ```
 
-### Figure 3F, S4 - Post-Azithro Analysis
+### Figure 3F, S5 - Post-Azithro Analysis
 
 ```{r postazithro}
 stop_dates<-startstop %>% filter(med_group=="Azithromycin")
@@ -863,7 +878,7 @@ write.csv(my_data %>%
                    CI_lower = mean - (1.96 * se),
                    CI_upper = mean + (1.96 * se)), "3F_effect_sizes.csv")
 
-### Figure S4
+### Figure S5
 perc_data_new <- AMR_NS_single %>%
   dplyr::filter(sample_id %in% compare_new$sample_id)%>%
   group_by(sample_id) %>%
@@ -911,7 +926,7 @@ fit2 <- lme4::lmer(data=perc_data_2_new, formula = class_perc ~ event_date + eve
 an <- anova(fit, fit2)
 out_df <- rbind.data.frame(out_df, data.frame(name = "class_perc", group1 ="5 \u00b1 1 Days\nof Exposure", group2 = "7-10 Days\nAfter Cessation", p = an$`Pr(>Chisq)`[2]))
 out_df2<-out_df %>% dplyr::mutate(p_char = case_when(p<0.01 ~ format(p, scientific=TRUE, digits=2), p>0.045 & p<0.05 ~ as.character(format(round(p,digits=3), nsmall = 2)), p>0.0095 & p<0.01 ~ as.character(format(round(p,digits=3), nsmall = 2)), TRUE ~ as.character(format(round(p,digits=2), nsmall = 2)))) %>% dplyr::mutate(y.position=110) 
-write.csv(out_df2, "S4_stats.csv")
+write.csv(out_df2, "S5_stats.csv")
 perc_data_2_new %>%
   dplyr::mutate(late_compare_new = factor(late_compare_new, c("5 \u00b1 1 Days\nof Exposure", "7-10 Days\nAfter Cessation"))) %>%
   ggplot(aes(x=late_compare_new, y=class_perc, color = late_compare_new, group = late_compare_new)) +
@@ -928,7 +943,7 @@ perc_data_2_new %>%
   geom_text(data = sample_sizes_new, aes(x = late_compare_new, y =-5, label = paste("n =", n)), vjust = 1.5, color = "black")+
   coord_cartesian(ylim=c(-10,120))
 
-pdf( file = "S4.pdf", width=5, height=2.5)
+pdf( file = "S5.pdf", width=5, height=2.5)
 perc_data_2_new %>%
   dplyr::mutate(late_compare_new = factor(late_compare_new, c("5 \u00b1 1 Days\nof Exposure", "7-10 Days\nAfter Cessation"))) %>%
   ggplot(aes(x=late_compare_new, y=class_perc, color = late_compare_new, group = late_compare_new)) +
@@ -950,7 +965,7 @@ my_data<-perc_data_2_new %>%
   dplyr::mutate(late_compare_new = factor(late_compare_new, c("5 \u00b1 1 Days\nof Exposure", "7-10 Days\nAfter Cessation"))) %>%
   select(late_compare_new, class_perc)
 
-write.csv(my_data, "S4.csv")
+write.csv(my_data, "S5.csv")
 
 write.csv(my_data %>%
   group_by(late_compare_new) %>%
@@ -960,10 +975,10 @@ write.csv(my_data %>%
                    count = n(),
                    se = std_dev / sqrt(n()),
                    CI_lower = mean - (1.96 * se),
-                   CI_upper = mean + (1.96 * se)), "S4_effect_sizes.csv")
+                   CI_upper = mean + (1.96 * se)), "S5_effect_sizes.csv")
 ```
 
-### Figure S4B - MLS Richness Overtime
+### Figure S5B&C - MLS Richness Overtime
 
 ```{r, fig.width = 4, fig.height = 2.5}
 
@@ -976,7 +991,13 @@ all_late_new %>%
   ylab("Number of Detectablyn\nExpressed MLS ARGs") +
   xlab("Days since Cessiation of Azithromycin") +
   theme(legend.position = "none")
-ggsave("Rishness_of_Genes_Spag_plot.pdf", width = 4, height = 2.5)
+ggsave("FigureS5C.pdf", width = 4, height = 2.5)
+
+write.csv(file = "source_data_FigureS5C.csv",
+          x = all_late_new %>%
+  left_join(gr_data_new) %>%
+  mutate(participant_id = as.numeric(factor(participant_id))) %>%
+    distinct(participant_id, mls_gene_count, days_since_stop))
 
 ## Percent of Resistome
 all_late_new %>%
@@ -987,7 +1008,13 @@ all_late_new %>%
   ylab("Percent of Resistome MLS (%)") +
   xlab("Days since Cessiation of Azithromycin") +
   theme(legend.position = "none")
-ggsave("Percent_of_Resistome_Spag_plot.pdf", width = 4, height = 2.5)
+ggsave("FigureS5B.pdf", width = 4, height = 2.5)
+
+write.csv(file = "source_data_FigureS5B.csv",
+          x = all_late_new %>%
+  left_join(mls_perc_new) %>%
+  mutate(participant_id = as.numeric(factor(participant_id))) %>%
+    distinct(participant_id, class_perc, days_since_stop))
 ```
 
 
@@ -1179,8 +1206,7 @@ write.csv(amr_wide_new, "3B.csv")
 ```
 
 ## Figure 4B
-
-```{r corrplot prep}
+```{r corrplot prep 4b}
 library(ggcorrplot)
 library(corrplot)
 ### select samples
@@ -1251,22 +1277,22 @@ Bact_corr<-nasal_long %>%
 microbes <-Bact_corr[c(2, 3:length(Bact_corr))]
 tdf<-t(microbes)
 data<-as.data.frame(tdf)
-with_total<-data %>% dplyr::mutate(sum = rowSums(.)) %>% arrange(desc(sum)) %>% do(head(., n=50))
+with_total<-data %>% dplyr::mutate(sum = rowSums(.)) %>% arrange(desc(sum)) %>% do(head(., n=30))
 trimmed_list_microbes<-rownames(with_total)
-top50_data<-Bact_corr %>% dplyr::select(sample_id, trimmed_list_microbes)
-top50_data[sapply(top50_data, is.numeric)] <- top50_data[sapply(top50_data, is.numeric)] + 1
-top50_data[sapply(top50_data, is.numeric)] <-sapply(top50_data[sapply(top50_data, is.numeric)], log10)
+top30_data<-Bact_corr %>% dplyr::select(sample_id, trimmed_list_microbes)
+top30_data[sapply(top30_data, is.numeric)] <- top30_data[sapply(top30_data, is.numeric)] + 1
+top30_data[sapply(top30_data, is.numeric)] <-sapply(top30_data[sapply(top30_data, is.numeric)], log10)
 
-combined_corr_dpmclass<-left_join(AMR_corr_mlsdpm_class, top50_data, by="sample_id") %>%
+combined_corr_dpmclass<-left_join(AMR_corr_mlsdpm_class, top30_data, by="sample_id") %>%
   replace(is.na(.), 0)
 
-combined_corr_percclass<-left_join(AMR_corr_mlsperc_class, top50_data, by="sample_id") %>%
+combined_corr_percclass<-left_join(AMR_corr_mlsperc_class, top30_data, by="sample_id") %>%
   replace(is.na(.), 0)
 
-combined_corr_dpmgene<-left_join(AMR_corr_mlsdpm_gene, top50_data, by="sample_id") %>%
+combined_corr_dpmgene<-left_join(AMR_corr_mlsdpm_gene, top30_data, by="sample_id") %>%
   replace(is.na(.), 0)
 
-combined_corr_percgene<-left_join(AMR_corr_mlsperc_gene, top50_data, by="sample_id") %>%
+combined_corr_percgene<-left_join(AMR_corr_mlsperc_gene, top30_data, by="sample_id") %>%
   replace(is.na(.), 0)
 
 
@@ -1274,35 +1300,35 @@ library(reshape2)
 
 # Subset the columns
 first_set <- combined_corr_dpmclass[, 2]
-second_set <- combined_corr_dpmclass[, 3:52]
-data_subset <- combined_corr_dpmclass[, c(2, 3:52)]
+second_set <- combined_corr_dpmclass[, 3:32]
+data_subset <- combined_corr_dpmclass[, c(2, 3:32)]
 
 # Perform pairwise correlation between columns of the two subsets
 cor_matrix <- cor(first_set, second_set, method="spearman")
 cmatrix<-as.matrix(cor_matrix)
-p_matrix<-cor_pmat(data_subset)[1,2:51]
+p_matrix<-cor_pmat(data_subset)[1,2:31]
 adjusted<-p.adjust(p_matrix, method="BH")
 trans<-t(adjusted)
 rownames(trans)<-c("MLS")
 pmatrix<-as.matrix(trans)
 ```
 
-```{r corrplot viz}
+```{r corrplot viz 4b}
 ### calc sum MLS_dpm
 all_data<-combined_corr_dpmgene %>%
   left_join(AMR_corr_mlsdpm_class, by="sample_id")
 
-reorg<-cbind(all_data[1:8], all_data[59], all_data[9:58])
+reorg<-cbind(all_data[1:8], all_data[39], all_data[9:38])
 
 # Subset the columns
 first_set <- reorg[, 2:9]
-second_set <- reorg[, 10:59]
-data_subset <- reorg[, c(2:9, 10:59)]
+second_set <- reorg[, 10:39]
+data_subset <- reorg[, c(2:9, 10:39)]
 
 # Perform pairwise correlation between columns of the two subsets
 cor_matrix <- cor(first_set, second_set, method="spearman")
 cmatrix<-as.matrix(cor_matrix)
-p_matrix<-cor_pmat(data_subset)[1:8,9:58]
+p_matrix<-cor_pmat(data_subset)[1:8,9:38]
 pmatrix<-as.matrix(p_matrix) 
 p_values_vector <- as.vector(pmatrix)
 adjusted_p_values <- p.adjust(p_values_vector, method = "BH") 
@@ -1312,8 +1338,8 @@ colnames(adjusted_p_matrix)<-colnames(cmatrix)
 cmatrix[is.na(cmatrix)]<-0
 adjusted_p_matrix[is.na(adjusted_p_matrix)]<-1
 
-write.csv(cmatrix,"correlation_values_4B.csv")
-write.csv(pmatrix, "pvalues_4B.csv")
+write.csv(cmatrix,"source_data_correlation_values_Figure4B.csv")
+write.csv(pmatrix, "source_data_pvalues_Figure4B.csv")
 
 
 corrplot(cmatrix, method="circle", type='full', tl.col='black', p.mat=adjusted_p_matrix, sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.6, insig = 'label_sig', pch.col = 'grey20', tl.cex = 0.6,  col=colorRampPalette(c("#3B9AB2","#EEEEEE","#F21A00"))(200))
@@ -1321,6 +1347,588 @@ corrplot(cmatrix, method="circle", type='full', tl.col='black', p.mat=adjusted_p
 pdf(file="4B.pdf", width=6, height=2.5)
 corrplot(cmatrix, method="circle", type='full', tl.col='black', p.mat=adjusted_p_matrix, sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.6, insig='label_sig', pch.col = 'grey20', tl.cex = 0.6, col=colorRampPalette(c("#3B9AB2","#EEEEEE","#F21A00"))(200))
 invisible(capture.output(dev.off()))
+```
+
+### Figure S6 - Sensitivity Analysis
+
+```{r GAMM by TG, fig.height=5, fig.width=8}
+library(gamm4)
+### TG 1-3
+richnessgamm_new <- AMR_NS_GAMM %>%
+  left_join(clinical_data) %>%
+  left_join(ABX_days_NS_GAMM_plus_new) %>% #add additional data
+  left_join(NS_group_timepoint_data_0306) %>%
+  group_by(sample_id, abx_class) %>%
+  dplyr::mutate(richness=n()) %>% #calc richness by class
+  ungroup() %>%
+  dplyr::filter(abx_class=="MLS") %>% #grab only MLS richness
+  dplyr::select(sample_id, ABX_days,richness,Azithromycin, event_date, Ceftriaxone, Vancomycin, Cefepime, Piperacillin_Tazobactam, Doxycycline, Meropenem, trajectory_group, sex, discretized_admit_age_quantile, participant_id, enrollment_site, group_id, ever_steroids) %>% 
+  distinct() %>% filter(trajectory_group<=3, !is.na(trajectory_group))
+  
+noabx_rich_new<-richnessgamm_new %>% filter(group_id=="No ABX")
+  #filter(ABX_days==0)
+noavg_rich_new<-mean(noabx_rich_new$richness)
+
+ formula_fit <- formula(richness ~ s(Azithromycin, bs = 'cr', k= 4) +s(event_date, bs = 'cr') + s(Ceftriaxone, bs = 'cr', k= 4) + s(Vancomycin, bs = 'cr', k= 4) + s(Cefepime, bs = 'cr', k= 4) + s(Piperacillin_Tazobactam, bs = 'cr', k= 4) + s(Doxycycline, bs = 'cr', k= 4) + s(Meropenem, bs = 'cr', k= 4) + trajectory_group + sex + discretized_admit_age_quantile + ever_steroids)
+
+fit <- gamm4::gamm4(data = as.data.frame(richnessgamm_new), formula_fit, random = ~(1|enrollment_site/participant_id))
+
+tmp <- data.frame("feature" = "Azithromycin", "p.value" = anova(fit$gam)[["s.pv"]][1])
+#tmp
+pred1 <- ggpredict(fit, c("Azithromycin"), type = "fixed", ci_level = CI_interval)
+
+p20 <-pred1 %>%
+      ggplot(mapping = aes(x = x, y = predicted, fill=group)) +
+      geom_line(mapping = aes(y = predicted, x=x), size = 0.8, color="#E07E3D") +
+      geom_line(y=noavg_rich_new, color="#4268C6", linetype=2)+
+      geom_ribbon(aes(x=x, ymin = conf.low, ymax = conf.high),alpha = 0.3, colour=NA) +
+      theme_classic(base_size  = 14) +
+      scale_color_manual(values=c("#E07E3D")) +
+      scale_fill_manual(values=c("#E07E3D")) +
+      ylab("Number of Detectably Expressed MLS ARGs") +
+      xlab("Days of Azithromycin Exposure") +
+      theme(legend.position = "none") +
+      coord_cartesian(xlim = c(0, 5)) +
+      geom_text(label=paste("p=",case_when(tmp$p.value<0.01 ~ format(tmp$p.value, scientific=TRUE, digits=2),tmp$p.value>0.045 & tmp$p.value<0.05 ~ as.character(format(round(tmp$p.value,digits=3), nsmall = 2)),  tmp$p.value>0.0095 & tmp$p.value<0.01 ~ as.character(format(round(tmp$p.value,digits=3), nsmall = 2)), TRUE ~ as.character(format(round(tmp$p.value,digits=2), nsmall = 2)))), x=0.5, y=3.3, size=5)
+plot(p20)
+
+
+### TG 4-5
+
+richnessgamm_new <- AMR_NS_GAMM %>%
+  left_join(clinical_data) %>%
+  left_join(ABX_days_NS_GAMM_plus_new) %>% #add additional data
+  left_join(NS_group_timepoint_data_0306) %>%
+  group_by(sample_id, abx_class) %>%
+  dplyr::mutate(richness=n()) %>% #calc richness by class
+  ungroup() %>%
+  dplyr::filter(abx_class=="MLS") %>% #grab only MLS richness
+  dplyr::select(sample_id, ABX_days,richness,Azithromycin, event_date, Ceftriaxone, Vancomycin, Cefepime, Piperacillin_Tazobactam, Doxycycline, Meropenem, trajectory_group, sex, discretized_admit_age_quantile, participant_id, enrollment_site, group_id, ever_steroids) %>% 
+  distinct() %>% filter(trajectory_group>3, !is.na(trajectory_group))
+  
+noabx_rich_new<-richnessgamm_new %>% filter(group_id=="No ABX")
+  #filter(ABX_days==0)
+noavg_rich_new<-mean(noabx_rich_new$richness)
+
+ formula_fit <- formula(richness ~ s(Azithromycin, bs = 'cr', k= 4) +s(event_date, bs = 'cr') + s(Ceftriaxone, bs = 'cr', k= 4) + s(Vancomycin, bs = 'cr', k= 4) + s(Cefepime, bs = 'cr', k= 4) + s(Piperacillin_Tazobactam, bs = 'cr', k= 4) + s(Doxycycline, bs = 'cr', k= 4) + s(Meropenem, bs = 'cr', k= 4) + trajectory_group + sex + discretized_admit_age_quantile + ever_steroids)
+
+fit <- gamm4::gamm4(data = as.data.frame(richnessgamm_new), formula_fit, random = ~(1|enrollment_site/participant_id))
+
+tmp <- data.frame("feature" = "Azithromycin", "p.value" = anova(fit$gam)[["s.pv"]][1])
+#tmp
+pred2 <- ggpredict(fit, c("Azithromycin"), type = "fixed", ci_level = CI_interval)
+
+p21 <-pred2 %>%
+      ggplot(mapping = aes(x = x, y = predicted, fill=group)) +
+      geom_line(mapping = aes(y = predicted, x=x), size = 0.8, color="#E07E3D") +
+      geom_line(y=noavg_rich_new, color="#4268C6", linetype=2)+
+      geom_ribbon(aes(x=x, ymin = conf.low, ymax = conf.high),alpha = 0.3, colour=NA) +
+      theme_classic(base_size  = 14) +
+      scale_color_manual(values=c("#E07E3D")) +
+      scale_fill_manual(values=c("#E07E3D")) +
+      ylab("Number of Detectably Expressed MLS ARGs") +
+      xlab("Days of Azithromycin Exposure") +
+      theme(legend.position = "none") +
+      coord_cartesian(xlim = c(0, 5)) +
+      geom_text(label=paste("p=",case_when(tmp$p.value<0.01 ~ format(tmp$p.value, scientific=TRUE, digits=2),tmp$p.value>0.045 & tmp$p.value<0.05 ~ as.character(format(round(tmp$p.value,digits=3), nsmall = 2)),  tmp$p.value>0.0095 & tmp$p.value<0.01 ~ as.character(format(round(tmp$p.value,digits=3), nsmall = 2)), TRUE ~ as.character(format(round(tmp$p.value,digits=2), nsmall = 2)))), x=0.5, y=3.3, size=5)
+plot(p21)
+
+# Combine plots into one
+preds_13 <- pred1 %>% mutate(TG = "1-3")
+preds_45 <- pred2 %>% mutate(TG = "4-5")
+combined_preds <- bind_rows(preds_13, preds_45)
+
+p <-ggplot(combined_preds, aes(x = x, y = predicted, color = TG)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = TG),
+              alpha = 0.2, color = NA) +
+  theme_classic(base_size = 14) +
+  xlab("Days of Azithromycin Exposure") +
+  ylab("Predicted MLS ARG Richness") +
+  coord_cartesian(xlim = c(0, 5)) +
+  guides(fill = "none") +
+  scale_color_brewer(palette = "Set1") +
+  annotate("text", x = 0.35, y = 3.5, label = paste0("p = 0.86"),hjust = 0, size = 5)
+
+p
+
+## 1) Build one data frame with both strata
+dat <- AMR_NS_GAMM %>%
+  left_join(clinical_data) %>%
+  left_join(ABX_days_NS_GAMM_plus_new) %>%
+  left_join(NS_group_timepoint_data_0306) %>%
+  group_by(sample_id, abx_class) %>%
+  mutate(richness = n()) %>%
+  ungroup() %>%
+  filter(abx_class == "MLS") %>%
+  select(sample_id, ABX_days, richness, Azithromycin, event_date,
+         Ceftriaxone, Vancomycin, Cefepime, Piperacillin_Tazobactam,
+         Doxycycline, Meropenem, trajectory_group, sex,
+         discretized_admit_age_quantile, participant_id, enrollment_site,
+         group_id, ever_steroids) %>%
+  distinct() %>%
+  mutate(TG = factor(ifelse(trajectory_group <= 3, "1-3", "4-5"))) %>%
+  filter(!is.na(TG))
+
+## Reduced model: ONE common smooth of Azithromycin
+form_red  <- as.formula(paste("richness ~ s(Azithromycin, bs='cr', k=4) + s(event_date, bs= 'cr') + s(Ceftriaxone, bs = 'cr', k = 4) + s(Vancomycin, bs = 'cr', k = 4) +
+  s(Cefepime, bs = 'cr', k = 4) + s(Piperacillin_Tazobactam, bs = 'cr', k = 4) +
+  s(Doxycycline, bs = 'cr', k = 4) + s(Meropenem, bs = 'cr', k = 4) +
+  TG + sex + discretized_admit_age_quantile + ever_steroids"))
+fit_red   <- gamm4(form_red, random = ~(1|enrollment_site/participant_id), data = dat)
+
+form_full <- as.formula(paste("richness ~ s(Azithromycin, bs='cr', k=4) + s(Azithromycin, by=TG, bs='cr', k=4) + s(event_date, bs= 'cr') + s(Ceftriaxone, bs = 'cr', k = 4) + s(Vancomycin, bs = 'cr', k = 4) + s(Cefepime, bs = 'cr', k = 4) + s(Piperacillin_Tazobactam, bs = 'cr', k = 4) +
+s(Doxycycline, bs = 'cr', k = 4) + s(Meropenem, bs = 'cr', k = 4) +
+TG + sex + discretized_admit_age_quantile + ever_steroids"))
+fit_full  <- gamm4(form_full, random = ~(1|enrollment_site/participant_id), data = dat)
+
+
+cmp <- anova(fit_red$mer, fit_full$mer)   # from lme4
+cmp
+p_global <- cmp$`Pr(>Chisq)`[2]
+p_global
+
+
+p
+ggsave("FigureS6A.pdf", width = 4, height = 2.5)
+  write.csv(combined_preds, "source_data_FigureS6A.csv")
+```
+
+
+```{r MLS percent compare TGs}
+### TG 1-3
+mlsdpmgamm_new <- AMR_NS_GAMM %>%
+  left_join(clinical_data) %>%
+  left_join(ABX_days_NS_GAMM_plus_new) %>% #add additional info
+  left_join(NS_group_timepoint_data_0306) %>%
+  group_by(sample_id) %>%
+  dplyr::mutate(sum_dpm=sum(dpm)) %>%
+  dplyr::mutate(sum_reads=sum(num_reads)) %>%
+  group_by(sample_id, abx_class) %>%
+  dplyr::mutate(class_dpm=sum(dpm)) %>% #calc sum DPM MLS
+  dplyr::mutate(class_reads=sum(num_reads)) %>%
+  dplyr::mutate(pseudo=class_dpm+1) %>%
+  dplyr::mutate(logmlsdpm=log10(pseudo)) %>%
+  ungroup() %>%
+  #dplyr::mutate(logdpm=log10(class_dpm+1)) %>% #transform class DPM
+  dplyr::mutate(perc=(class_dpm/sum_dpm)*100) %>% #calc perc MLS of resistome
+  dplyr::mutate(perc2=case_when(is.na(perc) ~ 0, TRUE ~ perc)) %>% #convert NA to 0
+  dplyr::mutate(perc3=(class_reads/sum_reads)*100) %>% #calc perc MLS of resistome
+  dplyr::mutate(perc4=case_when(is.na(perc3) ~ 0, TRUE ~ perc3)) %>% #convert NA to 0
+  dplyr::mutate(logmlsdpm=case_when(is.na(logmlsdpm) ~ 0, TRUE ~ logmlsdpm)) %>% #convert NA to 0
+  dplyr::filter(abx_class=="MLS") %>% #filter to only MLS
+  ungroup() %>%
+  dplyr::select(sample_id, ABX_days,logmlsdpm, class_dpm, sum_dpm, perc, perc2, perc3, perc4,Azithromycin, event_date, Ceftriaxone, Vancomycin, Cefepime, Piperacillin_Tazobactam, Doxycycline, Meropenem, trajectory_group, sex, discretized_admit_age_quantile, participant_id, enrollment_site, group_id, ever_steroids) %>% 
+  distinct() %>%
+  filter(trajectory_group<=3, !is.na(trajectory_group))
+
+### Figure 3E
+noabx_perc_new<-mlsdpmgamm_new %>% filter(group_id=="No ABX")
+  #filter(ABX_days==0)
+noavg_perc_new<-mean(noabx_perc_new$perc4)
+
+formula_fit <- formula(perc4 ~ s(Azithromycin, bs = 'cr', k= 4) +s(event_date, bs = 'cr') + s(Ceftriaxone, bs = 'cr', k= 4) + s(Vancomycin, bs = 'cr', k= 4) + s(Cefepime, bs = 'cr', k= 4) + s(Piperacillin_Tazobactam, bs = 'cr', k= 4) + s(Doxycycline, bs = 'cr', k= 4) + s(Meropenem, bs = 'cr', k= 4) + trajectory_group + sex + discretized_admit_age_quantile + ever_steroids)
+
+fit <- gamm4::gamm4(data = as.data.frame(mlsdpmgamm_new), formula_fit, random = ~(1|enrollment_site/participant_id))
+
+tmp <- data.frame("feature" = "Azithromycin", "p.value" = anova(fit$gam)[["s.pv"]][1])
+#tmp
+pred13 <- ggpredict(fit, c("Azithromycin"), type = "fixed", ci_level = CI_interval)
+
+p13 <-pred13 %>%
+  ggplot(mapping = aes(x = x, y = predicted, fill=group)) +
+  geom_line(mapping = aes(y = predicted, x=x), size = 0.8, color="#E07E3D") +
+  geom_line(y=noavg_perc_new, color="#4268C6", linetype=2)+
+  geom_ribbon(aes(x=x, ymin = conf.low, ymax = conf.high),alpha = 0.3, colour=NA) +
+  theme_classic(base_size=14) +
+  scale_color_manual(values=c("#E07E3D")) + scale_fill_manual(values=c("#E07E3D")) +
+  ylab("MLS Percent of Resistome") + xlab("Days of Azithromycin Exposure") +
+  theme(legend.position = "none") +
+  coord_cartesian(xlim = c(0, 5), ylim=c(0,70)) +
+  geom_text(label=paste("p=",case_when(tmp$p.value<0.01 ~ format(tmp$p.value, scientific=TRUE, digits=2),tmp$p.value>0.045 & tmp$p.value<0.05 ~ as.character(format(round(tmp$p.value,digits=3), nsmall = 2)),  tmp$p.value>0.0095 & tmp$p.value<0.01 ~ as.character(format(round(tmp$p.value,digits=3), nsmall = 2)), TRUE ~ as.character(format(round(tmp$p.value,digits=2), nsmall = 2)))), x=0.5, y=68, size=5)
+plot(p13)
+
+### TG 4-5
+mlsdpmgamm_new <- AMR_NS_GAMM %>%
+  left_join(clinical_data) %>%
+  left_join(ABX_days_NS_GAMM_plus_new) %>% #add additional info
+  left_join(NS_group_timepoint_data_0306) %>%
+  group_by(sample_id) %>%
+  dplyr::mutate(sum_dpm=sum(dpm)) %>%
+  dplyr::mutate(sum_reads=sum(num_reads)) %>%
+  group_by(sample_id, abx_class) %>%
+  dplyr::mutate(class_dpm=sum(dpm)) %>% #calc sum DPM MLS
+  dplyr::mutate(class_reads=sum(num_reads)) %>%
+  dplyr::mutate(pseudo=class_dpm+1) %>%
+  dplyr::mutate(logmlsdpm=log10(pseudo)) %>%
+  ungroup() %>%
+  #dplyr::mutate(logdpm=log10(class_dpm+1)) %>% #transform class DPM
+  dplyr::mutate(perc=(class_dpm/sum_dpm)*100) %>% #calc perc MLS of resistome
+  dplyr::mutate(perc2=case_when(is.na(perc) ~ 0, TRUE ~ perc)) %>% #convert NA to 0
+  dplyr::mutate(perc3=(class_reads/sum_reads)*100) %>% #calc perc MLS of resistome
+  dplyr::mutate(perc4=case_when(is.na(perc3) ~ 0, TRUE ~ perc3)) %>% #convert NA to 0
+  dplyr::mutate(logmlsdpm=case_when(is.na(logmlsdpm) ~ 0, TRUE ~ logmlsdpm)) %>% #convert NA to 0
+  dplyr::filter(abx_class=="MLS") %>% #filter to only MLS
+  ungroup() %>%
+  dplyr::select(sample_id, ABX_days,logmlsdpm, class_dpm, sum_dpm, perc, perc2, perc3, perc4,Azithromycin, event_date, Ceftriaxone, Vancomycin, Cefepime, Piperacillin_Tazobactam, Doxycycline, Meropenem, trajectory_group, sex, discretized_admit_age_quantile, participant_id, enrollment_site, group_id, ever_steroids) %>% 
+  distinct() %>%
+  filter(trajectory_group>3, !is.na(trajectory_group))
+
+### Figure 3E
+noabx_perc_new<-mlsdpmgamm_new %>% filter(group_id=="No ABX")
+  #filter(ABX_days==0)
+noavg_perc_new<-mean(noabx_perc_new$perc4)
+
+formula_fit <- formula(perc4 ~ s(Azithromycin, bs = 'cr', k= 4) +s(event_date, bs = 'cr') + s(Ceftriaxone, bs = 'cr', k= 4) + s(Vancomycin, bs = 'cr', k= 4) + s(Cefepime, bs = 'cr', k= 4) + s(Piperacillin_Tazobactam, bs = 'cr', k= 4) + s(Doxycycline, bs = 'cr', k= 4) + s(Meropenem, bs = 'cr', k= 4) + trajectory_group + sex + discretized_admit_age_quantile + ever_steroids)
+
+fit <- gamm4::gamm4(data = as.data.frame(mlsdpmgamm_new), formula_fit, random = ~(1|enrollment_site/participant_id))
+
+tmp <- data.frame("feature" = "Azithromycin", "p.value" = anova(fit$gam)[["s.pv"]][1])
+#tmp
+pred45 <- ggpredict(fit, c("Azithromycin"), type = "fixed", ci_level = CI_interval)
+
+p45 <-pred45 %>%
+  ggplot(mapping = aes(x = x, y = predicted, fill=group)) +
+  geom_line(mapping = aes(y = predicted, x=x), size = 0.8, color="#E07E3D") +
+  geom_line(y=noavg_perc_new, color="#4268C6", linetype=2)+
+  geom_ribbon(aes(x=x, ymin = conf.low, ymax = conf.high),alpha = 0.3, colour=NA) +
+  theme_classic(base_size=14) +
+  scale_color_manual(values=c("#E07E3D")) + scale_fill_manual(values=c("#E07E3D")) +
+  ylab("MLS Percent of Resistome") + xlab("Days of Azithromycin Exposure") +
+  theme(legend.position = "none") +
+  coord_cartesian(xlim = c(0, 5), ylim=c(0,70)) +
+  geom_text(label=paste("p=",case_when(tmp$p.value<0.01 ~ format(tmp$p.value, scientific=TRUE, digits=2),tmp$p.value>0.045 & tmp$p.value<0.05 ~ as.character(format(round(tmp$p.value,digits=3), nsmall = 2)),  tmp$p.value>0.0095 & tmp$p.value<0.01 ~ as.character(format(round(tmp$p.value,digits=3), nsmall = 2)), TRUE ~ as.character(format(round(tmp$p.value,digits=2), nsmall = 2)))), x=0.5, y=68, size=5)
+plot(p45)
+
+
+# Combine plots into one
+preds_13 <- pred13 %>% mutate(TG = "1-3")
+preds_45 <- pred45 %>% mutate(TG = "4-5")
+combined_preds <- bind_rows(preds_13, preds_45)
+
+p <-ggplot(combined_preds, aes(x = x, y = predicted, color = TG)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = TG),
+              alpha = 0.2, color = NA) +
+  theme_classic(base_size = 14) +
+  xlab("Days of Azithromycin Exposure") +
+  ylab("Predicted MLS Percent of Resistome") +
+  coord_cartesian(xlim = c(0, 5)) +
+  guides(fill = "none") +
+  scale_color_brewer(palette = "Set1") +  
+  annotate("text", x = 0.35, y = 65, label = paste0("p = 0.54"),hjust = 0, size = 5)
+
+p
+
+## 1) Build one data frame with both strata
+dat <- AMR_NS_GAMM %>%
+  left_join(clinical_data) %>%
+  left_join(ABX_days_NS_GAMM_plus_new) %>% #add additional info
+  left_join(NS_group_timepoint_data_0306) %>%
+  group_by(sample_id) %>%
+  dplyr::mutate(sum_dpm=sum(dpm)) %>%
+  dplyr::mutate(sum_reads=sum(num_reads)) %>%
+  group_by(sample_id, abx_class) %>%
+  dplyr::mutate(class_dpm=sum(dpm)) %>% #calc sum DPM MLS
+  dplyr::mutate(class_reads=sum(num_reads)) %>%
+  dplyr::mutate(pseudo=class_dpm+1) %>%
+  dplyr::mutate(logmlsdpm=log10(pseudo)) %>%
+  ungroup() %>%
+  #dplyr::mutate(logdpm=log10(class_dpm+1)) %>% #transform class DPM
+  dplyr::mutate(perc=(class_dpm/sum_dpm)*100) %>% #calc perc MLS of resistome
+  dplyr::mutate(perc2=case_when(is.na(perc) ~ 0, TRUE ~ perc)) %>% #convert NA to 0
+  dplyr::mutate(perc3=(class_reads/sum_reads)*100) %>% #calc perc MLS of resistome
+  dplyr::mutate(perc4=case_when(is.na(perc3) ~ 0, TRUE ~ perc3)) %>% #convert NA to 0
+  dplyr::mutate(logmlsdpm=case_when(is.na(logmlsdpm) ~ 0, TRUE ~ logmlsdpm)) %>% #convert NA to 0
+  dplyr::filter(abx_class=="MLS") %>% #filter to only MLS
+  ungroup() %>%
+  dplyr::select(sample_id, ABX_days,logmlsdpm, class_dpm, sum_dpm, perc, perc2, perc3, perc4,Azithromycin, event_date, Ceftriaxone, Vancomycin, Cefepime, Piperacillin_Tazobactam, Doxycycline, Meropenem, trajectory_group, sex, discretized_admit_age_quantile, participant_id, enrollment_site, group_id, ever_steroids) %>% 
+  distinct() %>%
+  mutate(TG = factor(ifelse(trajectory_group <= 3, "1-3", "4-5"))) %>%
+  filter(!is.na(TG))
+
+## Reduced model: ONE common smooth of Azithromycin
+form_red  <- as.formula(paste("perc4 ~ s(Azithromycin, bs='cr', k=4) + s(event_date, bs= 'cr') + s(Ceftriaxone, bs = 'cr', k = 4) + s(Vancomycin, bs = 'cr', k = 4) +
+  s(Cefepime, bs = 'cr', k = 4) + s(Piperacillin_Tazobactam, bs = 'cr', k = 4) +
+  s(Doxycycline, bs = 'cr', k = 4) + s(Meropenem, bs = 'cr', k = 4) +
+  TG + sex + discretized_admit_age_quantile + ever_steroids"))
+
+fit_red   <- gamm4(form_red, random = ~(1|enrollment_site/participant_id), data = dat)
+
+form_full <- as.formula(paste("perc4 ~ s(Azithromycin, bs='cr', k=4) + s(Azithromycin, by=TG, bs='cr', k=4) + s(event_date, bs= 'cr') + s(Ceftriaxone, bs = 'cr', k = 4) + s(Vancomycin, bs = 'cr', k = 4) + s(Cefepime, bs = 'cr', k = 4) + s(Piperacillin_Tazobactam, bs = 'cr', k = 4) +
+s(Doxycycline, bs = 'cr', k = 4) + s(Meropenem, bs = 'cr', k = 4) +
+TG + sex + discretized_admit_age_quantile + ever_steroids"))
+fit_full  <- gamm4(form_full, random = ~(1|enrollment_site/participant_id), data = dat)
+
+
+cmp <- anova(fit_red$mer, fit_full$mer)   # from lme4
+cmp
+p_global <- cmp$`Pr(>Chisq)`[2]
+p_global
+
+p
+ggsave("FigureS6B.pdf", width = 4, height = 2.5)
+write.csv(combined_preds, "source_data_FigureS6B.csv")
+```
+
+## Figure S7 - Species-level assignment of ARGS
+
+```{r species top 30 }
+Bact_corr_sp<-nasal_long_species %>%
+  dplyr::filter(sample_id %in% samples$sample_id, 
+         category=="bacteria", 
+         nt_alignment_length>=70, 
+         nt_count>=10, 
+         nr_count>=1, 
+         p_adj<0.1) %>%
+  dplyr::select(sample_id, name, nt_rpm) %>%
+  pivot_wider(names_from = name, values_from = nt_rpm, values_fill=0) 
+
+### select columns with sp 
+microbes_sp <-Bact_corr_sp[c(2, 3:length(Bact_corr_sp))]
+
+### transpose
+tdf_sp<-t(microbes_sp)
+
+### Top 30 most abundant species
+data_sp<-as.data.frame(tdf_sp)
+
+with_total_sp30<-data_sp %>%
+  dplyr::mutate(sum = rowSums(.)) %>% 
+  arrange(desc(sum)) %>% 
+  do(head(., n=30))
+
+### list microbes
+trimmed_list_microbes_sp30<-rownames(with_total_sp30)
+
+### subset data
+top30_data_sp<-Bact_corr_sp %>% dplyr::select(sample_id, trimmed_list_microbes_sp30)
+top30_data_sp[sapply(top30_data_sp, is.numeric)] <- top30_data_sp[sapply(top30_data_sp, is.numeric)] + 1
+top30_data_sp[sapply(top30_data_sp, is.numeric)] <-sapply(top30_data_sp[sapply(top30_data_sp, is.numeric)], log10)
+
+combined_corr_dpmclass_sp30<-left_join(AMR_corr_mlsdpm_class, top30_data_sp, by="sample_id") %>%
+  replace(is.na(.), 0)
+
+combined_corr_percclass_sp30<-left_join(AMR_corr_mlsperc_class, top30_data_sp, by="sample_id") %>%
+  replace(is.na(.), 0)
+
+combined_corr_dpmgene_sp30<-left_join(AMR_corr_mlsdpm_gene, top30_data_sp, by="sample_id") %>%
+  replace(is.na(.), 0)
+
+combined_corr_percgene_sp30<-left_join(AMR_corr_mlsperc_gene, top30_data_sp, by="sample_id") %>%
+  replace(is.na(.), 0)
+
+
+library(reshape2)
+
+# Subset the columns
+first_set_sp30 <- combined_corr_dpmclass_sp30[, 2]
+second_set_sp30 <- combined_corr_dpmclass_sp30[, 3:32]
+data_subset_sp30 <- combined_corr_dpmclass_sp30[, c(2, 3:32)]
+
+# Perform pairwise correlation between columns of the two subsets
+cor_matrix_sp30 <- cor(first_set_sp30, second_set_sp30, method="spearman")
+cmatrix_sp30<-as.matrix(cor_matrix_sp30)
+p_matrix_sp30<-cor_pmat(data_subset_sp30)[1,2:31]
+adjusted_sp30<-p.adjust(p_matrix_sp30, method="BH")
+trans_sp30<-t(adjusted_sp30)
+rownames(trans_sp30)<-c("MLS")
+pmatrix_sp30<-as.matrix(trans_sp30)
+```
+
+```{r corrplot viz}
+### calc sum MLS_dpm
+all_data_sp30<-combined_corr_dpmgene_sp30 %>%
+  left_join(AMR_corr_mlsdpm_class, by="sample_id")
+
+reorg_sp30<-cbind(all_data_sp30[1:8], all_data_sp30[39], all_data_sp30[9:38])
+
+# Subset the columns
+first_set_sp30 <- reorg_sp30[, 2:9]
+second_set_sp30 <- reorg_sp30[, 10:39]
+data_subset_sp30 <- reorg_sp30[, c(2:9, 10:39)]
+
+# Perform pairwise correlation between columns of the two subsets
+cor_matrix_sp30 <- cor(first_set_sp30, second_set_sp30, method="spearman")
+cmatrix_sp30<-as.matrix(cor_matrix_sp30)
+p_matrix_sp30<-cor_pmat(data_subset_sp30)[1:8,9:38]
+pmatrix_sp30<-as.matrix(p_matrix_sp30) 
+p_values_vector_sp30 <- as.vector(pmatrix_sp30)
+adjusted_p_values_sp30 <- p.adjust(p_values_vector_sp30, method = "BH") 
+adjusted_p_matrix_sp30 <- matrix(adjusted_p_values_sp30, nrow = nrow(pmatrix_sp30), ncol = ncol(pmatrix_sp30))
+rownames(adjusted_p_matrix_sp30)<-row.names(cmatrix_sp30)
+colnames(adjusted_p_matrix_sp30)<-colnames(cmatrix_sp30)
+cmatrix_sp30[is.na(cmatrix_sp30)]<-0
+adjusted_p_matrix_sp30[is.na(adjusted_p_matrix_sp30)]<-1
+
+write.csv(cmatrix_sp30,"source_data_correlation_values_species30_FigureS7A.csv")
+write.csv(adjusted_p_matrix_sp30, "source_data_pvalues_species30_FigureS7A.csv")
+
+mat <- cmatrix_sp30[, order(colnames(cmatrix_sp30)), drop = FALSE]
+matp <- adjusted_p_matrix_sp30[, order(colnames(adjusted_p_matrix_sp30)), drop = FALSE]
+
+row_order <- c("erma", "ermb", "ermc", "ermx", "mel", "mphc", "msra", "MLS")
+
+# keep only names that exist, in that order
+row_idx <- na.omit(match(row_order, rownames(mat)))
+cor_rows_only <- mat[row_idx, , drop = FALSE]
+p_rows_only <- matp[row_idx, , drop = FALSE]
+
+corrplot(cor_rows_only, is.corr=FALSE,method="circle", type='full', tl.col='black', p.mat=p_rows_only, sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.6, insig='label_sig', pch.col = 'grey20', tl.cex = 0.6,col=colorRampPalette(c("#3B9AB2","#EEEEEE","#F21A00"))(200), cl.cex=0.6, col.lim=c(-1,1))
+
+pdf(file="S7A_sp.pdf", width=6, height=2.5)
+corrplot(cmatrix_sp30, method="circle", type='full', tl.col='black', p.mat=adjusted_p_matrix_sp30, sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.6, insig='label_sig', pch.col = 'grey20', tl.cex = 0.6, col=colorRampPalette(c("#3B9AB2","#EEEEEE","#F21A00"))(200))
+invisible(capture.output(dev.off()))
+```
+
+```{r CARD Path calls}
+library(pheatmap)
+AMR_NS_species<-AMR_NS_GAMM %>%
+  select(sample_name,gene_name,read_species,rpm,dpm,sample_id,abx_class) %>%
+  filter(!is.na(read_species), abx_class=="MLS") %>% 
+  left_join(NS_group_timepoint_data_0306, by="sample_id") %>%
+  filter(group_id=="Azithromycin")
+
+AMR_NS_sp_02<- AMR_NS_species %>%
+  filter(timepoint=="Day 0-2") %>%
+  select(sample_id, gene_name, rpm, dpm, read_species) %>%
+  group_by(gene_name,read_species) %>%
+  mutate(species_sumdpm=sum(dpm)) %>%
+  ungroup() %>%
+  select(gene_name, read_species, species_sumdpm) %>%
+  distinct()
+
+AMR_NS_sp_46<- AMR_NS_species %>%
+  filter(timepoint=="Day 4-6") %>%
+  select(sample_id, gene_name, rpm, dpm, read_species) %>%
+  group_by(gene_name,read_species) %>%
+  mutate(species_sumdpm=sum(dpm)) %>%
+  ungroup() %>%
+  select(gene_name, read_species, species_sumdpm) %>%
+  distinct()
+
+matrix02<-AMR_NS_sp_02 %>%
+  pivot_wider(names_from = gene_name, values_from = species_sumdpm, id_cols=read_species, values_fill = 0) %>%
+    mutate(erma=`23s rrna (adenine(2058)-n(6))-methyltransferase erm(a)`) %>%
+  select(-`23s rrna (adenine(2058)-n(6))-methyltransferase erm(a)`)
+df1<-matrix02 %>% select(-read_species)
+rownames(df1)<-matrix02$read_species
+
+matrix46<-AMR_NS_sp_46 %>%
+  pivot_wider(names_from = gene_name, values_from = species_sumdpm, id_cols=read_species, values_fill = 0) %>%
+  mutate(erma=`23s rrna (adenine(2058)-n(6))-methyltransferase erm(a)`) %>%
+  select(-`23s rrna (adenine(2058)-n(6))-methyltransferase erm(a)`)
+df2<-matrix46 %>% select(-read_species)
+rownames(df2)<-matrix46$read_species
+
+```
+
+```{r cleaned calls}
+df_long <- AMR_NS_species %>%
+  # Separate multiple species into individual rows
+  separate_rows(read_species, sep = ";") %>%
+  # Remove leading/trailing whitespace
+  mutate(read_species2 = str_trim(read_species)) %>%
+  # Extract only the genus + species part (before first parenthesis)
+  mutate(species_clean = str_extract(read_species2,  "^.*\\)")) %>%
+  # remove empties
+  filter(!is.na(species_clean)) %>%
+  # Trim again in case there was a trailing space
+  mutate(species_clean2 = str_trim(species_clean)) %>%
+  select(gene_name, sample_id, species_clean2, dpm) %>%
+  distinct() %>%
+  left_join(NS_group_timepoint_data_0306)
+```
+```{r split new data into groups}
+AMR_NS_sp_02<- df_long %>%
+  filter(timepoint=="Day 0-2") %>%
+  select(sample_id, gene_name, dpm, species_clean2) %>%
+  group_by(gene_name,species_clean2) %>%
+  mutate(species_sumdpm=sum(dpm)) %>%
+  ungroup() %>%
+  select(gene_name, species_clean2, species_sumdpm) %>%
+  distinct()
+
+AMR_NS_sp_46<- df_long %>%
+  filter(timepoint=="Day 4-6") %>%
+  select(sample_id, gene_name, dpm, species_clean2) %>%
+  group_by(gene_name,species_clean2) %>%
+  mutate(species_sumdpm=sum(dpm)) %>%
+  ungroup() %>%
+  select(gene_name, species_clean2, species_sumdpm) %>%
+  distinct()
+
+matrix02<-AMR_NS_sp_02 %>%
+  pivot_wider(names_from = gene_name, values_from = species_sumdpm, id_cols=species_clean2, values_fill = 0) %>%
+    mutate(erma=`23s rrna (adenine(2058)-n(6))-methyltransferase erm(a)`) %>%
+  select(-`23s rrna (adenine(2058)-n(6))-methyltransferase erm(a)`)
+df1<-matrix02 %>% select(-species_clean2)
+rownames(df1)<-matrix02$species_clean2
+
+matrix46<-AMR_NS_sp_46 %>%
+  pivot_wider(names_from = gene_name, values_from = species_sumdpm, id_cols=species_clean2, values_fill = 0) %>%
+  mutate(erma=`23s rrna (adenine(2058)-n(6))-methyltransferase erm(a)`) %>%
+  select(-`23s rrna (adenine(2058)-n(6))-methyltransferase erm(a)`)
+df2<-matrix46 %>% select(-species_clean2)
+rownames(df2)<-matrix46$species_clean2
+```
+
+```{r}
+
+### select samples
+samples<-AMR_NS_GAMM %>%
+left_join(ABX_days_NS_GAMM_new, by="sample_id") %>%
+dplyr::filter(Azithromycin>0) %>%
+dplyr::select(sample_id) %>%
+distinct()
+
+df_long_azith<-AMR_NS_species %>%
+  filter(sample_id %in% samples$sample_id) %>%
+  separate_rows(read_species, sep = ";") %>%
+  mutate(read_species2 = str_trim(read_species)) %>%
+  mutate(species_clean = str_extract(read_species2, "^.*\\)")) %>%
+  filter(!is.na(species_clean)) %>%
+  mutate(species_clean2 = str_trim(species_clean)) %>%
+  select(gene_name, sample_id, species_clean2, dpm) %>%
+  distinct()
+
+new<- df_long_azith %>%
+  select(sample_id, gene_name, dpm, species_clean2) %>%
+  group_by(gene_name,species_clean2) %>%
+  mutate(species_sumdpm=sum(dpm)) %>%
+  ungroup() %>%
+  select(gene_name, species_clean2, species_sumdpm) %>%
+  distinct()
+
+matrix_match<-new %>%
+  pivot_wider(names_from = gene_name, values_from = species_sumdpm, id_cols=species_clean2, values_fill = 0) %>%
+    mutate(erma=`23s rrna (adenine(2058)-n(6))-methyltransferase erm(a)`) %>%
+  select(-`23s rrna (adenine(2058)-n(6))-methyltransferase erm(a)`)
+df3<-matrix_match %>% select(-species_clean2)
+rownames(df3)<-matrix_match$species_clean2
+
+pheatmap(df3,legend=TRUE,
+         color = colorRampPalette(c("white", "red"))(100),
+         clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",
+         clustering_method = "complete",
+         scale = "none",
+         fontsize_row = 8,
+         main="MLS ARG Sum DPM"
+         )
+
+pdf(file="FigureS7B_sp.pdf", width=5, height=5)
+pheatmap(df3,legend=TRUE,
+         color = colorRampPalette(c("white", "red"))(100),
+         clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",
+         clustering_method = "complete",
+         scale = "none",
+         fontsize_row = 8,
+         main="MLS ARG Sum DPM"
+         )
+invisible(capture.output(dev.off()))
+write.csv(df3, "source_data_FigureS7B.csv")
 ```
 
 ## Session Info

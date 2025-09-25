@@ -346,7 +346,7 @@ ggb <- check %>%
   xlab("Antibiotic Status")
 ggb
 
-ggS3 <- check %>%
+ggS4 <- check %>%
   mutate(Azithromycin_binary = factor(Azithromycin_binary, c("No ABX", "Azithro", "Other\nABX"))) %>%
   filter(name == "sc2_rpm") %>%
   ggplot(aes(x=Azithromycin_binary, y=value, color = Azithromycin_binary,
@@ -363,7 +363,7 @@ ggS3 <- check %>%
   theme(legend.position = "none") +
   ylab("Log10 Nasal\nSARS-CoV-2 RPM") +
   xlab("Antibiotic Status")
-ggS3
+ggS4
 
 ggc <- check %>%
   mutate(Azithromycin_binary = factor(Azithromycin_binary, c("No ABX", "Azithro", "Other\nABX"))) %>%
@@ -409,8 +409,8 @@ write.csv(ggb$data %>% distinct(Azithromycin_binary, timepoint, value),
           paste0(out_dir, "Figure2B.csv"))
 write.csv(ggc$data %>% distinct(Azithromycin_binary, timepoint, value),
           paste0(out_dir, "Figure2C.csv"))
-write.csv(ggS3$data %>% distinct(Azithromycin_binary, timepoint, value),
-          paste0(out_dir, "FigureS3.csv"))
+write.csv(ggS4$data %>% distinct(Azithromycin_binary, timepoint, value),
+          paste0(out_dir, "FigureS4.csv"))
 ```
 
 #### Figure 2A, 2B, and 2C
@@ -420,14 +420,14 @@ ggarrange(gga, ggb, ggc, nrow = 4, ncol =1, align = "hv")
 ggsave(paste0(out_dir, "Figure2A_B_C.pdf"), width = 5, height = 11)
 ```
 
-## Figure S3
+## Figure S4
 
 ```{r, fig.width = 4, fig.height =3}
-ggS3
-ggsave(paste0(out_dir, "FigureS3.pdf"), width = 4, height = 3)
+ggS4
+ggsave(paste0(out_dir, "FigureS4.pdf"), width = 4, height = 3)
 ```
 
-## Figure S2: GAMM Modeling
+## Figure S3: GAMM Modeling
 
 ```{r}
 library(nlme)
@@ -535,24 +535,24 @@ out %>%
 print(out)
 ```
 
-### Figure S2A
+### Figure S3A
 
 ```{r, fig.width = 4.25, fig.height = 3}
 
 plot_list[[3]] + ylab("Log10 Nasal Bacterial RPM")+ xlab("Azithromycin Days")
-ggsave(paste0(out_dir, "FigureS2A.pdf"), width = 4.25, height = 3)
+ggsave(paste0(out_dir, "FigureS3A.pdf"), width = 4.25, height = 3)
 
-write.csv(as.data.frame(plot_list[[3]]$data), paste0(out_dir, "FigureS2A.csv"))
+write.csv(as.data.frame(plot_list[[3]]$data), paste0(out_dir, "FigureS3A.csv"))
 ```
 
-### Figure S2B
+### Figure S3B
 
 ```{r, fig.width = 4.25, fig.height = 3}
 
 plot_list[[4]] + ylab("Log10 Nasal Fungal RPM") + xlab("Azithromycin Days")
-ggsave(paste0(out_dir, "FigureS2B.pdf"), width = 4.25, height = 3)
+ggsave(paste0(out_dir, "FigureS3B.pdf"), width = 4.25, height = 3)
 
-write.csv(as.data.frame(plot_list[[4]]$data), paste0(out_dir, "FigureS2B.csv"))
+write.csv(as.data.frame(plot_list[[4]]$data), paste0(out_dir, "FigureS3B.csv"))
 ```
 
 ## Figure 2D-E: Beta Diversity
@@ -624,38 +624,6 @@ gge <- fit_df %>%
 gge
 ggsave(paste0(out_dir, "Figure2E.pdf"), width = 4, height = 3)
 write.csv(gge$data, paste0(out_dir, "Figure2E.csv"))
-```
-
-```{r}
-library(glmmTMB)
-final_df <- as.data.frame(model_df %>% filter(event_date.2 <= 12))
-nbm2 <- glmmTMB(value ~ s(event_date.2, bs = "cr",  k = 6) + 
-    trajectory_group + sex + discretized_admit_age_quantile+(1|enrollment_site),
-  data = final_df,
-                family = nbinom2)
-
-
-nbm2 <- glmmTMB(value ~ s(event_date.2, bs = "cr", by = ABX_exposed, k = 6) + 
-    trajectory_group + sex + discretized_admit_age_quantile+(1|enrollment_site),
-  data = as.data.frame(model_df %>% filter(event_date.2 <= 12)),
-                family = nbinom2)
-
-fit <- gamm4::gamm4(data = as.data.frame(model_df %>%
-                                           filter(event_date.2 <= 12)) %>%
-                      filter(event_date > 0),
-                    value ~ s(event_date.2, bs = "cr", by = ABX_exposed) + 
-    trajectory_group + sex + discretized_admit_age_quantile,
-                    random = ~(1|enrollment_site)) #
-fit_df <- as.data.frame(ggpredict(nbm2,terms = c("event_date.2", "ABX_exposed")))
-
-
-fit <- mgcv::gamm(data = as.data.frame(model_df %>% filter(event_date.2 <= 12)),
-                    value ~ s(event_date.2, bs = "cr", by = ABX_exposed) + 
-    trajectory_group + sex + discretized_admit_age_quantile,
-    family = cnorm(link = "log"), 
-                    random = ~(1|enrollment_site)) #
-fit_df <- as.data.frame(ggpredict(fit,terms = c("event_date.2", "ABX_exposed")))
-
 ```
 
 ### Figure 2D: PCoA

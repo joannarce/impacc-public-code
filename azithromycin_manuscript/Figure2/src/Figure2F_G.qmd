@@ -74,7 +74,8 @@ exclude_samples = c("0865-00F2MG00-001", "0865-003Y5D00-001_REMOVE", "0865-004KM
 exclude_samples <- unique(c(exclude_samples, exclude_ABX_metadata$sample_id ))
 ```
 
-### Metagenomics ###
+
+### Metagenomics
 
 ```{r}
 nasal_long_ancom<-read_csv("/scratch/metagenomics/batch_corrected/NS_genus_data_090723.csv") %>%
@@ -87,7 +88,22 @@ nasal_long_ancom<-read_csv("/scratch/metagenomics/batch_corrected/NS_genus_data_
   left_join(clinical_data %>% dplyr::select(sample_id, event_date, participant_id)) %>%
   filter(!is.na(event_date)) %>% dplyr::select(-event_date)
 ```
-### Antibiotic Data ###
+### Metagenomics Data -- Negative Controls ###
+```{r}
+nasal_long_neg<-read_csv("/scratch/metagenomics/batch_corrected/NS_species_data_090723.csv") %>%
+  filter(p_adj<0.05) %>%
+  dplyr::rename("core_specific_ID_SUFFIX" = "sample_name") %>%
+  inner_join(nasal_metagenomics_metadata) %>%
+  filter(!sample_id %in% exclude_samples, internal_control=="yes", grepl("pc-", sample_id)) %>%
+  select(sample_id,name,nt_count) %>%
+  pivot_wider(names_from = sample_id, values_from = nt_count, values_fill = 0, id_cols = name)
+neg_trimmed<-nasal_long_neg[,-1]
+rownames(neg_trimmed)<-nasal_long_neg$name
+
+write.csv(neg_trimmed,"../output/IMPACC_NS_neg_control_taxa.csv")
+```
+
+### Antibiotic Data
 
 ```{r}
 ABX_days_df <- read_csv("/scratch/metagenomics/antibiotic_data/ABX_days_unweighted_v4.csv") %>%
@@ -125,6 +141,7 @@ data_trimmed <- all_data %>%
   left_join(trim) %>%
   filter(keep=="yes" | is.na(keep))
 ```
+
 ## Differential Taxonomic Abundance (ANCOM)
 
 ```{r}
@@ -224,7 +241,6 @@ res_ANCOMBC_v4 <- as.data.frame(out$res)
 
 ```
 
-
 ```{r select significant taxa}
 tmp <- res_ANCOMBC_v4 %>% rownames_to_column("tax_id")
 
@@ -240,32 +256,215 @@ test <- tmp %>%
                 
 
 heat_df <- test %>%
-  filter(q_val.Azithromycin_binaryAzithromycin < 0.1) %>%
+  filter(q_val.Azithromycin_binaryAzithromycin < 0.05) %>%
   column_to_rownames("name") %>%
   dplyr::select(beta.Azithromycin_binaryAzithromycin)
-```
 
-```{r visualize results}
 library(circlize)
 library(ComplexHeatmap)
 
-f1 = colorRamp2(seq(min(heat_df), max(heat_df), length = 2), c("red", "#EEEEEE"))
-f1 = colorRamp2(c(min(heat_df), 0, max(heat_df)), c("blue", "#EEEEEE", "red"))
-
 colnames(heat_df) <- c("Day 4-6")
-mat<-as.matrix(heat_df)
-## All the p-values are less than 0.001 so just manually indicating stars
-## See the test df, particularly column q_val.Azithromycin_binaryAzithromycin
-## for p-values
-Heat<-Heatmap(mat,  width = unit(3, "cm"), cell_fun = function(j, i, x, y, width, height, fill) {
-          grid.text("***", x = x, y = y, gp = gpar(fontsize = 14, col = "black"))
-        },col = f1, name = "Log fold change (LFC)", cluster_columns = F, show_row_dend = F)
-Heat
-
-pdf(file=paste0(out_dir, "Figure2F.pdf"), width=4, height=5.5)
-Heat
-invisible(capture.output(dev.off()))
-
-write.csv(mat, paste0(out_dir, "Figure2F.csv"))
 ```
 
+## Figure 2F
+```{r mirror plot}
+theme_mine <- function(base_size = 12, base_family = "") {
+  # Starts with theme_grey and then modify some parts
+  theme_bw(base_size = base_size, base_family = base_family) %+replace%
+    theme(
+      legend.position = "top",
+      strip.background = element_blank(),
+      strip.text.x = element_text(size = 18),
+      strip.text.y = element_text(size = 18),
+      axis.text.x = element_text(size=14),
+      axis.text.y = element_text(size=14,hjust=1),
+      axis.ticks =  element_line(colour = "black"), 
+      axis.title.x= element_text(size=16),
+      axis.title.y= element_text(size=16,angle=90),
+      #legend.position = "none", 
+      panel.background = element_blank(), 
+      panel.border =element_blank(), 
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(), 
+      panel.margin = unit(1.0, "lines"), 
+      plot.background = element_blank(), 
+      plot.margin = unit(c(0.5,  0.5, 0.5, 0.5), "lines"),
+      axis.line = element_line(colour = "black")
+    )
+}
+
+theme_set(theme_mine())
+
+heat_df$Taxa <-rownames(heat_df)
+diff_abundance <- ggplot(heat_df %>% 
+                           mutate(color=case_when(`Day 4-6`>=0 ~ "positive",
+                                                  `Day 4-6`<0 ~ "negative")),
+                          aes(x=reorder(Taxa,`Day 4-6`), y=`Day 4-6`, fill=color)) +
+  geom_bar(stat="identity", position="stack") + 
+  annotate("text", x=12.5, y=0.05, label= "Increased with azithromycin", color=c("#E07E3D"), hjust=0, size=5) +
+  annotate("segment", 
+        x=12, xend=12, 
+        y= 0.01, yend= 0.7, 
+        arrow=arrow(type = "closed", 
+        length = unit(0.02, "npc")),
+        color = "#E07E3D") +
+  annotate("text", x=12.5, y=-0.05, label= "Decreased with azithromycin", color=c("gray"), hjust=1, size=5) +
+  annotate("segment", 
+        x=12, xend=12, 
+        y= -0.01, yend= -0.7, 
+        arrow=arrow(type = "closed", 
+        length = unit(0.02, "npc")), 
+        color = "gray") +
+  scale_fill_manual(values=c("gray","#E07E3D")) +
+  coord_flip(xlim=c(1, 12.5), clip="off") +
+  scale_y_continuous(limits=c(-0.8,0.8), breaks=seq(-0.8,8,0.2)) +
+  theme(legend.position = "none",
+        plot.margin = margin(2, 2, 2, 2),
+        axis.text.y = element_text(face = "italic")) +
+  xlab("") + ylab("\nLog Fold Change (LFC)") 
+
+diff_abundance
+
+ggsave("../output/Figure2F.pdf", width = 6, height = 4)
+
+```
+
+## Figure 2G
+
+```{r species mirror}
+nasal_long_ancom_sp<-read_csv("/scratch/metagenomics/batch_corrected/NS_species_data_090723.csv") %>%
+  filter(p_adj<0.05) %>%
+  dplyr::rename("core_specific_ID_SUFFIX" = "sample_name") %>%
+  inner_join(nasal_metagenomics_metadata) %>%
+  filter(!sample_id %in% exclude_samples) %>%
+  filter(internal_control != "yes") %>%
+  filter(!sample_id %in% exclude_samples) %>%
+  left_join(clinical_data %>% dplyr::select(sample_id, event_date, participant_id)) %>%
+  filter(!is.na(event_date)) %>% dplyr::select(-event_date)
+
+microbiome<-nasal_long_ancom_sp %>% select(sample_id,genus_tax_id, nt_count,nt_rpm, name)
+
+metadata$sample_id<-rownames(metadata)
+
+taxa_level <- microbiome %>%
+  group_by(sample_id, genus_tax_id) %>%
+  arrange(desc(nt_count)) %>%
+  slice_head() %>%
+  ungroup() %>%
+  filter(!is.na(name)) %>%
+  #filter(num_bact!=0) %>%
+  filter(genus_tax_id %in% c(1678,538,848,724,570,906,475,482,583,970,1279)) %>%
+  rename(orig_name=name) %>%
+  mutate(genus = case_when(genus_tax_id==1678 ~ "Bifidobacterium spp.",
+                           genus_tax_id==538 ~ "Eikenella spp.",
+                           genus_tax_id==848 ~ "Fusobacterium spp.",
+                           genus_tax_id==724 ~ "Haemophilus spp.",
+                           genus_tax_id==570 ~ "Klebsiella spp.",
+                           genus_tax_id==906 ~ "Megasphaera spp.",
+                           genus_tax_id==475 ~ "Moraxella spp.",
+                           genus_tax_id==482 ~ "Neisseria spp.",
+                           genus_tax_id==583 ~ "Proteus spp.",
+                           genus_tax_id==970 ~ "Selenomonas spp.",
+                           genus_tax_id==1279 ~ "Staphylococcus spp.")) %>%
+  left_join(metadata, by="sample_id") %>%
+  filter(timepoint=="Day 4-6", !is.na(Azithromycin_binary)) %>% 
+  mutate(Azithromycin_binary=case_when(Azithromycin_binary=="Azithromycin" ~ "Azithromycin", TRUE ~"Non-Azithromycin"))
+
+
+```
+
+```{r}
+library(paletteer)
+
+taxa_freq <- taxa_level %>%
+  select(genus, orig_name, Azithromycin_binary, sample_id, nt_rpm) %>%
+  group_by(genus, orig_name) %>%
+  summarise(n=n()) %>%
+  arrange(genus, desc(n)) %>%
+  slice_head(n=3)
+
+genus_count <- taxa_level %>% count(genus) %>% rename(total=n)
+
+taxa_names <- taxa_freq %>%
+  left_join(genus_count, by="genus") %>%
+  mutate(freq=n/total) %>%
+  mutate(name = case_when(str_detect(orig_name, 'uncultured') ~ paste("Other",genus),
+                          TRUE ~ orig_name))  %>%
+  filter(!str_detect(name, 'Other')) %>%
+  ungroup() %>%
+  arrange(genus, freq) %>%
+  mutate(order=row_number()) %>%
+  select(orig_name, order)
+  
+taxa_freq_age <- taxa_level %>%
+  select(genus, orig_name, Azithromycin_binary, sample_id, nt_rpm) %>%
+  right_join(taxa_names, by="orig_name") %>%
+  count(Azithromycin_binary, genus, orig_name, order) %>%
+  mutate(freq = case_when(Azithromycin_binary=="Azithromycin" ~ n/93,
+                          (Azithromycin_binary=="Non-Azithromycin" | Azithromycin_binary=="Other ABX") ~ (n/466)*(-1)),
+         genus = factor(genus, levels=c("Bifidobacterium spp.",
+                                        "Eikenella spp.", 
+                                        "Fusobacterium spp.",
+                                        "Haemophilus spp.", 
+                                        "Klebsiella spp.", 
+                                        "Megasphaera spp.",
+                                        "Moraxella spp.", 
+                                        "Neisseria spp.",
+                                        "Proteus spp.",
+                                        "Selenomonas spp.",
+                                        "Staphylococcus spp.")))
+
+keep_names <- taxa_freq_age %>% filter(abs(freq) >=0.05) %>% select(orig_name) %>% distinct()
+keep_names <- taxa_freq_age %>% filter(n>1) %>% select(orig_name) %>% distinct()
+
+
+taxa_freq_age <- taxa_freq_age %>% 
+                           filter(orig_name %in% keep_names$orig_name) %>% 
+                           mutate(orig_name=case_when(orig_name=="[Haemophilus] ducreyi" ~ "Haemophilus ducreyi",
+                                                      TRUE ~ orig_name)) %>%
+                           mutate(new_name = case_when(str_detect(orig_name, 'Bifidobacterium') ~ gsub("Bifidobacterium", "B.", orig_name),
+                                                       str_detect(orig_name, 'Eikenella') ~ gsub("Eikenella", "E.", orig_name),
+                                                       str_detect(orig_name, 'Staphylococcus') ~ gsub("Staphylococcus", "S.", orig_name),
+                                                       str_detect(orig_name, 'Fusobacterium') ~ gsub("Fusobacterium", "F.", orig_name),
+                                                       str_detect(orig_name, 'Megasphaera') ~ gsub("Megasphaera", "M.", orig_name),
+                                                       str_detect(orig_name, 'Neisseria') ~ gsub("Neisseria", "N.", orig_name),
+                                                       str_detect(orig_name, 'Haemophilus') ~ gsub("Haemophilus", "H.", orig_name),
+                                                       str_detect(orig_name, 'Moraxella') ~ gsub("Moraxella", "M.", orig_name),
+                                                       str_detect(orig_name, 'Proteus') ~ gsub("Proteus", "P.", orig_name),
+                                                       str_detect(orig_name, 'Selenomonas') ~ gsub("Selenomonas", "S.", orig_name),
+                                                       str_detect(orig_name, 'Klebsiella') ~ gsub("Klebsiella", "K.", orig_name),
+                                                       TRUE ~ orig_name)) %>%
+                           mutate(labels = if_else(Azithromycin_binary=="Azithromycin" & !(new_name %in% c("B. breve","F. mortiferum", "H. parainfluenzae", "M. micronuciformis", "S. ruminantium", "S. sputigena", "S. sp.", "K. sp.", "P. mirabilis")),"", paste(" ",new_name)))
+
+microbiome_bar <- ggplot(data=taxa_freq_age,
+       aes(x=reorder(new_name, -order), y=freq, group=genus, fill=genus, alpha=Azithromycin_binary)) +
+  scale_fill_paletteer_d("ggthemes::Miller_Stone") +
+  #scale_fill_viridis(discrete=TRUE) + 
+  geom_hline(aes(yintercept=0), linetype = "solid", color = "black") +
+  facet_grid(cols = vars(genus), scales = "free", space="free", switch = "y") +
+  scale_alpha_manual(values=c(1, 0.5)) +
+  guides(alpha="none", fill=guide_legend("", nrow = 2)) + 
+  geom_bar(stat="identity") + 
+  geom_text(aes(label = labels, angle=90, hjust = 0, fontface = "italic")) +
+  theme(panel.spacing = unit(0.3,"lines"),
+          axis.ticks.x = element_blank(),
+          axis.line.x = element_blank(),
+          axis.text.y = element_text(size = 12),
+          axis.text.x = element_blank(),
+          strip.text.x = element_blank(),
+          legend.position = "top",
+          panel.background=element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          legend.text = element_text(size=12)) +
+  ylab("Frequency                   \n") + 
+  xlab("Bacterial microbiota") +
+  scale_y_continuous(limits=c(-0.1,.2), breaks=seq(-0.1,0.2, by = 0.05), expand = expansion(mult=c(0,0.15)), labels=function(x) percent(abs(x))) +
+  coord_cartesian(clip="off")
+
+microbiome_bar
+
+ggsave("../output/Figure2G.pdf", width = 8, height = 5.5)
+
+
+```
