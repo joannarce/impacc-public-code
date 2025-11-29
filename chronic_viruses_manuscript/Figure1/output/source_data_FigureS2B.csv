@@ -1,645 +1,1834 @@
-name,percent,day,compartment,virus
-Anelloviridae.ea,3.896103896103896,1,ea,Anelloviridae
-Anelloviridae.nasal,2.2222222222222223,1,nasal,Anelloviridae
-Anelloviridae.pbmc,10.386029411764707,1,pbmc,Anelloviridae
-Enterovirus.nasal,2.0289855072463765,1,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,10.38961038961039,1,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,3.44149459193707,1,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,1,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.09671179883945842,1,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,3.896103896103896,1,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,0.3864734299516908,1,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,1.1029411764705883,1,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,2.5974025974025974,1,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,3.3816425120772946,1,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,18.84191176470588,1,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,87.01298701298701,1,ea,SARS-CoV-2
-SARS-CoV-2.nasal,94.29951690821255,1,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0.6433823529411764,1,pbmc,SARS-CoV-2
-Anelloviridae.ea,4.25531914893617,2,ea,Anelloviridae
-Anelloviridae.nasal,2.0684168655529036,2,nasal,Anelloviridae
-Anelloviridae.pbmc,10.264150943396226,2,pbmc,Anelloviridae
-Enterovirus.nasal,2.307080350039777,2,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,12.76595744680851,2,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,3.3333333333333335,2,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,2,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.07961783439490447,2,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,4.25531914893617,2,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,0.6364359586316627,2,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,1.1320754716981132,2,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,2.127659574468085,2,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,3.182179793158314,2,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,20.075471698113205,2,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,88.29787234042553,2,ea,SARS-CoV-2
-SARS-CoV-2.nasal,94.03341288782816,2,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0.6037735849056604,2,pbmc,SARS-CoV-2
-Anelloviridae.ea,4.23728813559322,3,ea,Anelloviridae
-Anelloviridae.nasal,2.1929824561403506,3,nasal,Anelloviridae
-Anelloviridae.pbmc,10.304287690179805,3,pbmc,Anelloviridae
-Enterovirus.nasal,2.4122807017543857,3,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,15.254237288135593,3,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,3.5205992509363293,3,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,3,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.07326007326007326,3,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,3.389830508474576,3,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,0.6578947368421052,3,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,1.2448132780082988,3,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,2.5423728813559325,3,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,3.435672514619883,3,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,19.571230982019365,3,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,90.67796610169492,3,ea,SARS-CoV-2
-SARS-CoV-2.nasal,93.2017543859649,3,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0.5532503457814661,3,pbmc,SARS-CoV-2
-Anelloviridae.ea,4.201680672268908,4,ea,Anelloviridae
-Anelloviridae.nasal,2.134927412467976,4,nasal,Anelloviridae
-Anelloviridae.pbmc,10.517928286852591,4,pbmc,Anelloviridae
-Enterovirus.nasal,2.220324508966695,4,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,20.168067226890756,4,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,3.2370953630796153,4,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,4,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.1710863986313088,4,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,3.361344537815126,4,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,0.6831767719897524,4,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,1.1155378486055778,4,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,2.5210084033613445,4,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,3.6720751494449186,4,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,20.47808764940239,4,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,88.23529411764706,4,ea,SARS-CoV-2
-SARS-CoV-2.nasal,92.22886421861656,4,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0.6374501992031872,4,pbmc,SARS-CoV-2
-Anelloviridae.ea,5.454545454545454,5,ea,Anelloviridae
-Anelloviridae.nasal,1.8963337547408345,5,nasal,Anelloviridae
-Anelloviridae.pbmc,11.251435132032148,5,pbmc,Anelloviridae
-Enterovirus.nasal,2.781289506953224,5,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,24.545454545454547,5,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,5.317769130998703,5,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,5,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.25380710659898476,5,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,1.8181818181818181,5,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,0.8849557522123894,5,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,1.2629161882893225,5,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,2.727272727272727,5,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,3.919089759797725,5,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,21.23995407577497,5,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,88.18181818181819,5,ea,SARS-CoV-2
-SARS-CoV-2.nasal,90.0126422250316,5,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0.4592422502870264,5,pbmc,SARS-CoV-2
-Anelloviridae.ea,5.555555555555555,6,ea,Anelloviridae
-Anelloviridae.nasal,2.5284450063211126,6,nasal,Anelloviridae
-Anelloviridae.pbmc,12.093023255813954,6,pbmc,Anelloviridae
-Enterovirus.nasal,2.781289506953224,6,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,22.22222222222222,6,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,4.9414824447334205,6,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,6,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.12706480304955528,6,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,1.5873015873015872,6,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,1.0113780025284451,6,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,1.1627906976744187,6,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,2.380952380952381,6,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,4.551201011378002,6,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,20.930232558139537,6,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,85.71428571428571,6,ea,SARS-CoV-2
-SARS-CoV-2.nasal,89.25410872313527,6,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0.3488372093023256,6,pbmc,SARS-CoV-2
-Anelloviridae.ea,4.545454545454546,7,ea,Anelloviridae
-Anelloviridae.nasal,2.8301886792452833,7,nasal,Anelloviridae
-Anelloviridae.pbmc,12.926136363636365,7,pbmc,Anelloviridae
-Enterovirus.nasal,2.358490566037736,7,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,23.484848484848484,7,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,6.099518459069021,7,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,7,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.15822784810126583,7,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,0.7575757575757576,7,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,0.628930817610063,7,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,1.4204545454545454,7,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,3.787878787878788,7,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,5.031446540880504,7,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,17.613636363636363,7,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,87.12121212121212,7,ea,SARS-CoV-2
-SARS-CoV-2.nasal,88.36477987421384,7,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0.2840909090909091,7,pbmc,SARS-CoV-2
-Anelloviridae.ea,5.405405405405405,8,ea,Anelloviridae
-Anelloviridae.nasal,2.80561122244489,8,nasal,Anelloviridae
-Anelloviridae.pbmc,13.489208633093524,8,pbmc,Anelloviridae
-Enterovirus.nasal,3.006012024048096,8,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,22.52252252252252,8,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,6.924643584521386,8,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,8,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.2012072434607646,8,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,0.9009009009009009,8,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,1.002004008016032,8,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,1.4388489208633095,8,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,3.6036036036036037,8,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,4.809619238476954,8,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,16.906474820143885,8,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,85.58558558558559,8,ea,SARS-CoV-2
-SARS-CoV-2.nasal,88.77755511022045,8,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0.1798561151079137,8,pbmc,SARS-CoV-2
-Anelloviridae.ea,4.597701149425287,9,ea,Anelloviridae
-Anelloviridae.nasal,2.9810298102981028,9,nasal,Anelloviridae
-Anelloviridae.pbmc,14.460784313725492,9,pbmc,Anelloviridae
-Enterovirus.nasal,3.2520325203252036,9,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,19.54022988505747,9,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,8.83977900552486,9,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,9,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0,9,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,1.1494252873563218,9,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,1.084010840108401,9,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,1.715686274509804,9,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,3.4482758620689653,9,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,4.607046070460704,9,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,15.441176470588236,9,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,87.356321839080465,9,ea,SARS-CoV-2
-SARS-CoV-2.nasal,89.97289972899729,9,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,9,pbmc,SARS-CoV-2
-Anelloviridae.ea,4.545454545454546,10,ea,Anelloviridae
-Anelloviridae.nasal,2.7027027027027026,10,nasal,Anelloviridae
-Anelloviridae.pbmc,14.788732394366196,10,pbmc,Anelloviridae
-Enterovirus.nasal,3.088803088803089,10,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,19.696969696969695,10,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,7.968127490039841,10,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,10,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0,10,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,1.5151515151515151,10,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,1.1583011583011582,10,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,1.7605633802816902,10,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,4.545454545454546,10,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,4.247104247104247,10,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,11.971830985915492,10,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,87.87878787878788,10,ea,SARS-CoV-2
-SARS-CoV-2.nasal,89.57528957528957,10,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,10,pbmc,SARS-CoV-2
-Anelloviridae.ea,2.3255813953488373,11,ea,Anelloviridae
-Anelloviridae.nasal,0.6024096385542169,11,nasal,Anelloviridae
-Anelloviridae.pbmc,11.052631578947368,11,pbmc,Anelloviridae
-Enterovirus.nasal,4.819277108433735,11,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,20.930232558139537,11,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,8.695652173913043,11,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,11,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0,11,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,0,11,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,1.8072289156626504,11,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,2.631578947368421,11,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,4.651162790697675,11,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,3.0120481927710845,11,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,9.473684210526317,11,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,95.34883720930233,11,ea,SARS-CoV-2
-SARS-CoV-2.nasal,86.74698795180723,11,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,11,pbmc,SARS-CoV-2
-Anelloviridae.ea,2.4390243902439024,12,ea,Anelloviridae
-Anelloviridae.nasal,0.5649717514124294,12,nasal,Anelloviridae
-Anelloviridae.pbmc,11.578947368421053,12,pbmc,Anelloviridae
-Enterovirus.nasal,4.519774011299435,12,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,31.70731707317073,12,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,11.11111111111111,12,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,12,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.5649717514124294,12,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,2.4390243902439024,12,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,2.2598870056497176,12,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,4.2105263157894735,12,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,4.878048780487805,12,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,4.519774011299435,12,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,13.684210526315791,12,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,87.8048780487805,12,ea,SARS-CoV-2
-SARS-CoV-2.nasal,81.92090395480226,12,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,12,pbmc,SARS-CoV-2
-Anelloviridae.ea,0,13,ea,Anelloviridae
-Anelloviridae.nasal,0.8733624454148471,13,nasal,Anelloviridae
-Anelloviridae.pbmc,11.48936170212766,13,pbmc,Anelloviridae
-Enterovirus.nasal,3.4934497816593884,13,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,35.84905660377358,13,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,11.210762331838566,13,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,13,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.43668122270742354,13,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,3.7735849056603774,13,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,1.7467248908296942,13,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,4.25531914893617,13,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,3.7735849056603774,13,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,3.4934497816593884,13,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,10.638297872340425,13,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,75.47169811320755,13,ea,SARS-CoV-2
-SARS-CoV-2.nasal,81.6593886462882,13,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,13,pbmc,SARS-CoV-2
-Anelloviridae.ea,0,14,ea,Anelloviridae
-Anelloviridae.nasal,1.384083044982699,14,nasal,Anelloviridae
-Anelloviridae.pbmc,10.273972602739725,14,pbmc,Anelloviridae
-Enterovirus.nasal,2.768166089965398,14,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,39.6551724137931,14,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,11.66077738515901,14,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,14,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.6920415224913495,14,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,3.4482758620689653,14,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,1.7301038062283738,14,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,4.10958904109589,14,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,3.4482758620689653,14,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,3.1141868512110724,14,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,10.616438356164384,14,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,75.86206896551724,14,ea,SARS-CoV-2
-SARS-CoV-2.nasal,82.35294117647058,14,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,14,pbmc,SARS-CoV-2
-Anelloviridae.ea,0,15,ea,Anelloviridae
-Anelloviridae.nasal,1.3651877133105803,15,nasal,Anelloviridae
-Anelloviridae.pbmc,10.1010101010101,15,pbmc,Anelloviridae
-Enterovirus.nasal,2.3890784982935154,15,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,40.67796610169492,15,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,11.418685121107266,15,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,15,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.6825938566552902,15,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,3.389830508474576,15,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,1.7064846416382253,15,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,4.377104377104377,15,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,3.389830508474576,15,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,3.4129692832764507,15,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,9.427609427609427,15,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,77.96610169491525,15,ea,SARS-CoV-2
-SARS-CoV-2.nasal,81.56996587030717,15,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,15,pbmc,SARS-CoV-2
-Anelloviridae.ea,0,16,ea,Anelloviridae
-Anelloviridae.nasal,1.5151515151515151,16,nasal,Anelloviridae
-Anelloviridae.pbmc,12.313432835820896,16,pbmc,Anelloviridae
-Enterovirus.nasal,2.6515151515151514,16,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,42.857142857142854,16,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,11.538461538461538,16,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,16,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.7575757575757576,16,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,5.357142857142857,16,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,1.5151515151515151,16,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,4.477611940298507,16,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,3.571428571428571,16,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,2.6515151515151514,16,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,8.955223880597014,16,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,76.78571428571429,16,ea,SARS-CoV-2
-SARS-CoV-2.nasal,82.57575757575758,16,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,16,pbmc,SARS-CoV-2
-Anelloviridae.ea,0,17,ea,Anelloviridae
-Anelloviridae.nasal,1.507537688442211,17,nasal,Anelloviridae
-Anelloviridae.pbmc,11.442786069651742,17,pbmc,Anelloviridae
-Enterovirus.nasal,3.5175879396984926,17,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,36.11111111111111,17,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,10.204081632653061,17,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,17,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.5025125628140703,17,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,5.555555555555555,17,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,1.507537688442211,17,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,3.482587064676617,17,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,0,17,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,1.507537688442211,17,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,5.472636815920398,17,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,72.22222222222221,17,ea,SARS-CoV-2
-SARS-CoV-2.nasal,83.41708542713567,17,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,17,pbmc,SARS-CoV-2
-Anelloviridae.ea,0,18,ea,Anelloviridae
-Anelloviridae.nasal,1.5873015873015872,18,nasal,Anelloviridae
-Anelloviridae.pbmc,8.59375,18,pbmc,Anelloviridae
-Enterovirus.nasal,2.380952380952381,18,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,43.75,18,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,8.94308943089431,18,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,18,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.7936507936507936,18,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,6.25,18,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,0.7936507936507936,18,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,3.125,18,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,0,18,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,1.5873015873015872,18,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,7.8125,18,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,87.5,18,ea,SARS-CoV-2
-SARS-CoV-2.nasal,82.53968253968253,18,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,18,pbmc,SARS-CoV-2
-Anelloviridae.ea,4.761904761904762,19,ea,Anelloviridae
-Anelloviridae.nasal,1.1627906976744187,19,nasal,Anelloviridae
-Anelloviridae.pbmc,12.5,19,pbmc,Anelloviridae
-Enterovirus.nasal,2.3255813953488373,19,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,38.095238095238095,19,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,8.433734939759036,19,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,19,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0,19,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,4.761904761904762,19,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,1.1627906976744187,19,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,7.954545454545454,19,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,0,19,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,4.651162790697675,19,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,11.363636363636363,19,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,66.66666666666666,19,ea,SARS-CoV-2
-SARS-CoV-2.nasal,80.23255813953489,19,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,19,pbmc,SARS-CoV-2
-Anelloviridae.ea,4.545454545454546,20,ea,Anelloviridae
-Anelloviridae.nasal,2.3529411764705883,20,nasal,Anelloviridae
-Anelloviridae.pbmc,12.5,20,pbmc,Anelloviridae
-Enterovirus.nasal,2.3529411764705883,20,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,36.36363636363637,20,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,13.414634146341465,20,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,20,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0,20,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,4.545454545454546,20,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,2.3529411764705883,20,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,6.25,20,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,0,20,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,4.705882352941177,20,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,14.583333333333334,20,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,68.18181818181817,20,ea,SARS-CoV-2
-SARS-CoV-2.nasal,80,20,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,20,pbmc,SARS-CoV-2
-Anelloviridae.ea,3.3333333333333335,21,ea,Anelloviridae
-Anelloviridae.nasal,2.127659574468085,21,nasal,Anelloviridae
-Anelloviridae.pbmc,11.607142857142858,21,pbmc,Anelloviridae
-Enterovirus.nasal,1.0638297872340425,21,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,43.333333333333336,21,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,15.384615384615385,21,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,21,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,1.0638297872340425,21,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,3.3333333333333335,21,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,6.382978723404255,21,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,8.035714285714286,21,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,0,21,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,6.382978723404255,21,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,12.5,21,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,66.66666666666666,21,ea,SARS-CoV-2
-SARS-CoV-2.nasal,74.46808510638297,21,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,21,pbmc,SARS-CoV-2
-Anelloviridae.ea,3.0303030303030303,22,ea,Anelloviridae
-Anelloviridae.nasal,3.225806451612903,22,nasal,Anelloviridae
-Anelloviridae.pbmc,12.037037037037036,22,pbmc,Anelloviridae
-Enterovirus.nasal,0,22,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,48.484848484848484,22,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,16.666666666666664,22,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,22,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,1.0752688172043012,22,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,3.0303030303030303,22,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,7.526881720430108,22,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,9.25925925925926,22,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,0,22,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,7.526881720430108,22,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,12.037037037037036,22,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,66.66666666666666,22,ea,SARS-CoV-2
-SARS-CoV-2.nasal,74.19354838709677,22,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,22,pbmc,SARS-CoV-2
-Anelloviridae.ea,2.857142857142857,23,ea,Anelloviridae
-Anelloviridae.nasal,4.49438202247191,23,nasal,Anelloviridae
-Anelloviridae.pbmc,13.592233009708737,23,pbmc,Anelloviridae
-Enterovirus.nasal,0,23,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,48.57142857142857,23,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,17.441860465116278,23,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,23,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,1.1235955056179776,23,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,2.857142857142857,23,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,7.865168539325842,23,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,9.70873786407767,23,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,0,23,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,7.865168539325842,23,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,11.650485436893204,23,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,65.71428571428571,23,ea,SARS-CoV-2
-SARS-CoV-2.nasal,74.15730337078652,23,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,23,pbmc,SARS-CoV-2
-Anelloviridae.ea,0,24,ea,Anelloviridae
-Anelloviridae.nasal,5.633802816901409,24,nasal,Anelloviridae
-Anelloviridae.pbmc,12.359550561797752,24,pbmc,Anelloviridae
-Enterovirus.nasal,1.4084507042253522,24,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,52.17391304347826,24,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,15.942028985507244,24,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,24,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,1.4084507042253522,24,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,4.3478260869565215,24,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,8.450704225352112,24,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,6.741573033707865,24,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,0,24,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,5.633802816901409,24,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,6.741573033707865,24,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,73.91304347826086,24,ea,SARS-CoV-2
-SARS-CoV-2.nasal,70.4225352112676,24,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,24,pbmc,SARS-CoV-2
-Anelloviridae.ea,0,25,ea,Anelloviridae
-Anelloviridae.nasal,4.10958904109589,25,nasal,Anelloviridae
-Anelloviridae.pbmc,9.876543209876543,25,pbmc,Anelloviridae
-Enterovirus.nasal,1.36986301369863,25,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,58.82352941176471,25,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,10,25,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,25,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,1.36986301369863,25,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,5.88235294117647,25,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,8.21917808219178,25,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,9.876543209876543,25,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,0,25,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,5.47945205479452,25,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,3.7037037037037033,25,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,64.70588235294117,25,ea,SARS-CoV-2
-SARS-CoV-2.nasal,68.4931506849315,25,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,25,pbmc,SARS-CoV-2
-Anelloviridae.ea,0,26,ea,Anelloviridae
-Anelloviridae.nasal,2.9702970297029703,26,nasal,Anelloviridae
-Anelloviridae.pbmc,8,26,pbmc,Anelloviridae
-Enterovirus.nasal,0.9900990099009901,26,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,38.46153846153847,26,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,6.0606060606060606,26,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,26,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.9900990099009901,26,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,15.384615384615385,26,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,2.9702970297029703,26,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,7.000000000000001,26,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,15.384615384615385,26,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,3.9603960396039604,26,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,7.000000000000001,26,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,61.53846153846154,26,ea,SARS-CoV-2
-SARS-CoV-2.nasal,73.26732673267327,26,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,26,pbmc,SARS-CoV-2
-Anelloviridae.ea,0,27,ea,Anelloviridae
-Anelloviridae.nasal,2.3255813953488373,27,nasal,Anelloviridae
-Anelloviridae.pbmc,7.462686567164178,27,pbmc,Anelloviridae
-Enterovirus.nasal,1.550387596899225,27,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,28.57142857142857,27,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,4.761904761904762,27,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,27,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.7751937984496124,27,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,21.428571428571427,27,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,2.3255813953488373,27,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,5.970149253731343,27,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,21.428571428571427,27,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,3.10077519379845,27,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,6.7164179104477615,27,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,64.28571428571429,27,ea,SARS-CoV-2
-SARS-CoV-2.nasal,68.21705426356588,27,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,27,pbmc,SARS-CoV-2
-Anelloviridae.ea,0,28,ea,Anelloviridae
-Anelloviridae.nasal,1.1428571428571428,28,nasal,Anelloviridae
-Anelloviridae.pbmc,7.027027027027027,28,pbmc,Anelloviridae
-Enterovirus.nasal,1.1428571428571428,28,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,38.88888888888889,28,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,4.069767441860465,28,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,28,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.5714285714285714,28,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,22.22222222222222,28,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,2.857142857142857,28,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,5.9459459459459465,28,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,22.22222222222222,28,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,4,28,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,7.567567567567568,28,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,61.111111111111114,28,ea,SARS-CoV-2
-SARS-CoV-2.nasal,68,28,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,28,pbmc,SARS-CoV-2
-Anelloviridae.ea,0,29,ea,Anelloviridae
-Anelloviridae.nasal,0.5181347150259068,29,nasal,Anelloviridae
-Anelloviridae.pbmc,6.185567010309279,29,pbmc,Anelloviridae
-Enterovirus.nasal,1.0362694300518136,29,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,36.84210526315789,29,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,4.761904761904762,29,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,29,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.5181347150259068,29,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,21.052631578947366,29,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,3.1088082901554404,29,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,5.670103092783505,29,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,21.052631578947366,29,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,4.145077720207254,29,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,8.762886597938143,29,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,57.89473684210527,29,ea,SARS-CoV-2
-SARS-CoV-2.nasal,69.43005181347151,29,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,29,pbmc,SARS-CoV-2
-Anelloviridae.ea,5,30,ea,Anelloviridae
-Anelloviridae.nasal,1.1235955056179776,30,nasal,Anelloviridae
-Anelloviridae.pbmc,7.142857142857142,30,pbmc,Anelloviridae
-Enterovirus.nasal,1.1235955056179776,30,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,35,30,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,5.142857142857142,30,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,30,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0.5617977528089888,30,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,20,30,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,2.8089887640449436,30,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,5.4945054945054945,30,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,20,30,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,3.932584269662921,30,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,8.791208791208792,30,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,60,30,ea,SARS-CoV-2
-SARS-CoV-2.nasal,70.2247191011236,30,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,30,pbmc,SARS-CoV-2
-Anelloviridae.ea,7.142857142857142,31,ea,Anelloviridae
-Anelloviridae.nasal,1.4388489208633095,31,nasal,Anelloviridae
-Anelloviridae.pbmc,7.638888888888889,31,pbmc,Anelloviridae
-Enterovirus.nasal,2.158273381294964,31,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,42.857142857142854,31,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,4.411764705882353,31,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,31,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0,31,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,14.285714285714285,31,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,2.877697841726619,31,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,5.555555555555555,31,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,14.285714285714285,31,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,3.5971223021582732,31,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,7.638888888888889,31,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,64.28571428571429,31,ea,SARS-CoV-2
-SARS-CoV-2.nasal,69.7841726618705,31,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,31,pbmc,SARS-CoV-2
-Anelloviridae.ea,11.11111111111111,32,ea,Anelloviridae
-Anelloviridae.nasal,0.9523809523809524,32,nasal,Anelloviridae
-Anelloviridae.pbmc,7.6923076923076925,32,pbmc,Anelloviridae
-Enterovirus.nasal,1.9047619047619049,32,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,44.44444444444444,32,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,4.854368932038835,32,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,32,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0,32,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,11.11111111111111,32,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,2.857142857142857,32,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,4.807692307692308,32,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,11.11111111111111,32,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,3.8095238095238098,32,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,8.653846153846153,32,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,55.55555555555556,32,ea,SARS-CoV-2
-SARS-CoV-2.nasal,74.28571428571429,32,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,32,pbmc,SARS-CoV-2
-Anelloviridae.ea,33.33333333333333,33,ea,Anelloviridae
-Anelloviridae.nasal,1.5873015873015872,33,nasal,Anelloviridae
-Anelloviridae.pbmc,7.017543859649122,33,pbmc,Anelloviridae
-Enterovirus.nasal,3.1746031746031744,33,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,0,33,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,4.918032786885246,33,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,33,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0,33,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,0,33,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,1.5873015873015872,33,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,5.263157894736842,33,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,0,33,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,1.5873015873015872,33,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,7.017543859649122,33,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,66.66666666666666,33,ea,SARS-CoV-2
-SARS-CoV-2.nasal,76.19047619047619,33,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,33,pbmc,SARS-CoV-2
-Anelloviridae.ea,100,34,ea,Anelloviridae
-Anelloviridae.nasal,2,34,nasal,Anelloviridae
-Anelloviridae.pbmc,6.382978723404255,34,pbmc,Anelloviridae
-Enterovirus.nasal,2,34,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).ea,0,34,ea,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 1 (HSV1).nasal,2.0408163265306123,34,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).ea,0,34,ea,Human alphaherpesvirus 2 (HSV2)
-Human alphaherpesvirus 2 (HSV2).nasal,0,34,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).ea,0,34,ea,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).nasal,0,34,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,4.25531914893617,34,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).ea,0,34,ea,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).nasal,0,34,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,2.127659574468085,34,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.ea,100,34,ea,SARS-CoV-2
-SARS-CoV-2.nasal,70,34,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,34,pbmc,SARS-CoV-2
-Anelloviridae.nasal,2.083333333333333,35,nasal,Anelloviridae
-Anelloviridae.pbmc,6.976744186046512,35,pbmc,Anelloviridae
-Enterovirus.nasal,2.083333333333333,35,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).nasal,4.25531914893617,35,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).nasal,0,35,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).nasal,0,35,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,2.3255813953488373,35,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).nasal,0,35,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,4.651162790697675,35,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.nasal,66.66666666666666,35,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,35,pbmc,SARS-CoV-2
-Anelloviridae.nasal,2.4390243902439024,36,nasal,Anelloviridae
-Anelloviridae.pbmc,2.7777777777777777,36,pbmc,Anelloviridae
-Enterovirus.nasal,0,36,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).nasal,5,36,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).nasal,0,36,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).nasal,0,36,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,2.7777777777777777,36,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).nasal,0,36,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,5.555555555555555,36,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.nasal,60.97560975609756,36,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,36,pbmc,SARS-CoV-2
-Anelloviridae.nasal,2.857142857142857,37,nasal,Anelloviridae
-Anelloviridae.pbmc,3.225806451612903,37,pbmc,Anelloviridae
-Enterovirus.nasal,0,37,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).nasal,2.941176470588235,37,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).nasal,0,37,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).nasal,0,37,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,3.225806451612903,37,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).nasal,0,37,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,6.451612903225806,37,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.nasal,57.14285714285714,37,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,37,pbmc,SARS-CoV-2
-Anelloviridae.nasal,3.571428571428571,38,nasal,Anelloviridae
-Anelloviridae.pbmc,4,38,pbmc,Anelloviridae
-Enterovirus.nasal,0,38,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).nasal,3.571428571428571,38,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).nasal,0,38,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).nasal,0,38,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,0,38,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).nasal,0,38,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,4,38,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.nasal,53.57142857142857,38,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,38,pbmc,SARS-CoV-2
-Anelloviridae.nasal,5.263157894736842,39,nasal,Anelloviridae
-Anelloviridae.pbmc,5.555555555555555,39,pbmc,Anelloviridae
-Enterovirus.nasal,0,39,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).nasal,5.263157894736842,39,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).nasal,0,39,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).nasal,0,39,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,0,39,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).nasal,0,39,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,5.555555555555555,39,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.nasal,52.63157894736842,39,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,39,pbmc,SARS-CoV-2
-Anelloviridae.nasal,0,40,nasal,Anelloviridae
-Anelloviridae.pbmc,0,40,pbmc,Anelloviridae
-Enterovirus.nasal,0,40,nasal,Enterovirus
-Human alphaherpesvirus 1 (HSV1).nasal,0,40,nasal,Human alphaherpesvirus 1 (HSV1)
-Human alphaherpesvirus 2 (HSV2).nasal,0,40,nasal,Human alphaherpesvirus 2 (HSV2)
-Human betaherpesvirus 5 (CMV).nasal,0,40,nasal,Human betaherpesvirus 5 (CMV)
-Human betaherpesvirus 5 (CMV).pbmc,0,40,pbmc,Human betaherpesvirus 5 (CMV)
-Human gammaherpesvirus 4 (EBV).nasal,0,40,nasal,Human gammaherpesvirus 4 (EBV)
-Human gammaherpesvirus 4 (EBV).pbmc,0,40,pbmc,Human gammaherpesvirus 4 (EBV)
-SARS-CoV-2.nasal,45.45454545454545,40,nasal,SARS-CoV-2
-SARS-CoV-2.pbmc,0,40,pbmc,SARS-CoV-2
+SARS-CoV-2.nasal,N1_CT,N2_CT
+0.5938471449304217,26.1878433227539,29.5037136077881
+0,27.8658084869385,34.8857383728027
+0.46857928808808347,31.5524139404297,33.8130989074707
+0.7045600558927905,28.7998809814453,25.9805126190186
+3.3744797288028163,20.2775936126709,19.0991306304932
+5.634173423943087,12.5306463241577,10.9719839096069
+0.008600171761917567,33.9045600891113,36.2188301086426
+3.572115867010106,24.9786605834961,24.4606189727783
+0.9628426812012424,29.2839851379395,34.4888572692871
+2.105847353946461,25.7065315246582,26.3245277404785
+1.1406537696087191,30.4829978942871,31.1062602996826
+1.691498363906758,29.5483684539795,30.4984016418457
+0.4822484861272436,31.9200172424316,34.2643508911133
+3.422465049636369,22.7742881774902,22.4350566864014
+0,36.756103515625,37.7865104675293
+0.5726840179544332,36.9638938903809,36.8521423339844
+2.423252017690608,34.3894653320312,32.8026313781738
+4.906594310086611,19.1498985290527,18.7882118225098
+0.4064004645169992,33.6379470825195,35.3906631469727
+0.13677038696617155,32.073314666748,31.563383102417
+1.5333430220567408,33.6649208068848,32.9921112060547
+0.26007138798507473,32.5688552856445,32.2401847839355
+3.6621099918589253,19.2842235565186,19.0159397125244
+1.849159262825693,28.1563854217529,28.7245197296143
+1.808599556297494,26.689826965332,26.7263050079346
+2.477480377745645,25.5591468811035,25.219841003418
+1.8097795989327325,30.4064197540283,33.870475769043
+1.200027440399271,23.2059917449951,24.0077800750732
+1.9631108964044675,28.6585006713867,30.8586597442627
+5.5816492590371185,20.1209449768066,20.7326469421387
+3.3028610651534036,22.9584274291992,22.4439582824707
+2.400575711226854,30.4420394897461,30.3666305541992
+0.8046768940274587,29.6199150085449,30.6626720428467
+5.397734503647613,24.5642051696777,24.5417613983154
+3.463509356120287,24.5544242858887,23.022216796875
+2.4939210414109008,26.354944229126,25.6985149383545
+0.2529960669105785,30.7491264343262,31.7902011871338
+0.07898383283541834,31.3123798370361,34.5439453125
+0.5289773476703307,34.3114738464355,37.676570892334
+1.286558324967715,26.4476051330566,25.7305755615234
+1.077632078019513,34.3944396972656,33.6916809082031
+4.126288295878852,21.28125,21.0950946807861
+2.2829391657547733,21.1464500427246,22.9756202697754
+1.5063853181816056,24.778621673584,25.5186557769775
+0.3180219796971246,31.1772308349609,33.3229713439941
+2.832119354583316,22.0561466217041,21.9562320709229
+0.013006683182959269,34.8773040771484,33.3410263061523
+2.593994701055337,27.5920715332031,26.467586517334
+1.02106170629551,24.6236972808838,26.7837238311768
+0.515873843711679,21.9434032440186,29.8535709381104
+3.5854524274421196,18.2912120819092,18.0932426452637
+0.049967170369104905,29.8826484680176,31.5616359710693
+0.17609125905568124,29.8504810333252,31.8591461181641
+0.30492072278683824,27.9498233795166,29.5760765075684
+2.5047853107073528,27.4433174133301,25.9622840881348
+0,32.6023483276367,35.2186241149902
+0.3691327820601221,30.2102031707764,27.1419315338135
+4.822902604298156,16.9685230255127,16.4272842407227
+1.6928544265801595,25.7089061737061,25.5525760650635
+0,35.0026664733887,37.7291297912598
+0.6325482493828867,34.5370330810547,35.4120101928711
+5.092708036851298,19.2378540039062,17.7631340026855
+1.6740209639144057,24.3757972717285,25.409122467041
+1.3767380828896032,34.8039779663086,31.1259670257568
+0.10915763906394962,33.1650619506836,33.0258255004883
+0.06220563472004827,29.4142551422119,34.6464920043945
+0.061443773514531626,35.9886054992676,35.5743446350098
+3.2194877461067373,24.6716156005859,25.6945037841797
+5.0780951326078005,12.9932565689087,12.9162969589233
+3.3784715801030156,24.5512027740479,24.7834243774414
+4.38096383070393,24.0430126190186,24.3206214904785
+1.278213507553,26.2993698120117,26.1155090332031
+1.200677360579759,37.9031829833984,35.3753395080566
+3.026274368569887,28.2270774841309,28.3387546539307
+0.2824883472790232,32.5081443786621,34.8723220825195
+0.011427074449545003,33.601448059082,34.6063232421875
+4.796482388227663,26.3201236724854,25.5346240997314
+0.7565057059312091,32.995288848877,34.9496269226074
+1.0378039281670746,34.0738487243652,34.1386222839355
+0.03342375548694973,30.9605941772461,31.6105003356934
+0.15453358990589594,28.1774806976318,29.4184589385986
+0.07188200730612536,28.2049999237061,31.8001728057861
+0.2450264184377522,30.1641159057617,30.9892444610596
+0.3576782215459193,28.7701263427734,28.7633724212646
+0.15454328641255355,31.5971546173096,31.1227130889893
+0.48878275438464414,34.8769264221191,35.2973785400391
+0.06745550622284066,30.889820098877,30.759973526001
+0.21121634679121223,30.6240501403809,28.0293598175049
+0.16718317475084932,31.1136646270752,30.6373100280762
+0.37513073063932534,26.548023223877,27.9498844146729
+0.025334488776095922,33.3221893310547,38.8344192504883
+0.08056570765350493,32.9858818054199,30.9313278198242
+0.008600171761917567,32.1874122619629,34.4536247253418
+0.06397003209784931,25.6326332092285,33.8104667663574
+1.4842629794242523,23.8702735900879,25.3808155059814
+0.19865708695442263,29.4383430480957,29.5063705444336
+0.03582734681858939,34.0080223083496,32.7040977478027
+4.9210639398142115,14.2693471908569,14.338418006897
+0.04192241457226943,32.1574211120605,31.9901676177979
+0.08480254920454332,26.9273529052734,29.6184272766113
+0.01723082916425915,33.3405990600586,33.4290580749512
+1.4954063324868732,25.9670028686523,25.6586093902588
+0.016644356117755672,34.7881774902344,33.7853851318359
+0.15634679480874183,34.0793380737305,34.3320426940918
+0.04270076473091965,31.7380352020264,32.1193237304688
+0,36.1958084106445,35.3044242858887
+1.3498529427569168,25.9057178497314,25.0717601776123
+1.1908868716109413,25.7501544952393,24.2321720123291
+0.550176053988735,24.6641864776611,25.2492160797119
+0.3888619428141816,31.2719669342041,31.1926155090332
+0.022237579406745527,32.7478370666504,32.1803817749023
+2.4175457111265106,22.2736530303955,20.5351791381836
+1.4996427605904623,26.5399265289307,24.5554695129395
+1.9070717148070249,30.283130645752,28.7459774017334
+2.097222592519901,24.0198669433594,25.3342323303223
+1.594654410033182,26.2645740509033,27.668478012085
+1.442009159140952,25.5161685943604,26.5549449920654
+0.318994622102014,29.3809204101562,31.0511932373047
+0.05985370387689285,32.7853317260742,33.4830436706543
+0.3530112728910024,29.5670204162598,30.4925594329834
+0.5773300709870915,27.8063354492188,30.4155693054199
+0.012652131666413286,28.7950057983398,35.365348815918
+0.020434523544766596,32.6670112609863,35.7828330993652
+0.4525750656471882,28.5461807250977,28.5734539031982
+3.3868287970644064,19.8287582397461,18.7243843078613
+0.38660174023538085,28.3737525939941,28.4531192779541
+2.012667400575992,25.6447620391846,24.6599864959717
+2.6892490709064156,23.6507091522217,22.9414901733398
+1.1462296135393968,27.5116481781006,27.5944271087646
+0.17946462867452237,35.3571395874023,34.5241889953613
+0.030631110394540088,36.7652854919434,38.5870475769043
+5.691988301586408,13.7684373855591,13.8925495147705
+2.8746226233835395,23.3668365478516,22.5250301361084
+0.4933059298927317,29.9668884277344,31.1793689727783
+1.2795545620872129,24.7935428619385,24.851526260376
+0.3219382927830682,30.6568088531494,34.7463455200195
+3.7629309158502107,22.8947162628174,23.8786945343018
+2.6003174128703623,20.1034355163574,20.8265571594238
+0.9564284281705535,23.0168037414551,24.6628360748291
+0.3247032143067429,35.4417533874512,35.245964050293
+0.12877172579270496,35.6882171630859,35.8306007385254
+5.21962472482676,15.3698263168335,15.011622428894
+3.506035625123991,17.7342891693115,17.6310997009277
+3.9341146688945483,22.6983413696289,23.0426406860352
+0.4842981129018498,31.666166305542,30.9590282440186
+0.10947762044138631,33.2110710144043,33.3291206359863
+5.190611361879144,17.4636325836182,18.7225131988525
+1.8360704241800834,25.1802539825439,23.2280807495117
+1.7148323520046191,25.5624046325684,25.0514450073242
+1.3503336619372825,31.5210990905762,31.7094974517822
+0,37.5860557556152,37.4704132080078
+0.019171657062151466,35.4586944580078,36.4704704284668
+1.2603780289556088,28.71848487854,29.439920425415
+0.25648984885268744,29.2566795349121,30.0172176361084
+0.04844737408978236,32.8345680236816,33.223072052002
+0.009095912132578543,31.9615116119385,33.2775344848633
+0,34.1868476867676,36.6026840209961
+0.2626776501715229,30.7284622192383,30.6563034057617
+0.04801558361557054,36.1433906555176,35.3003883361816
+1.625874768731188,32.0938911437988,31.8502330780029
+0.7470314155513933,31.0178852081299,30.9284992218018
+0.5713273544553878,30.3329753875732,30.70090675354
+0.02606839072387312,32.8253288269043,33.0661926269531
+0.01542039099245374,35.8321838378906,34.595573425293
+2.0930630138093997,26.59303855896,25.5781707763672
+1.4027770696103474,23.8468971252441,24.365140914917
+0.9579916549847697,29.7299633026123,30.407133102417
+0,34.2516059875488,35.8381729125977
+2.6772144505610522,23.8733062744141,24.9788932800293
+2.5840651108330848,27.4588966369629,29.2073612213135
+2.159976091179918,28.5948238372803,27.9799423217773
+3.3795665599728655,20.1161060333252,20.3981552124023
+3.786656240090855,17.3075637817383,17.3749599456787
+2.660733599368792,21.2477226257324,21.3508834838867
+0.12117215879330319,30.2460670471191,30.6701107025146
+0.014962317634415688,35.0456123352051,34.5704231262207
+2.199954758603812,31.1970176696777,30.921501159668
+1.7794559960832013,26.5179405212402,26.9809627532959
+0.13625511083137845,36.1929893493652,36.4194412231445
+0.6214703122250634,34.5075950622559,34.3752021789551
+0.12710479836480765,31.0353088378906,31.077127456665
+1.1344941688112542,35.2946434020996,32.9369430541992
+4.294763740207827,18.9488201141357,18.8881912231445
+0.8856324781093494,32.0164489746094,32.4404029846191
+0.7557396207569802,29.6438980102539,28.6281929016113
+0.3261857654854199,28.4126243591309,27.2126903533936
+0.4799526110946828,30.7189598083496,30.9709644317627
+0.46847740771295715,29.9605331420898,30.3157939910889
+0.08878492945282247,36.5694198608398,36.6944580078125
+2.4318117943429955,27.6161518096924,27.8107013702393
+1.674514279271219,29.7115097045898,30.067892074585
+0.7511736771464648,29.307092666626,31.0107460021973
+5.8960233112461715,17.821849822998,17.6859149932861
+4.80761341040311,16.2336311340332,16.8764553070068
+0.9263513247006762,26.6823806762695,26.8397216796875
+0.10792123912140927,31.0978851318359,34.807430267334
+0.19975589771008642,31.722728729248,33.053050994873
+0.043084477602394866,30.2607860565186,31.23703956604
+0.11856846325154005,33.4259147644043,36.2689895629883
+3.2357636834608945,25.7373046875,24.9870872497559
+0.2027132072387974,33.4439735412598,34.1774215698242
+0.6610643184042438,35.5384559631348,35.3685989379883
+0.2734056439217545,29.9597072601318,31.3541793823242
+0.8592167444413283,31.5020732879639,31.1635437011719
+0.23699513085287527,32.364128112793,35.3437538146973
+0.48708818617248056,27.6048564910889,27.6741313934326
+2.958830779213446,23.3823432922363,22.598108291626
+3.011606127880012,22.6625652313232,21.8849029541016
+4.080068356689562,18.7547283172607,18.1236667633057
+2.0049493419964763,24.5866508483887,21.8293018341064
+0.9772314745544807,31.8592014312744,31.5860977172852
+0.9129810080325425,28.6047554016113,28.49387550354
+0.19608071779281677,35.9852409362793,36.818058013916
+2.8399017877975057,25.5616226196289,25.3854999542236
+0.32338753330454556,34.4739875793457,34.1934013366699
+0.10739539315179603,27.7555236816406,31.861234664917
+0.7870380631322111,31.3821964263916,34.0981941223145
+0,31.952320098877,33.3963050842285
+2.4440543128020886,24.651330947876,23.5880432128906
+0.1112227545022058,32.5332336425781,33.5261077880859
+0.723357938085281,27.946647644043,29.4412670135498
+0.011314285503158371,36.2347679138184,36.010311126709
+0.24178888185155967,31.8102741241455,32.8200340270996
+0.02220420968558589,33.2505950927734,35.5245475769043
+0,31.5902252197266,32.7831344604492
+1.5328431393074027,31.5604228973389,30.7663860321045
+0.3917604852480485,31.2178325653076,33.5307807922363
+0.038250009753430535,32.251823425293,33.2035140991211
+0,33.4888458251953,35.9895782470703
+0.6270223904523309,25.5022506713867,27.9676647186279
+0.7173575191443501,27.6435508728027,28.7884178161621
+0.23665796943409673,29.2890625,29.437406539917
+0.016991569324576336,34.0828590393066,32.2941017150879
+1.7965532122702523,27.7610454559326,28.2349720001221
+1.607505326885436,28.6712970733643,28.2110767364502
+0,34.7275009155273,34.8073043823242
+4.892136093577134,20.9389209747314,19.9569034576416
+4.127914769315455,16.7685394287109,16.6647663116455
+0.8906205159086429,26.9407424926758,26.1946067810059
+0.030535698082539336,34.5902442932129,34.8984336853027
+0.2890382415496965,31.0948696136475,32.0648574829102
+1.4272655354727295,24.575065612793,28.5695819854736
+0.4236582034911953,33.920726776123,33.9403381347656
+0.4233022489467334,34.7856407165527,36.0659790039062
+0,29.9071044921875,37.3735847473145
+1.5098336056079527,25.4997634887695,26.5168514251709
+2.262781626604394,34.5023307800293,34.8166236877441
+0.09141015371410317,34.1530456542969,33.938175201416
+0.9452890350007538,28.7572784423828,28.717399597168
+0.14386522868298163,36.5329704284668,38.4296951293945
+0.7373224305919412,30.0201740264893,30.3302917480469
+0.06409602994778808,34.297794342041,37.8453788757324
+3.5153061340463174,25.2016849517822,25.2487773895264
+2.1157865161704925,27.0832557678223,26.4077491760254
+5.506500605696344,13.0483312606812,12.3885679244995
+3.431131861576475,24.1464309692383,23.9933834075928
+2.67892440491644,25.9708042144775,25.1408100128174
+2.0334218881887405,27.4763660430908,28.6904239654541
+0.09436517205808408,30.6505546569824,34.9916114807129
+1.7623963191912464,26.7406177520752,27.4309768676758
+0.3044801457024324,33.4792594909668,33.2156715393066
+2.764504117048749,22.9598903656006,22.6045932769775
+0.0655835702258329,37.2583465576172,35.0262756347656
+2.282141352298304,26.0047016143799,24.5388622283936
+2.945768551967264,19.969856262207,19.3790512084961
+0.029662672505599175,35.0194931030273,36.8090133666992
+4.399035098528626,18.2684841156006,17.4023666381836
+3.7055301937231473,19.6818695068359,18.6286277770996
+1.6274410969957505,32.6354751586914,32.8081359863281
+1.0321481008676325,27.8426399230957,27.1230525970459
+1.5542636671468142,27.1294403076172,27.0922584533691
+3.2593714383603674,27.5499897003174,28.3150005340576
+1.7614733239732798,29.8966026306152,29.6642284393311
+2.2839433078472937,24.4931583404541,26.1081619262695
+5.1172238847676645,27.1462554931641,26.3741149902344
+4.259879163997425,21.0013332366943,19.3133678436279
+0.660078174127581,25.4984226226807,27.915225982666
+0.0644579904249722,29.8940715789795,30.9455242156982
+0,30.2420883178711,31.3282527923584
+1.2109728658425671,28.4915771484375,26.3812694549561
+0.7953036896224797,28.7822513580322,27.9208736419678
+0.05891228085293761,33.1705131530762,29.8638877868652
+4.4770386044581905,16.1274223327637,15.9790229797363
+2.4883064677949003,21.4449615478516,21.5090827941895
+1.0407323126744354,28.494815826416,28.6903400421143
+4.920467461676139,12.9643316268921,12.9820318222046
+3.028666277056332,24.1504554748535,24.6111011505127
+0.8077985301136491,28.626932144165,32.5455322265625
+0,35.2863655090332,33.0461006164551
+0.030814948100060816,32.4762001037598,35.1610870361328
+0.03770896686834712,33.9309272766113,33.5803489685059
+0.01806077504368773,35.5179862976074,36.9068489074707
+1.265913992918978,30.3290634155273,29.4076843261719
+3.1549933109787016,21.6127033233643,19.4117183685303
+0.05399846744502634,34.2512550354004,32.7015228271484
+0.0937024495544279,36.7244567871094,36.3508567810059
+1.5310194385214224,29.79345703125,28.1473293304443
+0.4166804200721014,32.1752662658691,31.9882965087891
+0.024307865287580104,36.1925315856934,36.0682258605957
+0.8923702368472592,29.0719127655029,27.2193222045898
+0,36.834342956543,37.6059875488281
+0,38.2256927490234,36.7900085449219
+0,37.8607788085938,38.0942764282227
+0.45013058922109056,30.1032981872559,29.8938617706299
+4.55679767857836,14.6625509262085,16.0903358459473
+1.9415436520251395,24.2634620666504,24.7157764434814
+0.3677073704160781,36.5479354858398,36.6386756896973
+0.09171606720544016,30.3856792449951,31.7611389160156
+3.9027000978050657,18.6850929260254,18.7493267059326
+1.1761883236150323,29.4442558288574,31.5444488525391
+0.027070967604490046,31.4511699676514,32.4821014404297
+0.12390156765752185,33.8688354492188,34.946964263916
+0.199443516989589,30.242826461792,32.3392601013184
+0.02884499562476173,33.1096458435059,34.3861312866211
+0.3554239641084134,33.7330474853516,33.4870262145996
+2.143164499199737,22.0178546905518,23.9345760345459
+1.9604523717233973,29.6364307403564,28.8766975402832
+0.22947164705497022,30.4386100769043,33.0024795532227
+0.8790475544608263,27.6546363830566,32.7198448181152
+0.15240037065161366,34.3130874633789,34.232250213623
+0.5088805023679991,28.463098526001,31.1317901611328
+0.0876226827645635,31.1979598999023,33.9738311767578
+2.762862457017454,23.4940032958984,25.9968719482422
+5.51193652789021,15.2497425079346,17.5896530151367
+1.2858995877056567,25.2068386077881,31.0079574584961
+0.20940402928468363,31.59885597229,33.4077568054199
+0,24.3614273071289,32.5918579101562
+1.7306496377532363,23.331506729126,27.0654395683706
+0.12643274687154704,23.5829925537109,35.5246200561523
+0,33.4298782348633,37.8180809020996
+2.830511185786693,19.5745429992676,23.1626796722412
+2.755710821333656,19.8278102874756,23.4742298126221
+2.1752208393232855,19.6818561553955,25.137788772583
+1.7277540656798447,23.6632747650146,27.0358295440674
+0.5046846158842795,30.7612724304199,30.7012748718262
+3.795777010070857,25.5914421081543,25.0974445343018
+3.223324449772905,28.3832111358643,26.6474456787109
+2.9289025748489044,22.0837554931641,23.9522972106934
+2.2988207953572686,20.7486267089844,22.6989593505859
+0.08321999801507708,29.9835834503174,33.2672500610352
+4.1672439977137214,17.3372783660889,18.3194904327393
+0.17542015861283608,32.8457412719727,33.9620056152344
+0.20095980686186526,34.797420501709,33.4089317321777
+1.0131156628051825,23.7153053283691,24.2528018951416
+0.33069422113425273,31.7337779998779,30.7134189605713
+0.26946631146204597,32.8290138244629,28.5400695800781
+0.35911067611092606,30.4108028411865,31.6522979736328
+0.024041632468890697,31.9293537139893,32.8229866027832
+0.014918555609541395,36.3686752319336,36.9928359985352
+0.9406952948545064,30.399585723877,30.7149829864502
+2.734471461107033,22.1400051116943,22.362979888916
+0.037491567692824655,36.3175506591797,37.9258689880371
+0.24483866734310855,37.0612564086914,37.232780456543
+4.41097736457327,20.7122840881348,20.8710079193115
+1.02001901460513,29.599100112915,30.2312335968018
+0.4547462375555494,31.7336711883545,30.9454021453857
+0.10550651030498194,34.7961616516113,35.7359275817871
+0.5717316218641526,34.9069671630859,34.4645919799805
+1.7016293374435698,28.3796234130859,30.6152515411377
+0.26481783094013145,29.3080615997314,31.7169437408447
+0.8264033631737693,32.9607200622559,33.7145538330078
+0.12367344317693116,34.6162528991699,34.1700973510742
+0.1877673871082593,36.1460952758789,33.3864135742188
+0.01414236033026355,37.6316757202148,35.9975547790527
+0.11026563041562615,37.5163192749023,35.3072090148926
+2.0166962132071897,25.3115158081055,26.7069644927979
+1.4341357828084489,30.9319190979004,32.4636421203613
+1.7378629424485892,27.4665431976318,29.5309619903564
+0.3384794782778245,33.6965789794922,32.3449935913086
+4.286331035299938,23.371732711792,22.3273162841797
+0.04461770925570029,36.443229675293,37.2791442871094
+2.217357166739255,24.9437484741211,23.9235324859619
+0.9295228896875426,28.7826919555664,27.2198104858398
+0.6148972160331346,28.179708480835,31.6054763793945
+4.808425691749533,18.022632598877,17.3537483215332
+1.158928222869541,30.3912048339844,29.379207611084
+3.330267512295596,20.3064785003662,20.8676300048828
+2.607360829583821,25.2147922515869,24.5204410552979
+0.6636351365829384,30.6597881317139,33.5932998657227
+0.7631265073597354,29.3210144042969,28.1594982147217
+0.7769440447590358,33.7388725280762,35.006160736084
+0.7371089734719598,27.7178897857666,27.6738510131836
+0.6068051253505488,31.6717395782471,32.2318992614746
+2.4013165817989846,28.6373252868652,28.6011447906494
+1.6918578021486903,34.0707321166992,34.3525886535645
+1.6096510474728385,23.5446968078613,23.708251953125
+0.04096742766616176,32.5865707397461,38.0364036560059
+0.5279907373026834,32.3658828735352,33.9120903015137
+0.046317303221378274,37.5871543884277,35.6999740600586
+0.4779635214970487,32.0869255065918,31.9129238128662
+0.06581256391215161,36.7331924438477,36.4162521362305
+2.12865735792524,31.9473571777344,35.5621757507324
+1.2614129626262374,27.1394100189209,25.3004188537598
+0.9617370720788958,33.6708946228027,33.5021629333496
+4.7777195422828465,13.813045501709,13.5110530853271
+3.9316411885638902,20.4356384277344,20.4591236114502
+3.3699773988767103,19.1917610168457,18.4501552581787
+0.1001762233187911,30.9136257171631,31.0373039245605
+0.05898612336758793,28.9485607147217,29.7442493438721
+0.12246767870543501,36.787166595459,36.8469886779785
+0.26462044743510255,35.9462509155273,32.4415664672852
+0.6459778644199332,33.0086135864258,32.9427795410156
+1.1843433886679686,32.5304679870605,33.6809539794922
+2.4660606467665147,32.5399322509766,36.7004890441895
+0.9898001874047948,35.2833518981934,35.5544891357422
+1.576047957451812,24.3424186706543,30.6066074371338
+4.517018112061468,15.1148700714111,16.1131362915039
+0.1105935797904702,36.1949081420898,33.1667518615723
+4.564336061760242,24.2947769165039,25.125150680542
+1.9191226443415639,20.1899909973145,20.6609954833984
+0.18736677181366626,26.9465427398682,27.8122119903564
+0.08486709043730077,28.5414695739746,30.549295425415
+0.1347213400704648,31.4301719665527,35.0182723999023
+0.08552111874484072,30.9357509613037,34.8444480895996
+0.06612799359955593,25.8246307373047,32.2011222839355
+0.026834217372314305,31.9660606384277,34.629810333252
+0.9671715273442082,36.5115165710449,35.5400581359863
+1.2495064686065962,34.1846923828125,34.4601287841797
+2.8069144937181765,20.3926277160645,20.7134685516357
+2.189841409285492,20.4842014312744,22.4450359344482
+2.6300061741669607,19.7285480499268,19.4130592346191
+1.9280810154078913,24.0694313049316,24.6124858856201
+0.02267206349993867,34.7834815979004,36.3993148803711
+0.264183608094831,34.3506889343262,33.7920303344727
+1.4446290754602356,19.9916458129883,26.5597400665283
+1.5760396172111475,19.4555530548096,26.6866016387939
+5.116874627146772,11.9006175994873,11.9533967971802
+0.6888293567615271,26.9877872467041,26.4194259643555
+0.6653374234794801,27.7951908111572,27.655782699585
+0.20411998265592482,27.9478168487549,28.7680377960205
+1.8392439334533566,26.8080997467041,25.4598083496094
+0.6276726299548059,28.9037246704102,30.6390571594238
+0.08526035738204792,33.723258972168,34.8335075378418
+0.03318066978834505,34.4613494873047,33.6772537231445
+3.1097907439791674,24.1900806427002,24.3635883331299
+0.6082111993609975,30.4853649139404,27.5495433807373
+1.391454262971948,23.8795967102051,24.0796756744385
+0.4444254124558964,28.6902351379395,28.9398536682129
+2.6185935841683303,20.7833023071289,21.1236248016357
+3.663739557245009,19.3740692138672,18.7252883911133
+3.031291339842821,23.7446060180664,22.5905017852783
+0.12290862157044821,32.4572944641113,35.7495079040527
+0.08984255525380673,27.5549736022949,32.2381286621094
+0.042733687168260204,30.8287391662598,31.4823379516602
+0.30564633948302994,26.5325736999512,30.9515075683594
+2.5846812999867237,21.0881080627441,22.2261447906494
+0.25002359415183667,27.8931179046631,28.6699714660645
+0.2828661918197867,27.9297180175781,28.9945812225342
+0.955849597263145,29.818696975708,31.7110767364502
+0.3835501514449831,29.9769248962402,33.6504592895508
+1.8788746629817117,29.3517551422119,30.4888858795166
+0,27.6567306518555,32.3306198120117
+1.92810111303704,28.4821586608887,28.4930591583252
+2.671934106763597,22.4533271789551,23.358922958374
+0.9424080600443063,25.0190544128418,26.1835079193115
+3.431889634676978,21.4179916381836,20.9719772338867
+1.618869053335208,26.7984523773193,25.8650798797607
+0.04513274351896892,32.4074440002441,35.2267456054688
+0.9456857929270007,27.9812507629395,28.176570892334
+0.2795076569290962,29.0815944671631,28.9816970825195
+0.04689680695649044,35.5829772949219,35.9637794494629
+0.09605260278454802,34.7321243286133,35.0642127990723
+1.4912356278585337,32.6836814880371,34.4729766845703
+4.28076672878875,21.1029148101807,19.1710586547852
+4.562325982472736,17.3818035125732,18.0994720458984
+4.580507072861581,16.2537231445312,16.3555870056152
+0.44218576649003283,33.787109375,33.0869598388672
+0.1085569033102127,32.2936515808105,29.4744071960449
+0.017688510462295467,37.6156845092773,33.6708106994629
+0.8220665803260693,34.6491012573242,33.1141319274902
+4.258480988806106,16.6982154846191,18.5419025421143
+0.9204062326754153,30.8490009307861,33.5031814575195
+1.4400604992305488,29.9114875793457,31.7254905700684
+0.07041136215200124,33.5277404785156,33.6589851379395
+4.8716383459737065,21.4557952880859,20.1725673675537
+0.38828694719351553,33.0995597839355,36.2164192199707
+0.12100390769429435,31.2939929962158,35.8992347717285
+2.0320557626920817,35.8351058959961,37.0421333312988
+1.4473017272836555,35.9950790405273,36.2260589599609
+0.5619745273378589,27.4401531219482,26.1326713562012
+0.179083434889751,36.1455192565918,35.8243560791016
+0.4510669911375873,32.237117767334,33.8521270751953
+0.16969847188598108,33.1139221191406,36.7053489685059
+0.8967134708000755,32.494930267334,32.6329803466797
+5.401148105764922,18.0390319824219,17.2608776092529
+3.873673459596709,22.7441349029541,22.3379325866699
+0.7122398052379277,36.4363174438477,33.2210655212402
+1.3437868842814529,30.9608383178711,29.1822128295898
+1.3155765590987643,32.1546173095703,30.6729965209961
+2.7467027958038224,29.9603958129883,30.8036766052246
+3.6613329253949405,28.6676197052002,29.0877094268799
+0.8152130338135443,34.6180801391602,37.5013732910156
+1.7321887828211282,32.8808250427246,34.6628494262695
+0.02530586526477026,37.4678688049316,37.3748779296875
+1.0281644509118388,31.8903255462646,32.0454330444336
+0,31.1299285888672,35.2816886901855
+1.210455901937147,27.5982208251953,29.3111610412598
+0.9949373083441719,22.1272735595703,24.6795406341553
+0,29.6728706359863,31.047794342041
+0.07226033267343974,33.4422035217285,36.0957260131836
+4.697704653347054,13.7187843322754,16.5612049102783
+0.03762628724085719,30.7321338653564,30.9669361114502
+2.583114566243,23.3791275024414,21.6548709869385
+0.33395194220427477,28.6058902740479,26.7154655456543
+0.06767953730444058,31.0752201080322,31.5718593597412
+0.29374156307424815,32.2547187805176,32.461986541748
+0.15694173105037756,34.2539443969727,32.4474411010742
+0.2695416935747332,31.1573696136475,30.9904384613037
+0.18713019128396274,29.3590316772461,29.9443912506104
+0.1933610085309639,33.8913955688477,34.5019378662109
+3.8058321116043468,19.1995315551758,21.2262420654297
+1.3603945642923334,27.8438415527344,28.5548419952393
+3.684418479876634,22.3079090118408,21.3113250732422
+0.4650361077208357,29.15891456604,28.9419269561768
+1.7026946409245558,27.7423973083496,27.5114765167236
+0.09911324756472281,32.8705749511719,33.5634346008301
+1.871083459996408,21.4997444152832,22.5739574432373
+0.021807728974545137,35.6319007873535,35.5886459350586
+0.6429104779083789,30.4006175994873,30.3148517608643
+1.4342717178238467,27.7303428649902,27.7378883361816
+0.27290316383928204,35.6828880310059,34.7238349914551
+0,36.0806579589844,36.1398849487305
+0.3598988373952058,31.4127559661865,32.4503059387207
+0.1370306006394078,32.524959564209,33.0535850524902
+0.5627893011439764,29.2062759399414,29.987190246582
+0.06909280042214054,31.9375686645508,32.1073799133301
+0.013040911102245478,35.4509201049805,37.1446685791016
+0.5022942809982698,29.1060543060303,29.1603565216064
+0.3212275113581953,30.3080825805664,31.4429664611816
+4.953129799231517,14.814227104187,16.1352500915527
+3.3236009580735684,19.8655815124512,21.3808116912842
+3.1798816241341936,21.105224609375,20.912052154541
+0,35.265251159668,36.7592811584473
+3.2357343612721863,20.4654312133789,20.7428455352783
+4.898778173070458,17.484447479248,16.5529041290283
+5.124278664636221,22.4902820587158,21.5291347503662
+0.5351670960492668,27.9395294189453,31.276668548584
+5.19503275361569,11.5228023529053,11.4573812484741
+4.736525770606436,13.5243225097656,16.7410049438477
+3.810943847323633,21.975284576416,22.7937698364258
+1.0089765494177423,28.0002174377441,28.1247692108154
+0.5815210074578512,27.8343105316162,28.0317268371582
+0.05270458938071163,29.2327461242676,31.7584819793701
+2.7951706697644143,24.250373840332,23.8566055297852
+0,33.6074638366699,32.720832824707
+0,34.9473533630371,34.4246482849121
+0,33.9920120239258,37.0277061462402
+0.02280024041405195,37.6386604309082,36.0093154907227
+1.6182867617114793,32.2203521728516,32.7411003112793
+5.886502314411974,15.1164083480835,15.4701595306396
+5.546397291836816,16.3914928436279,15.9279737472534
+4.2232156505512375,20.2059440612793,21.3473091125488
+4.01168462159104,22.4943981170654,22.0950717926025
+3.157286043825539,17.5701103210449,20.6282653808594
+0,27.0375843048096,33.6044616699219
+0.028963889171080982,31.3469543457031,32.3303184509277
+0.5415792501365252,28.4739379882812,28.8289928436279
+0.3359769873345878,25.1897754669189,36.8169136047363
+0,28.6418399810791,36.3435897827148
+0.9398683923476712,24.421911239624,26.0006561279297
+0.04097191430056359,37.5714721679688,38.2873458862305
+4.12144601519688,18.0992641448975,17.9404525756836
+3.0582237959729217,19.9653072357178,20.0515651702881
+2.747487057635657,22.4866180419922,22.8236770629883
+4.721138268132144,17.5538215637207,17.6428203582764
+3.8484631114336945,17.9345512390137,18.2816505432129
+0.973532620196113,28.4053726196289,27.2965984344482
+0.2018887284907463,31.7792682647705,33.4994583129883
+0,36.637882232666,35.3975067138672
+0.05103843766652174,32.4004020690918,31.7030715942383
+0.04738734842577357,32.330451965332,31.9501762390137
+3.570007358028672,18.0641937255859,19.5125827789307
+0.16078552190545004,28.6538772583008,29.3774948120117
+0.02635551497293961,33.6215286254883,35.9627113342285
+0.6805361364064573,27.4198665618896,28.2168083190918
+0.018454447037489975,40.7944831848145,38.180793762207
+0,35.090648651123,33.1241264343262
+0.11043067431340321,27.6142692565918,34.7849464416504
+3.393888679155507,21.783317565918,21.9962635040283
+0,32.7680931091309,31.7288475036621
+1.1898541429866103,28.8226890563965,27.2666244506836
+0.18370175125187174,26.4443626403809,30.8943157196045
+0.2845621407738671,28.6877403259277,30.0229873657227
+0.15217523947401948,34.2107315063477,35.5016975402832
+0.13154642124951252,34.6801872253418,32.4244155883789
+0.4071456509274639,32.7350006103516,31.8344707489014
+0.7376862113178979,33.2335433959961,32.6459922790527
+5.042063296748034,15.0251083374023,15.9204626083374
+2.4714783137764624,23.6959953308105,24.7090911865234
+0.09655362725502803,28.8861618041992,28.6602668762207
+0.27205959768850296,30.152364730835,30.784086227417
+0.04057153573577721,32.4553871154785,32.9881477355957
+0.946073471055113,25.4947032928467,27.5363368988037
+1.7328050480614632,21.7116394042969,22.4461402893066
+0.6069760240318026,25.6186351776123,32.3772010803223
+0.027325632853880524,31.0449104309082,35.9569778442383
+1.3444078305568725,24.5105247497559,24.5058670043945
+1.5788094762679377,28.6866912841797,28.3372898101807
+1.3511151967348904,30.5246067047119,30.9702758789062
+1.0638151310799073,26.9702301025391,27.3126201629639
+1.54306373477972,28.221321105957,28.0103435516357
+1.499917654181559,27.7701377868652,27.9292297363281
+0.15986264620104895,31.5092277526855,30.6622848510742
+1.1213707392075722,27.1114540100098,25.310718536377
+0.33999039628939204,31.2339649200439,28.6858749389648
+1.7209918100263493,21.5112457275391,22.7951259613037
+0.010026423196241507,34.9701538085938,34.1759414672852
+0.1239278311583985,32.2525329589844,34.1442642211914
+4.458845190880832,15.6168212890625,15.1779584884644
+2.7779570058610994,24.5866031646729,24.8749904632568
+4.619988689878823,18.3460884094238,18.6750335693359
+2.237704076542455,26.615795135498,25.5985584259033
+0.3996119400873551,29.9979267120361,29.6623306274414
+3.9703453457473064,21.0007514953613,20.4955921173096
+3.9081637628761676,18.9492092132568,19.1517200469971
+2.767980202964194,22.5990543365479,21.2827701568604
+2.0397469492632694,27.5803165435791,25.6972942352295
+0.9353520926949876,27.5818691253662,27.4413814544678
+0,29.582820892334,32.7732696533203
+0.05503608104081846,32.1938400268555,32.628303527832
+1.6469599011908724,22.1683101654053,22.1958160400391
+0.48060373836502157,29.5159702301025,29.2451305389404
+0.11180315668959738,31.9514961242676,32.2046318054199
+0.05737673660934728,33.6188125610352,33.7659606933594
+0.101906691938042,35.9444885253906,36.2180099487305
+4.197002551671433,17.6392765045166,17.8158702850342
+0.07721803556773207,31.5226707458496,31.0444393157959
+0.08279764806115131,33.3809051513672,31.3072338104248
+0.40656751676546393,27.497257232666,27.4791793823242
+0.3703853643786224,31.4769077301025,30.8294868469238
+0.7266769253856966,37.1502838134766,36.7905158996582
+3.49123760551724,17.9484786987305,17.9652118682861
+0.25053759755777455,28.1572513580322,30.7551593780518
+1.079874367134287,26.7001495361328,28.2478694915771
+3.618492435047137,23.5005187988281,23.6147918701172
+3.1335167604223555,27.518461227417,27.4542007446289
+0.1346624022607745,31.2757434844971,33.1017379760742
+1.972926715436035,23.9567317962646,23.8229999542236
+0,19.3001289367676,28.3229351043701
+0.7450747915820575,24.8616886138916,27.4167175292969
+1.5776395669944545,27.4425258636475,27.9755096435547
+1.8808236830965752,26.3454475402832,27.0016460418701
+1.8675482055417636,27.4542503356934,27.311164855957
+0.5759450726155717,29.8281478881836,33.4749336242676
+0.18184358794477254,26.5143718719482,28.3456687927246
+1.9840374923142685,30.4298343658447,28.6408557891846
+2.629774565712656,21.2917823791504,21.9344310760498
+1.809747168183077,25.573579788208,25.562837600708
+0.46471175522940766,31.1385707855225,33.6500854492188
+0.1322595150547496,35.5685234069824,34.8630142211914
+1.7048577880285047,23.132661819458,22.5788230895996
+3.4079797295183876,21.1613464355469,21.2908535003662
+1.2343380495246499,36.7235565185547,38.3345756530762
+0.82774423886199,35.3206558227539,35.8001251220703
+3.445047549447233,19.5383434295654,19.5936965942383
+0.280453922003538,35.970531463623,32.4818649291992
+3.036051456607556,20.1780071258545,21.5527248382568
+1.4396429353888556,28.1210880279541,27.2941875457764
+0.7551847100547379,31.1757888793945,30.0041885375977
+1.4743384452035238,26.3485717773438,24.8938045501709
+0.12150318658239,33.9111022949219,34.8325729370117
+0.780373594267014,30.7479000091553,30.2413711547852
+0.6434443285781202,33.9674987792969,33.8588371276855
+0.5139843855008706,32.7636795043945,34.1161460876465
+0.9599933231927045,30.1631774902344,29.5908432006836
+0.06515833473762966,33.0943412780762,32.6882286071777
+0.3163059532352569,30.9918670654297,30.4042472839355
+0.7160463505916974,31.5448303222656,29.4459037780762
+4.280192090067665,16.95361328125,15.893705368042
+0.46327978093534633,31.149694442749,29.9194278717041
+0.40172976857506726,32.3256607055664,31.3105926513672
+1.176487039796117,28.8698616027832,27.1624946594238
+1.4626595099325825,34.642879486084,35.1969032287598
+4.9744389331936905,14.85755443573,16.0297393798828
+2.4682103142096583,23.3875427246094,25.647045135498
+2.2038747255107918,21.9998168945312,23.5502948760986
+4.630224442727461,15.4475717544556,14.8538408279419
+1.987321996191917,24.9909381866455,23.5290470123291
+0.4260032979007497,33.8510971069336,33.7796974182129
+2.5737220540417676,31.9257698059082,30.4167098999023
+4.393774142933456,21.9202003479004,21.6991901397705
+4.665291930247889,18.8355617523193,18.4501914978027
+2.3416757956903598,30.1643943786621,30.1466007232666
+1.2778287573627807,26.0340690612793,25.3510112762451
+0.13214128960091331,33.2975158691406,32.5745086669922
+0,32.7920417785645,37.3985595703125
+0.12883289014979402,31.5071487426758,30.3743457794189
+0.14992735565122817,35.511417388916,34.2699432373047
+0.19865709333140513,30.8970966339111,34.9901161193848
+0.13902611521782923,34.0198783874512,34.1090927124023
+0.039407241693038005,34.8555183410645,35.6695518493652
+1.645192574146126,37.1338195800781,34.9107513427734
+1.0151304823004164,35.4020881652832,34.2641372680664
+1.325546776752752,28.0590572357178,27.5642871856689
+1.2100777647092165,28.2974967956543,27.3437328338623
+3.352479187580718,26.0153255462646,24.8537330627441
+2.4368606281326213,29.016242980957,27.9611282348633
+2.0344254277800258,29.1114082336426,28.084436416626
+2.4187170213040727,24.6497097015381,26.6953125
+3.369695048092935,20.3737564086914,20.4029636383057
+0.8998782907202962,28.8554420471191,28.9786624908447
+0.1496880664459621,32.0454597473145,31.5778045654297
+0.1579301942807777,32.9165306091309,34.2686538696289
+1.1743662762862277,36.4717826843262,35.5039939880371
+3.6490588995611843,19.7708072662354,19.2331123352051
+2.048334681151223,25.5862312316895,25.3447685241699
+0.432242348022192,30.4766674041748,29.9446487426758
+3.2309959936659336,21.2436714172363,21.5703907012939
+1.369213156864058,26.6956577301025,25.2181644439697
+0.18352698993457467,30.1478862762451,29.7007751464844
+4.154721066519894,20.2876682281494,20.4566879272461
+0.03132046096964609,32.94677734375,35.5580215454102
+1.005812198544195,31.0230007171631,31.6464443206787
+1.763884949498999,27.7468204498291,28.8763751983643
+1.1090262358805603,29.8328857421875,27.6244010925293
+1.032530527743112,30.3773422241211,31.581485748291
+0.09900613920110306,30.8131351470947,32.052547454834
+0.042385157019543936,31.2273712158203,34.8164596557617
+1.8593250911474983,28.3151245117188,28.0177841186523
+0.8639813781587284,28.4547748565674,29.0467548370361
+3.270119507882215,21.1300315856934,20.6058177947998
+0.07504669327510292,33.0053825378418,37.1488304138184
+0.8430532029350344,31.0750617980957,30.2138576507568
+2.5198795600928667,24.49098777771,28.2977638244629
+3.564496204534212,19.3829135894775,18.7022953033447
+0.07188200995605784,31.9117031097412,32.9843711853027
+0.01984720182776285,33.2795486450195,33.7198638916016
+0.2776824232612818,29.1174392700195,28.9488162994385
+2.841660027867031,22.1316299438477,21.8005619049072
+3.998994986792705,22.7639293670654,22.2094459533691
+2.0227522691736577,25.1021690368652,25.2646331787109
+0.3252341498684372,31.4414234161377,31.3979606628418
+0.051132745579022774,34.518497467041,35.1744422912598
+0,33.5762557983398,32.3819694519043
+4.774588371045026,19.8311252593994,20.5199298858643
+0.7227329618394012,28.7235298156738,29.1733455657959
+1.7918560398690295,29.1059455871582,30.9407367706299
+1.3583063604059813,28.8283042907715,29.6245384216309
+0.3732051206636661,30.3611545562744,32.0145568847656
+0.13371357910374548,33.3483047485352,34.0927696228027
+1.5557070930024717,24.4410285949707,25.5747032165527
+2.5541034521720776,27.8110980987549,27.6786727905273
+0.1547063910967964,31.6955661773682,33.9477348327637
+1.86612869271886,25.5392723083496,24.9712142944336
+1.894648352507749,26.6528606414795,25.3159942626953
+0.8227090970022808,27.4479694366455,27.3088722229004
+2.011058527527223,22.6871795654297,23.3970222473145
+2.4266034074935576,27.4188899993896,27.8637619018555
+4.561106501281875,22.1256122589111,21.3089656829834
+2.0520229393959855,27.7639007568359,29.0823440551758
+0.3115051204750907,33.455192565918,32.4939041137695
+0.5287695829436727,28.5295104980469,28.7498607635498
+0.012851435398419802,28.8153648376465,36.4002990722656
+0.5728716022004803,33.3050498962402,34.7162742614746
+2.086647786181288,28.3294677734375,28.4972076416016
+0.4057784187112354,29.6730995178223,30.2654857635498
+1.4638741267603819,27.020601272583,25.4115409851074
+4.888993603721615,19.9527778625488,19.303503036499
+2.4579863135244664,28.4734992980957,29.0798072814941
+0.8785083829931137,27.1030654907227,26.2819442749023
+0.14689621216701926,30.7569923400879,30.5597763061523
+0,35.5400886535645,35.7250823974609
+0.033811937560286436,32.5495719909668,32.1015510559082
+5.204025458543555,15.7248315811157,15.7749319076538
+1.8736878385784992,23.4563579559326,24.8147888183594
+0,28.5055465698242,34.810131072998
+4.152045680683503,16.3535709381104,18.6344814300537
+2.674319849337301,19.4507293701172,20.4128646850586
+3.5479428319022404,19.9526538848877,21.0772914886475
+0.02031977828487725,30.7673282623291,31.3539867401123
+0,32.7685661315918,33.547534942627
+1.4712757730370025,29.2807445526123,27.8750133514404
+1.9306856455301653,35.383186340332,37.4566192626953
+0.0857572416191568,26.8082599639893,32.2722015380859
+0.5795338135877832,27.9535484313965,27.5596008300781
+0.16392858023215848,26.3187923431396,37.4288024902344
+0.355880000213058,23.0487785339355,28.5969562530518
+0.8396106571253774,30.3752574920654,30.8994960784912
+0.383804061104335,26.3981647491455,30.9182281494141
+1.5876850853520603,29.2931041717529,28.2825241088867
+0.13880584696150927,30.1435890197754,34.663387298584
+0,28.6191501617432,31.1230316162109
+2.662346761583153,25.2972755432129,23.1256580352783
+0.37034122926997226,29.5651187896729,29.7707977294922
+0.6093896314478938,27.1541557312012,27.2012672424316
+3.3716212417505833,19.9761734008789,19.9189624786377
+0,34.8608894348145,37.6664733886719
+1.5689614490393176,26.4887027740479,28.185525894165
+1.0156345043378254,35.6099510192871,33.4865646362305
+0.0690958044306314,31.7089385986328,30.4317169189453
+3.1460110378562955,23.902904510498,26.5105743408203
+1.0426758999770338,24.8033962249756,30.1606636047363
+3.0835293870403246,27.5387001037598,24.1284122467041
+2.0713098147519293,25.7459316253662,25.9338779449463
+0.5690815864725345,29.4273357391357,28.5288867950439
+0.6374897295125107,24.3006229400635,26.1715869903564
+0.012880029446018557,30.3883495330811,35.4195938110352
+0.2789184193935722,28.3171463012695,31.7670154571533
+3.134641765069447,22.6308403015137,21.1767921447754
+4.640979619726817,14.7615833282471,14.5410833358765
+2.303208893865171,21.9816646575928,23.0559577941895
+3.753924831769138,20.9500331878662,21.4627380371094
+1.8738807287445811,23.2212543487549,23.7478294372559
+0.8366695556090558,32.9504699707031,33.3937072753906
+0.31070401474915693,29.2789115905762,32.5926666259766
+4.176136086916565,21.842264175415,22.5094661712646
+5.498329171898064,13.1681451797485,13.3021221160889
+5.723794162997567,11.8530073165894,11.8913326263428
+1.3677219626098782,25.9586906433105,26.3876094818115
+0.6173357250265898,28.4904289245605,30.0085144042969
+1.6205014775443247,21.5194358825684,29.4777851104736
+0.6413711014613765,25.6328239440918,27.6199016571045
+1.1174184696833152,23.0088138580322,24.8510551452637
+0.24948699133650767,28.8014354705811,29.0875625610352
+0.6228120664819541,29.5493869781494,31.3901977539062
+5.065752272116956,18.0539493560791,17.3430557250977
+0.10491287109081121,34.3635864257812,36.2537078857422
+0.1408579335731581,27.4757137298584,28.4489593505859
+0.5708637767870739,29.2147426605225,28.5075263977051
+0.15597245590792505,33.954761505127,34.1055450439453
+0.05202821280942653,35.983528137207,37.1959190368652
+0,34.0072631835938,33.3166465759277
+0.38909382892775196,28.1081676483154,27.6855640411377
+1.091183845163855,26.351016998291,25.2275829315186
+0.07108146847335102,30.8386135101318,31.4199638366699
+0.05897311155457252,32.2818183898926,32.1388473510742
+0,35.9907302856445,33.3335609436035
+0,35.960636138916,34.7854270935059
+0.049133619984581864,32.7232246398926,38.4176635742188
+0.04461013059965524,33.1949882507324,33.8434181213379
+0.02483256665248077,32.1307334899902,35.4715156555176
+0.04139268515822507,29.5012130737305,31.9370975494385
+0.07287542722885319,29.3782939910889,32.2185745239258
+0.018970882011752312,32.9978256225586,31.7267208099365
+0.1637763186885031,27.4856624603271,30.4928207397461
+2.3724789311234296,21.0887069702148,22.3602542877197
+0.08173228324073178,34.4086990356445,37.8608055114746
+0.08503200590918952,35.2818832397461,38.1293716430664
+0.15205187883443094,32.6939277648926,32.9381866455078
+0.8548996270099265,29.4438171386719,29.4202690124512
+0.3028843269244746,32.2356643676758,32.9273643493652
+1.4148186363595736,27.2059669494629,27.3261966705322
+0.650204965818574,29.4132690429688,32.2349319458008
+0.44886506946459725,44.5203742980957,36.1056251525879
+4.362182423603847,14.1656379699707,14.9106817245483
+3.040746719437261,19.6564083099365,20.4398975372314
+2.414627688879462,24.6464004516602,25.2128829956055
+2.2383686848124476,29.981990814209,30.5778961181641
+0.18176922046638347,35.0211181640625,36.2415809631348
+0.21495836695801734,33.3467292785645,33.429443359375
+0.1177558465428769,29.5198307037354,31.5313892364502
+4.091984381240153,17.3208637237549,16.7882289886475
+3.6284960041409824,23.7930450439453,24.0635890960693
+0.11185742090567097,32.8522300720215,32.9529113769531
+0.42488163663106704,27.4165687561035,27.8370609283447
+0.022165157682711992,35.8159408569336,36.3423500061035
+0.13277313699656415,30.199520111084,29.8252868652344
+1.4833876627938019,30.2894802093506,33.7747955322266
+2.0502037822638113,29.7187118530273,30.081672668457
+0,34.1935348510742,37.1163139343262
+0.6671428051135715,30.5798358917236,31.1875457763672
+0.5166651289952595,27.8732433319092,28.4514293670654
+0.6297177151330167,27.8572425842285,28.3454971313477
+3.7179743749893,23.1855278015137,22.1003952026367
+0.2032603293788173,31.5669116973877,29.520486831665
+1.5139120612628287,24.9283084869385,24.3147621154785
+0.07690729574067344,35.7577819824219,36.6685600280762
+2.802098440646048,26.8165435791016,25.9278984069824
+2.4087288309319774,31.6425304412842,30.550802230835
+4.675081799876619,25.824089050293,25.025110244751
+0.1873169114317916,30.3252353668213,29.2197551727295
+2.6110864418364117,22.8211479187012,22.6573867797852
+2.116198886407602,28.7219696044922,29.1527938842773
+3.3186073525838644,23.8046398162842,24.695858001709
+2.4040012688422867,24.9097900390625,26.423583984375
+0,33.0779838562012,36.0496826171875
+2.941620518293034,23.7056713104248,24.3330821990967
+0.32737648892590465,32.0676536560059,34.7841758728027
+0.6913837173674674,32.4408950805664,33.8033065795898
+0.9161947624962417,27.5768013000488,27.4802436828613
+0.04139268515822507,30.519458770752,35.284236907959
+0.5249324199445786,28.6315364837646,29.9063148498535
+3.7128881683426767,19.8188858032227,18.9521999359131
+1.1714985685794843,37.5750579833984,35.2997970581055
+0.1932458486640982,33.680534362793,33.2110214233398
+0.18765945923936808,30.6854019165039,29.53830909729
+2.363315026446604,21.2411365509033,20.7358474731445
+2.4139807700699807,22.8039436340332,23.6731986999512
+0.9251686753868406,29.4704265594482,28.6927165985107
+0.09971300297308222,30.6277141571045,29.52490234375
+0.8436499538353135,29.1685371398926,28.4361896514893
+0.06155242934217927,31.6673774719238,31.8039093017578
+0.04948103278300305,33.3598556518555,32.5611000061035
+0.3127703663975997,29.1767272949219,29.4232521057129
+3.9543114836891773,23.8365020751953,25.4440021514893
+2.855237013506911,20.2474937438965,20.5570869445801
+1.4357344545563633,26.1858444213867,26.2356986999512
+1.0379996593958036,31.1361961364746,31.3160514831543
+0.1415704513338061,31.3915596008301,32.3358039855957
+0.6889877185484059,28.699239730835,28.951099395752
+0.09317719207387547,31.4807186126709,32.6442108154297
+1.5658071590309635,25.4671516418457,25.7254314422607
+0.05220460677205383,32.2574806213379,33.1134414672852
+2.9221293200130405,27.5339107513428,27.3765754699707
+1.5727288333408367,24.1428470611572,23.7329330444336
+3.5175912411773713,20.1472797393799,19.4100780487061
+0.2193999701037755,36.1022758483887,36.9385032653809
+2.141794892425538,21.4877738952637,21.9928188323975
+0.5650114971008267,30.3189105987549,30.4751129150391
+0.16092536435606647,28.7976112365723,30.2946147918701
+3.223000457838827,25.930025100708,25.9280052185059
+1.8699767886999423,28.9307136535645,31.3920726776123
+0.08694990799965215,31.6833038330078,32.223575592041
+0.04096358128911737,30.8950958251953,31.5408535003662
+2.2745858478221703,25.9618377685547,23.9140892028809
+0.49986484251743046,35.6211204528809,34.3717575073242
+0.11501785249356399,33.1372413635254,32.5587730407715
+5.2368272686731006,13.2467603683472,12.1702499389648
+4.479569485324385,15.6452732086182,14.862663269043
+2.325063893564886,24.9051246643066,23.8662357330322
+0.5416892770844917,29.3618431091309,29.3751373291016
+0.09342168516223506,34.265022277832,32.8378982543945
+0,31.8397827148438,32.8562278747559
+2.249466926553026,24.0782241821289,23.4572868347168
+4.074038062125764,19.4663696289062,20.4754390716553
+3.305151428839045,21.5644664764404,21.1566791534424
+2.0551488838051974,24.195686340332,24.8439826965332
+0.32952682462914595,29.6578903198242,29.8160915374756
+5.333113349097103,23.6392631530762,22.5996799468994
+4.435394420179362,18.7886333465576,17.7745456695557
+2.7556591483041277,26.47412109375,24.8183708190918
+4.572956502410139,22.9738445281982,22.0336589813232
+4.020158964282896,24.776876449585,24.7614917755127
+2.828433091720819,23.3580722808838,25.0218410491943
+2.3167191309605046,23.7494792938232,24.2027320861816
+5.199393727568875,14.1285543441772,15.1540870666504
+4.878806479608463,15.290189743042,15.7005577087402
+4.135480820592801,23.7711791992188,23.6990127563477
+1.6702459465773651,27.2411689758301,27.652006149292
+2.3536083461528463,24.4417457580566,24.1906452178955
+0.4450584895664258,31.1322937011719,30.9052791595459
+1.1846750283984158,32.1888122558594,31.5428447723389
+4.46093240673763,17.0826301574707,16.2818546295166
+2.246266430622042,23.6760864257812,22.433422088623
+0.3307813191404498,32.4065208435059,33.9713935852051
+1.0916103476179102,27.45631980896,28.1438808441162
+2.431408087990126,20.2769412994385,22.0809669494629
+0.045469642001083034,33.1849555969238,33.2118453979492
+0.672631724553878,30.9518852233887,29.118278503418
+0.02791629885548064,34.1987571716309,33.7193908691406
+3.1367658180778224,29.3402404785156,28.5693473815918
+3.5099958576104435,22.4086437225342,22.1182250976562
+2.2116356571467164,23.4593772888184,22.7710933685303
+2.353916230920363,17.7750835418701,21.649356842041
+1.62567109970113,21.1640529632568,25.6393775939941
+0.1646344386013783,25.262809753418,34.3870582580566
+0,27.6421527862549,35.8124084472656
+0.053110211835547004,23.8734283447266,31.8275527954102
+0.08916981838905877,25.9880752563477,29.5971431732178
+0.4136117369107138,28.2124347686768,27.8554039001465
+0.365220499143521,32.7984809875488,35.6280860900879
+0.010988008751816583,31.4986114501953,34.2970275878906
+0.07978734087205853,32.601016998291,34.8769683837891
+0.33827406463786125,24.8026847839355,32.6426124572754
+0.14528648625541413,27.6806583404541,37.123966217041
+4.84024684429767,16.9380550384521,17.157096862793
+4.082576068912145,16.4865474700928,16.2349910736084
+2.0360825463083776,26.5060138702393,25.2268180847168
+0.09867483628722497,29.2374515533447,29.0816402435303
+0.0579578052056335,31.4460945129395,31.0438404083252
+0.2131351411101079,30.6591930389404,31.2199535369873
+0,29.7067737579346,31.0326328277588
+3.794098675506544,19.6761093139648,19.3815650939941
+0.3096694781335882,30.8545627593994,34.9133758544922
+0.5269173339413864,27.9971866607666,35.7963829040527
+0.8989336472333516,27.0629119873047,27.6798324584961
+1.5851382911139174,30.3342361450195,31.4444236755371
+4.718875603948478,17.979434967041,17.4095096588135
+4.036137285597289,25.4150562286377,25.1860179901123
+3.055478366655496,25.1674690246582,24.4011383056641
+0.17347787830656802,30.4879837036133,30.8471374511719
+0,34.6699714660645,35.2871131896973
+2.6744837601990077,25.4841156005859,24.873893737793
+3.195047989917243,20.3583946228027,19.6680641174316
+1.9197554150515221,27.3956661224365,26.8950996398926
+1.887250741667791,27.713472366333,27.3600730895996
+1.5899533077077304,33.9664192199707,32.8926544189453
+2.996159283864341,22.4625701904297,22.120979309082
+1.7942543712443095,24.4333171844482,25.7384414672852
+1.2855573090077739,24.9116191864014,25.619213104248
+1.8645725596463556,25.8007965087891,25.4427337646484
+0.29574988933450086,28.717306137085,29.1188831329346
+0.6392342048339404,31.3268394470215,31.4647121429443
+0.27170729908330904,29.4329872131348,31.1401042938232
+0,35.2191505432129,35.7344360351562
+0.06168140807886963,31.4031410217285,31.2398719787598
+1.044926652800589,27.9274730682373,28.7795658111572
+2.23335955023603,23.3316116333008,25.5743312835693
+1.9248262493194586,25.8333568572998,25.8862781524658
+0.06067677495531417,30.1595840454102,30.1542339324951
+2.683524418188287,27.7693710327148,26.5679264068604
+0.3569457286357069,32.6321258544922,31.9190998077393
+3.2286398284568616,21.3974056243896,21.1654586791992
+3.187743375590836,18.6062450408936,19.4795207977295
+1.5042348876252964,25.1580104827881,25.3626880645752
+0.10096434551330388,30.4657497406006,31.9530658721924
+1.826521562348571,21.8315486907959,20.8339309692383
+0.11368117384340508,29.7665519714355,29.4138603210449
+0.5275303334646598,29.9395751953125,28.0101547241211
+0.3477383313415621,30.2904510498047,29.3542442321777
+0.23807612522705288,32.2209777832031,33.2150688171387
+0.09139011801517792,36.3073425292969,32.892707824707
+0.05156818098314246,34.2484550476074,33.9478874206543
+0,32.0981597900391,38.0098419189453
+3.308596424259771,18.7704238891602,17.7986793518066
+0.14762266390736753,31.318941116333,29.5908260345459
+1.894825594870311,25.250862121582,24.5921764373779
+2.833720690444633,19.8502597808838,19.4788188934326
+0.7898716643096474,32.5565986633301,34.9034423828125
+3.6312294157605,17.3977069854736,18.6261043548584
+1.946343821325754,25.3619480133057,25.7856540679932
+1.2679403792101906,26.0639533996582,26.1950378417969
+0,34.3982810974121,35.7673072814941
+0.8634079780466938,25.7761898040771,27.3984069824219
+0.17358535789780782,30.3424816131592,31.7021064758301
+0.01908445225667425,34.40380859375,32.2429542541504
+0.2250966394144989,27.8365459442139,29.1410617828369
+1.9741640820655821,22.656078338623,24.5470771789551
+1.098624355130004,25.556489944458,26.3556842803955
+0.58044158873035,26.0344200134277,25.3584594726562
+0.2831784302444113,31.9722118377686,30.6134662628174
+0.17581751208676524,33.8041305541992,32.5165557861328
+0.421603926869831,30.47776222229,30.6888046264648
+1.0334601395464726,24.9355525970459,24.970422744751
+0.7354908591683162,30.6138401031494,29.6488571166992
+0.5432710381264316,34.2736930847168,32.1742897033691
+0.06564913325591083,29.4442958831787,30.4274368286133
+0.7355988996981799,25.7533702850342,25.8685874938965
+0.06576132856269348,30.8711090087891,31.4465751647949
+0.9772334410097715,23.622631072998,24.5046501159668
+0.4814541123678081,29.0960540771484,28.4530391693115
+0.05027198173047287,32.3672370910645,32.0230941772461
+1.179220780157292,36.8312797546387,37.0942039489746
+0.13848900229472252,30.1683731079102,28.627197265625
+0.0798209393014181,27.8853816986084,27.425989151001
+1.7066304236316585,24.6440010070801,25.2175369262695
+1.3352924780045075,30.1760787963867,30.7143592834473
+0.08880218454669873,31.9660015106201,33.2879943847656
+0.038875444520626225,31.1119918823242,31.1491851806641
+1.095689502871894,25.9132308959961,25.5580596923828
+2.0109536172398927,27.2945232391357,27.3242950439453
+0.6295136151941267,32.5795555114746,33.6176986694336
+0.6476683385242292,28.4661293029785,28.608943939209
+0.22092806619816907,33.7157936096191,33.9062423706055
+0.09180921358520665,34.311767578125,34.4223937988281
+0.6630615318220329,28.343334197998,27.611349105835
+2.39490041628049,24.15891456604,23.1997222900391
+0.08235634714724076,30.2097072601318,30.2744407653809
+2.021816872486709,22.0443134307861,21.0847225189209
+1.3874854924925137,23.9925861358643,23.4154281616211
+0.3157880880057997,35.1722183227539,33.72119140625
+2.2316111801856686,22.6500434875488,22.1508655548096
+1.1299662673867608,29.5768508911133,31.1666717529297
+3.46613454962343,20.7499599456787,20.4693355560303
+0.02158183609479341,34.0234336853027,34.0842132568359
+0,29.1321411132812,31.7278652191162
+0.46924802444831515,26.1297435760498,28.4673690795898
+2.61724007325991,18.3797817230225,20.0619010925293
+0.9951766049580275,27.0504455566406,26.89328956604
+0.4676592163491882,26.9568901062012,25.7599639892578
+4.967255013887686,15.3047904968262,14.8993854522705
+0.948412965778601,25.6214561462402,26.3865699768066
+1.9971678714458339,20.7998332977295,21.2098388671875
+1.206745010183151,26.3930854797363,26.200963973999
+0,34.1758460998535,32.7637519836426
+0.5284508862273252,28.4613018035889,29.3907871246338
+0.565304776994447,32.6819534301758,32.4308929443359
+0.4683447107056764,32.3968391418457,32.0105743408203
+0.9834183613276396,31.3170719146729,31.0572395324707
+2.0852197423582233,29.0609340667725,29.4664440155029
+0.8218555293191172,30.4745578765869,28.8764839172363
+1.0019373159494707,28.5188236236572,27.5402011871338
+2.8765760491564096,22.3543395996094,21.9779834747314
+3.331076929531588,27.397289276123,28.4084033966064
+2.508550523012038,24.2554836273193,23.6035633087158
+1.9729282727176067,22.6637344360352,22.4897346496582
+0.4502491251367231,30.4340572357178,30.8438415527344
+5.611292095996566,11.3125705718994,9.87644863128662
+4.3703964204962045,15.6279573440552,14.4658737182617
+4.689739079614866,15.1879930496216,13.9299907684326
+2.6154572104532856,22.0875568389893,21.5454692840576
+2.0446766512059353,25.0529537200928,24.2402629852295
+4.4349745288907885,19.1769161224365,18.9965038299561
+3.8667892363778598,23.6039276123047,23.3455657958984
+4.756623934923144,14.7461824417114,14.4599189758301
+3.966746674093702,15.5941972732544,18.5995407104492
+0,37.1891403198242,34.2541427612305
+0.9264041944451575,34.2923126220703,32.2821235656738
+0.025502925114885968,35.3500366210938,33.2004241943359
+0.19654122648076658,31.6538143157959,31.2182865142822
+0.1900868422114026,34.7831993103027,35.2502899169922
+0.26241580901747474,35.3513832092285,35.2493057250977
+0.13973179570703345,32.218563079834,30.8543968200684
+0.26430098407594244,28.6339416503906,32.7896270751953
+0.7749666465646893,29.8467197418213,30.3109455108643
+0,32.6317253112793,31.8251991271973
+0.9214224767415928,26.6268882751465,26.4177188873291
+3.7458226111894612,25.6322784423828,25.7511920928955
+2.0003093803048855,25.5233783721924,24.7354717254639
+0,35.249195098877,35.0597953796387
+3.2338032869564532,22.5817222595215,23.536319732666
+0.7860634026540059,30.7216892242432,31.1292972564697
+0.6703179727199404,32.4786415100098,33.1419448852539
+0,31.2894229888916,31.8979110717773
+1.3795460197258895,28.5983409881592,30.442985534668
+4.186183157424331,22.207426071167,21.8546524047852
+1.5299383807726914,23.4758148193359,25.2310924530029
+2.1249889635229082,22.1362686157227,21.4341049194336
+0.3212118645572628,34.4493141174316,33.4412956237793
+4.205864098150803,16.288387298584,16.1887550354004
+2.0296728845574656,24.7275848388672,24.3671989440918
+5.691956662118644,14.2962512969971,13.8359088897705
+5.17611441964745,14.2563323974609,14.0333986282349
+0.1055306137839273,30.2507495880127,31.4808464050293
+2.2754035027454043,25.6566734313965,25.085657119751
+0,36.9581489562988,35.9637832641602
+0.043840803541889364,32.2271308898926,35.313907623291
+0,30.4066371917725,35.9452285766602
+2.332285773829048,21.7479286193848,22.5733299255371
+4.688743214547182,15.9536981582642,17.3832759857178
+2.0735980050964358,28.99196434021,28.5551147460938
+0.10470210587292371,28.4685211181641,30.6469345092773
+0.278811570630696,33.3119087219238,33.89892578125
+1.375096674892795,27.412748336792,29.63893699646
+1.6289991055903967,26.8192043304443,23.4571933746338
+2.8842894882382097,22.8862323760986,20.4716567993164
+5.342707622855373,15.0579137802124,14.1642332077026
+2.2860187299207264,25.0315608978271,24.4638938903809
+0.37588530126029107,32.2751541137695,30.0204677581787
+0.20745075669097626,33.283805847168,32.7288970947266
+0.019176830317565032,33.9191398620605,33.454761505127
+3.824787408200537,19.4116687774658,17.9863452911377
+0.609848066446282,28.3380641937256,27.2937774658203
+0.6542349336742186,29.7576084136963,26.0468635559082
+1.7111329913066953,25.5965538024902,23.9706172943115
+1.352696550315029,25.6754741668701,25.7801685333252
+0.8245845590022012,26.8437824249268,26.9441547393799
+0.04427472676313078,27.7950572967529,33.1142387390137
+1.5598046002885433,23.9325981140137,23.6641464233398
+0.16627749430213673,31.5237922668457,33.9398803710938
+0.1179267853388933,28.5231056213379,28.7255897521973
+0.10633245411308247,35.2689476013184,33.484748840332
+1.5438122865306372,24.5771961212158,24.9440116882324
+0.7221715618650725,27.678524017334,28.8530349731445
+1.1895324612846299,25.9197425842285,26.5175113677979
+0.11393431302142482,32.571590423584,29.3073177337646
+0.18924630073911075,31.9635181427002,29.5817222595215
+0.1364737370110476,34.2823219299316,34.1643943786621
+1.352220363713242,23.479398727417,27.6131076812744
+0.5993825522224077,21.9962291717529,32.146427154541
+0.6883932853372063,25.9464511871338,26.3541011810303
+3.7122558061915383,22.62451171875,21.7876129150391
+2.3565508527688652,29.3925437927246,28.1394233703613
+0.43892822752557775,37.8788032531738,37.1903190612793
+3.5061245418116576,26.7033348083496,25.9463996887207
+0.10567359939337351,35.8756370544434,34.9636077880859
+1.0059206175016089,34.1511878967285,32.6622581481934
+0.3605158567208802,30.1160182952881,31.6485939025879
+0.4277635828175549,30.7633781433105,30.0676879882812
+0.026779098255754842,33.8281898498535,34.7979774475098
+5.0550439745150655,17.9527759552002,17.2433280944824
+2.211537343659141,24.8088798522949,25.0064105987549
+5.325419201245265,16.8649005889893,16.1597843170166
+5.145355108522555,18.9603843688965,18.1046390533447
+1.8663492170858527,21.1853466033936,22.9769821166992
+0.22163697609635977,29.4459056854248,29.5452079772949
+0.5612778319626216,29.4670944213867,28.4033184051514
+1.6629268178597496,31.2822341918945,31.1854496002197
+0.67758429472183,31.8678588867188,31.1502685546875
+1.679813892897782,30.2846355438232,29.0363330841064
+2.5484963207937184,22.2974967956543,22.5467834472656
+0.31288599339520706,32.280517578125,32.0700988769531
+1.2826008812992367,28.1752243041992,28.5191669464111
+1.3509963217614716,28.2890243530273,27.4602088928223
+0.019415147692530502,37.9085998535156,36.7863540649414
+1.443604804377173,28.4341011047363,27.3585453033447
+1.6623791740554155,28.3025951385498,27.2782001495361
+0.3370598219030835,33.159107208252,31.6884326934814
+0.08423651187848405,35.1467742919922,35.1233825683594
+0.31667185790499297,31.7936840057373,31.0557746887207
+0.020302911999872206,32.424144744873,36.7744941711426
+0.3962147756656612,29.3835582733154,28.6351280212402
+0.19098529755883095,31.7226657867432,31.4336814880371
+0.02308702343779791,33.823112487793,33.9757041931152
+1.3136787783754384,29.060697555542,27.4431858062744
+0.07997178522813926,33.3214988708496,32.3386154174805
+0.4159615366484391,30.1677284240723,29.3623123168945
+2.4811997763452744,26.2234382629395,24.5503368377686
+4.664276180573426,14.9363012313843,14.0818309783936
+5.3264619106709565,12.1385345458984,11.2365493774414
+4.556169855939289,14.23694896698,15.0891389846802
+3.192425464032695,18.8368835449219,19.2193050384521
+1.306012869038379,25.391773223877,26.8497905731201
+1.0885992706509386,30.4806098937988,33.2948303222656
+0.016676538297104155,31.5275363922119,33.1033172607422
+1.907715691736567,26.7873516082764,26.7768096923828
+1.1092830445232928,29.5244598388672,32.8961143493652
+0.6830833036677405,28.9741802215576,29.6358451843262
+0.15281613136572064,33.8121376037598,33.4559631347656
+0.974123373392142,30.053882598877,29.7043018341064
+0.3922038603526423,29.7175521850586,29.7799263000488
+2.0705059435465634,26.5832996368408,26.1816368103027
+3.3604636173634614,19.5009422302246,19.6063060760498
+4.645834207888081,17.9159851074219,17.8993072509766
+3.3752856790447376,21.580883026123,21.0521144866943
+1.5808925389114505,27.2368030548096,27.6542320251465
+5.398251243111162,13.6101007461548,13.5750102996826
+5.2159078335272175,14.6598310470581,14.6101379394531
+4.657064231575717,16.009162902832,15.3455858230591
+4.460967782355551,16.5982131958008,16.6127319335938
+3.476979770729332,22.3225002288818,22.7367935180664
+2.314330782520869,21.9261703491211,22.8842334747314
+0.20460963781151645,30.0213165283203,30.7950706481934
+0.9139561487483343,26.9732704162598,28.3358821868896
+2.069761053506159,27.0609130859375,27.1533355712891
+1.4747255054391768,27.4731388092041,27.2093715667725
+0.3610738431228495,32.9029922485352,33.3934326171875
+0.07140351899487196,30.3253688812256,32.1983299255371
+2.204892772043591,26.9008197784424,26.1744842529297
+0,29.6318130493164,34.7332077026367
+0,35.123722076416,35.7010383605957
+0.9112675830678153,25.3728885650635,25.049768447876
+0,27.6328811645508,29.2706642150879
+0.7845121263706729,24.2741546630859,26.37428855896
+0.6703684663158684,27.7837524414062,28.7211608886719
+3.084447579020394,19.9063415527344,19.6022510528564
+1.831421817065022,23.0501556396484,22.6187934875488
+0.50573154208829,34.355281829834,33.863224029541
+0.18769208492665673,30.4217987060547,27.6981143951416
+0.047371719441768934,35.0820198059082,37.6524276733398
+0,34.4343338012695,36.1682205200195
+4.505019153570416,18.4537391662598,20.6723957061768
+0.07849207209800543,33.2358093261719,32.0302391052246
+0.013529709329637735,32.3374633789062,32.9099769592285
+0,40.6344833374023,38.388126373291
+0,37.2034378051758,37.4247016906738
+4.244439150737899,19.6084232330322,19.0727291107178
+1.181754089371414,26.9554672241211,27.5619049072266
+2.5530308530503176,25.518009185791,24.2631645202637
+0.1770089933449798,32.4780120849609,32.2623825073242
+0.020055070794902374,37.4807548522949,36.525333404541
+1.737951041974197,28.3218975067139,26.9191970825195
+0.019108763182724302,34.4000205993652,34.1974716186523
+0.04185245902127322,34.202205657959,33.5504531860352
+0.04392828734310535,35.6628456115723,34.565544128418
+0,35.7387924194336,36.7582130432129
+0.03342375548694973,33.7973785400391,32.3679847717285
+1.129689892199301,27.5513362884521,27.9335231781006
+0.03342375548694973,28.9176044464111,35.9222640991211
+2.347951621329743,20.9465179443359,23.097110748291
+0.5339686957252249,28.4044208526611,26.9705238342285
+0.4868800186070418,28.776496887207,29.0004024505615
+1.8719813538433694,22.5385150909424,23.4661350250244
+0.23552844690754893,27.4847049713135,30.0422096252441
+0.07918124604762482,30.2130165100098,32.2130508422852
+3.30521721564294,18.2275733947754,19.2082138061523
+4.8592754159167235,16.1795921325684,15.4175186157227
+4.5677050203218,17.9345645904541,17.4534168243408
+1.1330037181486772,26.0810375213623,25.6827030181885
+2.7615632632342377,22.5458450317383,23.0877208709717
+0.0477569029286017,32.2967834472656,34.2104034423828
+0.150495581255867,30.6054134368896,30.8640155792236
+0.023607411889414724,34.4662094116211,35.2058753967285
+3.642140475251871,23.2357482910156,23.7731819152832
+0.7729702090434561,27.1818370819092,27.3908710479736
+0.4969556818978844,28.448766708374,29.4461059570312
+0.08635983067474821,30.4549007415771,33.7169494628906
+0.4753044429883049,27.4888439178467,28.9493618011475
+1.2981724864826178,26.3826770782471,26.6776428222656
+0.47557166194992717,26.4839954376221,26.9391059875488
+0.26168678267995177,27.8489513397217,29.3816070556641
+0.038248859432300865,32.9395751953125,34.6206207275391
+3.8581997921470226,20.3511810302734,19.7583122253418
+3.1484950467541934,21.5400390625,20.5584239959717
+0.22791076105121735,30.4401798248291,30.0070915222168
+0.15377528858516032,30.6941413879395,31.0254993438721
+0.05298674524655594,32.1535606384277,31.4552173614502
+0,34.4379577636719,35.6779327392578
+0.026077978072617667,33.7632675170898,33.2741203308105
+2.584621472334498,25.9628410339355,25.5367794036865
+0.14116654038548782,32.2082405090332,32.0454483032227
+0.034348760018295475,35.5921401977539,35.9675598144531
+0.6286217722970988,30.7248058319092,29.2300910949707
+3.2297572315466123,22.4244995117188,21.7891025543213
+2.256675031870212,23.1454124450684,21.5974082946777
+1.1051694279993316,26.6523666381836,25.805347442627
+0,37.2569541931152,37.2070426940918
+0.4011716267688932,35.4643859863281,36.6019134521484
+0.34224161827385746,33.3383560180664,33.6435775756836
+0,31.2879943847656,32.7001876831055
+4.533289333819814,14.5081701278687,15.0513191223145
+4.378977247886245,16.4801712036133,15.8349151611328
+4.454790192776516,13.209792137146,12.2939577102661
+0.012906059016417035,33.6262245178223,35.2717475891113
+4.533012346158913,16.395601272583,17.6688022613525
+0.14037890258237745,30.1439647674561,30.5657386779785
+2.362217411410466,24.1487560272217,23.9444427490234
+0,30.2580165863037,29.9988384246826
+0.05574102938233094,30.8140716552734,29.1663646697998
+0.05010334850482852,30.6486053466797,30.6697654724121
+0,36.3384590148926,32.3099555969238
+0.44218597872523047,27.974946975708,27.1144351959229
+0.17782357529144813,28.6345443725586,28.0063285827637
+0.20786575990764622,29.6294384002686,31.1852531433105
+0.13394472089285944,32.6985244750977,34.1755752563477
+0.269931879593363,31.1725788116455,30.6931629180908
+0.017141496341976956,28.1622734069824,28.9725246429443
+0.008600171761917567,31.9145698547363,32.0156021118164
+0.7621853061315942,29.7702960968018,29.4231758117676
+1.428643140399637,26.6198406219482,26.0370845794678
+0.1562567245852183,33.5150032043457,33.3618507385254
+0.04921802267018165,31.4911880493164,31.0547790527344
+0.7543483357110189,26.8222236633301,27.3536548614502
+0.19865708695442263,35.4942207336426,35.7940483093262
+0.055850619060076045,33.8570442199707,35.4598159790039
+2.246916270375415,27.8078327178955,29.0082225799561
+3.3581247807885948,28.333475112915,27.9635791778564
+1.4197599839177704,27.5306873321533,28.6127796173096
+0.436530749282793,29.9356155395508,28.4829139709473
+0.5280278371775908,31.5003147125244,30.9657917022705
+0.035353851889832644,32.4296226501465,32.2397651672363
+0.05791497987215035,35.316722869873,34.1632308959961
+2.9156401576494333,19.8343944549561,19.9134960174561
+2.236159494302811,23.4591293334961,22.9122314453125
+0.49648499505078264,29.3291931152344,31.3008060455322
+0.09694035801582417,34.9081611633301,35.4392242431641
+2.8855149012495422,22.6262607574463,23.9170799255371
+3.477563685083094,20.8747005462646,20.8115901947021
+0.7234372487846756,28.9202766418457,30.2656402587891
+0.5984350332331485,27.3624248504639,28.4299545288086
+0.04534449098994478,33.3971290588379,34.1783752441406
+3.366837688266811,23.0583801269531,22.3228969573975
+0.5600135481934094,31.0077438354492,31.484188079834
+2.2856473089007294,29.5753326416016,29.1687316894531
+1.56420470848058,23.5881271362305,23.8229370117188
+0.8394540801853926,26.9462833404541,27.7105102539062
+1.2012267064582964,26.7683868408203,26.2054557800293
+0.677383115554196,27.8646697998047,27.6685409545898
+0.7338849282748096,28.8483867645264,32.1208343505859
+0.04139268515822507,32.7772216796875,32.6543464660645
+0.14492721632240163,30.2999000549316,31.2281150817871
+2.7825802724752506,25.9393005371094,25.6246528625488
+2.914202566767058,22.3923206329346,22.2294521331787
+1.8998535952355318,27.4172420501709,27.9825134277344
+0.18040548759880004,31.7148246765137,30.6725177764893
+0.10644489943292386,35.1507720947266,35.198860168457
+0.13702393616286648,33.9663391113281,33.4142761230469
+0.5026504264204156,31.0383834838867,29.8577747344971
+0.012850205176782915,32.4658584594727,33.403247833252
+0.5456456544311542,27.2304401397705,30.2117824554443
+1.2115317606751543,31.5752220153809,31.4699745178223
+0.014033927872732336,28.6252784729004,32.6373596191406
+2.147546672471473,24.1132698059082,23.2164707183838
+0.30684333991663854,29.6795215606689,28.6868190765381
+0.037834653939014945,30.7958831787109,30.8132228851318
+0,36.483943939209,36.4856300354004
+3.3222373170136845,25.7904663085938,25.2279930114746
+2.426590308131205,29.7358894348145,28.8196315765381
+0.11205995602456292,31.9980964660645,31.0987548828125
+0.26480210936903387,30.9311599731445,31.3723850250244
+0.13449804113323593,34.6694602966309,33.9986610412598
+0.4894276676735652,33.1968154907227,35.9423637390137
+0,37.4890174865723,36.0906295776367
+1.8417601223014985,25.3951454162598,25.1966533660889
+0.38159290330567863,33.085880279541,33.6511650085449
+2.484969907137273,24.7416458129883,23.6366691589355
+2.459357140530515,22.582405090332,24.1872482299805
+5.2534494947551105,11.6521854400635,13.2855291366577
+3.72176401484181,17.777795791626,18.4785118103027
+1.1819323596747402,28.6339092254639,29.9000205993652
+1.006499349798743,24.7382297515869,25.4396953582764
+2.962913811177418,20.725622177124,20.2984504699707
+2.748025362098706,26.7756328582764,26.2291049957275
+0.26283525949785697,31.4928512573242,32.9431381225586
+2.1741403331758242,30.6695384979248,30.7121410369873
+0,35.0382881164551,37.9907646179199
+0,33.7013206481934,35.2543640136719
+2.210863694888506,23.4027233123779,23.4966278076172
+1.0308020295620746,29.0963668823242,28.1332530975342
+0.17996452879854452,30.8775768280029,31.0433769226074
+0.1367771250996277,32.069019317627,31.4792251586914
+3.7254434842373936,19.9774208068848,19.1219844818115
+1.5865445804648879,26.5016651153564,26.0126991271973
+2.0307742914205487,23.1023998260498,22.1817646026611
+0.4456394493991478,34.442554473877,33.2817077636719
+0.4383394514761749,33.7574920654297,32.0122718811035
+1.7970107280121947,26.4238243103027,27.2854633331299
+0.7274856536234995,32.0338554382324,34.233642578125
+0.056904851336472634,31.7252254486084,32.4386329650879
+1.764847681792973,28.5823783874512,27.1646060943604
+0.44943751915615565,29.7726173400879,29.0408363342285
+5.011876476822163,16.2614994049072,16.7930812835693
+4.8398398183778015,15.9264459609985,14.9352073669434
+3.1920242370082836,23.1205043792725,23.0329151153564
+1.9948587529783506,29.5628204345703,28.8701152801514
+0.9066122461424052,30.5774803161621,30.586986541748
+0.16768184021987023,32.5780830383301,32.4127731323242
+0.2126853990568845,31.7110462188721,31.163480758667
+0.03342375548694973,34.399169921875,34.8952598571777
+1.5224154555556402,26.8731575012207,26.1826686859131
+0.04921802546207471,32.6301918029785,32.8289337158203
+0.0641659858267578,31.7153911590576,34.368480682373
+3.391924592746274,27.4104137420654,27.9673671722412
+4.451979789436217,17.5987644195557,17.1336975097656
+3.521691075660225,21.5601139068604,20.7508907318115
+1.0684370612246181,27.5592021942139,29.1035976409912
+0.2875746359368228,34.7635345458984,33.7597312927246
+3.352444473726778,29.9781818389893,28.8897876739502
+0.2627234414939018,27.5671901702881,28.8871288299561
+0.00949141091725681,35.3286247253418,34.4628295898438
+0,29.8254051208496,31.5841197967529
+0.08334870749158023,31.8448791503906,30.9157962799072
+0.028378586566889002,30.2553768157959,31.4895992279053
+1.3004958957358335,23.8190841674805,26.3825702667236
+0.04133632352288906,31.5056114196777,36.4019813537598
+0.03688096052802739,31.9586334228516,36.6872749328613
+0.7741565727078317,23.9422473907471,31.3484859466553
+1.355192414385099,28.3456592559814,31.5053215026855
+0.026480887883694938,35.536247253418,34.8746604919434
+5.423600719360841,13.1670122146606,12.3956518173218
+3.943149912353463,16.7188472747803,15.9243154525757
+4.117922229070675,17.1524887084961,16.3216114044189
+4.340574949079814,16.4917430877686,16.1129570007324
+2.3139938857143147,24.0387878417969,22.9817981719971
+1.7254546263676591,26.3035888671875,27.446231842041
+3.687226757657105,20.2479839324951,20.6435832977295
+3.571429043344376,17.8626232147217,19.9387435913086
+4.806701024801972,16.677640914917,17.4535999298096
+0.6878733509517709,28.8216438293457,29.3513145446777
+2.6097407091331255,23.4934692382812,24.0249156951904
+0.09171960735194688,30.7803516387939,31.9790573120117
+2.5684436772187875,20.7624034881592,20.7655601501465
+0.04600867661270502,28.5890769958496,35.2723770141602
+0.0462134817319178,32.3105087280273,35.6967735290527
+0.4152003579897941,34.5073318481445,33.2916526794434
+0.1237211513062125,31.8446598052979,31.1966304779053
+0.13112308400305583,31.1797714233398,30.4372406005859
+1.4176183685258257,25.8190574645996,25.8200187683105
+0.967196141115566,22.9106216430664,24.6585178375244
+0.021625350140885728,33.6409568786621,34.6525650024414
+0.7076033764613386,27.9818649291992,28.1364135742188
+0.3896121558041903,30.2456645965576,30.6788635253906
+0.7391681894411356,27.8098888397217,28.2767009735107
+0.055727413755473326,32.2890853881836,34.1509017944336
+0.5369649655587969,26.9439697265625,26.2799129486084
+0.1336878291816573,32.7173881530762,33.4976234436035
+0.8250589787210136,26.6138381958008,28.2439060211182
+1.0123130403681213,30.736400604248,32.3500061035156
+0.18296347975414562,31.9905242919922,32.104305267334
+0.018605066626420915,31.8668155670166,32.1494750976562
+0,35.7926216125488,35.9396324157715
+0.022295308283809916,34.6614379882812,35.4805870056152
+3.470298845328356,20.7234153747559,21.1380805969238
+2.2251051718912214,23.7156238555908,24.4335861206055
+3.770919080364851,19.5555934906006,20.6004409790039
+0.6932318151183354,23.2597560882568,27.0604782104492
+0.18833968475104818,29.3985366821289,31.6589260101318
+0,28.417818069458,29.8293895721436
+1.6132855438274663,25.802417755127,25.3747577667236
+3.864008489471024,20.0084457397461,19.626859664917
+3.30932950552055,20.9722557067871,20.6417102813721
+0.01338271596931428,32.9328918457031,32.0329170227051
+0.7135959794293932,27.9173450469971,28.1872215270996
+1.0586193507488544,28.5955352783203,27.4357032775879
+3.9376541833976755,19.0108852386475,18.3281478881836
+0.6036812604097025,31.9189701080322,31.7243709564209
+1.7227300450836365,27.1496429443359,27.3569087982178
+0.822276177096317,32.663875579834,31.2311820983887
+2.5928188708932676,25.8089008331299,25.6407794952393
+0.25811784526837345,33.0131378173828,32.2511520385742
+0,35.9550628662109,36.7521896362305
+2.4838948701581294,23.8458347320557,22.4637660980225
+1.1587360487125666,27.5923004150391,26.9829235076904
+0.08515045282192614,30.804084777832,30.8546714782715
+4.055315408463757,19.0625591278076,19.5221099853516
+3.3257143971205623,21.2711162567139,21.7773380279541
+1.5090744071173376,26.788948059082,28.8142337799072
+0.5779960974059095,31.4844379425049,31.7014827728271
+0.14592819729488374,34.4632949829102,33.9792175292969
+3.1634260895982695,19.7521514892578,19.2453861236572
+0.5716980588150624,28.3828582763672,27.5682525634766
+3.046895176123916,18.6339778900146,18.0157661437988
+2.248371546769898,26.7378158569336,24.086238861084
+2.392061399825174,25.6694831848145,24.3498592376709
+0.7454526574670639,31.5055255889893,27.1130809783936
+0.285596413057471,30.244348526001,31.4272212982178
+2.4352196318234447,25.2513618469238,26.0377826690674
+4.986005357738663,19.9584560394287,20.2898864746094
+3.9742311298740525,16.0058975219727,15.2580060958862
+2.368404863699887,23.489990234375,22.529354095459
+0.15800086430186563,30.6387615203857,31.212682723999
+0,33.2081565856934,33.919548034668
+0,35.0275230407715,34.9393882751465
+4.6594570083111035,18.2842330932617,17.1585998535156
+4.363447819687609,20.0012493133545,18.5941352844238
+4.317570622508748,15.6650896072388,14.447940826416
+3.076228626697107,19.3230209350586,20.1322231292725
+3.1847118823060465,20.5784130096436,20.3037052154541
+2.1880086665411054,23.7625980377197,22.480489730835
+2.2466765572679024,26.6665573120117,27.4681625366211
+0.4118022224320313,32.6370582580566,33.0746841430664
+2.562768197881001,29.8282203674316,29.3375339508057
+3.859959563234884,24.537914276123,24.9418888092041
+2.1304624292815797,28.6035690307617,27.9467163085938
+0,34.5184783935547,36.5839996337891
+1.7502725251441797,30.8216609954834,33.2909393310547
+2.575234324377784,25.4146041870117,25.3097114562988
+1.6551713076760863,29.0721492767334,28.6202449798584
+0.5561966881627154,28.5685577392578,29.2528381347656
+0.3109152382908047,33.6580047607422,33.1654586791992
+0.24842319594662843,33.5050621032715,35.1865768432617
+1.6266477890643067,28.6981048583984,28.9756946563721
+0.8999925487278709,33.0341796875,32.3961372375488
+0.03483183325339339,17.1231746673584,37.8160057067871
+0.320406130665116,35.6150054931641,34.7578239440918
+0.1540819317823192,32.7259216308594,32.3958854675293
+0.9827831703583919,29.1475257873535,29.9795532226562
+0.40682118328329264,33.8485107421875,37.1846618652344
+2.0234547542260004,23.3498134613037,25.0563411712646
+1.8594621061104046,31.2660350799561,29.971118927002
+0.5797984993167604,31.3760299682617,29.8173999786377
+1.8708187213342686,27.2338390350342,28.1711502075195
+1.9553029516059375,27.4031467437744,27.0131721496582
+0.09408304659266879,31.0312309265137,32.3491668701172
+0.6570166565074939,29.8179321289062,32.959098815918
+3.000002886897907,22.0026397705078,22.3235969543457
+0.011813047220211708,33.4282073974609,33.9928207397461
+2.8675577845468623,27.7828273773193,28.8663711547852
+1.5758630639499416,25.5303783416748,32.5784149169922
+1.8862650590297565,27.3504428863525,28.1299095153809
+2.125293770897343,34.5865898132324,32.8668174743652
+1.1470714698050823,33.6960639953613,33.2633056640625
+2.142619106471668,25.2225131988525,24.6510181427002
+0.6192163148807176,29.4018440246582,28.807933807373
+1.6121769659785294,31.4932613372803,31.8932857513428
+4.1670846861443795,19.9551219940186,18.7342319488525
+4.357691982412544,21.3973026275635,19.7309379577637
+0.3999659757999215,31.1132125854492,35.28173828125
+3.7567644125367035,17.4486503601074,17.298189163208
+3.2147701518480107,22.4002590179443,24.8941326141357
+4.088686683743706,25.8316040039062,26.1937236785889
+2.6985797996108345,26.9285984039307,28.4419612884521
+0.06465840139334271,31.2686386108398,31.4752521514893
+4.1940507633733155,25.2128219604492,24.1883296966553
+2.80460680131214,25.4114608764648,25.2888412475586
+4.434972851608537,19.8467578887939,21.8417663574219
+3.144818074803827,21.8210258483887,23.0100364685059
+2.289414689116154,27.3418769836426,27.0890560150146
+1.1771721930203904,28.8245849609375,28.1425342559814
+0.09496920403071739,35.4902420043945,34.285083770752
+0.46525431383549287,23.0770130157471,28.2842845916748
+1.205647420574817,29.0522632598877,28.4023952484131
+0.44376033085863265,31.5930976867676,32.748462677002
+0.8584104128922645,30.1864223480225,28.6058197021484
+0.15516916431230293,32.3236770629883,30.7587127685547
+0.0678574277529487,31.2972850799561,30.8572597503662
+0.5152857829068668,30.074821472168,29.09352684021
+0.411180458306324,29.2886238098145,28.6516857147217
+2.2818550596513845,24.6192169189453,24.6890430450439
+0.786337221079454,29.4915523529053,28.6849327087402
+0.09227862893896982,32.927318572998,33.4492301940918
+0,35.306468963623,38.1728782653809
+1.7483626332149955,28.7376136779785,28.148946762085
+1.1117156386793525,31.8645172119141,30.7983112335205
+1.2077589836916511,26.6063289642334,31.0832366943359
+0.9423198847816743,27.5002536773682,28.684513092041
+0.15590973960099413,33.6247406005859,33.5848960876465
+0.2821626119576954,30.2232093811035,32.0555191040039
+0.019243784979523424,32.4990577697754,32.7590103149414
+0.6334983955290994,26.6130485534668,29.1697063446045
+0.07060597582521638,28.2045593261719,28.664924621582
+0.018958668114086055,28.3129482269287,29.2513084411621
+1.4569434436232598,28.4053535461426,28.5969619750977
+0.8318413052975034,36.0779190063477,34.3418426513672
+0.08225547045613207,32.9530906677246,32.221736907959
+0,35.0290603637695,37.7546768188477
+2.8478057096808245,22.7684688568115,23.1853313446045
+2.8312807326435605,20.2425174713135,21.0819549560547
+0.10477029304311136,27.8578948974609,31.6495418548584
+0.21624284544721925,31.7575035095215,33.5728912353516
+0.07701881527804914,32.9266357421875,32.3686027526855
+0.024911699612665882,37.9299087524414,36.1318321228027
+0.17680385768017487,30.5156402587891,31.7324409484863
+0.05723545406014137,35.2378005981445,35.1262168884277
+1.1113966824757624,24.7011947631836,23.7822761535645
+0.4771101205218337,27.1347236633301,26.6648349761963
+0,37.4427185058594,37.8560218811035
+3.063116868692887,21.2491207122803,20.8098049163818
+1.0443844345470152,28.2797451019287,28.0102157592773
+1.0624123179928688,31.2606830596924,29.9529228210449
+0.09084158681254367,38.3449020385742,35.3025932312012
+1.5183171426869344,32.7630996704102,31.7382583618164
+2.0015889240261506,26.4480018615723,25.193811416626
+0,36.1789970397949,35.3224487304688
+1.5138683497519891,26.6180438995361,26.4413566589355
+1.5829251704851464,34.9185981750488,36.723274230957
+3.660623447924043,20.4444675445557,20.0242671966553
+0.33524121249195526,29.9895725250244,30.3917045593262
+1.4586561914214422,26.3880004882812,26.8694324493408
+1.6829958246970675,31.0874118804932,33.8219985961914
+4.090437150652745,23.2219314575195,23.4314994812012
+3.3582548938511088,22.4599781036377,21.9728088378906
+0.09706351930799521,29.4146022796631,28.6564273834229
+2.2757284687330355,28.3712368011475,27.3608913421631
+0.2231113061229912,31.9744548797607,31.0754528045654
+1.3580792909132358,33.8213005065918,35.9029998779297
+0.2027067759937619,35.097297668457,36.3976593017578
+0.060904815393418486,34.179801940918,36.0409507751465
+0,35.4160499572754,36.7233352661133
+0.46834733041215726,30.0206470489502,30.3771209716797
+0.13418297017189873,31.0993156433105,30.8331623077393
+2.590272289384569,21.7984218597412,22.0028228759766
+0.6815000916990767,28.678539276123,31.4865226745605
+3.396657122395519,27.5409336090088,26.2686100006104
+1.0669637316439575,32.8629379272461,34.5938034057617
+0.022983749974237543,31.4996356964111,32.2528076171875
+0.7692736931732486,28.3330230712891,29.4748649597168
+0.8149957467704985,28.8164196014404,28.830623626709
+2.99175511742259,22.0664672851562,23.0866947174072
+3.2853104469333183,22.3463191986084,22.9268341064453
+0.4876120051904881,32.2346649169922,31.026496887207
+0.3926249510963271,31.0564460754395,30.3413028717041
+0.03871003934296213,32.834056854248,33.8486824035645
+2.417644093980468,24.7539386749268,23.9278678894043
+0.6477223671017278,33.2366180419922,32.5312042236328
+0,36.9279975891113,35.6500854492188
+0.38783331107554864,30.639030456543,31.4449462890625
+0.6822380889407789,34.4118537902832,34.4355201721191
+0.4315592293342394,32.5411491394043,31.3734397888184
+2.7015538817511837,25.5131931304932,24.7309532165527
+0.06703313437613229,32.9461708068848,34.2724685668945
+0.2245424249247333,31.369312286377,31.3355312347412
+1.5779296584483122,33.7429656982422,34.6474418640137
+1.5575968466397143,31.941650390625,31.4568939208984
+1.0156939793090278,34.1077842712402,33.974609375
+1.1459066835997984,26.6631965637207,26.1258335113525
+4.025633568445893,21.587474822998,21.2841873168945
+3.1216615593186146,27.3791694641113,27.6918754577637
+0.16685314150109176,30.120475769043,30.9380474090576
+3.8442406154346487,24.0593414306641,23.950834274292
+3.7195936568490744,22.5927581787109,22.6286602020264
+0.3680179988431747,34.3728675842285,34.0821266174316
+1.7431637660870156,34.1078033447266,33.800853729248
+3.050009595499377,27.4534358978271,27.8574962615967
+0.4944215412144623,29.2938098907471,29.5651149749756
+4.095058107593347,20.2704524993896,19.119815826416
+4.204843063120739,27.2801628112793,26.085355758667
+2.255153642323655,28.5095672607422,28.9238891601562
+2.4912745018498876,28.5027675628662,28.215633392334
+5.474578857763628,20.249641418457,20.1471748352051
+0.2550243521448005,28.6154537200928,28.3926944732666
+3.9844702285054705,18.4252872467041,17.9638042449951
+0.04888373169796453,25.9695434570312,25.781774520874
+0,36.0719184875488,33.6083145141602
+0.6488309591066774,36.0443267822266,34.3326644897461
+0.13672534264072575,34.7480812072754,32.8863143920898
+0.057845680939212926,30.5477352142334,31.2735557556152
+0.012161069927597079,30.6219959259033,35.551399230957
+0.008600171761917567,32.7625427246094,32.9720420837402
+0.5948640166238872,29.3573379516602,28.7221851348877
+0.2519633066947349,31.0429363250732,28.7986888885498
+1.345919798267826,27.43674659729,28.3622531890869
+3.1687208322208194,22.3112010955811,23.1114387512207
+0.6743372262012304,31.7215309143066,29.2126693725586
+2.6529169382296254,26.6645488739014,28.2090148925781
+0.771501215845468,28.3300399780273,31.3865394592285
+0.08360575219238962,36.9607429504395,36.1090927124023
+3.968216894009454,21.6388912200928,21.852352142334
+3.8989212811671603,25.2267570495605,26.1413440704346
+4.026551286839433,23.0926876068115,22.0552959442139
+0.14595797870560628,28.0325660705566,28.9518013000488
+0.1711258188124218,31.4118556976318,33.1128425598145
+0,33.5481986999512,35.9929809570312
+0.05553790446006572,33.5891571044922,33.4824600219727
+0,33.2580223083496,34.4759483337402
+3.694373035253941,17.4105472564697,17.7400970458984
+0.13191483836717863,32.5117530822754,36.2740898132324
+1.8309173370004452,30.7911891937256,32.6336326599121
+3.3701746949774214,19.9468669891357,19.5806617736816
+1.6192610364243851,28.2489128112793,28.271369934082
+4.697827198519326,16.3701419830322,16.2105522155762
+2.3847668633023,24.7362251281738,27.8736667633057
+0,30.1647472381592,35.3669357299805
+1.6822540792057201,24.3100528717041,25.5954570770264
+1.0150865242529168,29.6347732543945,29.2807655334473
+0.13752796687747848,32.7616081237793,31.6090793609619
+1.4431609695146674,28.9074192047119,29.2688293457031
+0.35456599429408975,34.1185150146484,34.1300888061523
+0.1682564522310188,33.8922386169434,33.2031173706055
+0.13695155649729063,32.9051132202148,33.1815643310547
+2.540623035056209,26.3241024017334,26.795841217041
+3.1220556719704837,23.4069404602051,23.9370174407959
+3.6314552888127856,23.7942790985107,23.3990268707275
+0.17700936130886905,37.884822845459,35.4365425109863
+0,36.9853057861328,35.7263717651367
+0.015238707099873208,34.6627655029297,34.8097610473633
+0,33.2091827392578,33.5198783874512
+2.7059839259194014,24.8818302154541,24.2396259307861
+1.7602505014674337,26.356258392334,25.744457244873
+2.9736721092441214,22.6220455169678,21.9023895263672
+0.5623819450848312,29.1438636779785,28.5696468353271
+5.6738837866537715,10.5621891021729,11.9043378829956
+1.8812134162550191,26.1507987976074,26.0132751464844
+0.49311010712136505,34.7917442321777,35.3387641906738
+1.6875791269060691,25.9893074035645,25.6602954864502
+5.2647041813645,19.9491672515869,19.0778388977051
+1.1526411118596172,28.2566814422607,28.2528591156006
+0.6319855655659472,30.5456619262695,30.0408153533936
+4.008976670134566,18.7953243255615,18.7558917999268
+1.3756065706316565,27.1963214874268,25.9742012023926
+3.4931677404562724,16.6291179656982,16.9448947906494
+0.3729120029701066,27.5786285400391,26.6483707427979
+0.12338515007615475,29.0462417602539,28.5649032592773
+0.010467198391609584,27.2152805328369,37.6529312133789
+1.626057704087191,27.0386905670166,26.86008644104
+2.211379702210935,26.1215744018555,27.7310962677002
+1.2806858141849684,25.5543842315674,26.8326778411865
+3.0277997276841595,20.1942367553711,19.9318504333496
+3.7317098207185486,23.3302803039551,23.0162792205811
+1.114365942169897,26.0779991149902,25.9108791351318
+1.809628559332411,26.5287494659424,32.5104026794434
+0.14343137815097873,29.6613941192627,35.3801002502441
+1.0503403311006116,25.4853019714355,24.8169746398926
+0.17609125905568124,28.9882431030273,31.767448425293
+0,33.511402130127,37.0110702514648
+0.6577148085984726,28.5216445922852,26.6794548034668
+0.1944854278600525,25.7984409332275,27.9599151611328
+4.156496804992435,18.1838817596436,20.6520957946777
+0.19631214325707508,30.959981918335,31.5863342285156
+1.754060676333868,28.8850955963135,28.0286121368408
+0.22567214783021702,31.5991249084473,31.920654296875
+2.6851347150265483,21.4998512268066,22.1230278015137
+4.193970445910789,18.5166263580322,18.2894401550293
+0.7250975030054573,28.0095977783203,28.1800994873047
+0.28672609753322953,28.2479019165039,27.9879722595215
+4.163116212655682,13.7898406982422,13.5199594497681
+1.9296296086538598,28.2024707794189,27.4181518554688
+0.9782336547013571,34.3492774963379,32.499340057373
+0.2783021724314521,31.4910793304443,31.142333984375
+0.17043565955568024,34.1491737365723,33.6999931335449
+2.0076128028472415,24.4935836791992,24.7121715545654
+0.7818381995719889,24.1371116638184,33.587963104248
+1.5484654119597914,21.619348526001,24.7115135192871
+4.048093462089896,23.9248943328857,26.2747611999512
+3.1369469161592765,24.8738403320312,24.8548965454102
+0,40.3073043823242,37.8733253479004
+1.072892641080113,30.4014568328857,30.2005710601807
+0.2922560756107893,31.5271892547607,31.3500423431396
+0.7939250768445683,24.8141670227051,24.6234931945801
+2.505296011682386,23.4840049743652,24.4671192169189
+0.03644702049355334,30.7587070465088,30.8688106536865
+1.9588967740780618,24.4807586669922,24.5281829833984
+3.241423515093216,17.2203845977783,18.0772647857666
+0.5186871440516534,30.7850666046143,31.3313694000244
+3.0024329976163107,18.8790645599365,20.5595359802246
+3.8905627518699455,20.0650291442871,18.8541507720947
+1.473367687893124,25.973087310791,25.2708492279053
+0.11153595093029824,33.1344451904297,32.0615272521973
+0,33.452564239502,30.7249526977539
+0.05386419574631258,31.0693588256836,32.7928276062012
+0.16153352925369183,32.9822616577148,33.2214622497559
+4.262031773341986,15.8188276290894,16.6437244415283
+3.2045084104635104,22.6494941711426,22.244457244873
+0.02530586526477026,32.304931640625,30.5012397766113
+0.7271715346355687,28.2511711120605,29.3117351531982
+0.5751878449276611,26.0304508209229,25.4199733734131
+0.15785690116742887,31.0529003143311,30.8942718505859
+2.6271556234789006,22.4104499816895,22.6966800689697
+0.8478151405806112,29.7305641174316,29.5986042022705
+1.9556243339009964,31.2220363616943,27.930606842041
+0.16923201044367328,30.6404838562012,30.1852169036865
+0.8617147922556869,33.3277626037598,33.528076171875
+0.22144697093252466,32.1921691894531,31.1816444396973
+0.18411658616956986,32.9662170410156,28.7291736602783
+0.4645712031084735,32.4850616455078,33.5377883911133
+0.6616146056851986,34.6403160095215,35.2777519226074
+0.670366134274784,25.9217834472656,26.4312114715576
+0.5082165403027312,27.6511821746826,28.5047416687012
+0.8859836378432228,25.7810401916504,25.3963413238525
+1.4392310136840185,29.0294170379639,28.4744510650635
+1.3821654160222978,26.6376571655273,26.0506992340088
+0.21708490479529524,32.075813293457,30.5628528594971
+3.765870981907088,18.7318744659424,17.9055366516113
+0.02745055958702035,33.4342803955078,33.3421821594238
+1.3666718195509029,25.6720771789551,24.9925785064697
+1.4395544817626,28.7374610900879,32.6967658996582
+1.7081568695432918,24.5224380493164,24.077787399292
+1.3368060578008716,26.1009826660156,24.2575569152832
+0.07507322949759386,28.4854259490967,31.1586799621582
+0.23712781668467414,27.9282112121582,29.7468395233154
+0.33186632900390584,28.0469036102295,27.95241355896
+0.03620134647779573,23.7445583343506,35.742317199707
+2.2423588910098418,31.569652557373,30.8837299346924
+2.3250939646773676,30.7974891662598,29.8043308258057
+1.55907823876014,33.4929847717285,32.4651031494141
+0.06711147990757639,36.3845405578613,37.9695243835449
+2.2358343848328235,25.0704460144043,24.2482814788818
+5.563540236694131,15.419807434082,15.3265571594238
+4.7237742122382125,12.890398979187,13.0446691513062
+2.804275767129094,19.608455657959,19.0228881835938
+3.502672052792696,17.1419353485107,17.0525913238525
+4.283229971419629,14.8978548049927,14.6200637817383
+4.07189389804811,18.8036861419678,17.2842292785645
+3.0274719270212778,20.3238849639893,20.3071002960205
+2.3111284848039158,23.4741706848145,23.6233329772949
+1.6990604133948135,26.9056205749512,26.6125450134277
+4.260018729131666,18.660493850708,19.3560695648193
+0.5098799209343117,29.7478981018066,29.4778213500977
+2.4056020789501185,26.9541759490967,25.8952941894531
+1.8009458345498826,26.5728645324707,27.8732089996338
+0,32.7595558166504,31.835521697998
+0.04111628038071402,33.6822509765625,34.2872848510742
+0.8772191433110443,26.7262229919434,27.0183563232422
+0.7549019984866923,21.500846862793,29.2128238677979
+0.3220513639496505,31.6143321990967,32.0033531188965
+0.17488350590069004,24.5095596313477,32.3964538574219
+0.35478652899333624,35.1955986022949,34.3821067810059
+2.5348822991116036,24.9165897369385,24.4656219482422
+0.016943758334796253,36.9575233459473,37.7785339355469
+0,34.6428527832031,33.446662902832
+0.13711128882269838,26.7167797088623,29.4151782989502
+3.052959109450123,19.9546642303467,19.9045448303223
+0.790562896537727,32.1566696166992,30.5815353393555

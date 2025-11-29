@@ -166,14 +166,16 @@ The following object is masked from 'package:readr':
 <span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Enterovirus.ea"</span>),</span>
 <span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Anelloviridae.ea"</span>),</span>
 <span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Anelloviridae.nasal"</span>),</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">ends_with</span>(<span class="st">".ea"</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"Betacoronavirus.nasal"</span> <span class="ot">=</span> <span class="st">"SARS-CoV-2.nasal"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human alphaherpesvirus 1 (HSV1).pbmc"</span>),</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human alphaherpesvirus 2 (HSV2).pbmc"</span>),</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">ends_with</span>(<span class="st">".ea"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"Betacoronavirus.nasal"</span> <span class="ot">=</span> <span class="st">"SARS-CoV-2.nasal"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>New names:
-Rows: 4654 Columns: 31
+Rows: 4654 Columns: 33
 ── Column specification
 ──────────────────────────────────────────────────────── Delimiter: "," chr
-(1): event_id dbl (30): ...1, Human gammaherpesvirus 4 (EBV).pbmc, Human
+(1): event_id dbl (32): ...1, Human gammaherpesvirus 4 (EBV).pbmc, Human
 betaherpesvirus 5...
 ℹ Use `spec()` to retrieve the full column specification for this data. ℹ
 Specify the column types or set `show_col_types = FALSE` to quiet this message.
@@ -640,7 +642,7 @@ This message can be suppressed by:
 <span id="cb27-67"><a href="#cb27-67" aria-hidden="true" tabindex="-1"></a>ggb <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"CXCL10"</span>, <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,</span>
 <span id="cb27-68"><a href="#cb27-68" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>,</span>
 <span id="cb27-69"><a href="#cb27-69" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 1 (HSV1).nasal"</span>),</span>
-<span id="cb27-70"><a href="#cb27-70" aria-hidden="true" tabindex="-1"></a>          modeling_results, viral_colors, <span class="at">base_size =</span> <span class="dv">12</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb27-70"><a href="#cb27-70" aria-hidden="true" tabindex="-1"></a>          modeling_results, viral_colors, <span class="at">base_size =</span> <span class="dv">14</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
 Adding another scale for colour, which will replace the existing scale.
@@ -675,10 +677,10 @@ Caused by warning:
 <div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure4B.pdf"</span>), <span class="at">width =</span> <span class="fl">12.32142</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>ggc <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"CXCL11"</span>, <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,</span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>,</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"Human gammaherpesvirus 4 (EBV).nasal"</span>,</span>
 <span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 1 (HSV1).nasal"</span>,</span>
 <span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors,</span>
-<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>          <span class="at">base_size =</span> <span class="dv">12</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>          <span class="at">base_size =</span> <span class="dv">14</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
 Adding another scale for colour, which will replace the existing scale.
@@ -698,14 +700,14 @@ Scale for fill is already present.
 Adding another scale for fill, which will replace the existing scale.</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Warning: There were 567 warnings in `mutate()`.
+<pre><code>Warning: There were 377 warnings in `mutate()`.
 The first warning was:
 ℹ In argument: `name = fct_relevel(name, "Control")`.
 ℹ In group 2: `participant_id = "001-0002"`, `name = "Anelloviridae.pbmc"`,
   `value = 1`.
 Caused by warning:
 ! 1 unknown level in `f`: Control
-ℹ Run `dplyr::last_dplyr_warnings()` to see the 566 remaining warnings.</code></pre>
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 376 remaining warnings.</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>ggc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
@@ -720,7 +722,7 @@ Caused by warning:
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>ggd <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"IL18"</span>, <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,</span>
 <span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 1 (HSV1).nasal"</span>,</span>
 <span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors,</span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>          <span class="at">base_size =</span> <span class="dv">12</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>          <span class="at">base_size =</span> <span class="dv">14</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
 Adding another scale for colour, which will replace the existing scale.
@@ -756,7 +758,7 @@ Caused by warning:
 <div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure4D.pdf"</span>), <span class="at">width =</span> <span class="fl">12.32142</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>gge <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"IL6"</span>, <span class="fu">c</span>(<span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>), modeling_results,</span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>          viral_colors, <span class="at">base_size =</span> <span class="dv">12</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>          viral_colors, <span class="at">base_size =</span> <span class="dv">14</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
 Adding another scale for colour, which will replace the existing scale.
@@ -783,7 +785,7 @@ Caused by warning:
 <div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure4E.pdf"</span>), <span class="at">width =</span> <span class="fl">4.285714</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>ggf <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"IL10"</span>, <span class="fu">c</span>(<span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>, <span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>),</span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>          modeling_results, viral_colors, <span class="at">base_size =</span> <span class="dv">12</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>          modeling_results, viral_colors, <span class="at">base_size =</span> <span class="dv">14</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
 Adding another scale for colour, which will replace the existing scale.
@@ -814,7 +816,7 @@ Caused by warning:
 <div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure4F.pdf"</span>), <span class="at">width =</span> <span class="fl">6.964285</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>ggg <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"IFNG"</span>, <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>), modeling_results,</span>
-<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>          viral_colors, <span class="at">base_size =</span> <span class="dv">12</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>          viral_colors, <span class="at">base_size =</span> <span class="dv">14</span>, <span class="at">log_residuals =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
 Adding another scale for colour, which will replace the existing scale.
@@ -842,8 +844,8 @@ Caused by warning:
 <div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure4G.pdf"</span>), <span class="at">width =</span> <span class="fl">4.285714</span>, <span class="at">height =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="supplemental-figure-6" class="level1">
-<h1>Supplemental Figure 6</h1>
+<section id="supplemental-figure-8" class="level1">
+<h1>Supplemental Figure 8</h1>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>traj_plot <span class="ot">&lt;-</span> <span class="cf">function</span>(feature, viruses, results_obj, colors, <span class="at">log_residuals =</span> F,</span>
 <span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">variable_width =</span> <span class="fl">0.6</span>, <span class="at">base_size =</span> <span class="dv">12</span>, better_name){</span>
@@ -1509,7 +1511,7 @@ Caused by warning:
 <div class="cell">
 <div class="sourceCode cell-code" id="cb119"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb119-1"><a href="#cb119-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Arranging these is the NP-Hard problem</span></span>
 <span id="cb119-2"><a href="#cb119-2" aria-hidden="true" tabindex="-1"></a>max_row_length <span class="ot">&lt;-</span> <span class="dv">6</span></span>
-<span id="cb119-3"><a href="#cb119-3" aria-hidden="true" tabindex="-1"></a>ggout <span class="ot">&lt;-</span> ggout[<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"^IL6|^IL10|^CXCL10|^CXCL11|^IL18"</span>,<span class="fu">names</span>(ggout))]</span>
+<span id="cb119-3"><a href="#cb119-3" aria-hidden="true" tabindex="-1"></a>ggout <span class="ot">&lt;-</span> ggout[<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"^IL6_|^IL10_|^CXCL10_|^CXCL11_|^IL18_|^IFNG_"</span>,<span class="fu">names</span>(ggout))]</span>
 <span id="cb119-4"><a href="#cb119-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="fu">names</span>(ggout)){</span>
 <span id="cb119-5"><a href="#cb119-5" aria-hidden="true" tabindex="-1"></a>  value <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">gsub</span>(<span class="st">".*_"</span>, <span class="st">""</span>, i))</span>
 <span id="cb119-6"><a href="#cb119-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(i<span class="sc">==</span><span class="fu">names</span>(ggout)[<span class="dv">1</span>]){</span>
@@ -1527,7 +1529,7 @@ Caused by warning:
 <span id="cb119-18"><a href="#cb119-18" aria-hidden="true" tabindex="-1"></a>ggempty <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">theme_void</span>()</span>
 <span id="cb119-19"><a href="#cb119-19" aria-hidden="true" tabindex="-1"></a>ggout2 <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
 <span id="cb119-20"><a href="#cb119-20" aria-hidden="true" tabindex="-1"></a>counter <span class="ot">&lt;-</span> <span class="dv">1</span></span>
-<span id="cb119-21"><a href="#cb119-21" aria-hidden="true" tabindex="-1"></a>LETTERS_long <span class="ot">&lt;-</span> <span class="fu">c</span>(LETTERS, <span class="st">"AA"</span>, <span class="st">"AB"</span>, <span class="st">"AC"</span>)</span>
+<span id="cb119-21"><a href="#cb119-21" aria-hidden="true" tabindex="-1"></a>LETTERS_long <span class="ot">&lt;-</span> <span class="fu">c</span>(LETTERS, <span class="st">"AA"</span>)</span>
 <span id="cb119-22"><a href="#cb119-22" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(bins)){</span>
 <span id="cb119-23"><a href="#cb119-23" aria-hidden="true" tabindex="-1"></a>  tmp_plots <span class="ot">&lt;-</span> ggout[bins[[k]]]</span>
 <span id="cb119-24"><a href="#cb119-24" aria-hidden="true" tabindex="-1"></a>  true_length <span class="ot">&lt;-</span> <span class="fu">length</span>(tmp_plots)</span>
@@ -1546,11 +1548,11 @@ Caused by warning:
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="Figure4_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="1440"></p>
+<p><img src="Figure4_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="1728"></p>
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb120"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb120-1"><a href="#cb120-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS6.pdf"</span>), <span class="at">width =</span> <span class="dv">15</span>, <span class="at">height =</span> <span class="dv">15</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb120"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb120-1"><a href="#cb120-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS8.pdf"</span>), <span class="at">width =</span> <span class="dv">18</span>, <span class="at">height =</span> <span class="dv">12</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <section id="tgfb-additional-plots" class="level3">
 <h3 class="anchored" data-anchor-id="tgfb-additional-plots">TGFB Additional Plots</h3>
@@ -1813,7 +1815,7 @@ the `.groups` argument.</code></pre>
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb131"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb131-1"><a href="#cb131-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS6_TGF_DFSO.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb131"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb131-1"><a href="#cb131-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS8_TGF_DFSO.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="days-from-hospitalization" class="level5">
@@ -2066,7 +2068,7 @@ the `.groups` argument.</code></pre>
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb140"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb140-1"><a href="#cb140-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS6_TGF_DSH.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb140"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb140-1"><a href="#cb140-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS8_TGF_DSH.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 </section>

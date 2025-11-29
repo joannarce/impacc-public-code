@@ -22,6 +22,10 @@ Found in `Data.zip`
 
 - `pbmc_ct_age_sex_top_table.xlsx`: IMPACC PBMC DE output.
 
+- `annot.tsv`: Gene-level annotations from the PREDICT-19 cohort.
+
+- `meta.tsv`: Sample metadata from the PREDICT-19 cohort.
+
 ## Scripts
 
 ### IMPACC SCRIPTS
@@ -58,9 +62,9 @@ These can generally be run in the order of numbers. They require data from the I
 
 - `06_train_eval_c_nasal.R`: Evaluates the nasal gene sets with additional features CT value and age on the training data using repeated random partitioning. 
 
-- `07_test_output_b_filter.R`: Evaluates the selected pbmc gene set with age and CT on the test data. Compares with Sweeney et. al. Evaluates the OLAH + age + CT classifier. 
+- `07_test_output_b_filter.R`: Evaluates the selected pbmc gene set with age and CT on the test data. Compares with Sweeney et. al. Evaluates the OLAH + age + CT classifier. Additionally evaluates medical variables and conducts comparison analysis. 
 
-- `07_test_output_c_nasal_filter.R`: Evaluates the selected nasal gene set with age and CT on the test data. Evaluates the OLAH + age + CT classifier. 
+- `07_test_output_c_nasal_filter.R`: Evaluates the selected nasal gene set with age and CT on the test data. Evaluates the OLAH + age + CT classifier. Additionally evaluates medical variables and conducts comparison analysis. 
 
 - `boxplots.R`: Takes in the pbmc and nasal metadata and creates boxplots comparing the distribution of age and CT value between the two trajectory groups. 
 
@@ -84,8 +88,7 @@ These scripts perform DE analysis on the COMET data. They evaluate the classifie
 
 - `02_train_test_comet_output.R`: Evaluates the classifiers on the COMET data. Performs out-of-fold ROC analysis. Performs vaccinated stratified analysis.
 
+### PREDICT-19 SCRIPTS
+This script performs DE analysis on an external dataset in response to a reviewer comment. Counts data for this analysis was downloaded from the following GEO portal: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE217948, specifically the links listed under the Samples (467) sub-header. 
 
-
-
-
-
+- `01_DE_output_external_dataset.R`

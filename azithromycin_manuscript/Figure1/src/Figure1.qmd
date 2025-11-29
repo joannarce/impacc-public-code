@@ -206,13 +206,13 @@ ggsave(paste0(out_dir, "Figure1B.pdf"), width = 3.5, height = 3)
 write.csv(plyr::rbind.fill(ggb1$data, ggb$data), paste0(out_dir, "Figure1B.csv"))
 ```
 
-### Figure 1C & S1: Length of administration, when was administrated
+### Figure 1C & S2: Length of administration, when was administrated
 
-#### Figure S1
+#### Figure S2
 
 ```{r}
-## Figure S1
-ggS1 <- antibiotic_data %>%
+## Figure S2
+ggS2 <- antibiotic_data %>%
   left_join(antibiotic_class_mapping %>% dplyr::rename("medname" = "Medname")) %>%
   filter(!is.na(conmed_dose_stop)) %>%
   filter(med_group == "Azithromycin") %>%
@@ -231,9 +231,9 @@ ggS1 <- antibiotic_data %>%
   xlab("Trajectory Group") +
   theme_classic() +
   theme(legend.position = "none")
-ggS1
-ggsave(paste0(out_dir, "FigureS1.pdf"), width = 4, height = 3)
-write.csv(ggS1$data %>% distinct(trajectory_group, number_of_days), paste0(out_dir, "FigureS1.csv"))
+ggS2
+ggsave(paste0(out_dir, "FigureS2.pdf"), width = 4, height = 3)
+write.csv(ggS2$data %>% distinct(trajectory_group, number_of_days), paste0(out_dir, "FigureS2.csv"))
 
 tmp_data <- antibiotic_data %>%
   left_join(antibiotic_class_mapping %>% dplyr::rename("medname" = "Medname")) %>%

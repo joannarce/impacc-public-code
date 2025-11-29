@@ -36,6 +36,8 @@ my.theme <- theme_classic() +
 
 ## Plot with cutoffs ====
 
+genes_to_label <- c("OLAH", "DAAM2", "ATP1B2", "CD83")
+
 pretty_plot <- ggplot(top_table_for_volcano, aes(x = logFC, y = -log10(adj.P.Val))) +
   geom_point(aes(color = diffexpressed), size = 0.8) +
   scale_color_manual(name = "", values = c("grey", "#6b85cd", "#d2485a"),
@@ -45,11 +47,31 @@ pretty_plot <- ggplot(top_table_for_volcano, aes(x = logFC, y = -log10(adj.P.Val
   ylab(expression(-log[10](P[adj]))) + 
   xlim(c(-2.5, 2.5)) +
   my.theme + 
-  theme(legend.position = "none") 
+  theme(legend.position = "none") +
+  geom_label_repel(
+    data = subset(top_table_for_volcano, gene_name %in% genes_to_label),
+    aes(label = gene_name),
+    fill = "white",            # box background color
+    color = "black",           # text color
+    size = 3.2,                # text size
+    label.size = 0.2,          # border thickness
+    box.padding = 0.7,
+    family = "arial", 
+    point.padding = 0.1,
+    segment.color = "black",
+    segment.size = 0.5,
+    force_pull = 0.5,        # Strength of segment pull toward point
+    force = 30,
+    min.segment.length = 0
+  )
 
-ggsave("volcano_plot.svg", pretty_plot, width = 4.5, height = 5)
+ggsave("labeled_volcano_plot.svg", pretty_plot, width = 4.5, height = 5)
 
 ## Load nasal data ======
+
+
+genes_to_label <- c("OLAH", "FCER1A", "SLC5A5", "CD200R1")
+
 nasal_top_table_for_volcano <- read_csv("03_bucket_DEG/nasal_ct_age_sex_age_sex_top_table.csv")
 
 nasal_pretty_plot <- ggplot(nasal_top_table_for_volcano, aes(x = logFC, y = -log10(adj.P.Val))) +
@@ -61,6 +83,22 @@ nasal_pretty_plot <- ggplot(nasal_top_table_for_volcano, aes(x = logFC, y = -log
   xlab(expression("log"[2]*"FC")) +
   ylab(expression(-log[10](P[adj]))) + 
   xlim(c(-2.5, 2.5)) +
+  geom_label_repel(
+    data = subset(nasal_top_table_for_volcano, gene_name %in% genes_to_label),
+    aes(label = gene_name),
+    fill = "white",            # box background color
+    color = "black",           # text color
+    size = 3.2,                # text size
+    label.size = 0.2,          # border thickness
+    box.padding = 0.7,
+    family = "arial", 
+    point.padding = 0.1,
+    segment.color = "black",
+    segment.size = 0.5,
+    force_pull = 0.5,        # Strength of segment pull toward point
+    force = 30,
+    min.segment.length = 0
+  ) +
   my.theme
 
 ggsave("nasal_volcano_plot.svg", nasal_pretty_plot, width = 4.5, height = 5)

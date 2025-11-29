@@ -479,13 +479,13 @@ X-squared = 28.713, df = 4, p-value = 8.939e-06</code></pre>
 <span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(plyr<span class="sc">::</span><span class="fu">rbind.fill</span>(ggb1<span class="sc">$</span>data, ggb<span class="sc">$</span>data), <span class="fu">paste0</span>(out_dir, <span class="st">"Figure1B.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="figure-1c-s1-length-of-administration-when-was-administrated" class="level3">
-<h3 class="anchored" data-anchor-id="figure-1c-s1-length-of-administration-when-was-administrated">Figure 1C &amp; S1: Length of administration, when was administrated</h3>
-<section id="figure-s1" class="level4">
-<h4 class="anchored" data-anchor-id="figure-s1">Figure S1</h4>
+<section id="figure-1c-s2-length-of-administration-when-was-administrated" class="level3">
+<h3 class="anchored" data-anchor-id="figure-1c-s2-length-of-administration-when-was-administrated">Figure 1C &amp; S2: Length of administration, when was administrated</h3>
+<section id="figure-s2" class="level4">
+<h4 class="anchored" data-anchor-id="figure-s2">Figure S2</h4>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Figure S1</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>ggS1 <span class="ot">&lt;-</span> antibiotic_data <span class="sc">%&gt;%</span></span>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Figure S2</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>ggS2 <span class="ot">&lt;-</span> antibiotic_data <span class="sc">%&gt;%</span></span>
 <span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(antibiotic_class_mapping <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"medname"</span> <span class="ot">=</span> <span class="st">"Medname"</span>)) <span class="sc">%&gt;%</span></span>
 <span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(conmed_dose_stop)) <span class="sc">%&gt;%</span></span>
 <span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(med_group <span class="sc">==</span> <span class="st">"Azithromycin"</span>) <span class="sc">%&gt;%</span></span>
@@ -517,7 +517,7 @@ X-squared = 28.713, df = 4, p-value = 8.939e-06</code></pre>
 <div class="cell-output cell-output-stderr">
 <pre><code>Joining with `by = join_by(participant_id)`</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>ggS1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>ggS2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -525,8 +525,8 @@ X-squared = 28.713, df = 4, p-value = 8.939e-06</code></pre>
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS1.pdf"</span>), <span class="at">width =</span> <span class="dv">4</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
-<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(ggS1<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(trajectory_group, number_of_days), <span class="fu">paste0</span>(out_dir, <span class="st">"FigureS1.csv"</span>))</span>
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS2.pdf"</span>), <span class="at">width =</span> <span class="dv">4</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(ggS2<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(trajectory_group, number_of_days), <span class="fu">paste0</span>(out_dir, <span class="st">"FigureS2.csv"</span>))</span>
 <span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>tmp_data <span class="ot">&lt;-</span> antibiotic_data <span class="sc">%&gt;%</span></span>
 <span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(antibiotic_class_mapping <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"medname"</span> <span class="ot">=</span> <span class="st">"Medname"</span>)) <span class="sc">%&gt;%</span></span>
