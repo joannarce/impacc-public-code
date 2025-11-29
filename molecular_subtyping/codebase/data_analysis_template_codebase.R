@@ -188,33 +188,25 @@ assign_env_vars <- function(env) {
 
 
 #### Prepare clinical data
-prepare_clinical_data <- function(data_env, DATA_VERSION, KEEP_COVID19_POS, FILTER_BY_CORE_ASSAY_COHORT, FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS, FILTER_BY_INTEGRATION_COHORT, EVENT_DATE_UPPER, VISIT_UPPER, PHASES, USE_LOCKED_CLINICAL) {
+prepare_clinical_data <- function(data_env, DATA_VERSION, KEEP_COVID19_POS, FILTER_BY_CORE_ASSAY_COHORT, FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS, EVENT_DATE_UPPER, VISIT_UPPER, PHASES) {
   
   if(FILTER_BY_CORE_ASSAY_COHORT & FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS) {
-    stop("Did you mean to set both FILTER_BY_CORE_ASSAY_COHORT & FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS to TRUE? That is unusual! Please check your input.")
-  }
-  
-  if(FILTER_BY_CORE_ASSAY_COHORT & FILTER_BY_INTEGRATION_COHORT) {
-    stop("Did you mean to set both FILTER_BY_CORE_ASSAY_COHORT & FILTER_BY_INTEGRATION_COHORT to TRUE? That is unusual! Please check your input.")
+    warning("Did you mean to set both FILTER_BY_CORE_ASSAY_COHORT & FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS to TRUE? That is unusual! Please check your input.")
   }
   
   clinical_dir <- data_env[[ "data_dirs" ]][ "clinical_dir" ]
   
   ### Fetch clinical data files
-  additional_regex_tags = ""
-  if(USE_LOCKED_CLINICAL) {
-    additional_regex_tags = "-locked"
-  }
-  clinical_sample_file <- fetch_file_names( DATA_VERSION, clinical_dir, paste0("sample", additional_regex_tags, ".csv$"))
-  clinical_event_file <- fetch_file_names( DATA_VERSION, clinical_dir, paste0("event", additional_regex_tags, ".csv$"))
-  clinical_individ_file <- fetch_file_names( DATA_VERSION, clinical_dir, paste0("individ", additional_regex_tags, ".csv$"))
+  clinical_sample_file <- fetch_file_names( DATA_VERSION, clinical_dir, "sample.csv$")
+  clinical_event_file <- fetch_file_names( DATA_VERSION, clinical_dir, "event.csv$")
+  clinical_individ_file <- fetch_file_names( DATA_VERSION, clinical_dir, "individ.csv$")
   
   if (is.null(clinical_sample_file) |
       is.null(clinical_event_file) | is.null(clinical_individ_file)) {
     stop(
       "Error: Either you don't have access to the clinical data or the required clinical data files don't exist for the version of data you have selected. Please make sure that *sample.csv, *event.csv and *.individ.csv files exist in \"",
       clinical_dir,
-      "\".\nUSE_LOCKED_CLINICAL = TRUE to use the locked clinical files from /data/clinical/current, otherwise use a specific date for DATA_VERSION.\nExiting...\n",
+      "\".\nExiting...\n",
       sep = ""
     )
   }
@@ -255,19 +247,7 @@ prepare_clinical_data <- function(data_env, DATA_VERSION, KEEP_COVID19_POS, FILT
     clinical_data <- clinical_data %>% dplyr::filter( clinical_data$core_assay_cohort )
   }
   
-  ### Keep integration cohort
-  if(FILTER_BY_INTEGRATION_COHORT) {
-    if(is.logical(clinical_data$integration_cohort)) {
-      cat("Removing samples not part of integration_cohort\n")
-      clinical_data <- clinical_data %>% dplyr::filter( clinical_data$integration_cohort )
-    } else if(is.character(clinical_data$integration_cohort)) {
-      cat("Removing samples not part of integration_cohort\n")
-      clinical_data <- clinical_data %>% dplyr::filter( ! is.na(clinical_data$integration_cohort) )
-    }
-  }
-  
   if(FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS) {
-    warning("FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS is for internal use and now deprecated. Please use FILTER_BY_INTEGRATION_COHORT to select the cohort used for the integration manuscript.")
     cat("Removing samples from patients with failed sex determination or kinship analysis and from healthy controls....:  ")
     nsample_0 = nrow(clinical_data)
     nindiv_0 = length(unique(clinical_data$participant_id))
@@ -279,13 +259,13 @@ prepare_clinical_data <- function(data_env, DATA_VERSION, KEEP_COVID19_POS, FILT
   
   ### Keep samples with event date <= EVENT_DATE_UPPER
   if( ! is.null(EVENT_DATE_UPPER) ) {
-    message("Removing samples with event_date greater than", EVENT_DATE_UPPER, "\n")
+    cat("Removing samples with event_date greater than", EVENT_DATE_UPPER, "\n")
     clinical_data <- clinical_data %>% dplyr::filter( event_date <= EVENT_DATE_UPPER )
   }
   
   ### Keep samples from visit number <= VISIT_UPPER
   if( ! is.null(VISIT_UPPER) ) {
-    message("Removing samples with visit number (event_type) greater than Visit", VISIT_UPPER, "\n")
+    cat("Removing samples with visit number (event_type) greater than Visit", VISIT_UPPER, "\n")
     allowed_visits = paste("Visit", 1:VISIT_UPPER)
     clinical_data <- clinical_data %>% dplyr::filter( grepl("Escalation|Control donor visit", event_type) | (event_type %in% allowed_visits) )
   }
@@ -331,159 +311,6 @@ prepare_clinical_data <- function(data_env, DATA_VERSION, KEEP_COVID19_POS, FILT
     )
   
 
-  data_env[[ "clinical_data" ]] <- clinical_data
-  data_env[[ "clinical_sample_file" ]] <- clinical_sample_file
-  data_env[[ "clinical_event_file" ]] <- clinical_event_file
-  data_env[[ "clinical_individ_file" ]] <- clinical_individ_file
-  
-  return(data_env)
-}
-
-
-
-#### Prepare clinical data
-prepare_clinical_data_subtyping <- function(
-    data_env, KEEP_COVID19_POS, FILTER_BY_CORE_ASSAY_COHORT, 
-    FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS, FILTER_BY_INTEGRATION_COHORT, 
-    EVENT_DATE_UPPER, VISIT_UPPER, PHASES) {
-  
-  if(FILTER_BY_CORE_ASSAY_COHORT & FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS) {
-    stop("Did you mean to set both FILTER_BY_CORE_ASSAY_COHORT & FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS to TRUE? That is unusual! Please check your input.")
-  }
-  
-  if(FILTER_BY_CORE_ASSAY_COHORT & FILTER_BY_INTEGRATION_COHORT) {
-    stop("Did you mean to set both FILTER_BY_CORE_ASSAY_COHORT & FILTER_BY_INTEGRATION_COHORT to TRUE? That is unusual! Please check your input.")
-  }
-  
-  clinical_dir <- data_env[[ "data_dirs" ]][ "clinical_dir" ]
-  
-  ### Fetch clinical data files
-  clinical_sample_file <- paste0(clinical_dir, "/impacc-clin-sample.csv")
-  clinical_event_file <- paste0(clinical_dir, "/impacc-clin-event.csv")
-  clinical_individ_file <- paste0(clinical_dir, "/impacc-clin-individ.csv")
-  
-  if (is.null(clinical_sample_file) |
-      is.null(clinical_event_file) | is.null(clinical_individ_file)) {
-    stop(
-      "Error: Either you don't have access to the clinical data or the required clinical data files don't exist for the version of data you have selected. Please make sure that *sample.csv, *event.csv and *.individ.csv files exist in \"",
-      clinical_dir,
-      "\".\nUSE_LOCKED_CLINICAL = TRUE to use the locked clinical files from /data/clinical/current, otherwise use a specific date for DATA_VERSION.\nExiting...\n",
-      sep = ""
-    )
-  }
-  
-  message("Using the following clinical data files:\n")
-  message("clinical_sample_file <- ", clinical_sample_file, "\n")
-  message("clinical_event_file <- ", clinical_event_file, "\n")
-  message("clinical_individ_file <- ", clinical_individ_file, "\n")
-  
-  ### Load clinical data
-  clinical_sample_data <- read_data_files( clinical_sample_file, header = TRUE )
-  clinical_event_data <- read_data_files( clinical_event_file, header = TRUE )
-  clinical_individ_data <- read_data_files( clinical_individ_file, header = TRUE )
-  
-  ### Combine clinical data
-  clinical_data <-
-    inner_join(clinical_sample_data,
-               clinical_event_data,
-               by = c("event_id" = "event_id")) %>%    # Join the clinical_sample_data and clinical_event_data tables using "event_id" column
-    mutate(
-      participant_id = participant_id.x,
-      participant_id.x = NULL,
-      participant_id.y = NULL
-    ) %>%   # Remove redundant "participant_id" columns
-    inner_join(clinical_individ_data,
-               by = c("participant_id" = "participant_id"))   # Append the clinical_individ_data table
-  
-  
-  ### Keep data from COVID-19 Positive individuals
-  if(KEEP_COVID19_POS) {
-    cat("Removing COVID-19 negative patients\n")
-    clinical_data <- clinical_data %>% dplyr::filter(grepl("COVID-19 Positive", participant_type))
-  }
-  
-  ### Keep core assay cohort
-  if(FILTER_BY_CORE_ASSAY_COHORT) {
-    cat("Removing samples not part of core_assay_cohort\n")
-    clinical_data <- clinical_data %>% dplyr::filter( clinical_data$core_assay_cohort )
-  }
-  
-  ### Keep integration cohort
-  if(FILTER_BY_INTEGRATION_COHORT) {
-    if(is.logical(clinical_data$integration_cohort)) {
-      cat("Removing samples not part of integration_cohort\n")
-      clinical_data <- clinical_data %>% dplyr::filter( clinical_data$integration_cohort )
-    } else if(is.character(clinical_data$integration_cohort)) {
-      cat("Removing samples not part of integration_cohort\n")
-      clinical_data <- clinical_data %>% dplyr::filter( ! is.na(clinical_data$integration_cohort) )
-    }
-  }
-  
-  if(FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS) {
-    warning("FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS is for internal use and now deprecated. Please use FILTER_BY_INTEGRATION_COHORT to select the cohort used for the integration manuscript.")
-    cat("Removing samples from patients with failed sex determination or kinship analysis and from healthy controls....:  ")
-    nsample_0 = nrow(clinical_data)
-    nindiv_0 = length(unique(clinical_data$participant_id))
-    clinical_data <- clinical_data %>% dplyr::filter( ! (grepl("failed", core_assay_comment) | grepl("Healthy control", participant_type)) )
-    nsample = nrow(clinical_data)
-    nindiv = length(unique(clinical_data$participant_id))
-    cat("removed", nsample_0 - nsample, "samples from", nindiv_0 - nindiv, "patients.\n" )
-  }
-  
-  ### Keep samples with event date <= EVENT_DATE_UPPER
-  if( ! is.null(EVENT_DATE_UPPER) ) {
-    message("Removing samples with event_date greater than", EVENT_DATE_UPPER, "\n")
-    clinical_data <- clinical_data %>% dplyr::filter( event_date <= EVENT_DATE_UPPER )
-  }
-  
-  ### Keep samples from visit number <= VISIT_UPPER
-  if( ! is.null(VISIT_UPPER) ) {
-    message("Removing samples with visit number (event_type) greater than Visit", VISIT_UPPER, "\n")
-    allowed_visits = paste("Visit", 1:VISIT_UPPER)
-    clinical_data <- clinical_data %>% dplyr::filter( grepl("Escalation|Control donor visit", event_type) | (event_type %in% allowed_visits) )
-  }
-  
-  ### Keep samples from the selected phases
-  clinical_data <- clinical_data %>% dplyr::filter(
-    ! is.na(phase) &
-      phase %in% c(PHASES) 
-  )
-  
-  
-  ### Generate discretized age based in 5 quantiles.
-  admit_age_levels = sort(unique(clinical_data$admit_age))
-  admit_age_levels_tiles = ntile(admit_age_levels, 5)
-  label_df_tmp = data.frame( admit_age_levels_tiles, admit_age_levels) %>% 
-    group_by(admit_age_levels_tiles) %>% 
-    summarize(min=min(admit_age_levels), max=max(admit_age_levels)) %>% 
-    mutate(labels = paste0("[",min, ",", max, "]") ) 
-  admit_age_levels_tiles_labels = label_df_tmp$labels %>% setNames(label_df_tmp$admit_age_levels_tiles)
-  admit_age_levels_labels = admit_age_levels_tiles_labels[admit_age_levels_tiles] %>% setNames(admit_age_levels)
-  discretized_admit_age_quantile = admit_age_levels_labels[ as.character(clinical_data$admit_age) ]
-  
-  
-  ### Generate discretized age based on equal width ages.
-  discretized_admit_age_equalWidth = cut(clinical_data$admit_age, breaks = 5)
-  
-  clinical_data = clinical_data %>% mutate( discretized_admit_age_quantile = discretized_admit_age_quantile, discretized_admit_age_equalWidth = discretized_admit_age_equalWidth )
-  
-  
-  ### Add discharge dates column
-  # Extract discharge dates, concatenate the dates for patients that have multiple dates.
-  discharge_event_data = clinical_event_data[ clinical_event_data$event_type == "Discharge", ] %>% 
-    group_by(participant_id) %>% 
-    summarise(event_dates = paste0(sort(event_date), collapse = ",") )
-  clinical_data = clinical_data %>% 
-    mutate(discharge_dates = 
-             discharge_event_data$event_dates[ match(clinical_data$participant_id, discharge_event_data$participant_id) ]  
-    )
-  
-  death_event_data = clinical_event_data[ clinical_event_data$event_type == "Death", ]
-  clinical_data = clinical_data %>% 
-    mutate(death_date = death_event_data$event_date[ match(clinical_data$participant_id, death_event_data$participant_id) ]
-    )
-  
-  
   data_env[[ "clinical_data" ]] <- clinical_data
   data_env[[ "clinical_sample_file" ]] <- clinical_sample_file
   data_env[[ "clinical_event_file" ]] <- clinical_event_file
@@ -751,189 +578,6 @@ prepare_assay_files_info <- function(data_env) {
 }
 
 
-#### Prepare info for the assay data files
-prepare_assay_files_info_subtyping <- function(data_env) {
-  ## Individual assay data files are fetched for the selected version of data and stored in a list for easy handling of these large number of data files.
-  
-  data_dirs <- data_env[[ "data_dirs" ]]
-  for( n in names(data_dirs) ) {
-    assign( n, data_dirs[ n ] )
-  }
-  
-  ### A list containing, for individual assay files, file-name-pattern, directory, variable name to load the data to and description of the data file/type.
-  assay_files_info <- list(
-    "plasma_proteomics_targeted" = list(
-      dir = plasma_proteomics_targeted_dir,
-      count_pattern = "Counts\\.csv$",
-      count_file_path = "",
-      count_var_name = "plasma_proteomics_targeted_counts",
-      count_desc = "Count data from targeted proteomics of plasma",
-      rowfeature_pattern = "RowFeature\\.csv$",
-      rowfeature_file_path = "",
-      rowfeature_var_name = "plasma_proteomics_targeted_rowfeature",
-      rowfeature_desc = "RowFeature data from targeted proteomics of plasma",
-      metadata_pattern = "Metadata\\.csv$",
-      metadata_file_path = "",
-      metadata_var_name = "plasma_proteomics_targeted_metadata",
-      metadata_desc = "Metadata from targeted proteomics of plasma"
-    ),
-    "plasma_proteomics_global_dda" = list(
-      dir = plasma_proteomics_global_dda_dir,
-      count_pattern = "Counts\\.csv$",
-      count_file_path = "",
-      count_var_name = "plasma_proteomics_global_dda_counts",
-      count_desc = "Count data from global proteomics (DDA) of plasma",
-      rowfeature_pattern = "RowFeature\\.csv$",
-      rowfeature_file_path = "",
-      rowfeature_var_name = "plasma_proteomics_global_dda_rowfeature",
-      rowfeature_desc = "RowFeature data from global proteomics (DDA) of plasma",
-      metadata_pattern = "Metadata\\.csv$",
-      metadata_file_path = "",
-      metadata_var_name = "plasma_proteomics_global_dda_metadata",
-      metadata_desc = "Metadata from global proteomics (DDA) of plasma"
-    ),
-    "serum_olink" = list(
-      dir = serum_olink_dir,
-      count_pattern = "Counts\\.csv$",
-      count_file_path = "",
-      count_var_name = "serum_olink_counts",
-      count_desc = "Count data from Olink assay of serum",
-      rowfeature_pattern = "RowFeature\\.csv$",
-      rowfeature_file_path = "",
-      rowfeature_var_name = "serum_olink_rowfeature",
-      rowfeature_desc = "RowFeature data from Olink assay of serum",
-      metadata_pattern = "Metadata\\.csv$",
-      metadata_file_path = "",
-      metadata_var_name = "serum_olink_metadata",
-      metadata_desc = "Metadata from Olink assay of serum"
-    ),
-    "nasal_viralload" = list(
-      dir = nasal_viralload_dir,
-      count_pattern = "Counts\\.csv$",
-      count_file_path = "",
-      count_var_name = "nasal_viralload_counts",
-      count_desc = "Count data for nasal viral load",
-      rowfeature_pattern = "RowFeature\\.csv$",
-      rowfeature_file_path = "",
-      rowfeature_var_name = "nasal_viralload_rowfeature",
-      rowfeature_desc = "RowFeature data for nasal viral load",
-      metadata_pattern = "Metadata\\.csv$",
-      metadata_file_path = "",
-      metadata_var_name = "nasal_viralload_metadata",
-      metadata_desc = "Metadata for nasal viral load"
-    ),
-    "serum_rbd_abtiters" = list(
-      dir = serum_rbd_abtiters_dir,
-      count_pattern = "abtiters-Counts\\.csv$",
-      count_file_path = "",
-      count_var_name = "serum_rbd_abtiters_counts",
-      count_desc = "Count data for RBD ab-titer in serum",
-      rowfeature_pattern = "abtiters-RowFeature\\.csv$",
-      rowfeature_file_path = "",
-      rowfeature_var_name = "serum_rbd_abtiters_rowfeature",
-      rowfeature_desc = "RowFeature data for RBD ab-titer in serum",
-      metadata_pattern = "abtiters-Metadata\\.csv$",
-      metadata_file_path = "",
-      metadata_var_name = "serum_rbd_abtiters_metadata",
-      metadata_desc = "Metadata for RBD ab-titer in serum"
-    ),
-    "nasal_transcriptomics" = list(
-      dir = nasal_transcriptomics_dir,
-      count_pattern = "Counts\\.csv$",
-      count_file_path = "",
-      count_var_name = "nasal_transcriptomics_counts",
-      count_desc = "Count data for nasal transcriptomics",
-      rowfeature_pattern = "RowFeature\\.csv$",
-      rowfeature_file_path = "",
-      rowfeature_var_name = "nasal_transcriptomics_rowfeature",
-      rowfeature_desc = "RowFeature data for nasal transcriptomics",
-      metadata_pattern = "Metadata\\.csv$",
-      metadata_file_path = "",
-      metadata_var_name = "nasal_transcriptomics_metadata",
-      metadata_desc = "Metadata for nasal transcriptomics"
-    ),
-    "plasma_metabolomics_global" = list(
-      dir = plasma_metabolomics_global_dir,
-      count_pattern = "Counts\\.csv$",
-      count_file_path = "",
-      count_var_name = "plasma_metabolomics_global_counts",
-      count_desc = "Count data for global metabolomics of plasma",
-      rowfeature_pattern = "RowFeature\\.csv$",
-      rowfeature_file_path = "",
-      rowfeature_var_name = "plasma_metabolomics_global_rowfeature",
-      rowfeature_desc = "RowFeature data for global metabolomics of plasma",
-      metadata_pattern = "Metadata\\.csv$",
-      metadata_file_path = "",
-      metadata_var_name = "plasma_metabolomics_global_metadata",
-      metadata_desc = "Metadata for global metabolomics of plasma"
-    ),
-    "bld_cytof" = list(
-      dir = bld_cytof_dir,
-      count_pattern = "cytof-Counts\\.csv$",
-      count_file_path = "",
-      count_var_name = "bld_cytof_counts",
-      count_desc = "Count data for CyTOF of blood",
-      rowfeature_pattern = "cytof-RowFeature\\.csv$",
-      rowfeature_file_path = "",
-      rowfeature_var_name = "bld_cytof_rowfeature",
-      rowfeature_desc = "RowFeature data for CyTOF of blood",
-      metadata_pattern = "cytof-Metadata\\.csv$",
-      metadata_file_path = "",
-      metadata_var_name = "bld_cytof_metadata",
-      metadata_desc = "Metadata for CyTOF of blood"
-    ),
-    "ea_cytof" = list(
-      dir = ea_cytof_dir,
-      count_pattern = "cytof-Counts\\.csv$",
-      count_file_path = "",
-      count_var_name = "ea_cytof_counts",
-      count_desc = "Count data for CyTOF of EA",
-      rowfeature_pattern = "cytof-RowFeature\\.csv$",
-      rowfeature_file_path = "",
-      rowfeature_var_name = "ea_cytof_rowfeature",
-      rowfeature_desc = "RowFeature data for CyTOF of EA",
-      metadata_pattern = "cytof-Metadata\\.csv$",
-      metadata_file_path = "",
-      metadata_var_name = "ea_cytof_metadata",
-      metadata_desc = "Metadata for CyTOF of EA"
-    ),
-    "ea_transcriptomics" = list(
-      dir = ea_transcriptomics_dir,
-      count_pattern = "Counts\\.csv$",
-      count_file_path = "",
-      count_var_name = "ea_transcriptomics_counts",
-      count_desc = "Count data for EA transcriptomics",
-      rowfeature_pattern = "RowFeature\\.csv$",
-      rowfeature_file_path = "",
-      rowfeature_var_name = "ea_transcriptomics_rowfeature",
-      rowfeature_desc = "RowFeature data for EA transcriptomics",
-      metadata_pattern = "Metadata\\.csv$",
-      metadata_file_path = "",
-      metadata_var_name = "ea_transcriptomics_metadata",
-      metadata_desc = "Metadata for EA transcriptomics"
-    ),
-    "pbmc_transcriptomics" = list(
-      dir = pbmc_transcriptomics_dir,
-      count_pattern = "Counts\\.csv$",
-      count_file_path = "",
-      count_var_name = "pbmc_transcriptomics_counts",
-      count_desc = "Count data for PBMC transcriptomics",
-      rowfeature_pattern = "RowFeature\\.csv$",
-      rowfeature_file_path = "",
-      rowfeature_var_name = "pbmc_transcriptomics_rowfeature",
-      rowfeature_desc = "RowFeature data for PBMC transcriptomics",
-      metadata_pattern = "Metadata\\.csv$",
-      metadata_file_path = "",
-      metadata_var_name = "pbmc_transcriptomics_metadata",
-      metadata_desc = "Metadata for PBMC transcriptomics"
-    )
-  )
-  
-  data_env[["assay_files_info"]] <- assay_files_info
-  return(data_env)
-}
-
-
 #### Load assay datasets
 load_assay_data <- function(data_env, DATA_VERSION, ALLOWED_SMPL_STATUS) {
   ### Fetch path of files that match the indicated pattern in the provided directory for each assay file and load the data in the variable names indicated in var_name element of the assay_files_info list. Uses the version of data specified in DATA_VERSION.
@@ -1062,150 +706,6 @@ load_assay_data <- function(data_env, DATA_VERSION, ALLOWED_SMPL_STATUS) {
       }
     }
 
-    
-    
-    assay_files_info[[f]] <- f_info
-    
-  }
-  
-  data_env[[ "assay_files_info" ]] <- assay_files_info
-  
-  return(data_env)
-}
-
-
-
-#### Load assay datasets
-load_assay_data_subtyping <- function(data_env, ALLOWED_SMPL_STATUS) {
-  ### Fetch path of files that match the indicated pattern in the provided directory for each assay file and load the data in the variable names indicated in var_name element of the assay_files_info list. Uses the version of data specified in DATA_VERSION.
-  
-  assay_files_info <- data_env[[ "assay_files_info" ]]
-  clinical_data <- data_env[[ "clinical_data" ]]
-  
-  for (f in names(assay_files_info)) {
-    f_info <- assay_files_info[[f]]
-    
-    
-    
-    # Loading Metadata table
-    if (!is.null(f_info$metadata_pattern)) {
-      f_info$metadata_file_path <- paste0(
-        f_info$dir, "/",
-        list.files(path = f_info$dir, pattern = f_info$metadata_pattern))
-      
-      if (is.null(f_info$metadata_file_path)) {
-        warning(
-          "\"",
-          f_info$metadata_desc,
-          "\" is not accessible. Either you don't have access to this data or the data does not exist for the version of dataset you have selected.\n"
-        )
-        
-      } else {
-        ### Load data, keep only those observations for which the clinical data is available and assign the data object to the variable name indicated in "var_name" element.
-        message(
-          "Loading ",
-          f_info$metadata_desc,
-          " from ",
-          f_info$metadata_file_path,
-          "\n"
-        )
-        data <-
-          read_data_files(f_info$metadata_file_path,
-                          row.names = 1,
-                          header = TRUE)
-        
-        ## Keep those records for which clinical data exists, those that belong to those that have passed/questionable QC.
-        data <-
-          data %>% dplyr::filter( row.names(.) %in% clinical_data$sample_id &
-                                    sample_status %in% ALLOWED_SMPL_STATUS )
-        
-        ## Save the data to the environment.
-        data_env[[ f_info$metadata_var_name ]] <- data
-        
-      }
-    }
-    
-    
-    
-    # Loading count data
-    f_info$count_file_path <- paste0(
-      f_info$dir, "/",
-      list.files(path = f_info$dir, pattern = f_info$count_pattern))
-    
-    if (is.null(f_info$count_file_path)) {
-      warning(
-        "\"",
-        f_info$count_desc,
-        "\" is not accessible. Either you don't have access to this data or the data does not exist for the version of dataset you have selected.\n"
-      )
-      
-    } else {
-      ### Load data, keep only those observations for which the clinical data is available and assign the data object to the variable name indicated in "var_name" element.
-      message("Loading ",
-              f_info$count_desc,
-              " from ",
-              f_info$count_file_path,
-              "\n")
-      data <-
-        read_data_files(f_info$count_file_path,
-                        row.names = 1,
-                        header = TRUE)
-      
-      # In case, if the CSV file has an extra comma at the end of rows, the following line removes the last empty column.
-      #data = data %>% select( which(colnames(data) != "") )
-      
-      
-      ## Keep only those records for which clinical data and metadata exist. Clinical data and metadata are filtered using variety of filters (see above).
-      data <-
-        data %>% dplyr::filter(row.names(.) %in% clinical_data$sample_id &
-                                 row.names(.) %in% row.names(data_env[[f_info$metadata_var_name]]))
-      
-      ## Match the order of samples in metadata table with that in the count table.
-      data_env[[ f_info$metadata_var_name ]] <-
-        data_env[[ f_info$metadata_var_name ]] %>% dplyr::slice( match( row.names(data), row.names(.) ) )
-      
-      
-      ## Save the data to the environment.
-      data_env[[ f_info$count_var_name ]] <- data
-      
-    }
-    
-    
-    
-    # Loading rowfeature data
-    if (!is.null(f_info$rowfeature_pattern)) {
-      f_info$rowfeature_file_path <- paste0(
-        f_info$dir, "/",
-        list.files(path = f_info$dir, pattern = f_info$rowfeature_pattern))
-      
-      if (is.null(f_info$rowfeature_file_path)) {
-        warning(
-          "\"",
-          f_info$rowfeature_desc,
-          "\" is not accessible. Either you don't have access to this data or the data does not exist for the version of dataset you have selected.\n"
-        )
-        
-      } else {
-        ### Load data, keep only those observations for which the clinical data is available and assign the data object to the variable name indicated in "var_name" element.
-        message(
-          "Loading ",
-          f_info$rowfeature_desc,
-          " from ",
-          f_info$rowfeature_file_path,
-          "\n"
-        )
-        
-        data <-
-          read_data_files(f_info$rowfeature_file_path,
-                          row.names = 1,
-                          header = TRUE)
-        
-        ## Save the data to the environment.
-        data_env[[ f_info$rowfeature_var_name ]] <- data
-        
-      }
-    }
-    
     
     
     assay_files_info[[f]] <- f_info
@@ -1388,11 +888,8 @@ load_IMPACC_datasets <- function(DATA_VERSION,
                                      "IMPACC sample assayed with questionable QC"),
                                  FILTER_BY_CORE_ASSAY_COHORT = TRUE,
                                  FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS = FALSE,
-                                 FILTER_BY_INTEGRATION_COHORT = FALSE,
                                  EVENT_DATE_UPPER = 42,
-                                 VISIT_UPPER = 6,
-                                 USE_LOCKED_CLINICAL = FALSE,
-                                 data_base_dir = data_base_dir
+                                 VISIT_UPPER = 6
                                  ) {
   
   #### Load packages necessary for data loading and processing purpose
@@ -1400,35 +897,35 @@ load_IMPACC_datasets <- function(DATA_VERSION,
   
   #### Define Data directories: Use the absolute path of the directory containing "current" and "legacy" directories.
   data_dirs <- c(
-    bld_cytof_dir = paste0(data_base_dir, "/bld-cytof"),
-    bld_gwas_dir = paste0(data_base_dir, "/bld-gwas"),
-    clinical_dir = paste0(data_base_dir, "/clinical"),
-    ea_cytof_dir = paste0(data_base_dir, "/ea-cytof"),
-    ea_metagenomics_dir = paste0(data_base_dir, "/ea-metagenomics"),
-    ea_transcriptomics_dir = paste0(data_base_dir, "/ea-transcriptomics"),
-    plasma_metabolomics_global_dir = paste0(data_base_dir, "/metabolomics/plasma-metabolomics-global"),
-    plasma_metabolomics_targeted_dir = paste0(data_base_dir, "/metabolomics/plasma-metabolomics-targeted"),
-    serum_metabolomics_global_dir = paste0(data_base_dir, "/metabolomics/serum-metabolomics-global"),
-    nasal_metagenomics_dir = paste0(data_base_dir, "/nasal-metagenomics"),
-    nasal_transcriptomics_dir = paste0(data_base_dir, "/nasal-transcriptomics"),
-    nasal_viralload_dir = paste0(data_base_dir, "/nasal-viralload"),
-    nasal_viralseq_dir = paste0(data_base_dir, "/nasal-viralseq"),
-    pbmc_transcriptomics_dir = paste0(data_base_dir, "/pbmc-transcriptomics"),
-    plasma_proteomics_targeted_dir = paste0(data_base_dir, "/proteomics/plasma-proteomics-targeted"),
-    plasma_proteomics_global_dda_dir = paste0(data_base_dir, "/proteomics/plasma-proteomics-global-DDA"),
-    plasma_proteomics_global_dia_dir = paste0(data_base_dir, "/proteomics/plasma-proteomics-global-DIA"),
-    serum_autoantibody_dir = paste0(data_base_dir, "/serum-autoantibody"),
-    serum_proteomics_global_dir = paste0(data_base_dir, "/proteomics/serum-proteomics-global"),
-    serum_olink_dir = paste0(data_base_dir, "/serum-olink"),
-    serum_rbd_abtiters_dir = paste0(data_base_dir, "/serum-rbd-abtiters"),
-    serum_sarscov2_abtiters_dir = paste0(data_base_dir, "/serum-sarscov2-abtiters")
+      bld_cytof_dir = "/data/bld-cytof",
+      bld_gwas_dir = "/data/bld-gwas",
+      clinical_dir = "/data/clinical",
+      ea_cytof_dir = "/data/ea-cytof",
+      ea_metagenomics_dir = "/data/ea-metagenomics",
+      ea_transcriptomics_dir = "/data/ea-transcriptomics",
+      plasma_metabolomics_global_dir = "/data/metabolomics/plasma-metabolomics-global",
+      plasma_metabolomics_targeted_dir = "/data/metabolomics/plasma-metabolomics-targeted",
+      serum_metabolomics_global_dir = "/data/metabolomics/serum-metabolomics-global",
+      nasal_metagenomics_dir = "/data/nasal-metagenomics",
+      nasal_transcriptomics_dir = "/data/nasal-transcriptomics",
+      nasal_viralload_dir = "/data/nasal-viralload",
+      nasal_viralseq_dir = "/data/nasal-viralseq",
+      pbmc_transcriptomics_dir = "/data/pbmc-transcriptomics",
+      plasma_proteomics_targeted_dir = "/data/proteomics/plasma-proteomics-targeted",
+      plasma_proteomics_global_dda_dir = "/data/proteomics/plasma-proteomics-global-DDA",
+      plasma_proteomics_global_dia_dir = "/data/proteomics/plasma-proteomics-global-DIA",
+      serum_autoantibody_dir = "/data/serum-autoantibody",
+      serum_proteomics_global_dir = "/data/proteomics/serum-proteomics-global",
+      serum_olink_dir = "/data/serum-olink",
+      serum_rbd_abtiters_dir = "/data/serum-rbd-abtiters",
+      serum_sarscov2_abtiters_dir = "/data/serum-sarscov2-abtiters"
   )
   
   #### Create an empty environment for storing various data objects
   data_env <- env(data_dirs = data_dirs)
   
   #### Prepare clinical data variables
-  data_env <- prepare_clinical_data(data_env, DATA_VERSION, KEEP_COVID19_POS, FILTER_BY_CORE_ASSAY_COHORT, FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS, FILTER_BY_INTEGRATION_COHORT, EVENT_DATE_UPPER, VISIT_UPPER, PHASES, USE_LOCKED_CLINICAL)
+  data_env <- prepare_clinical_data(data_env, DATA_VERSION, KEEP_COVID19_POS, FILTER_BY_CORE_ASSAY_COHORT, FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS, EVENT_DATE_UPPER, VISIT_UPPER, PHASES)
 
   #### Prepare info for the assay data files
   data_env <- prepare_assay_files_info(data_env)
@@ -1446,67 +943,6 @@ load_IMPACC_datasets <- function(DATA_VERSION,
   
   return(data_env)
      
-}
-
-
-
-#### Use this function to load all available datasets and return an R environment containing all data objects.
-load_IMPACC_datasets_subtyping <- function(
-    KEEP_COVID19_POS, PHASES = 1:100,
-    ALLOWED_SMPL_STATUS = c("IMPACC sample assayed and passed QC",
-                            "IMPACC sample assayed with questionable QC"),
-    FILTER_BY_CORE_ASSAY_COHORT = FALSE,
-    FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS = FALSE,
-    FILTER_BY_INTEGRATION_COHORT = TRUE,
-    EVENT_DATE_UPPER = 42,
-    VISIT_UPPER = 6,
-    USE_LOCKED_CLINICAL = FALSE,
-    data_base_dir = data_base_dir
-) {
-  
-  #### Load packages necessary for data loading and processing purpose
-  load_packages(c(packages, packages_imputation))
-  
-  #### Define Data directories: Use the absolute path of the directory containing "current" and "legacy" directories.
-  data_dirs <- c(
-    bld_cytof_dir = paste0(data_base_dir, "/bld-cytof"),
-    clinical_dir = paste0(data_base_dir, "/clinical"),
-    ea_cytof_dir = paste0(data_base_dir, "/ea-cytof"),
-    ea_transcriptomics_dir = paste0(data_base_dir, "/ea-transcriptomics"),
-    plasma_metabolomics_global_dir = paste0(data_base_dir, "/metabolomics/plasma-metabolomics-global"),
-    nasal_transcriptomics_dir = paste0(data_base_dir, "/nasal-transcriptomics"),
-    nasal_viralload_dir = paste0(data_base_dir, "/nasal-viralload"),
-    pbmc_transcriptomics_dir = paste0(data_base_dir, "/pbmc-transcriptomics"),
-    plasma_proteomics_targeted_dir = paste0(data_base_dir, "/proteomics/plasma-proteomics-targeted"),
-    plasma_proteomics_global_dda_dir = paste0(data_base_dir, "/proteomics/plasma-proteomics-global-DDA"),
-    serum_olink_dir = paste0(data_base_dir, "/serum-olink"),
-    serum_rbd_abtiters_dir = paste0(data_base_dir, "/serum-rbd-abtiters")
-  )
-  
-  #### Create an empty environment for storing various data objects
-  data_env <- env(data_dirs = data_dirs)
-  
-  #### Prepare clinical data variables
-  data_env <- prepare_clinical_data_subtyping(
-    data_env, KEEP_COVID19_POS, FILTER_BY_CORE_ASSAY_COHORT, 
-    FILTER_COHORT_FOR_INTEGRATIVE_ANALYSIS, FILTER_BY_INTEGRATION_COHORT, 
-    EVENT_DATE_UPPER, VISIT_UPPER, PHASES)
-  
-  #### Prepare info for the assay data files
-  data_env <- prepare_assay_files_info_subtyping(data_env)
-  
-  #### Fetch appropriate data files and load assay datasets
-  data_env <- load_assay_data_subtyping(data_env, ALLOWED_SMPL_STATUS)
-  
-  #### Prepare predefined color schemes
-  data_env <- prepare_color_schemes(data_env)
-  
-  #### Store PHASES info in data_env
-  data_env[[ "PHASES" ]] <- PHASES
-  data_env[[ "ALLOWED_SMPL_STATUS" ]] <- ALLOWED_SMPL_STATUS
-  
-  return(data_env)
-  
 }
 
 
@@ -1606,7 +1042,7 @@ preprocess_serum_olink_obsolete <- function(serum_olink_counts, removeOutliers =
 }
 
 
-deprecated_load_IMPACC_datasets_vDataIntegration <- function(DATA_VERSION, 
+load_IMPACC_datasets_vDataIntegration <- function(DATA_VERSION, 
                                                   KEEP_COVID19_POS, 
                                                   PHASES = 1:100, 
                                                   alpha = 0.2, 
@@ -1647,7 +1083,7 @@ deprecated_load_IMPACC_datasets_vDataIntegration <- function(DATA_VERSION,
 
 
 
-deprecated_load_IMPACC_Publication_datasets <- function(DATA_VERSION, 
+load_IMPACC_Publication_datasets <- function(DATA_VERSION, 
                                              KEEP_COVID19_POS, 
                                              PHASES = 1:100, 
                                              ALLOWED_SMPL_STATUS = 

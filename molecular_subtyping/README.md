@@ -44,9 +44,10 @@ Scripts used to generate figures and tables.
 | Extended Data Figure 8 | [Extended_Data_Fig8.Rmd](figures_and_tables/Extended_Data_Fig8/src) | [Extended Data Fig8](figures_and_tables/Extended_Data_Fig8/output) |
 | Extended Data Figure 9 | [Extended_Data_Fig9.Rmd](figures_and_tables/Extended_Data_Fig9/src) | [Extended Data Fig9](figures_and_tables/Extended_Data_Fig9/output) |
 | Extended Data Figure 10 | [Extended_Data_Fig10.Rmd](figures_and_tables/Extended_Data_Fig10/src) | [Extended Data Fig10](figures_and_tables/Extended_Data_Fig10/output) |
-| Extended Data Figure 11 | [Extended_Data_Fig11.Rmd](figures_and_tables/Extended_Data_Fig11/src/Extended_Data_Fig11.Rmd) | [Extended Data Fig11](figures_and_tables/Extended_Data_Fig11/output) |
+| Extended Data Figure 11 | [Extended_Data_Fig11.Rmd](figures_and_tables/Extended_Data_Fig11/src) | [Extended Data Fig11](figures_and_tables/Extended_Data_Fig11/output) |
 | Extended Data Figure 12 | [Extended_Data_Fig12.Rmd](figures_and_tables/Extended_Data_Fig12/src) | [Extended Data Fig12](figures_and_tables/Extended_Data_Fig12/output) |
 | Extended Data Figure 13 | [Extended_Data_Fig13.Rmd](figures_and_tables/Extended_Data_Fig13/src) | [Extended Data Fig13](figures_and_tables/Extended_Data_Fig13/output) |
+| Extended Data Figure 14 | [Extended_Data_Fig14.Rmd](figures_and_tables/Extended_Data_Fig14/src) | [Extended Data Fig14](figures_and_tables/Extended_Data_Fig14/output) |
 | Supplementary Figure 1 | [Supplementary_Fig1.Rmd](figures_and_tables/Supplementary_Fig1/src/Supplementary_Fig1.Rmd) | [Supplementary Fig1](figures_and_tables/Supplementary_Fig1/output/Supplementary_Fig1.pdf) |
 
 </br>

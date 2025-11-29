@@ -1,0 +1,609 @@
+---
+title: "Sepsis"
+output: pdf_document
+---
+```{r}
+library(GGally)
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+set.seed(123)
+```
+
+# COMBAT pbmc
+```{r}
+external_data_path = "/scratch/data-integration/molecular_subtyping/Revisions/External_Datasets/COMBAT/pbmc"
+factor_external = read.csv(paste0(external_data_path, 
+                                  "/COMBAT_PBMC_RNA-seq_projections.csv"))
+data_external = read.csv(paste0(external_data_path, 
+                                  "/combat_pbmc_normalized_data.csv"))
+metadata_external = read.csv(paste0(external_data_path,
+                                  "/COMBAT_Metadata.csv"))
+metadata_external = metadata_external[,-1]
+feature_external = colnames(data_external)[-1]
+participant_id_external = data_external$X
+rownames(data_external) = data_external$X
+data_external = data_external[,-1]
+
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path, "/codebase_subtype.R"))
+
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+extended_data = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/extended_data.rds")
+subtype_labels = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_used = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+
+
+common_feature = intersect(feature_external,
+                           colnames(organized_data$datasets$pbmc_transcriptomics))
+cat("Total feature: ", ncol(organized_data$datasets$pbmc_transcriptomics), "\n")
+cat("Common feature: ", length(common_feature))
+```
+
+# Sepsis vs healthy
+```{r, warning=FALSE}
+df_external = data_external[, common_feature]
+df_prob = data.frame(RNASeq_sample_ID = rownames(data_external))
+df_prob = inner_join(df_prob, metadata_external, by = "RNASeq_sample_ID")
+df_prob = df_prob %>%
+  mutate(TimeSinceOnset = ifelse(Source == "HV", 0, TimeSinceOnset)) %>%
+  group_by(COMBAT_ID) %>% 
+  filter(TimeSinceOnset <= 20) %>% slice_min(TimeSinceOnset) %>%
+  mutate(Outcome = ifelse(is.na(Outcome) |Source == "HV", 
+                          Source, as.character(Outcome)))
+df_prob = df_prob[df_prob$Outcome != 6,] # not hospitalized
+df_prob$severity = df_prob$Outcome
+df_prob$severity[df_prob$severity == "1"] = "ECMO or Mortality"
+df_prob$severity[df_prob$severity == "2"] = "ECMO or Mortality"
+df_prob$severity[df_prob$severity == "3"] = "Non-invasive Ventilation / High-Oxygen"
+df_prob$severity[df_prob$severity == "4"] = "Oxygen Support"
+df_prob$severity[df_prob$severity == "5"] = "No Support"
+df_prob$severity[df_prob$severity == "HV"] = "Healthy"
+
+df_sepsis = df_prob[df_prob$severity %in% c("Sepsis", "Healthy"), ]
+df_external = df_external[df_sepsis$RNASeq_sample_ID, , drop = FALSE]
+res_sepsis <- matrix(NA, nrow = length(common_feature), ncol = 3)
+rownames(res_sepsis) <- common_feature
+colnames(res_sepsis) <- c("stats", "effect_size", "pval")
+for (i in 1:length(common_feature)) {
+  test_res <- tryCatch({
+      t.test(df_external[df_sepsis$severity == "Sepsis", i],
+             df_external[df_sepsis$severity == "Healthy", i])},
+      error = function(e) NULL)
+  if (!is.null(test_res)) {
+    n1 <- length(df_external[df_sepsis$severity == "Sepsis", i])
+    n2 <- length(df_external[df_sepsis$severity == "Healthy", i])
+    n_effect <- n1*n2/(n1+n2)
+    res_sepsis[i, "stats"] <- test_res$statistic
+    res_sepsis[i, "effect_size"] <- test_res$statistic / sqrt(n_effect)
+    res_sepsis[i, "pval"] <- test_res$p.value
+  }
+}
+res_sepsis = na.omit(res_sepsis)
+res_sepsis = as.data.frame(res_sepsis)
+res_sepsis$adj_pval = p.adjust(res_sepsis$pval, method = "BH")
+res_sepsis_all = res_sepsis
+# res_sepsis = res_sepsis[which(res_sepsis$adj_pval <= 0.05),]
+dim(res_sepsis)
+```
+
+# Within subtype (EF vs ABC)
+```{r}
+df_original = organized_data$datasets$pbmc_transcriptomics
+v1_event_id = clin_data_used$event_id[clin_data_used$event_type == "Visit 1"]
+df_original = df_original[v1_event_id, common_feature]
+rownames(df_original) = sub("-[^-]+$", "", rownames(df_original))
+df_original = df_original[order(rownames(df_original)), ]
+df_subtype = subtype_labels[rownames(df_original),]
+
+res_subtype <- matrix(NA, nrow = length(common_feature), ncol = 3)
+rownames(res_subtype) <- common_feature
+colnames(res_subtype) <- c("stats", "effect_size", "pval")
+for (i in 1:length(common_feature)) {
+  test_res <- tryCatch({
+      t.test(df_original[df_subtype$label == "E" |
+                           df_subtype$label == "F", i],
+             df_original[df_subtype$label == "A" |
+                           df_subtype$label == "B" |
+                           df_subtype$label == "C", i])},
+      error = function(e) NULL)
+  if (!is.null(test_res)) {
+    n1 <- length(df_original[df_subtype$label == "E" |
+                           df_subtype$label == "F", i])
+    n2 <- length(df_original[df_subtype$label == "A" |
+                           df_subtype$label == "B" |
+                           df_subtype$label == "C", i])
+    n_effect <- n1*n2/(n1+n2)
+    res_subtype[i, "stats"] <- test_res$statistic
+    res_subtype[i, "effect_size"] <- test_res$statistic / sqrt(n_effect)
+    res_subtype[i, "pval"] <- test_res$p.value
+  }
+}
+res_subtype = na.omit(res_subtype)
+res_subtype = as.data.frame(res_subtype)
+res_subtype$adj_pval = p.adjust(res_subtype$pval, method = "BH")
+res_subtype_ABCEF_all = res_subtype
+# res_subtype = res_subtype[which(res_subtype$adj_pval <= 0.05),]
+dim(res_subtype)
+```
+
+# Effect size plot (EF vs ABC)
+```{r, fig.height=5, fig.width=5}
+# common_id = intersect(rownames(res_sepsis), rownames(res_subtype))
+common_id = union(rownames(res_sepsis), rownames(res_subtype))
+df_plot = data.frame(
+  sample_id = common_id,
+  res_sepsis = res_sepsis_all[common_id, "effect_size"],
+  res_subtype = res_subtype_ABCEF_all[common_id, "effect_size"])
+
+ggplot(df_plot, aes(x = res_subtype, y = res_sepsis)) +
+  geom_point(color = "steelblue", alpha = 0.7) +
+  geom_vline(xintercept = 0, color = "black") +
+  geom_hline(yintercept = 0, color = "black") +
+  labs(
+    x = "Effect Size (EF vs. ABC)",
+    y = "Effect Size (Sepsis vs. Healthy)",
+    title = "COMBAT RNA-seq") +
+  theme_minimal() +
+  theme(axis.ticks = element_blank(),
+          axis.text = element_text(size = 15, color = "black"),
+          axis.title = element_text(size = 15, color = "black"))
+```
+
+# Within subtype (C vs A)
+```{r}
+df_original = organized_data$datasets$pbmc_transcriptomics
+v1_event_id = clin_data_used$event_id[clin_data_used$event_type == "Visit 1"]
+df_original = df_original[v1_event_id, common_feature]
+rownames(df_original) = sub("-[^-]+$", "", rownames(df_original))
+df_original = df_original[order(rownames(df_original)), ]
+df_subtype = subtype_labels[rownames(df_original),]
+
+res_subtype <- matrix(NA, nrow = length(common_feature), ncol = 3)
+rownames(res_subtype) <- common_feature
+colnames(res_subtype) <- c("stats", "effect_size", "pval")
+for (i in 1:length(common_feature)) {
+  test_res <- tryCatch({
+      t.test(df_original[df_subtype$label == "C", i],
+             df_original[df_subtype$label == "A", i])},
+      error = function(e) NULL)
+  if (!is.null(test_res)) {
+    n1 <- length(df_original[df_subtype$label == "C", i])
+    n2 <- length(df_original[df_subtype$label == "A", i])
+    n_effect <- n1*n2/(n1+n2)
+    res_subtype[i, "stats"] <- test_res$statistic
+    res_subtype[i, "effect_size"] <- test_res$statistic / sqrt(n_effect)
+    res_subtype[i, "pval"] <- test_res$p.value
+  }
+}
+res_subtype = na.omit(res_subtype)
+res_subtype = as.data.frame(res_subtype)
+res_subtype$adj_pval = p.adjust(res_subtype$pval, method = "BH")
+res_subtype_AC_all = res_subtype
+# res_subtype = res_subtype[which(res_subtype$adj_pval <= 0.05),]
+dim(res_subtype)
+```
+
+# Effect size plot (C vs A)
+```{r, fig.height=5, fig.width=5}
+# common_id = intersect(rownames(res_sepsis), rownames(res_subtype))
+common_id = union(rownames(res_sepsis), rownames(res_subtype))
+df_plot = data.frame(
+  sample_id = common_id,
+  res_sepsis = res_sepsis_all[common_id, "effect_size"],
+  res_subtype = res_subtype_AC_all[common_id, "effect_size"])
+
+ggplot(df_plot, aes(x = res_subtype, y = res_sepsis)) +
+  geom_point(color = "steelblue", alpha = 0.7) +
+  geom_vline(xintercept = 0, color = "black") +
+  geom_hline(yintercept = 0, color = "black") +
+  labs(
+    x = "Effect Size (C vs. A)",
+    y = "Effect Size (Sepsis vs. Healthy)",
+    title = "COMBAT RNA-seq") +
+  theme_minimal() +
+  theme(axis.ticks = element_blank(),
+          axis.text = element_text(size = 15, color = "black"),
+          axis.title = element_text(size = 15, color = "black"))
+```
+
+# Within subtype (F vs E)
+```{r, warning=FALSE}
+df_original = organized_data$datasets$pbmc_transcriptomics
+v1_event_id = clin_data_used$event_id[clin_data_used$event_type == "Visit 1"]
+df_original = df_original[v1_event_id, common_feature]
+rownames(df_original) = sub("-[^-]+$", "", rownames(df_original))
+df_original = df_original[order(rownames(df_original)), ]
+df_subtype = subtype_labels[rownames(df_original),]
+
+res_subtype <- matrix(NA, nrow = length(common_feature), ncol = 3)
+rownames(res_subtype) <- common_feature
+colnames(res_subtype) <- c("stats", "effect_size", "pval")
+for (i in 1:length(common_feature)) {
+  test_res <- tryCatch({
+      t.test(df_original[df_subtype$label == "F", i],
+             df_original[df_subtype$label == "E", i])},
+      error = function(e) NULL)
+  if (!is.null(test_res)) {
+    n1 <- length(df_original[df_subtype$label == "F", i])
+    n2 <- length(df_original[df_subtype$label == "E", i])
+    n_effect <- n1*n2/(n1+n2)
+    res_subtype[i, "stats"] <- test_res$statistic
+    res_subtype[i, "effect_size"] <- test_res$statistic / sqrt(n_effect)
+    res_subtype[i, "pval"] <- test_res$p.value
+  }
+}
+res_subtype = na.omit(res_subtype)
+res_subtype = as.data.frame(res_subtype)
+res_subtype$adj_pval = p.adjust(res_subtype$pval, method = "BH")
+res_subtype_EF_all = res_subtype
+# res_subtype = res_subtype[which(res_subtype$adj_pval <= 0.05),]
+dim(res_subtype)
+```
+
+# Effect size plot (F vs E)
+```{r, fig.height=5, fig.width=5}
+# common_id = intersect(rownames(res_sepsis), rownames(res_subtype))
+common_id = union(rownames(res_sepsis), rownames(res_subtype))
+df_plot = data.frame(
+  sample_id = common_id,
+  res_sepsis = res_sepsis_all[common_id, "effect_size"],
+  res_subtype = res_subtype_EF_all[common_id, "effect_size"])
+
+ggplot(df_plot, aes(x = res_subtype, y = res_sepsis)) +
+  geom_point(color = "steelblue", alpha = 0.7) +
+  geom_vline(xintercept = 0, color = "black") +
+  geom_hline(yintercept = 0, color = "black") +
+  labs(
+    x = "Effect Size (F vs. E)",
+    y = "Effect Size (Sepsis vs. Healthy)",
+    title = "COMBAT RNA-seq") +
+  theme_minimal() +
+  theme(axis.ticks = element_blank(),
+          axis.text = element_text(size = 15, color = "black"),
+          axis.title = element_text(size = 15, color = "black"))
+```
+
+# GSEA
+```{r GSEA}
+library(clusterProfiler)
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+kegg_database = readRDS(file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds")
+hallmark_database = readRDS( file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/hallmark0522.rds")
+metabolite_row_DF = data_env0$plasma_metabolomics_global_rowfeature
+rownames(metabolite_row_DF) = metabolite_row_DF[["CHEMICAL_NAME"]]
+metabolite_row_DF=metabolite_row_DF[,c("CHEMICAL_NAME","SUB_PATHWAY","SUPER_PATHWAY")]
+subpath_databse = list()
+subpath_databse[["pmg"]] = data.frame(description = metabolite_row_DF[["SUB_PATHWAY"]],
+                                      CHEMICAL_NAME = metabolite_row_DF[["CHEMICAL_NAME"]])
+
+runGSEA_external <- function(effect_size, Term2GeneList, omics = "pbmc") {
+  gsea_result = list()
+  if (omics %in% names(Term2GeneList)) {
+      geneList = effect_size
+      geneList = sort(geneList, decreasing = T)
+      Term2Gene = Term2GeneList[[omics]]
+      Term2Gene = Term2Gene[Term2Gene[,2] %in% names(geneList),]
+      gsea_result[[omics]] = clusterProfiler::GSEA(
+        geneList = geneList, minGSSize = 3, maxGSSize = 500,
+        pvalueCutoff = 2, TERM2GENE = Term2Gene,
+        nPermSimple = 10000)
+  }
+}
+```
+
+# sepsis vs healthy
+```{r, fig.height=6, fig.width=9}
+effect_size = res_sepsis_all$effect_size
+names(effect_size) = rownames(res_sepsis_all)
+ens2symbol = data_env0$pbmc_transcriptomics_rowfeature$gene_name
+names(ens2symbol) = rownames(data_env0$pbmc_transcriptomics_rowfeature)
+names(effect_size) = ens2symbol[names(effect_size)]
+
+enrichment_gsea_list = list()
+enrichment_gsea_list[["kegg"]] = 
+  runGSEA_external(effect_size = effect_size,
+          Term2GeneList = kegg_database)
+enrichment_gsea_list[["hallmark"]]= 
+  runGSEA_external(effect_size = effect_size,
+          Term2GeneList = hallmark_database)
+
+aggregated_mat <- do.call(rbind, lapply(names(enrichment_gsea_list), function(dbname) {
+  res <- enrichment_gsea_list[[dbname]]
+  if (is.null(res) || nrow(res) == 0) return(NULL)
+  
+  res_df <- as.data.frame(res)
+  res_df$database <- dbname
+  res_df$pathway  <- res_df$Description
+  res_df$log10.sig.val <- -log10(res_df$p.adjust + 1e-300) * sign(res_df$NES)
+  res_df
+}))
+
+thr <- 0.05
+aggregated_mat <- aggregated_mat %>%
+  filter(p.adjust <= thr)
+
+aggregated_mat <- aggregated_mat %>%
+  arrange(desc(log10.sig.val))
+
+top_enrichment <- aggregated_mat %>%
+  group_by(database) %>%
+  arrange(p.adjust) %>%
+  mutate(direction = ifelse(NES > 0, "pos", "neg")) %>%
+  filter(direction == "pos") %>%
+  slice_head(n = 5) %>%
+  bind_rows(
+    aggregated_mat %>%
+      group_by(database) %>%
+      arrange(p.adjust) %>%
+      mutate(direction = ifelse(NES > 0, "pos", "neg")) %>%
+      filter(direction == "neg") %>%
+      slice_head(n = 5)
+  ) %>%
+  ungroup()
+
+plotDF_df <- top_enrichment %>%
+  arrange(database, log10.sig.val) %>%
+  mutate(pathway = factor(pathway, levels = rev(unique(pathway))))
+plotDF_df$omics <- "RNA-seq"
+
+ggplot(plotDF_df, aes(x = omics, y = pathway,
+                           size = abs(log10.sig.val),
+                           color = direction)) +
+  geom_point() +
+  scale_color_manual(values = c("neg" = "#284AA0", "pos" = "#BC4A4A"),
+                     labels = c("neg" = "negative", "pos" = "positive")) +
+  facet_grid(database ~ ., scales = "free_y", space = "free_y") +
+  labs(y = NULL, x = NULL, 
+       size = expression("Signed "*log[10]*"(p.val)",
+                         color = "Direction")) +
+  theme_classic()  +
+  theme(panel.grid.major = element_line(color="grey", size=0.1), 
+        axis.text.x = element_text(angle = 90, hjust=1, vjust=0.5, 
+                                    size = 15, color = "black"), 
+        axis.text.y = element_text(size = 15, color = "black"),
+        axis.title = element_text(size = 15, color = "black"),
+        strip.text = element_text(color = "black", size = 15),
+        plot.title = element_text(color = "black", size = 15),
+        legend.title = element_text(color = "black", size = 15),
+        legend.text = element_text(color = "black", size = 15))
+```
+
+# EF vs ABC
+```{r, fig.height=6, fig.width=9}
+effect_size = res_subtype_ABCEF_all$effect_size
+names(effect_size) = rownames(res_subtype_ABCEF_all)
+ens2symbol = data_env0$pbmc_transcriptomics_rowfeature$gene_name
+names(ens2symbol) = rownames(data_env0$pbmc_transcriptomics_rowfeature)
+names(effect_size) = ens2symbol[names(effect_size)]
+
+enrichment_gsea_list = list()
+enrichment_gsea_list[["kegg"]] = 
+  runGSEA_external(effect_size = effect_size,
+          Term2GeneList = kegg_database)
+enrichment_gsea_list[["hallmark"]]= 
+  runGSEA_external(effect_size = effect_size,
+          Term2GeneList = hallmark_database)
+
+aggregated_mat <- do.call(rbind, lapply(names(enrichment_gsea_list), function(dbname) {
+  res <- enrichment_gsea_list[[dbname]]
+  if (is.null(res) || nrow(res) == 0) return(NULL)
+  
+  res_df <- as.data.frame(res)
+  res_df$database <- dbname
+  res_df$pathway  <- res_df$Description   # or res_df$ID
+  res_df$log10.sig.val <- -log10(res_df$p.adjust + 1e-300) * sign(res_df$NES)
+  res_df
+}))
+
+thr <- 0.05
+aggregated_mat <- aggregated_mat %>%
+  filter(p.adjust <= thr)
+
+aggregated_mat <- aggregated_mat %>%
+  arrange(desc(log10.sig.val))
+
+top_enrichment <- aggregated_mat %>%
+  group_by(database) %>%
+  arrange(p.adjust) %>%
+  mutate(direction = ifelse(NES > 0, "pos", "neg")) %>%
+  filter(direction == "pos") %>%
+  slice_head(n = 5) %>%
+  bind_rows(
+    aggregated_mat %>%
+      group_by(database) %>%
+      arrange(p.adjust) %>%
+      mutate(direction = ifelse(NES > 0, "pos", "neg")) %>%
+      filter(direction == "neg") %>%
+      slice_head(n = 5)
+  ) %>%
+  ungroup()
+
+plotDF_df <- top_enrichment %>%
+  arrange(database, log10.sig.val) %>%
+  mutate(pathway = factor(pathway, levels = rev(unique(pathway))))
+plotDF_df$omics <- "PGX"
+
+ggplot(plotDF_df, aes(x = omics, y = pathway,
+                           size = abs(log10.sig.val),
+                           color = direction)) +
+  geom_point() +
+  scale_color_manual(values = c("neg" = "#284AA0", "pos" = "#BC4A4A"),
+                     labels = c("neg" = "negative", "pos" = "positive")) +
+  facet_grid(database ~ ., scales = "free_y", space = "free_y") +
+  labs(y = NULL, x = NULL, 
+       size = expression("Signed "*log[10]*"(p.val)",
+                         color = "Direction")) +
+  theme_classic()  +
+  theme(panel.grid.major = element_line(color="grey", size=0.1), 
+        axis.text.x = element_text(angle = 90, hjust=1, vjust=0.5, 
+                                    size = 15, color = "black"), 
+        axis.text.y = element_text(size = 15, color = "black"),
+        axis.title = element_text(size = 15, color = "black"),
+        strip.text = element_text(color = "black", size = 15),
+        plot.title = element_text(color = "black", size = 15),
+        legend.title = element_text(color = "black", size = 15),
+        legend.text = element_text(color = "black", size = 15))
+```
+
+# C vs A
+```{r, fig.height=6, fig.width=9}
+effect_size = res_subtype_AC_all$effect_size
+names(effect_size) = rownames(res_subtype_AC_all)
+ens2symbol = data_env0$pbmc_transcriptomics_rowfeature$gene_name
+names(ens2symbol) = rownames(data_env0$pbmc_transcriptomics_rowfeature)
+names(effect_size) = ens2symbol[names(effect_size)]
+
+enrichment_gsea_list = list()
+enrichment_gsea_list[["kegg"]] = 
+  runGSEA_external(effect_size = effect_size,
+          Term2GeneList = kegg_database)
+enrichment_gsea_list[["hallmark"]]= 
+  runGSEA_external(effect_size = effect_size,
+          Term2GeneList = hallmark_database)
+
+aggregated_mat <- do.call(rbind, lapply(names(enrichment_gsea_list), function(dbname) {
+  res <- enrichment_gsea_list[[dbname]]
+  if (is.null(res) || nrow(res) == 0) return(NULL)
+  
+  res_df <- as.data.frame(res)
+  res_df$database <- dbname
+  res_df$pathway  <- res_df$Description   # or res_df$ID
+  res_df$log10.sig.val <- -log10(res_df$p.adjust + 1e-300) * sign(res_df$NES)
+  res_df
+}))
+
+thr <- 0.05
+aggregated_mat <- aggregated_mat %>%
+  filter(p.adjust <= thr)
+
+aggregated_mat <- aggregated_mat %>%
+  arrange(desc(log10.sig.val))
+
+top_enrichment <- aggregated_mat %>%
+  group_by(database) %>%
+  arrange(p.adjust) %>%
+  mutate(direction = ifelse(NES > 0, "pos", "neg")) %>%
+  filter(direction == "pos") %>%
+  slice_head(n = 5) %>%
+  bind_rows(
+    aggregated_mat %>%
+      group_by(database) %>%
+      arrange(p.adjust) %>%
+      mutate(direction = ifelse(NES > 0, "pos", "neg")) %>%
+      filter(direction == "neg") %>%
+      slice_head(n = 5)
+  ) %>%
+  ungroup()
+
+plotDF_df <- top_enrichment %>%
+  arrange(database, log10.sig.val) %>%
+  mutate(pathway = factor(pathway, levels = rev(unique(pathway))))
+plotDF_df$omics <- "PGX"
+
+ggplot(plotDF_df, aes(x = omics, y = pathway,
+                           size = abs(log10.sig.val),
+                           color = direction)) +
+  geom_point() +
+  scale_color_manual(values = c("neg" = "#284AA0", "pos" = "#BC4A4A"),
+                     labels = c("neg" = "negative", "pos" = "positive")) +
+  facet_grid(database ~ ., scales = "free_y", space = "free_y") +
+  labs(y = NULL, x = NULL, 
+       size = expression("Signed "*log[10]*"(p.val)",
+                         color = "Direction")) +
+  theme_classic()  +
+  theme(panel.grid.major = element_line(color="grey", size=0.1), 
+        axis.text.x = element_text(angle = 90, hjust=1, vjust=0.5, 
+                                    size = 15, color = "black"), 
+        axis.text.y = element_text(size = 15, color = "black"),
+        axis.title = element_text(size = 15, color = "black"),
+        strip.text = element_text(color = "black", size = 15),
+        plot.title = element_text(color = "black", size = 15),
+        legend.title = element_text(color = "black", size = 15),
+        legend.text = element_text(color = "black", size = 15))
+```
+
+# F vs E
+```{r, fig.height=6, fig.width=9}
+effect_size = res_subtype_EF_all$effect_size
+names(effect_size) = rownames(res_subtype_EF_all)
+ens2symbol = data_env0$pbmc_transcriptomics_rowfeature$gene_name
+names(ens2symbol) = rownames(data_env0$pbmc_transcriptomics_rowfeature)
+names(effect_size) = ens2symbol[names(effect_size)]
+
+enrichment_gsea_list = list()
+enrichment_gsea_list[["kegg"]] = 
+  runGSEA_external(effect_size = effect_size,
+          Term2GeneList = kegg_database)
+enrichment_gsea_list[["hallmark"]]= 
+  runGSEA_external(effect_size = effect_size,
+          Term2GeneList = hallmark_database)
+
+aggregated_mat <- do.call(rbind, lapply(names(enrichment_gsea_list), function(dbname) {
+  res <- enrichment_gsea_list[[dbname]]
+  if (is.null(res) || nrow(res) == 0) return(NULL)
+  
+  res_df <- as.data.frame(res)
+  res_df$database <- dbname
+  res_df$pathway  <- res_df$Description   # or res_df$ID
+  res_df$log10.sig.val <- -log10(res_df$p.adjust + 1e-300) * sign(res_df$NES)
+  res_df
+}))
+
+thr <- 0.05
+aggregated_mat <- aggregated_mat %>%
+  filter(p.adjust <= thr)
+
+aggregated_mat <- aggregated_mat %>%
+  arrange(desc(log10.sig.val))
+
+top_enrichment <- aggregated_mat %>%
+  group_by(database) %>%
+  arrange(p.adjust) %>%
+  mutate(direction = ifelse(NES > 0, "pos", "neg")) %>%
+  filter(direction == "pos") %>%
+  slice_head(n = 5) %>%
+  bind_rows(
+    aggregated_mat %>%
+      group_by(database) %>%
+      arrange(p.adjust) %>%
+      mutate(direction = ifelse(NES > 0, "pos", "neg")) %>%
+      filter(direction == "neg") %>%
+      slice_head(n = 5)
+  ) %>%
+  ungroup()
+
+plotDF_df <- top_enrichment %>%
+  arrange(database, log10.sig.val) %>%
+  mutate(pathway = factor(pathway, levels = rev(unique(pathway))))
+plotDF_df$omics <- "PGX"
+
+ggplot(plotDF_df, aes(x = omics, y = pathway,
+                           size = abs(log10.sig.val),
+                           color = direction)) +
+  geom_point() +
+  scale_color_manual(values = c("neg" = "#284AA0", "pos" = "#BC4A4A"),
+                     labels = c("neg" = "negative", "pos" = "positive")) +
+  facet_grid(database ~ ., scales = "free_y", space = "free_y") +
+  labs(y = NULL, x = NULL, 
+       size = expression("Signed "*log[10]*"(p.val)",
+                         color = "Direction")) +
+  theme_classic()  +
+  theme(panel.grid.major = element_line(color="grey", size=0.1), 
+        axis.text.x = element_text(angle = 90, hjust=1, vjust=0.5, 
+                                    size = 15, color = "black"), 
+        axis.text.y = element_text(size = 15, color = "black"),
+        axis.title = element_text(size = 15, color = "black"),
+        strip.text = element_text(color = "black", size = 15),
+        plot.title = element_text(color = "black", size = 15),
+        legend.title = element_text(color = "black", size = 15),
+        legend.text = element_text(color = "black", size = 15))
+```
+
+
+
+
+

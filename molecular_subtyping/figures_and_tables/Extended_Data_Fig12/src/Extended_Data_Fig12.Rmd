@@ -353,7 +353,7 @@ pheatmap(log_pval_mat,
          main = "-log10(p-value)")
 ```
 
-# Correlation heatmap (Extended Data Figure 11A)
+# Correlation heatmap (Extended Data Figure 12A)
 ```{r, fig.height=6, fig.width=5}
 diag_cor_mat = cbind(diag(avg_cor_mat),
                      diag(cor_mat_list[[quantile_idx[1]]]),
@@ -408,7 +408,7 @@ cor_mat_heatmap = ComplexHeatmap::Heatmap(
 ComplexHeatmap::draw(cor_mat_heatmap, heatmap_legend_side = "bottom")
 ```
 
-# Alluvial plot (Extended Data Figure 11B)
+# Alluvial plot (Extended Data Figure 12B)
 ```{r alluvial plot, fig.height=6, fig.width=14, warning=FALSE}
 # lower 10%
 k = quantile_idx[1]
@@ -619,7 +619,7 @@ ggarrange(plotlist = factor_trajectory_analysis_results$test_fig_list,
           nrow = 1, common.legend = T, legend = "bottom")
 ```
 
-# TG barplot - 50% case (Extended Data Figure 11C1)
+# TG barplot - 50% case (Extended Data Figure 12C1)
 ```{r TG barplot - 50% case, fig.height=6, fig.width=8}
 k = quantile_idx[2]
 sub_label = subtype_labels
@@ -672,7 +672,7 @@ ggplot(df_summary2, aes(y = Subtype, x = percent, fill = TG)) +
                                "5" = "#9C3418"))
 ```
 
-# Subsample TG test (Extended Data Fig11C1)
+# Subsample TG test (Extended Data Fig 12C1)
 ```{r subsample TG test, fig.height=6, fig.width=2.3}
 subsample_clust_test = list(); subsample_clust_test[["TG"]] = list()
 # idx_nona = which(!is.na(subsample_label$label) & (subsample_label$label != "B"))
@@ -697,7 +697,7 @@ subsample_clust_test[["TG"]][["ordinal_demo"]] = test_ordinal_demo(
 heatmap_ordinal(subsample_clust_test[["TG"]][["ordinal_demo"]])
 ```
 
-# Barplot colored by PASC (Extended Data Fig11C2)
+# Barplot colored by PASC (Extended Data Fig 12C2)
 ```{r barplot colored by PASC, fig.height=6, fig.width=8}
 k = quantile_idx[2]
 sub_label = subtype_labels
@@ -756,7 +756,7 @@ ggplot(df_summary1, aes(y = Subtype, x = percent, fill = PASC)) +
                                "Cognitive" = "#EAAE2A", "Multiple" = "#FF1820"))
 ```
 
-# PASC test (Extended Data Fig11C2)
+# PASC test (Extended Data Fig 12C2)
 ```{r PASC test, fig.height=6, fig.width=5}
 k = quantile_idx[2]
 sub_label = subtype_labels
@@ -788,7 +788,7 @@ full_clust_test[["PASC"]][["fisher"]] = test_clinical_fisher_exact(
 heatmap_fisher(full_clust_test[["PASC"]][["fisher"]])
 ```
 
-# PASC global test (Extended Data Fig11C2)
+# PASC global test (Extended Data Fig 12C2)
 ```{r PASC global test, fig.height=6, fig.width=2}
 heatmap_fisher_global(full_clust_test[["PASC"]][["fisher"]])
 ```
@@ -889,7 +889,7 @@ interest_clin_feature = c(
   "bmicat", "discretized_admit_age_quantile", "baseline_img_infil")
 ```
 
-# Demographic, comorbidity, baseline, and complication (Extended Data Fig11C3)
+# Demographic, comorbidity, baseline, and complication (Extended Data Fig 12C3)
 ```{r clinical heatmap, fig.height=8, fig.width=14, warning=FALSE}
 clin_data_patient <- clin_data_used[clin_data_used$event_type == "Visit 1",]
 demo_data <- clin_data_patient[, c("admit_age", "sex", "ethnicity",
@@ -1127,7 +1127,7 @@ prediction <- function(data, pred_model) {
       d_test <- cbind(d_test, data$subtype[rownames(d_test),])
     }
     # factor scores
-    if (pred_model == "CLINICAL-SUBTYPE+") {
+    if (pred_model == "CLINICAL-OMICS") {
       d_train <- cbind(d_train, data$factor[rownames(d_train),])
       d_test <- cbind(d_test, data$factor[rownames(d_test),])
     }
@@ -1207,7 +1207,7 @@ for (i in 1:n_subsample) {
   models_clinical_prob <- res$models
   test_sets_clinical_prob <- res$test_sets
   
-  res <- prediction(data_pred_ema, "CLINICAL-SUBTYPE+")
+  res <- prediction(data_pred_ema, "CLINICAL-OMICS")
   aucs_clinical_factor_prob <- res$aucs
   rocs_clinical_factor_prob <- res$rocs
   auprcs_clinical_factor_prob <- res$auprcs
@@ -1225,7 +1225,7 @@ for (i in 1:n_subsample) {
 ```
 
 # Visualization
-## Barplot of AUROC, AUPRC (Extended Data Fig11C4)
+## Barplot of AUROC, AUPRC (Extended Data Fig 12D left)
 ```{r fig.height=6, fig.width=6}
 aucs_clinical <- unlist(aucs_clinical_list)
 auprcs_clinical <- unlist(auprcs_clinical_list)
@@ -1238,17 +1238,16 @@ auprcs_clinical_factor_prob <- unlist(auprcs_clinical_factor_prob_list)
 df <- data.frame(
   category = c("Average AUROC", "Average AUPRC"),
   value1 = c(mean(aucs_clinical), mean(auprcs_clinical)),
-  value2 = c(mean(aucs_clinical_prob), mean(auprcs_clinical_prob)),
+  # value2 = c(mean(aucs_clinical_prob), mean(auprcs_clinical_prob)),
   value3 = c(mean(aucs_clinical_factor_prob), mean(auprcs_clinical_factor_prob)),
   value4 = c(0.5, 0.3715517)
 )
 
-df <- tidyr::pivot_longer(df, cols = c(value1, value2, value3, value4), 
+df <- tidyr::pivot_longer(df, cols = c(value1, value3, value4), 
                           names_to = "model", values_to = "value")
-# df$category <- factor(df$category, levels = c("Average AUROC", "Average AUPRC"))
 
-aucs <- list(aucs_clinical, aucs_clinical_prob, aucs_clinical_factor_prob,
-             auprcs_clinical, auprcs_clinical_prob, auprcs_clinical_factor_prob)
+aucs <- list(aucs_clinical, aucs_clinical_factor_prob,
+             auprcs_clinical, auprcs_clinical_factor_prob)
 texts <- c()
 for (i in 1:length(aucs)){
   aucs_svm <- aucs[[i]]
@@ -1256,7 +1255,7 @@ for (i in 1:length(aucs)){
   SD <- sd(aucs_svm)
   texts[i] <- paste0(sprintf("%.3f",round(M,3)), "\n(SD ", sprintf("%.3f",round(SD,3)), ")")
 }
-texts <- c(texts[1:3], "0.500", texts[4:6], "0.372")
+texts <- c(texts[1:2], "0.500", texts[3:4], "0.372")
 df$text <- texts
 
 # Create the bar plot
@@ -1267,10 +1266,9 @@ ggplot(df, aes(x = category, y = value, fill = model)) +
            stat = "identity", position = "dodge", alpha = 0.8) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 0.8), 
                      breaks = seq(0, 0.8, by = 0.2)) +
-  scale_fill_manual(values = c(value1="#F8766D",value2="#7CAE00",
-                               value3="#00BFC4",value4="darkgray"),
-                    labels = c("CLINICAL","CLINICAL-SUBTYPE",
-                               "CLINICAL-SUBTYPE+",
+  scale_fill_manual(values = c(value1="#F8766D", value3="#00BFC4", value4="darkgray"),
+                    labels = c("CLINICAL",
+                               "CLINICAL-OMICS",
                                "Chance (random classifier)")) +
   guides(fill = guide_legend(ncol = 2)) + 
   labs(x = "", y = "", fill = "") +
@@ -1300,23 +1298,23 @@ ggplot(df, aes(x = category, y = value, fill = model)) +
             vjust = -0.5, size = 3)
 ```
 
-# boxplot of AUROC and AUPRC increment (Extended Data Fig11C4)
+# boxplot of AUROC and AUPRC increment (Extended Data Fig 12D right)
 ```{r fig.height=6, fig.width=6}
 # Categories
 categories <- rep(c("AUROC", "AUPRC"), each = 10 * n_subsample)
 
 # Values for the first box
-values1 <- c(unlist(aucs_clinical_prob_list) - unlist(aucs_clinical_list),
-             unlist(auprcs_clinical_prob_list) - unlist(auprcs_clinical_list))
+# values1 <- c(unlist(aucs_clinical_prob_list) - unlist(aucs_clinical_list),
+#              unlist(auprcs_clinical_prob_list) - unlist(auprcs_clinical_list))
 
 # Values for the second box
 values2 <- c(unlist(aucs_clinical_factor_prob_list) - unlist(aucs_clinical_list),
              unlist(auprcs_clinical_factor_prob_list) - unlist(auprcs_clinical_list))
 
 # Combine into a data frame
-df <- data.frame(category = rep(categories, 2),
-                 value = c(values1, values2),
-                 group = rep(c("CLINICAL-SUBTYPE", "CLINICAL-SUBTYPE+"), 
+df <- data.frame(category = rep(categories, 1),
+                 value = c(values2),
+                 group = rep(c("CLINICAL-OMICS"), 
                              each = 20*n_subsample))
 
 # add p-values
@@ -1325,12 +1323,13 @@ p.val <- function(x){
                      paired = TRUE, alternative = "less")$p.value)
 }
 p_values <- aggregate(value ~ category + group, data = df, FUN = p.val)
-p_values$value <- c("<0.001 ***", "<0.001 ***", "<0.001 ***", "<0.001 ***")
+p_values$value <- c("<0.001 ***", "<0.001 ***")
 
 ggplot(df, aes(x = category, y = value, color = group)) +
   geom_boxplot(position = position_dodge(width = 0.8), size = 1, width = 0.7, outlier.shape = NA) +
   # geom_jitter(aes(color = group), position = position_dodge(width = 0.8), size = 2.5, alpha = 0.5) +
-  scale_y_continuous(limits = c(-0.015, 0.1), breaks = seq(0, 0.1, by = 0.02)) + 
+  # scale_y_continuous(limits = c(-0.015, 0.1), breaks = seq(0, 0.1, by = 0.02)) +
+  scale_color_manual(values = c("CLINICAL-OMICS" = "#00BFC4")) +
   labs(x = "", y = "Increment over CLINICAL", color = NULL) +
   theme_minimal() +
   theme(panel.grid.major = element_blank(),  
@@ -1350,8 +1349,9 @@ ggplot(df, aes(x = category, y = value, color = group)) +
         plot.margin = margin(r = 20, l = 10),
         aspect.ratio = 0.85
   ) + 
-  geom_text(data = p_values, aes(label = value, y = 0.1, x=c(0.8,1.82,1.22,2.22)), size = 5, vjust = 0, 
+  geom_text(data = p_values, aes(label = value, y = 0.1, x=c(1,2)), size = 5, vjust = 0, 
             position = position_dodge(width = 0.8), color = "black") +
   coord_cartesian(clip = "off")
 ```
+
 
