@@ -478,7 +478,7 @@ ggsave(paste0(out_dir, "Figure4G.pdf"), width = 4.285714, height = 3)
 
 ```
 
-# Supplemental Figure 8
+# All Significant Cytokine Trajectory Plot
 
 ```{r}
 
@@ -595,12 +595,12 @@ for(k in 1:length(bins)){
 }
 
 ggarrange(plotlist = ggout2, ncol = 1, nrow = length(ggout2), heights = rep(1, length(ggout2)))
-ggsave(paste0(out_dir, "FigureS8.pdf"), width = 18, height = 12)
+ggsave(paste0(out_dir, "All_significant_cytokines.pdf"), width = 18, height = 12)
 ```
 
-### TGFB Additional Plots
+### Supplementary Figure 7C-D: TGFB Additional Plots
 
-##### Days from Symptom Onset Version
+##### Supplementary Figure 7D: Days from Symptom Onset Version
 
 ```{r}
 counts <- as.data.frame(data_env$serum_olink_counts)[, 10, drop = FALSE]
@@ -823,15 +823,13 @@ model.out <- data.frame()
     
   }
 plot(p1 + xlab("Days from Symptom Onset"))
-ggsave(paste0(out_dir, "FigureS8_TGF_DFSO.pdf"), width = 6, height = 4)
-
+ggsave(paste0(out_dir, "FigureS7D.pdf"), width = 6, height = 4)
+write.csv(as.data.frame(p1[["data"]]) %>% mutate(virus = ifelse(virus == 0, "Control", "EBV.pbmc")) %>% select(-max), "../output/source_data_FigureS7D.csv")
 ```
 
-##### Days from Hospitalization
+##### Supplementary Figure 7C: Days from Hospitalization
 
 ```{r}
-
-
 
 event_date_cutoff = 40
 viral_load_control = TRUE
@@ -1052,7 +1050,8 @@ model.out <- data.frame()
     
   }
 plot(p1 + xlab("Days from Hospitalization"))
-ggsave(paste0(out_dir, "FigureS8_TGF_DSH.pdf"), width = 6, height = 4)
+ggsave(paste0(out_dir, "FigureS7C.pdf"), width = 6, height = 4)
+write.csv(as.data.frame(p1[["data"]]) %>% mutate(virus = ifelse(virus == 0, "Control", "EBV.pbmc")) %>% select(-max), "../output/source_data_FigureS7C.csv")
 ```
 
 ## Session Info

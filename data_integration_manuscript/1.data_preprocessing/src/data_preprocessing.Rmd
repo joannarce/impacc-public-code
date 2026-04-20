@@ -880,7 +880,7 @@ data_prepare_DR = function(omics_used, data_env, clinical_data, rna_keep = 5000)
       thr_sd = -Inf
     }
     dataset = dataset[,sds>=thr_sd & nas >= 10]
-
+browser()
     # Change sample name to event_id
     train_test = sapply(rownames(dataset), function(z) get.training_test.from.sample_id(z, clinical_data=clinical_data))
     train.dataset = dataset[which(train_test == "training"),]

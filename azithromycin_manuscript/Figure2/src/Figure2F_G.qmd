@@ -115,14 +115,48 @@ ABX_days_df <- read_csv("/scratch/metagenomics/antibiotic_data/ABX_days_unweight
 ### Assign Groups
 
 ```{r}
+
+all_data <- nasal_metagenomics_metadata %>%
+  left_join(clinical_data %>% select(sample_id, participant_id, event_date)) %>%
+  filter(!is.na(participant_id)) %>%
+  left_join(ABX_days_df %>% select(sample_id, Azithromycin, ABX_days, Group)) %>%
+  filter(!is.na(Group)) %>%
+  ## Removes people with missing start/stop dates
+  filter(!(Group %in% c("Azithro", "Other ABX") & (!participant_id %in% antibiotic_data_deduped.ready$participant_id))) %>%
+  mutate(group_id = ifelse(Group == "Azithro", "Azithromycin", Group)) %>%
+  mutate(timepoint = ifelse((group_id == "Azithromycin" & Azithromycin<=2)|
+                              (group_id == "Other ABX" & ABX_days<=2) |
+                              (group_id=="No ABX" & event_date<=40 & row_number()%%2==1), "Day 0-2",
+                            ifelse((group_id == "Azithromycin" & Azithromycin>=4  & Azithromycin<=6)|
+                                     (group_id == "Other ABX" & ABX_days<=6 & ABX_days>=4)|
+                                     (group_id=="No ABX" & event_date>=3 & event_date<=40 & row_number()%%2==0), "Day 4-6", "Other"))) %>%
+  filter(timepoint != "Other")
+
+### keep only 1/2 of No ABX samples ###
+trim <- all_data %>% filter(group_id=="No ABX") %>%
+  arrange(timepoint) %>%
+  mutate(keep=case_when(row_number()%%2==1 ~ "yes", row_number()%%2==0 ~ "no"))
+
+data_trimmed <- all_data %>% ungroup() %>%
+  left_join(trim) %>%
+  mutate(keep = ifelse(is.na(keep), "yes", keep)) %>%
+  filter(keep=="yes") %>%
+  filter(event_date <= 40)
+table(data_trimmed$group_id, data_trimmed$timepoint)
+
 #### Total AMR DPM ###
 all_data <- nasal_metagenomics_metadata %>%
   left_join(clinical_data %>% dplyr::select(sample_id, participant_id, event_date)) %>%
   filter(!is.na(participant_id)) %>%
-  left_join(ABX_days_df %>% dplyr::select(sample_id, Azithromycin, ABX_days)) %>%
-  filter(!is.na(ABX_days)) %>%
+  left_join(ABX_days_df %>% dplyr::select(sample_id, Azithromycin, ABX_days, Group)) %>%
+  filter(!is.na(Group)) %>%
+  ## Removes people with missing start/stop dates
+  filter(!(Group %in% c("Azithro", "Other ABX") & (!participant_id %in% antibiotic_data_deduped.ready$participant_id))) %>%
+  mutate(group_id = ifelse(Group == "Azithro", "Azithromycin", Group)) %>%
+  #filter(!is.na(ABX_days)) %>%
   mutate(group_id = ifelse(Azithromycin > 0, "Azithromycin",
                                       ifelse(ABX_days == 0, "No ABX", "Other ABX"))) %>%
+  #mutate(group_id = ifelse(Group == "Azithro", "Azithromycin", Group)) %>%
   mutate(timepoint = ifelse((group_id == "Azithromycin" & Azithromycin<=2)|
                               (group_id == "Other ABX" & ABX_days<=2) |
                               (group_id=="No ABX" & event_date<=40 & row_number()%%2==1), "Day 0-2",
@@ -135,11 +169,12 @@ all_data <- nasal_metagenomics_metadata %>%
 ### Rarefy No ABX samples ###
 trim <- all_data %>% filter(group_id=="No ABX") %>%
   arrange(timepoint) %>%
-  mutate(keep=case_when(row_number()%%2==0 ~ "yes", row_number()%%2==1 ~ "no"))
+  mutate(keep=case_when(row_number()%%2==1 ~ "yes", row_number()%%2==0 ~ "no"))
 
 data_trimmed <- all_data %>%
   left_join(trim) %>%
   filter(keep=="yes" | is.na(keep))
+table(data_trimmed$group_id, data_trimmed$timepoint)
 ```
 
 ## Differential Taxonomic Abundance (ANCOM)

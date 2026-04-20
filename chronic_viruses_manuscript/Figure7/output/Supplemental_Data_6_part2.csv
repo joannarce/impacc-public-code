@@ -1,3 +1,0 @@
-"","n","statistic","p","df","method","p.signif","name","p.value","p.adj","p.adj.signif","xpos","group1","group2","y.position"
-"1",508,9.95343391774373,0.019,3,"Chi-square test","*","Anelloviridae.pbmc",0.019,0.038,"*",2,"filler_text","variable",40
-"2",511,4.77876521053145,0.189,3,"Chi-square test","ns","Enterovirus.nasal",0.189,0.189,"ns",1,"filler_text","variable",40

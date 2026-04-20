@@ -565,7 +565,7 @@ for(days in 1:40){
     filter(!is.na(value)) %>%
     filter(event_date %in% event_range) %>%
     group_by(name) %>%
-    dplyr::summarize(percent = mean(value) * 100) %>%
+    dplyr::summarize(percent = mean(value) * 100, count = n(), sum = sum(value)) %>%
     mutate(day = days)
   
   kernel_smoothed_values <- rbind.data.frame(kernel_smoothed_values, tmp)
@@ -599,6 +599,8 @@ ggsave(paste0(out_dir, "Figure1D.pdf"), width = 6, height = 3.5)
 
 write.csv(smooth_traj$data, paste0(out_dir, "source_data_Figure1D.csv"))
 ```
+
+
 
 ## Figure 1E: Viral Load Correlation
 
@@ -649,6 +651,220 @@ corrplot(res$r, type = "upper", order = "hclust",
           p.mat = as.matrix(tmpP), sig.level = 0.05, insig = "blank")
 dev.off()
 ## 8 x8
+```
+
+## Supplementary Figure 1
+
+### Figure S1B-C: Percent of Participants with each virus
+This code is kept here because the participant level approach is shared
+between Figure S1B and Figure S4C.
+```{r, fig.width = 5, fig.height = 3.5}
+
+## Number of Participants by Virus
+vv_data <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% distinct(event_id, participant_id, trajectory_group,
+                                      event_date,
+                                      event_type)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
+  mutate(virus = gsub("\\..*", "", name)) %>%
+## Maybe add an event_type filter
+  filter(!is.na(value)) %>%
+  mutate(value = ifelse(value > 0, 1, 0)) %>%
+  group_by(participant_id, trajectory_group, virus) %>%
+  slice_max(value) %>%
+  distinct(virus, value, participant_id, trajectory_group) %>%
+  group_by(virus, value) %>%
+  dplyr::summarise(count = n()) %>%
+  mutate(freq = count / sum(count))
+
+ggS1B <- vv_data %>%
+  filter(value == 1) %>%
+  filter(virus != "SARS-CoV-2") %>%
+  ggplot(aes(x=fct_reorder(virus, freq, .desc = T), y= freq*100,
+             label = paste0(round(freq*100, 1), "%\n", count))) +
+  geom_bar(aes(fill = virus), stat = "identity") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        legend.position = "none") +
+  ylab("Percent of Participants (%)") +
+  xlab("Virus") +
+  scale_fill_manual(values = c("Human gammaherpesvirus 4 (EBV)"="#BF5700",
+                               "Anelloviridae"="#86005F",
+                               "Enterovirus"="#01a8a0",
+                               "Human alphaherpesvirus 1 (HSV1)"="#1b820d",
+                               "Human alphaherpesvirus 2 (HSV2)"="#cba90a",
+                                "Human betaherpesvirus 5 (CMV)"="#005F86",
+                               "Human immunodeficiency virus 1"="red",
+                               "Human betaherpesvirus 6"="magenta",
+                               "Human betaherpesvirus 7"="purple")) +
+   geom_text(position = position_dodge(width = .9),   
+              vjust = 0.5,   
+              size = 3) +
+  ylim(c(0,30)) +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+ggS1B
+ggsave(paste0(out_dir, "FigureS1B.pdf"), width = 4, height = 3.5)
+
+write.csv(ggS1B$data %>% select(-.group), "../output/source_data_FigureS1B.csv")
+
+```
+
+```{r, fig.width = 5, fig.height = 3.5}
+## Excluding EA
+## Number of Participants by Virus
+vv_data <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% distinct(event_id, participant_id, trajectory_group,
+                                      event_date,
+                                      event_type)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
+  filter(!grepl("\\.ea$", name)) %>%
+  mutate(virus = gsub("\\..*", "", name)) %>%
+## Maybe add an event_type filter
+  filter(!is.na(value)) %>%
+  mutate(value = ifelse(value > 0, 1, 0)) %>%
+  group_by(participant_id, trajectory_group, virus) %>%
+  slice_max(value) %>%
+  distinct(virus, value, participant_id, trajectory_group) %>%
+  group_by(virus, value) %>%
+  dplyr::summarise(count = n()) %>%
+  mutate(freq = count / sum(count))
+
+ggS1C <- vv_data %>%
+  filter(value == 1) %>%
+  filter(virus != "SARS-CoV-2") %>%
+  ggplot(aes(x=fct_reorder(virus, freq, .desc = T), y= freq*100,
+             label = paste0(round(freq*100, 1), "%\n", count))) +
+  geom_bar(aes(fill = virus), stat = "identity") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        legend.position = "none") +
+  ylab("Percent of Participants (%)") +
+  xlab("Virus") +
+  scale_fill_manual(values = c("Human gammaherpesvirus 4 (EBV)"="#BF5700",
+                               "Anelloviridae"="#86005F",
+                               "Enterovirus"="#01a8a0",
+                               "Human alphaherpesvirus 1 (HSV1)"="#1b820d",
+                               "Human alphaherpesvirus 2 (HSV2)"="#cba90a",
+                                "Human betaherpesvirus 5 (CMV)"="#005F86",
+                               "Human immunodeficiency virus 1"="red",
+                               "Human betaherpesvirus 6"="magenta",
+                               "Human betaherpesvirus 7"="purple")) +
+   geom_text(position = position_dodge(width = .9),   
+              vjust = 0.5,   
+              size = 3) +
+  ylim(c(0,30)) +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black"))
+ggS1C
+ggsave(paste0(out_dir, "FigureS1C.pdf"), width = 4, height = 3.5)
+
+write.csv(ggS1C$data %>% select(-.group), "../output/source_data_FigureS1C.csv")
+
+```
+
+## Figure S1D: With CI
+```{r, fig.width = 8, fig.height = 3}
+kernel_size = 5 ## days
+
+kernel_smoothed_values <- data.frame()
+for(days in 1:40){
+  event_range = (days-((kernel_size-1) / 2)):(days+((kernel_size-1) / 2))
+  tmp <- comb_data %>%
+    left_join(clinical_data %>% distinct(event_id, event_date)) %>%
+    #select(-ends_with(".ea")) %>%
+    pivot_longer(cols = c(-event_id, -event_date)) %>%
+    mutate(value = ifelse(value > 0, 1, 0)) %>%
+    filter(!is.na(value)) %>%
+    filter(event_date %in% event_range) %>%
+    group_by(name) %>%
+    dplyr::summarize(percent = mean(value) * 100, count = n(), sum = sum(value)) %>%
+    mutate(day = days)
+  
+  tmp$lower_CI <- tmp$upper_CI <- NA
+  for(i in 1:nrow(tmp)){
+    tmp_ci <- try(prop.test(x=tmp[i,4, drop=T], n=tmp[i,3, drop=T],
+            alternative = "two.sided",
+            conf.level = 0.95), silent = T)
+    if(class(tmp_ci) == "try-error"){next}
+    tmp$lower_CI[i] <- tmp_ci[["conf.int"]][1]
+    tmp$upper_CI[i] <- tmp_ci[["conf.int"]][2]
+  }
+  
+  kernel_smoothed_values <- rbind.data.frame(kernel_smoothed_values, tmp)
+}
+
+smooth_traj <- kernel_smoothed_values %>%
+  ungroup() %>%
+  mutate(compartment = gsub(".*\\.", "", name),
+         virus = gsub("\\..*", "", name)) %>% 
+  filter(compartment != "ea") %>%
+  filter(!grepl("SARS-CoV-2", virus)) %>%
+  filter(!name %in% c("Simplexvirus.pbmc", "Enterovirus.pbmc")) %>%
+  filter(!name %in% c("Human alphaherpesvirus 1 (HSV1).pbmc", "Human alphaherpesvirus 2 (HSV2).pbmc")) %>%
+  filter(!grepl("7|6|8|immuno", name)) %>%
+  ggplot(aes(x=day, y=percent, color = virus)) +
+  geom_smooth(se = F) +
+  geom_ribbon(aes(ymin = lower_CI*100, ymax=upper_CI*100, fill = virus), alpha = 0.1,
+              linetype = "dashed", color = NA) +
+  theme_classic() +
+  xlab("Days from Hospitalization") +
+  ylab("Percent of Samples") +
+  scale_color_manual(values = c("#86005F", "#01a8a0", "#1b820d", "#cba90a",
+                                "#005F86", "#BF5700"),
+                     name = "Virus") +
+    scale_fill_manual(values = c("#86005F", "#01a8a0", "#1b820d", "#cba90a",
+                                "#005F86", "#BF5700"),
+                     name = "Virus") +
+  scale_linetype_manual(values = c("22", "solid"),
+                        name = "Compartment") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black")) +
+  facet_grid(~compartment)
+
+smooth_traj +
+  coord_cartesian(ylim =c(0,25)) # 6x3.5 in
+ggsave(paste0(out_dir, "FigureS1D.pdf"), width = 8, height = 3)
+
+write.csv(smooth_traj$data, paste0(out_dir, "source_data_Figure1D_CIs.csv"))
+```
+
+```{r, fig.width = 10, fig.height = 6}
+
+smooth_traj <- kernel_smoothed_values %>%
+  ungroup() %>%
+  mutate(compartment = gsub(".*\\.", "", name),
+         virus = gsub("\\..*", "", name)) %>% 
+  #filter(compartment != "ea") %>%
+  filter(!grepl("SARS-CoV-2", virus)) %>%
+  filter(!name %in% c("Simplexvirus.pbmc", "Enterovirus.pbmc")) %>%
+  filter(!name %in% c("Human alphaherpesvirus 1 (HSV1).pbmc", "Human alphaherpesvirus 2 (HSV2).pbmc")) %>%
+  filter(!grepl("7|6|8|immuno", name)) %>%
+  ggplot(aes(x=day, y=percent, color = virus)) +
+  geom_smooth(se = F) +
+  geom_ribbon(aes(ymin = lower_CI*100, ymax=upper_CI*100, fill = virus), alpha = 0.1,
+              linetype = "dashed", color = NA) +
+  theme_classic() +
+  xlab("Days from Hospitalization") +
+  ylab("Percent of Samples") +
+  scale_color_manual(values = c("#86005F", "#01a8a0", "#1b820d", "#cba90a",
+                                "#005F86", "#BF5700"),
+                     name = "Virus") +
+    scale_fill_manual(values = c("#86005F", "#01a8a0", "#1b820d", "#cba90a",
+                                "#005F86", "#BF5700"),
+                     name = "Virus") +
+  scale_linetype_manual(values = c("22", "solid"),
+                        name = "Compartment") +
+  theme(axis.text = element_text(color = "black"),
+        axis.ticks = element_line(color = "black")) +
+  facet_grid(compartment~virus, scales = "free")
+
+smooth_traj 
+
 ```
 
 ## Supplementary Figure 2
@@ -883,7 +1099,6 @@ ggS2F
 ggsave(paste0(out_dir, "FigureS2F.pdf"), width = 4.5, height = 2.5)
 write_csv(ggS2F$data %>% ungroup() %>% dplyr::select(-value, -.group), paste0(out_dir, "source_data_FigureS2F.csv"))
 ```
-
 
 ### Figure S2G: Checking Read Duplication
 
@@ -1788,7 +2003,99 @@ ggarrange(ggS4A,
 ggsave(paste0(out_dir, "FigureS4.pdf"), width = 10, height = 10)
 ```
 
-## Supplementary Figure 12
+
+
+### Figure S4C-D: Number of Viral Reactivations on Average
+
+```{r, fig.width = 4, fig.height = 3}
+
+## Number of viruses
+vv_data2 <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% distinct(event_id, participant_id, trajectory_group,
+                                      event_date,
+                                      event_type)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
+  mutate(virus = gsub("\\..*", "", name)) %>%
+  filter(virus != "SARS-CoV-2") %>%
+## Maybe add an event_type filter
+  filter(!is.na(value)) %>%
+  mutate(value = ifelse(value > 0, 1, 0)) %>%
+  group_by(participant_id, trajectory_group, virus) %>%
+  slice_max(value) %>%
+  distinct(virus, value, participant_id, trajectory_group) %>%
+  group_by(participant_id, trajectory_group) %>%
+  dplyr::summarize(sum = sum(value))
+
+vv_data2 %>%
+  mutate(sum = as.character(sum)) %>%
+  group_by(sum) %>%
+  dplyr::summarise(count = n()) %>%
+  mutate(freq = count / sum(count) * 100) %>%
+  ggplot(aes(x=sum, y= count)) +
+  geom_bar(stat = "identity", fill = "#7bcfdd") +
+  theme_classic() +
+  xlab("Number of Viruses Detected in Acute Period") +
+  ylab("Number of Participants") +
+  geom_text(aes(label = paste0(round(freq, 1), "%")),
+                position = position_dodge(width = .9),   
+              vjust = -0.5,   
+              size = 3) 
+ggsave(paste0(out_dir, "FigureS4C.pdf"), width = 4, height = 3)
+write.csv(vv_data2 %>%
+  mutate(sum = as.character(sum)) %>%
+  group_by(sum) %>%
+  dplyr::summarise(count = n()) %>%
+  mutate(freq = count / sum(count) * 100), paste0(out_dir, "source_data_FigureS4C.csv"))
+```
+
+```{r, fig.width = 4, fig.height = 3}
+
+## Number of viruses
+vv_data2 <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% distinct(event_id, participant_id, trajectory_group,
+                                      event_date,
+                                      event_type)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
+  filter(!grepl("\\.ea$", name)) %>%
+  mutate(virus = gsub("\\..*", "", name)) %>%
+  filter(virus != "SARS-CoV-2") %>%
+## Maybe add an event_type filter
+  filter(!is.na(value)) %>%
+  mutate(value = ifelse(value > 0, 1, 0)) %>%
+  group_by(participant_id, trajectory_group, virus) %>%
+  slice_max(value) %>%
+  distinct(virus, value, participant_id, trajectory_group) %>%
+  group_by(participant_id, trajectory_group) %>%
+  dplyr::summarize(sum = sum(value))
+
+vv_data2 %>%
+  mutate(sum = as.character(sum)) %>%
+  group_by(sum) %>%
+  dplyr::summarise(count = n()) %>%
+  mutate(freq = count / sum(count) * 100) %>%
+  ggplot(aes(x=sum, y= count)) +
+  geom_bar(stat = "identity", fill = "#7bcfdd") +
+  theme_classic() +
+  xlab("Number of Viruses Detected in Acute Period") +
+  ylab("Number of Participants") +
+  geom_text(aes(label = paste0(round(freq, 1), "%")),
+                position = position_dodge(width = .9),   
+              vjust = -0.5,   
+              size = 3) 
+ggsave(paste0(out_dir, "FigureS4D.pdf"), width = 4, height = 3)
+write.csv(vv_data2 %>%
+  mutate(sum = as.character(sum)) %>%
+  group_by(sum) %>%
+  dplyr::summarise(count = n()) %>%
+  mutate(freq = count / sum(count) * 100), paste0(out_dir, "source_data_FigureS4D.csv"))
+```
+
+## Batch Checking
+
 ### Supplemental Analysis of Evaluation for Plate/Batch Effect
 
 ```{r}
@@ -1813,7 +2120,7 @@ pbmc_metadata <- read_csv("/data/pbmc-transcriptomics/current/pbmc-transcriptomi
 ea_metadata <- read_csv("/data/ea-transcriptomics/current/ea-transcriptomics-Metadata.csv")
 ```
 
-#### FigureS12A: Nasal Batch Check
+#### Nasal Batch Check
 
 ```{r, fig.width = 8, fig.height = 4}
 
@@ -1854,7 +2161,7 @@ ggsave(paste0(out_dir, "FigureS12A.pdf"), width = 8, height = 4)
 write.csv(ggs12a$data %>% select(-value2), paste0(out_dir, "source_data_FigureS12A.csv"))
 ```
 
-#### Figure S12B: PBMC Batch Check
+#### PBMC Batch Check
 
 ```{r, fig.width = 6, fig.height = 4.5}
 
@@ -1895,7 +2202,7 @@ ggsave(paste0(out_dir, "FigureS12B.pdf"), width = 6, height = 4.5)
 write.csv(ggs12b$data %>% select(-value2), paste0(out_dir, "source_data_FigureS12B.csv"))
 ```
 
-#### Figure S12C: EA Batch Check
+#### EA Batch Check
 
 ```{r, fig.width = 8, fig.height = 2.5}
 

@@ -38,7 +38,7 @@ clinical_data_ext <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-
 out_dir <- "../output/"
 ```
 
-### Figure 2A: Severity (and Figure S6A)
+### Figure 2A: Severity (and Figure S5D)
 
 ```{r}
 library(aplot)
@@ -146,6 +146,15 @@ ggS6A <- graph_data %>%
         axis.ticks = element_line(color = "black"))
 ggS6A
 
+graph_data$lower_CI <- graph_data$upper_CI <- NA
+for(i in 1:nrow(graph_data)){
+  tmp_ci <- try(prop.test(x=graph_data[i,5, drop=T], n=graph_data[i,4, drop=T],
+          alternative = "two.sided",
+          conf.level = 0.95), silent = T)
+  if(class(tmp_ci) == "try-error"){next}
+  graph_data$lower_CI[i] <- tmp_ci[["conf.int"]][1]
+  graph_data$upper_CI[i] <- tmp_ci[["conf.int"]][2]
+}
 
 gg1 <- graph_data %>%
   mutate(trajectory_group = factor(trajectory_group, levels = 5:1)) %>%
@@ -166,9 +175,27 @@ gg1 <- graph_data %>%
         axis.ticks = element_line(color = "black"))
 gg1
 
+mod_gg1 <- graph_data %>%
+  mutate(trajectory_group = factor(trajectory_group, levels = 5:1)) %>%
+  ggplot(aes(x=name, y=freq)) +
+  geom_bar(stat = "identity", position = position_dodge(preserve = "single"), aes(fill = trajectory_group)) +
+  geom_errorbar(aes(ymin = lower_CI*100, ymax = upper_CI*100, fill = trajectory_group),  position = position_dodge(preserve = "single"), size = 0.4) +
+  theme_classic() + scale_x_discrete(limits = rev(unique(graph_data$name))) +
+  scale_fill_manual(values = TrajGrpCol, name = "Trajectory Group") +
+  xlab("Virus and Compartment") +
+  ylab(" ") +
+  stat_pvalue_manual(stat.df %>%
+                       filter(!p.adj.signif %in% c("ns", "", " ")) %>%
+                       mutate(y.position = c(38, 11, 15, 19, 45, 28)),
+                     x= "xpos", label = "p.adj.signif", vjust = 0.7) +
+    coord_flip() +
+  theme(axis.text = element_text(color="black"),
+        axis.ticks = element_line(color = "black"))
+mod_gg1
+
 ```
 
-### Figure 2A: Post-acute Mortality in TG4
+### Figure 2A: Post-acute Mortality in TG4 (and Figure S5E)
 
 ```{r, fig.width = 7.5, fig.height = 5.5}
 library(rstatix)
@@ -252,11 +279,24 @@ stat.df <- stat.df %>%
   mutate(x=c(11:1), xmin = x-0.2, xmax =x+0.2)
 write.csv(stat.df, paste0(out_dir, "Supplemental_Data_1_part2.csv"))
 
-gg2 <- ever_reactivate %>%
+graph_data <- ever_reactivate %>%
   mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
   filter(trajectory_group == "4") %>%
   mutate(diedever = ifelse(diedever == 1, "Died", "Survived")) %>%
-  mutate(diedever = factor(diedever, levels = c("Died", "Survived"))) %>%
+  mutate(diedever = factor(diedever, levels = c("Died", "Survived")))
+
+graph_data$lower_CI <- graph_data$upper_CI <- NA
+for(i in 1:nrow(graph_data)){
+  ## Column 6 contains the # of positives and columne 5 contains the total n
+  tmp_ci <- try(prop.test(x=graph_data[i,6, drop=T], n=graph_data[i,5, drop=T],
+          alternative = "two.sided",
+          conf.level = 0.95), silent = T)
+  if(class(tmp_ci) == "try-error"){next}
+  graph_data$lower_CI[i] <- tmp_ci[["conf.int"]][1]
+  graph_data$upper_CI[i] <- tmp_ci[["conf.int"]][2]
+}
+
+gg2 <- graph_data %>%
   ggplot(aes(x=name, y=mean)) +
   geom_bar(aes(fill = diedever, color = diedever), stat = "identity",  width = 0.7,
            position = position_dodge(width = 0.85)) +
@@ -287,6 +327,88 @@ gg1 %>% insert_right(gg2)
 
 write_csv(gg1$data, paste0(out_dir, "source_data_Figure2A_part1.csv"))
 write_csv(gg2$data, paste0(out_dir, "source_data_Figure2A_part2.csv"))
+
+## With errorbars
+
+gg2_mod <- graph_data %>%
+  ggplot(aes(x=name, y=mean)) +
+  geom_bar(aes(fill = diedever, color = diedever), stat = "identity",  width = 0.7,
+           position = position_dodge(width = 0.85)) +
+  geom_errorbar(aes(ymin = lower_CI*100, ymax = upper_CI*100, fill = diedever),
+                position = position_dodge(width=0.85),
+                  size = 0.4,
+                width =0.5) +
+  theme_classic() +
+  scale_x_discrete(limits = rev) +
+  scale_color_manual(values = c( "#9E5D10", "#9E5D10"), name = "TG4 >Day 28 \nOutcome") +
+  scale_fill_manual(values = c("#9E5D10", "#ffffff00"), name = "TG4 >Day 28 \nOutcome") +
+  #scale_pattern_discrete(choices = c("stripe", "none"), name = "TG4 >Day 28 \nOutcome") +
+  xlab("Virus & Compartment") +
+  ylab("Percent of Patients (%)") + stat_pvalue_manual(
+  stat.df %>% filter(p.adj.med.signif != "ns") %>%
+    mutate(y.position = c(60, 60, 60, 60, 60)),
+  label = "p.adj.med.signif", hjust = -1.1, vjust = 1.5, tip.length = 0.01
+  ) +
+    coord_flip() +
+  theme(axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text = element_text(color="black"),
+        axis.ticks = element_line(color = "black"))
+mod_gg1 %>% insert_right(gg2_mod)
+
+write_csv(mod_gg1$data, paste0(out_dir, "source_data_Figure2A_part3.csv"))
+write_csv(gg2_mod$data, paste0(out_dir, "source_data_Figure2A_part4.csv"))
+```
+
+### Figure 2A: Right censored coxph modeling
+The p-values in Figure 2a were swapped with the p-value produced by the right censored cox model here.
+Of note, this is only for participants in TG4.
+```{r}
+library(survival)
+
+model_df <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, trajectory_group, event_type, event_date)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
+  group_by(participant_id, trajectory_group, name) %>%
+  dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
+  filter(max != -Inf) %>%
+  mutate(binary = ifelse(max > 0, 1, 0)) %>%
+  left_join(clinical_data_ext %>% dplyr::select(participant_id, diedever, ever_steroids, ever_remdes, timetowd, timetodeath)) %>%
+  left_join(clinical_data %>% dplyr::distinct(participant_id, enrollment_site)) %>%
+  ungroup() %>%
+  filter(!is.na(trajectory_group)) %>%
+  filter(trajectory_group == "4") %>%
+  mutate(time = ifelse(!is.na(timetodeath), timetodeath, timetowd)) %>%
+  mutate(status = ifelse(!is.na(timetodeath), 2, 1)) %>%
+  mutate(time = ifelse(is.na(time), 380, time)) %>%
+  mutate(binary = as.factor(binary)) %>%
+  filter((timetodeath != -99) %>% replace_na(TRUE)) ## Means mising date and no information on loss to follow-up (only true for 3 participants)
+
+library(coxme)
+cox_df <- data.frame()
+for(active_virus in unique(model_df$name)){
+  m <- survfit(Surv(time, status) ~ ever_steroids+ever_remdes+binary, data = model_df %>%
+                     filter(name == active_virus))
+  #plot(ggsurvplot(m, conf.int = TRUE, facet.by = c("ever_steroids", "ever_remdes")))
+  
+  m2 <- coxph(Surv(time, status) ~ ever_steroids+ever_remdes+binary, data = model_df %>%
+                     filter(name == active_virus))
+  
+  fit_base <- coxme(Surv(time, status) ~ ever_steroids+ever_remdes+(1|enrollment_site),
+                    data = model_df %>%
+                     filter(name == active_virus))
+  fit <- try(coxme(Surv(time, status) ~ ever_steroids+ever_remdes+binary+(1|enrollment_site),
+               data = model_df %>%
+                       filter(name == active_virus)), silent = T)
+  if(class(fit) == "try-error"){ next } ## This is due to the extremely low n of HSV2, allowing the model to not fit
+  aa <- anova(fit_base, fit)
+  cox_df <- rbind.data.frame(cox_df, aa %>% mutate(virus = active_virus))
+}
+cox_df <- cox_df %>% filter(!is.na(Df)) %>% mutate(p.adj = p.adjust(`P(>|Chi|)`, "fdr")) %>%
+  add_significance("p.adj")
+write.csv(cox_df, "../output/Figure2A_right_censored_TG4_pvalues.csv")
 ```
 
 ### Figure 2B: Age
@@ -389,12 +511,50 @@ gg2B <- ever_reactivate %>%
 
 gg2B
 write_csv(gg2B$data, paste0(out_dir, "source_data_Figure2B.csv"))
+
+#### With error bars
+graph_data <- ever_reactivate %>%
+  mutate(discretized_admit_age_quantile = fct_rev(discretized_admit_age_quantile)) 
+graph_data$lower_CI <- graph_data$upper_CI <- NA
+for(i in 1:nrow(graph_data)){
+  tmp_ci <- try(prop.test(x=graph_data[i,5, drop=T], n=graph_data[i,4, drop=T],
+          alternative = "two.sided",
+          conf.level = 0.95), silent = T)
+  if(class(tmp_ci) == "try-error"){next}
+  graph_data$lower_CI[i] <- tmp_ci[["conf.int"]][1]
+  graph_data$upper_CI[i] <- tmp_ci[["conf.int"]][2]
+}
+
+mod_gg2B <- graph_data %>%
+  ggplot(aes(x=name, y=mean)) +
+  geom_bar(stat = "identity", position = position_dodge(preserve = "single"),
+           aes(fill = discretized_admit_age_quantile)) +
+  geom_errorbar(aes(ymin = lower_CI*100, ymax = upper_CI*100, fill = discretized_admit_age_quantile),
+                position = position_dodge(preserve = "single"), size = 0.4) +
+  theme_classic() + scale_x_discrete(limits = rev(unique(ever_reactivate$name))) +
+  ylab("% of Patients") +
+  xlab("") +
+    coord_flip() +
+  viridis::scale_fill_viridis(discrete = TRUE, name = "Age Quantile") +
+  stat_pvalue_manual(stat.df %>%
+                       filter(!p.adj.signif %in% c("ns", "", " ")) %>%
+                       mutate(y.position = c(35)),
+                     x= "xpos", label = "p.adj.signif", vjust = 0.7) +
+  theme(axis.text = element_text(color="black"),
+        axis.ticks = element_line(color = "black"))
+  
+mod_gg2B
+write_csv(mod_gg2B$data, paste0(out_dir, "source_data_Figure2B_vCIs.csv"))
 ```
 
+### Assembly of Figure for both Figure 2A-B and Figure S5D-E
 ```{r, fig.width = 8, fig.height = 6}
 gg1 %>% insert_right(gg2) %>% insert_right(gg2B)
 ggsave(paste0(out_dir, "Figure2A_B.pdf"), width = 8, height = 6)
 ##10x5
+
+mod_gg1 %>% insert_right(gg2_mod) %>% insert_right(mod_gg2B)
+ggsave(paste0(out_dir, "FigureS5D_E.pdf"), width = 8, height = 6)
 ```
 
 ### Figure 2C: Demographics, Complications, and Comorbidites
@@ -432,6 +592,7 @@ model_data <- ever_reactivate %>%
 out_model <- data.frame()
 out_rates <- data.frame()
 out_rates_TG <- data.frame()
+out_OR_CI <- data.frame()
 for(active_virus in unique(model_data$name)){
   print(paste0("Starting ", active_virus))
   for(active_var in colnames(clinical_data_ext)[grepl("comorb|comp|symptom|ever", colnames(clinical_data_ext))]){
@@ -457,6 +618,17 @@ for(active_virus in unique(model_data$name)){
     drop1_ress <- try(drop1(fit, test="Chisq"), silent = TRUE)
     if(class(drop1_ress) == "try-error"){next}
     
+    ## Calculate Odd's Ratio and 95% CIs
+    OR_values <- exp(fixef(fit))
+    ci_logodds <- confint(fit, parm = "binary1", method = "Wald")
+    OR_ci <- exp(ci_logodds)
+    OR_tmp <- cbind(OR_values[2], OR_ci) %>% as.data.frame() %>%
+      rownames_to_column("virus") %>%
+      mutate(virus = active_virus,
+             variable = active_var) %>%
+      dplyr::rename("OR_values" = "V1")
+    out_OR_CI <- rbind.data.frame(out_OR_CI, OR_tmp)
+
     ## Calculate the rate of the event in both groups
     tmp_rates <- model_data %>%
       filter(name == active_virus) %>%
@@ -536,6 +708,7 @@ for(active_virus in unique(model_data$name)){
 write.csv(out_model %>% distinct(), paste0(out_dir, "Supplemental_Data_1_part4.csv"))
 write.csv(out_rates, paste0(out_dir, "Supplemental_Data_1_part4_2.csv"))
 write.csv(out_rates_TG, paste0(out_dir, "Supplemental_Data_1_part4_3.csv"))
+write.csv(out_OR_CI, paste0(out_dir, "Supplemental_Data_1_part4_4.csv"))
 ## This is also reported in the source data (exact same)
 ```
 
@@ -703,6 +876,41 @@ ggS6B <- ever_reactivate %>%
                        mutate(y.position = c(13,13, 15, 40)),
                      x= "xpos", label = "p.adj.signif", vjust = 0.7)
 
+
+
+ever_reactivate$lower_CI <- ever_reactivate$upper_CI <- NA
+for(i in 1:nrow(ever_reactivate)){
+  tmp_ci <- try(prop.test(x=ever_reactivate[i,5, drop=T], n=ever_reactivate[i,4, drop=T],
+          alternative = "two.sided",
+          conf.level = 0.95), silent = T)
+  if(class(tmp_ci) == "try-error"){next}
+  ever_reactivate$lower_CI[i] <- tmp_ci[["conf.int"]][1]
+  ever_reactivate$upper_CI[i] <- tmp_ci[["conf.int"]][2]
+}
+
+ggS6B_CIs <- ever_reactivate %>%
+  ggplot(aes(x=name, y=mean)) +
+  geom_bar(stat = "identity", position = position_dodge(preserve = "single"), aes(fill = ethnicity)) +
+  geom_errorbar(aes(ymin = lower_CI*100, ymax = upper_CI*100, fill = ethnicity),
+                position = position_dodge(width=0.85),
+                  size = 0.4,
+                width =0.5) +
+  theme_classic() + scale_x_discrete(limits = rev(unique(ever_reactivate$name))) +
+  xlab("Virus & Compartment") +
+  ylab("Percent of Participants (%)") +
+    coord_flip() +
+  theme(axis.text = element_text(color = "black"),
+        #axis.text.y = element_blank(),
+        #axis.title.y = element_blank(),
+       legend.position = "top",
+        legend.direction = "vertical") +
+  scale_fill_manual(values = c("#22a6a8", "#a82277", "lightgray"), name = "Ethnicity") +
+  ## viridis::scale_fill_viridis(discrete = TRUE, name = "Ethnicity",direction = -1,) +
+  stat_pvalue_manual(stat.df %>%
+                       filter(!p.adj.signif %in% c("ns", "", " ")) %>%
+                       mutate(y.position = c(13,13, 15, 40)),
+                     x= "xpos", label = "p.adj.signif", vjust = 0.7)
+
 ```
 
 ### Figure S6C: Sex
@@ -767,6 +975,33 @@ ggS6C <- ever_reactivate %>%
         legend.position = "top") +
   scale_fill_manual(values = c("darkred", "darkblue"), name = "Sex")
 
+
+ever_reactivate$lower_CI <- ever_reactivate$upper_CI <- NA
+for(i in 1:nrow(ever_reactivate)){
+  tmp_ci <- try(prop.test(x=ever_reactivate[i,5, drop=T], n=ever_reactivate[i,4, drop=T],
+          alternative = "two.sided",
+          conf.level = 0.95), silent = T)
+  if(class(tmp_ci) == "try-error"){next}
+  ever_reactivate$lower_CI[i] <- tmp_ci[["conf.int"]][1]
+  ever_reactivate$upper_CI[i] <- tmp_ci[["conf.int"]][2]
+}
+
+ggS6C_CIs <- ever_reactivate %>%
+  ggplot(aes(x=name, y=mean)) +
+  geom_bar(stat = "identity", position = position_dodge(preserve = "single"),
+           aes(fill = sex)) +
+  geom_errorbar(aes(ymin = lower_CI*100, ymax = upper_CI*100, fill = sex),
+                position = position_dodge(width=0.85),
+                  size = 0.4,
+                width =0.5) +
+  theme_classic() + scale_x_discrete(limits = rev(unique(ever_reactivate$name))) +
+  ylab("Percent of Participants (%)") +
+  xlab("Virus & Compartment") +
+    coord_flip() +
+  theme(axis.text = element_text(color = "black"),
+        legend.direction = "vertical",
+        legend.position = "top") +
+  scale_fill_manual(values = c("darkred", "darkblue"), name = "Sex")
 ```
 
 ### Figure S6D-E: Treatments
@@ -792,6 +1027,20 @@ ever_reactivate <- comb_data %>%
                    count = n(),
                    positive = mean * count /100)
 
+model_df <- comb_data %>%
+  pivot_longer(cols = -event_id) %>%
+  left_join(clinical_data %>% select(event_id, participant_id, trajectory_group, event_type, event_date)) %>%
+  filter(event_type %in% paste0("Visit ", 1:6)) %>%
+  filter(event_date <= 40) %>%
+  group_by(participant_id, trajectory_group, name) %>%
+  dplyr::summarize(max = max(value, na.rm = TRUE)) %>%
+  filter(max != -Inf) %>%
+  mutate(binary = ifelse(max > 0, 1, 0)) %>%
+  left_join(clinical_data_ext %>% dplyr::select(participant_id, diedever, ever_steroids, ever_remdes)) %>%
+  left_join(clinical_data %>% dplyr::distinct(participant_id, enrollment_site)) %>%
+  ungroup() %>%
+  filter(!is.na(trajectory_group)) 
+
 ## Steroid Chi.square survival testing (not correcting for severity)
 stat.df <- data.frame()
 for(active_virus in unique(ever_reactivate$name)){
@@ -807,13 +1056,13 @@ for(active_virus in unique(ever_reactivate$name)){
     mutate(ever_steroids = factor(ever_steroids),
            binary = factor(binary))
   
-  fit <- glmer(formula(diedever~ever_steroids+binary+(1|enrollment_site)), data = tmp_model_df, family = "binomial")
+  fit <- glmer(formula(binary~ever_steroids+(1|enrollment_site)), data = tmp_model_df, family = "binomial")
   
   aa <- car::Anova(fit, type = "III")
   
   stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>%
                                 mutate(name = active_virus,
-                           mod.p = aa[3,3]))
+                           mod.p = aa[2,3]))
 }
 
 stat.df <- stat.df %>%
@@ -845,6 +1094,42 @@ gg3_steroids <- ever_reactivate %>%
         axis.ticks = element_line(color = "black"))
 
 gg3_steroids
+
+graph_data <- ever_reactivate %>%
+  mutate(ever_steroids = factor(ever_steroids)) %>%
+ # filter(grepl("implex|EBV|CMV", name)) %>%
+  mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+  mutate(ever_steroids = ifelse(ever_steroids == 1, "Steroids", "No Steroids")) %>%
+  mutate(ever_steroids = factor(ever_steroids, levels = c("No Steroids", "Steroids")))
+
+graph_data$lower_CI <- graph_data$upper_CI <- NA
+for(i in 1:nrow(graph_data)){
+  tmp_ci <- try(prop.test(x=graph_data[i,5, drop=T], n=graph_data[i,4, drop=T],
+          alternative = "two.sided",
+          conf.level = 0.95), silent = T)
+  if(class(tmp_ci) == "try-error"){next}
+  graph_data$lower_CI[i] <- tmp_ci[["conf.int"]][1]
+  graph_data$upper_CI[i] <- tmp_ci[["conf.int"]][2]
+}
+
+gg3_steroids_CIs <- graph_data %>%
+  ggplot(aes(x=name, y=mean)) +
+  geom_bar(aes(fill = ever_steroids), stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = lower_CI*100, ymax = upper_CI*100, fill = ever_steroids),
+                  position = position_dodge(width=0.85),
+                    size = 0.4,
+                  width =0.5) +
+  theme_classic() +
+  scale_x_discrete(limits = rev) +
+  scale_fill_manual(values = c("#2F2D2E", "#E69A8DFF"), name = "Steroid Usage") +
+  xlab("Virus & Compartment") +
+  ylab("Percent of Participants (%)") +
+    coord_flip() +
+  theme(legend.position = "top",
+        legend.direction = "vertical",
+        axis.text = element_text(color="black"),
+        axis.ticks = element_line(color = "black"))
+
 ```
 
 ```{r, fig.width = 5, fig.height = 5}
@@ -868,7 +1153,7 @@ ever_reactivate <- comb_data %>%
                    count = n(),
                    positive = mean * count /100)
 
-## Steroid Chi.square survival testing (not correcting for severity)
+## Remdesivir Chi.square survival testing (not correcting for severity)
 stat.df <- data.frame()
 for(active_virus in unique(ever_reactivate$name)){
   tmp.chi <- ever_reactivate %>%
@@ -883,13 +1168,13 @@ for(active_virus in unique(ever_reactivate$name)){
     mutate(ever_remdes = factor(ever_remdes),
            binary = factor(binary))
   
-  fit <- glmer(formula(diedever~ever_remdes+binary+(1|enrollment_site)), data = tmp_model_df, family = "binomial")
+  fit <- glmer(formula(binary~ever_remdes+(1|enrollment_site)), data = tmp_model_df, family = "binomial")
   
   aa <- car::Anova(fit, type = "III")
   
   stat.df <- rbind.data.frame(stat.df, chisq_test(tmp.chi) %>%
                                 mutate(name = active_virus,
-                           mod.p = aa[3,3]))
+                           mod.p = aa[2,3]))
 }
 
 stat.df <- stat.df %>%
@@ -921,6 +1206,42 @@ gg3_rem <- ever_reactivate %>%
         axis.ticks = element_line(color = "black"))
 
 gg3_rem
+
+
+graph_data <- ever_reactivate %>%
+  mutate(ever_remdes = factor(ever_remdes)) %>%
+ # filter(grepl("implex|EBV|CMV", name)) %>%
+  mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) %>%
+  mutate(ever_remdes = ifelse(ever_remdes == 1, "Remdesivir", "No Remdesivir")) %>%
+  mutate(ever_remdes = factor(ever_remdes, levels = c("No Remdesivir", "Remdesivir")))
+
+graph_data$lower_CI <- graph_data$upper_CI <- NA
+for(i in 1:nrow(graph_data)){
+  tmp_ci <- try(prop.test(x=graph_data[i,5, drop=T], n=graph_data[i,4, drop=T],
+          alternative = "two.sided",
+          conf.level = 0.95), silent = T)
+  if(class(tmp_ci) == "try-error"){next}
+  graph_data$lower_CI[i] <- tmp_ci[["conf.int"]][1]
+  graph_data$upper_CI[i] <- tmp_ci[["conf.int"]][2]
+}
+
+gg3_rem_CIs <- graph_data %>%
+  ggplot(aes(x=name, y=mean)) +
+  geom_bar(aes(fill = ever_remdes), stat = "identity", position = "dodge") +
+    geom_errorbar(aes(ymin = lower_CI*100, ymax = upper_CI*100, fill = ever_remdes),
+                  position = position_dodge(width=0.85),
+                    size = 0.4,
+                  width =0.5) +
+  theme_classic() +
+  scale_x_discrete(limits = rev) +
+  scale_fill_manual(values = c("#2F2D2E", "#99C24D"), name = "Remdesivir Usage") +
+  xlab("Virus & Compartment") +
+  ylab("Percent of Participants (%)") +
+    coord_flip() +
+  theme(legend.position = "top",
+        legend.direction = "vertical",
+        axis.text = element_text(color="black"),
+        axis.ticks = element_line(color = "black"))
 ```
 
 ```{r, fig.width = 10, fig.height = 12}
@@ -943,6 +1264,28 @@ write_csv(ggS6B$data, paste0(out_dir, "source_data_FigureS6B.csv"))
 write_csv(ggS6C$data, paste0(out_dir, "source_data_FigureS6C.csv"))
 write_csv(gg3_steroids$data, paste0(out_dir, "source_data_FigureS6D.csv"))
 write_csv(gg3_rem$data, paste0(out_dir, "source_data_FigureS6E.csv"))
+```
+
+```{r, fig.width = 10, fig.height = 12}
+
+## 10 x 12
+ggarrange(ggS6A + theme(legend.position = "top",
+                        axis.title.y = element_blank()),
+          ggS6B_CIs + theme(legend.position = "top",
+                        axis.title.y = element_blank()),
+          ggS6C_CIs + theme(legend.position = "top",
+                        axis.title.y = element_blank()),
+          gg3_steroids_CIs + theme(legend.position = "top",
+                        axis.title.y = element_blank()) ,
+          gg3_rem_CIs + theme(legend.position = "top",
+                        axis.title.y = element_blank()),
+          align = "hv",nrow = 2, ncol = 3, labels = c("A", "B", "C", "D", "E"), font.label = list(size=18))
+ggsave(paste0(out_dir, "FigureS6_CIs.pdf"), width = 10, height = 12)
+write_csv(ggS6A$data, paste0(out_dir, "source_data_FigureS6A.csv"))
+write_csv(ggS6B_CIs$data, paste0(out_dir, "source_data_FigureS6B_CIs.csv"))
+write_csv(ggS6C_CIs$data, paste0(out_dir, "source_data_FigureS6C_CIs.csv"))
+write_csv(gg3_steroids_CIs$data, paste0(out_dir, "source_data_FigureS6D_CIs.csv"))
+write_csv(gg3_rem_CIs$data, paste0(out_dir, "source_data_FigureS6E_CIs.csv"))
 ```
 
 ### Figure S6F: Percent with Chronic Immunosupression in Anelloviridae+ vs -
@@ -1124,3 +1467,4 @@ gg1
 ```{r}
 sessionInfo()
 ```
+

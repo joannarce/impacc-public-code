@@ -21,9 +21,9 @@ KEEP_COVID19_POS <- TRUE
 KEEP_ESCALATIONS = TRUE
 KEEP_EMORY_CONTROLS = FALSE
 EVENT_DATE_UPPER = 999
-VISIT_LOWER = 1
+VISIT_LOWER = 7
 VISIT_UPPER = 999
-USE_LOCKED_CLINICAL <- TRUE
+USE_LOCKED_CLINICAL <- FALSE
 FILTER_BY_CORE_ASSAY_COHORT = FALSE
 FILTER_BY_INTEGRATION_COHORT = FALSE
 
@@ -41,8 +41,7 @@ data_env <- load_IMPACC_datasets(# Data version:
   # Escalations:
   KEEP_ESCALATIONS = KEEP_ESCALATIONS,
   # Use the locked clinical data (01/01/2023)
-  USE_LOCKED_CLINICAL = USE_LOCKED_CLINICAL,
-  
+  USE_LOCKED_CLINICAL = USE_LOCKED_CLINICAL, 
   # Don't restrict filtering by manuscript:
   FILTER_BY_CORE_ASSAY_COHORT = FILTER_BY_CORE_ASSAY_COHORT,
   FILTER_BY_INTEGRATION_COHORT = FILTER_BY_INTEGRATION_COHORT,
@@ -55,6 +54,16 @@ data_env <- load_IMPACC_datasets(# Data version:
   # Phases
   PHASES = PHASES)
 ## This code was ran on 2024-02-02 using the current data version of that date
-saveRDS(data_env, "/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS")
+ saveRDS(data_env, "/scratch/data-integration/molecular_subtyping/Revisions/convalescent_data_only_final_ImmPort_data.RDS")
 ## The above path is the one referenced throughout the figure code
+```
+
+```{r}
+t1 <- read_csv("/data/serum-olink/current/Olink-Counts.csv")
+t2 <- read_csv("/impacc-study/data_deposition/processed-data-final/serum-olink/Olink-Counts.csv")
+t3 <- read_csv("/impacc-study/data_deposition/processed-data-final/serum-olink/Olink-Counts(leftover).csv")
+all.equal(,
+          )
+
+
 ```

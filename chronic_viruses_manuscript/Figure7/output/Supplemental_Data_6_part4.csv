@@ -1,3 +1,0 @@
-"","feature","Chisq","Df","Pr(>Chisq)","virus","p.value","p.adj","p.adj.signif","xpos","group1","group2","y.position"
-"1","binary",7.56849690333736,1,0.00593972983218136,"Anelloviridae.pbmc",0.00593972983218136,0.0118794596643627,"*",2,"filler_text","variable",40
-"2","binary",0.89322217184956,1,0.3446056210887,"Enterovirus.nasal",0.3446056210887,0.3446056210887,"ns",1,"filler_text","variable",40

@@ -28,33 +28,33 @@ load_IMPACC_datasets <- function(DATA_VERSION,
   
   #### Define Data directories: Use the absolute path of the directory containing "current" and "legacy" directories.
   data_dirs <- c(
-    bld_cytof_dir = "/data/bld-cytof",
-    bld_gwas_dir = "/data/bld-gwas",
-    clinical_dir = "/data/clinical",
-    ea_cytof_dir = "/data/ea-cytof",
-    ea_metagenomics_dir = "/data/ea-metagenomics",
-    ea_transcriptomics_dir = "/data/ea-transcriptomics",
-    plasma_metabolomics_global_dir = "/data/metabolomics/plasma-metabolomics-global",
-    plasma_metabolomics_targeted_dir = "/data/metabolomics/plasma-metabolomics-targeted",
-    serum_metabolomics_global_dir = "/data/metabolomics/serum-metabolomics-global",
-    nasal_metagenomics_dir = "/data/nasal-metagenomics",
-    nasal_transcriptomics_dir = "/data/nasal-transcriptomics",
-    nasal_viralload_dir = "/data/nasal-viralload",
-    nasal_viralseq_dir = "/data/nasal-viralseq",
-    pbmc_transcriptomics_dir = "/data/pbmc-transcriptomics",
-    plasma_proteomics_targeted_dir = "/data/proteomics/plasma-proteomics-targeted",
-    plasma_proteomics_global_dda_dir = "/data/proteomics/plasma-proteomics-global-DDA",
-    plasma_proteomics_global_dia_dir = "/data/proteomics/plasma-proteomics-global-DIA",
-    serum_autoantibody_dir = "/data/serum-autoantibody",
-    serum_proteomics_global_dir = "/data/proteomics/serum-proteomics-global",
-    serum_olink_dir = "/data/serum-olink",
-    serum_rbd_abtiters_dir = "/data/serum-rbd-abtiters",
-    serum_sarscov2_abtiters_dir = "/data/serum-sarscov2-abtiters"
+    bld_cytof_dir = "/impacc-study/data_deposition/processed-data-final/bld-cytof",
+    bld_gwas_dir = "/impacc-study/data_deposition/processed-data-final/bld-gwas",
+    clinical_dir = "/impacc-study/data_deposition/processed-data-final/clinical",
+    ea_cytof_dir = "/impacc-study/data_deposition/processed-data-final/ea-cytof",
+    ea_metagenomics_dir = "/impacc-study/data_deposition/processed-data-final/ea-metagenomics",
+    ea_transcriptomics_dir = "/impacc-study/data_deposition/processed-data-final/ea-transcriptomics",
+    plasma_metabolomics_global_dir = "/impacc-study/data_deposition/processed-data-final/metabolomics/plasma-metabolomics-global",
+    plasma_metabolomics_targeted_dir = "/impacc-study/data_deposition/processed-data-final/metabolomics/plasma-metabolomics-targeted",
+    serum_metabolomics_global_dir = "/impacc-study/data_deposition/processed-data-final/metabolomics/serum-metabolomics-global",
+    nasal_metagenomics_dir = "/impacc-study/data_deposition/processed-data-final/nasal-metagenomics",
+    nasal_transcriptomics_dir = "/impacc-study/data_deposition/processed-data-final/nasal-transcriptomics",
+    nasal_viralload_dir = "/impacc-study/data_deposition/processed-data-final/nasal-viralload",
+    nasal_viralseq_dir = "/impacc-study/data_deposition/processed-data-final/nasal-viralseq",
+    pbmc_transcriptomics_dir = "/impacc-study/data_deposition/processed-data-final/pbmc-transcriptomics",
+    plasma_proteomics_targeted_dir = "/impacc-study/data_deposition/processed-data-final/proteomics/plasma-proteomics-targeted",
+    plasma_proteomics_global_dda_dir = "/impacc-study/data_deposition/processed-data-final/proteomics/plasma-proteomics-global-DDA",
+    plasma_proteomics_global_dia_dir = "/impacc-study/data_deposition/processed-data-final/proteomics/plasma-proteomics-global-DIA",
+    serum_autoantibody_dir = "/impacc-study/data_deposition/processed-data-final/serum-autoantibody",
+    serum_proteomics_global_dir = "/impacc-study/data_deposition/processed-data-final/proteomics/serum-proteomics-global",
+    serum_olink_dir = "/impacc-study/data_deposition/processed-data-final/serum-olink",
+    serum_rbd_abtiters_dir = "/impacc-study/data_deposition/processed-data-final/serum-rbd-abtiters",
+    serum_sarscov2_abtiters_dir = "/impacc-study/data_deposition/processed-data-final/serum-sarscov2-abtiters"
   )
   
   #### Create an empty environment for storing various data objects
   data_env <- env(data_dirs = data_dirs)
-  
+
   #### Prepare clinical data variables
   data_env <- prepare_clinical_data(data_env = data_env,
                                     DATA_VERSION = DATA_VERSION,
@@ -74,7 +74,7 @@ load_IMPACC_datasets <- function(DATA_VERSION,
   
   #### Prepare info for the assay data files
   data_env <- prepare_assay_files_info(data_env)
-  
+  browser()
   #### Fetch appropriate data files and load assay datasets
   data_env <- load_assay_data(data_env, DATA_VERSION, ALLOWED_SMPL_STATUS)
   
@@ -132,25 +132,29 @@ prepare_clinical_data <- function(data_env,
                                   SELECT_VISITS,
                                   PHASES,
                                   USE_LOCKED_CLINICAL) {
-  
+  browser()
   if(FILTER_BY_CORE_ASSAY_COHORT & FILTER_BY_INTEGRATION_COHORT) {
     stop("Did you mean to set both FILTER_BY_CORE_ASSAY_COHORT & FILTER_BY_INTEGRATION_COHORT to TRUE? That is unusual! Please check your input.")
   }
   
   # Validating the provided value for the DATA_VERSION
   if(DATA_VERSION != "current") {
-    x <- tryCatch({
-      as.Date(DATA_VERSION)
-    },
-    error = function(e) {
-      cat(
-        "Error: Invalid input (\"",
-        DATA_VERSION,
-        "\") to DATA_VERSION variable. Either use \"current\" or a valid date in \"YYYY-MM-DD\" format for DATA_VERSION and rerun.\n",
-        sep = ""
-      )
-      knitr::knit_exit()
-    })
+    
+    # x <- tryCatch({
+    #   as.Date(DATA_VERSION)
+    # },
+    # error = function(e) {
+    #   cat(
+    #     "Error: Invalid input (\"",
+    #     DATA_VERSION,
+    #     "\") to DATA_VERSION variable. Either use \"current\" or a valid date in \"YYYY-MM-DD\" format for DATA_VERSION and rerun.\n",
+    #     sep = ""
+    #   )
+    #   knitr::knit_exit()
+    # })
+  }
+  if(DATA_VERSION == "current"){
+   # DATA_VERSION = " "
   }
   
   clinical_dir <- data_env[[ "data_dirs" ]][ "clinical_dir" ]
@@ -171,7 +175,7 @@ prepare_clinical_data <- function(data_env,
     stop(
       "Error: Either you don't have access to the clinical data or the required clinical data files don't exist for the version of data you have selected. Please make sure that *sample.csv, *event.csv and *.individ.csv files exist in \"",
       clinical_dir,
-      "\".\nUSE_LOCKED_CLINICAL = TRUE to use the locked clinical files from /data/clinical/current, otherwise use a specific date for DATA_VERSION.\nExiting...\n",
+      "\".\nUSE_LOCKED_CLINICAL = TRUE to use the locked clinical files from /impacc-study/data_deposition/processed-data-final/clinical/current, otherwise use a specific date for DATA_VERSION.\nExiting...\n",
       sep = ""
     )
   }
@@ -356,7 +360,7 @@ fetch_file_names <- function(DATA_VERSION, dir, pattern = ".Counts.csv") {
   
   # Select the files associated with the selection version of the data.
   if (DATA_VERSION == "current") {
-    files <- files[grep("current", files)]
+    files <- files[grep("", files)]
     
   } else {
     # Will store the date to use in legacy_date
@@ -750,7 +754,7 @@ load_assay_data <- function(data_env,
                             DATA_VERSION,
                             ALLOWED_SMPL_STATUS) {
   ### Fetch path of files that match the indicated pattern in the provided directory for each assay file and load the data in the variable names indicated in var_name element of the assay_files_info list. Uses the version of data specified in DATA_VERSION.
-  
+  browser()
   assay_files_info <- data_env[[ "assay_files_info" ]]
   clinical_data <- data_env[[ "clinical_data" ]]
   
