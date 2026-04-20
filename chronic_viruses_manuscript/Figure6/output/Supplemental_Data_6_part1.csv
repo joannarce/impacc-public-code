@@ -1,0 +1,8 @@
+n,statistic,p,df,method,p.signif,name,p.value,p.adj,p.adj.signif
+426,0.15922075060831814,0.69,1,Chi-square test,ns,Anelloviridae.pbmc,0.69,1,ns
+372,1.8741527779850425e-30,1,1,Chi-square test,ns,Enterovirus.nasal,1,1,ns
+389,0.5538839463689513,0.457,1,Chi-square test,ns,HSV1.nasal,0.457,1,ns
+348,1.3187289291174953e-30,1,1,Chi-square test,ns,HSV2.nasal,1,1,ns
+362,1.9320426146964431,0.165,1,Chi-square test,ns,CMV.pbmc,0.165,1,ns
+372,0.008821698532681208,0.925,1,Chi-square test,ns,EBV.nasal,0.925,1,ns
+470,0.5173053557934558,0.472,1,Chi-square test,ns,EBV.pbmc,0.472,1,ns
