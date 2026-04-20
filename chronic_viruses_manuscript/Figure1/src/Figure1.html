@@ -1532,10 +1532,8 @@ ggtree: an R package for visualization and annotation of phylogenetic
 trees with their covariates and other associated data. Methods in
 Ecology and Evolution. 2017, 8(1):28-36. doi:10.1111/2041-210X.12628
 
-Shuangbin Xu, Lin Li, Xiao Luo, Meijun Chen, Wenli Tang, Li Zhan, Zehan
-Dai, Tommy T. Lam, Yi Guan, Guangchuang Yu. Ggtree: A serialized data
-object for visualization of a phylogenetic tree and annotation data.
-iMeta 2022, 1(4):e56. doi:10.1002/imt2.56
+Guangchuang Yu. Using ggtree to visualize data on tree-like structures.
+Current Protocols in Bioinformatics. 2020, 69:e96. doi:10.1002/cpbi.96
 
 Guangchuang Yu, Tommy Tsan-Yuk Lam, Huachen Zhu, Yi Guan. Two methods
 for mapping and visualizing associated data on phylogeny using ggtree.
@@ -3625,8 +3623,8 @@ can override using the `.groups` argument.</code></pre>
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb273"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb273-1"><a href="#cb273-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS12A.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">4</span>)</span>
-<span id="cb273-2"><a href="#cb273-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(ggs12a<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>value2), <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS12A.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb273"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb273-1"><a href="#cb273-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Nasal_batch_check.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">4</span>)</span>
+<span id="cb273-2"><a href="#cb273-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(ggs12a<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>value2), <span class="fu">paste0</span>(out_dir, <span class="st">"Nasal_batch_check.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="pbmc-batch-check" class="level4">
@@ -3686,8 +3684,8 @@ Joining with `by = join_by(event_id)`</code></pre>
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb280"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb280-1"><a href="#cb280-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS12B.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="fl">4.5</span>)</span>
-<span id="cb280-2"><a href="#cb280-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(ggs12b<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>value2), <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS12B.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb280"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb280-1"><a href="#cb280-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"PBMC_batch_check.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="fl">4.5</span>)</span>
+<span id="cb280-2"><a href="#cb280-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(ggs12b<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>value2), <span class="fu">paste0</span>(out_dir, <span class="st">"PBMC_batch_check.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="ea-batch-check" class="level4">
@@ -3761,8 +3759,8 @@ can override using the `.groups` argument.</code></pre>
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb288"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb288-1"><a href="#cb288-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS12C.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="fl">2.5</span>)</span>
-<span id="cb288-2"><a href="#cb288-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(ggs12c<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>value2), <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS12C.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb288"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb288-1"><a href="#cb288-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"EA_batch_check.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="fl">2.5</span>)</span>
+<span id="cb288-2"><a href="#cb288-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(ggs12c<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>value2), <span class="fu">paste0</span>(out_dir, <span class="st">"EA_batch_check.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 </section>

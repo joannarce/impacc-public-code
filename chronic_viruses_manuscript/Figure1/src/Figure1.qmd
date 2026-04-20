@@ -2157,8 +2157,8 @@ ggs12a <- model_df %>% mutate(value2 = ifelse(value > 0, 1, 0 )) %>%
   scale_fill_manual(values = TrajGrpCol, name = "Trajectory Group") +
   xlab("Batch")
 ggs12a
-ggsave(paste0(out_dir, "FigureS12A.pdf"), width = 8, height = 4)
-write.csv(ggs12a$data %>% select(-value2), paste0(out_dir, "source_data_FigureS12A.csv"))
+ggsave(paste0(out_dir, "Nasal_batch_check.pdf"), width = 8, height = 4)
+write.csv(ggs12a$data %>% select(-value2), paste0(out_dir, "Nasal_batch_check.csv"))
 ```
 
 #### PBMC Batch Check
@@ -2198,8 +2198,8 @@ ggs12b <- model_df %>% mutate(value2 = ifelse(value > 0, 1, 0 )) %>%
   scale_fill_manual(values = TrajGrpCol, name = "Trajectory Group") +
   xlab("Batch")
 ggs12b
-ggsave(paste0(out_dir, "FigureS12B.pdf"), width = 6, height = 4.5)
-write.csv(ggs12b$data %>% select(-value2), paste0(out_dir, "source_data_FigureS12B.csv"))
+ggsave(paste0(out_dir, "PBMC_batch_check.pdf"), width = 6, height = 4.5)
+write.csv(ggs12b$data %>% select(-value2), paste0(out_dir, "PBMC_batch_check.csv"))
 ```
 
 #### EA Batch Check
@@ -2250,8 +2250,8 @@ ggs12c <- model_df %>% mutate(value2 = ifelse(value > 0, 1, 0 )) %>%
   scale_fill_manual(values = TrajGrpCol) +
   xlab("Batch")
 ggs12c
-ggsave(paste0(out_dir, "FigureS12C.pdf"), width = 8, height = 2.5)
-write.csv(ggs12c$data %>% select(-value2), paste0(out_dir, "source_data_FigureS12C.csv"))
+ggsave(paste0(out_dir, "EA_batch_check.pdf"), width = 8, height = 2.5)
+write.csv(ggs12c$data %>% select(-value2), paste0(out_dir, "EA_batch_check.csv"))
 ```
 
 # Session Info
