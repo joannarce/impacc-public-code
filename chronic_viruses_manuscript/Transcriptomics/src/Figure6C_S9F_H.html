@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.555">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Transcriptomics (Figure 6C and Figures S9F-H)</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Figure6C_S9F_H_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Figure6C_S9F_H_files/libs/quarto-html/quarto.js"></script>
+<script src="Figure6C_S9F_H_files/libs/quarto-html/popper.min.js"></script>
+<script src="Figure6C_S9F_H_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Figure6C_S9F_H_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Figure6C_S9F_H_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Figure6C_S9F_H_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Figure6C_S9F_H_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Figure6C_S9F_H_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Figure6C_S9F_H_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Transcriptomics (Figure 6C and Figures S9F-H)</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="figure-6c-and-figures-s9f-h" class="level2">
+<h2 class="anchored" data-anchor-id="figure-6c-and-figures-s9f-h">Figure 6C and Figures S9F-H</h2>
+</section>
+<section id="boot-up-key-data" class="level2">
+<h2 class="anchored" data-anchor-id="boot-up-key-data">Boot up Key Data</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.2     ✔ readr     2.1.5
+✔ forcats   1.0.0     ✔ stringr   1.5.0
+✔ ggplot2   3.4.2     ✔ tibble    3.2.1
+✔ lubridate 1.9.3     ✔ tidyr     1.3.1
+✔ purrr     1.0.2     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(limma)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(edgeR)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggrepel)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(scales)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'scales'
+
+The following object is masked from 'package:purrr':
+
+    discard
+
+The following object is masked from 'package:readr':
+
+    col_factor</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>comb_data <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/full_comb_data.csv"</span>) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="sc">-</span><span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human betaherpesvirus 6"</span>),</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human gammaherpesvirus 8"</span>),</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human betaherpesvirus 7"</span>),</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Respiratory syncytial virus"</span>),</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human immunodeficiency virus 1"</span>),</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"SARS-CoV-2.pbmc"</span>),</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Enterovirus"</span>),</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Anelloviridae.ea"</span>),</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Anelloviridae.nasal"</span>),</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human alphaherpesvirus 1 (HSV1).pbmc"</span>),</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Human alphaherpesvirus 2 (HSV2).pbmc"</span>),</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">ends_with</span>(<span class="st">".ea"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"Betacoronavirus.nasal"</span> <span class="ot">=</span> <span class="st">"SARS-CoV-2.nasal"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>New names:
+Rows: 4654 Columns: 33
+── Column specification
+──────────────────────────────────────────────────────── Delimiter: "," chr
+(1): event_id dbl (32): ...1, Human gammaherpesvirus 4 (EBV).pbmc, Human
+betaherpesvirus 5...
+ℹ Use `spec()` to retrieve the full column specification for this data. ℹ
+Specify the column types or set `show_col_types = FALSE` to quiet this message.
+• `` -&gt; `...1`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>data_env <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"/scratch/metagenomics/viral_reactivation/2024-02-02_obj.RDS"</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>clinical_data <span class="ot">&lt;-</span> data_env<span class="sc">$</span>clinical_data</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>clinical_data_ext <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-supp-locked.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 1164 Columns: 151
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr   (1): participant_id
+dbl (150): comorb_htn, comorb_isaric_dm, comorb_anyresp_noasthma, comorb_isa...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>out_dir <span class="ot">&lt;-</span> <span class="st">"../output/"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="differential-expression-and-enrichment-functions" class="level3">
+<h3 class="anchored" data-anchor-id="differential-expression-and-enrichment-functions">Differential Expression and Enrichment Functions</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(biomaRt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Possible Ensembl SSL connectivity problems detected.
+Please see the 'Connection Troubleshooting' section of the biomaRt vignette
+vignette('accessing_ensembl', package = 'biomaRt')Error in curl::curl_fetch_memory(url, handle = handle) : 
+  SSL peer certificate or SSH remote key was not OK [uswest.ensembl.org]: SSL certificate problem: certificate has expired</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>diff_exp_time_indep <span class="ot">&lt;-</span> <span class="cf">function</span>(counts, rowfeatures, clinical_data, virus, comb_data, <span class="at">binary =</span> <span class="cn">TRUE</span>, <span class="at">omic =</span> <span class="st">"Same"</span>,</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>                     <span class="at">event_date_cutoff =</span> <span class="dv">40</span>, <span class="at">lower_date_cutoff =</span> <span class="dv">0</span>, <span class="at">knockin =</span> <span class="cn">FALSE</span>){</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a> earliest_part <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(data_env<span class="sc">$</span>clinical_data <span class="sc">%&gt;%</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>              <span class="fu">distinct</span>(event_id, participant_id, event_date, event_type)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(event_date <span class="sc">&gt;=</span> lower_date_cutoff) <span class="sc">%&gt;%</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(event_date <span class="sc">&lt;=</span> event_date_cutoff) <span class="sc">%&gt;%</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(participant_id, name) <span class="sc">%&gt;%</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">!=</span> <span class="st">"Betacoronavirus.nasal"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(value <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(value <span class="sc">!=</span> <span class="sc">-</span><span class="cn">Inf</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_min</span>(value, <span class="at">n=</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">".ea|Betacorona|Simplexvirus.pbmc"</span>, name))</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>  max_part <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(data_env<span class="sc">$</span>clinical_data <span class="sc">%&gt;%</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>                <span class="fu">distinct</span>(event_id, participant_id, event_date)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_date <span class="sc">&gt;=</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_date <span class="sc">&lt;=</span> event_date_cutoff) <span class="sc">%&gt;%</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(participant_id, name) <span class="sc">%&gt;%</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(name <span class="sc">!=</span> <span class="st">"Betacoronavirus.nasal"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">value =</span> <span class="fu">max</span>(value, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(value <span class="sc">!=</span> <span class="sc">-</span><span class="cn">Inf</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> name, <span class="at">values_from =</span> value) <span class="sc">%&gt;%</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="sc">-</span><span class="fu">ends_with</span>(<span class="st">".ea"</span>), <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Betacorona"</span>))</span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>  <span class="do">## Filter for participants that we have both a nasal and pbmc sample for</span></span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>  max_part <span class="ot">&lt;-</span> max_part[<span class="fu">complete.cases</span>(max_part),]</span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a>  ctl_part <span class="ot">&lt;-</span> max_part<span class="sc">$</span>participant_id[<span class="fu">rowSums</span>(max_part[,<span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>)]) <span class="sc">==</span> <span class="dv">0</span>]</span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> counts[,<span class="fu">colnames</span>(counts) <span class="sc">%in%</span> <span class="fu">rownames</span>(rowfeatures)[rowfeatures<span class="sc">$</span>gene_biotype <span class="sc">==</span> <span class="st">"protein_coding"</span>]]</span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> counts[<span class="fu">rownames</span>(counts) <span class="sc">%in%</span> clinical_data<span class="sc">$</span>sample_id[<span class="sc">!</span><span class="fu">is.na</span>(clinical_data<span class="sc">$</span>trajectory_group)],]</span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>event_ids_conv <span class="ot">&lt;-</span> clinical_data<span class="sc">$</span>event_id[<span class="fu">match</span>(<span class="fu">rownames</span>(counts), clinical_data<span class="sc">$</span>sample_id)]</span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a>dups <span class="ot">&lt;-</span> event_ids_conv[<span class="fu">duplicated</span>(event_ids_conv)]</span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> counts[<span class="sc">!</span><span class="fu">rownames</span>(counts) <span class="sc">%in%</span> clinical_data<span class="sc">$</span>sample_id[clinical_data<span class="sc">$</span>event_id <span class="sc">%in%</span> dups],]</span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(counts) <span class="ot">&lt;-</span> clinical_data<span class="sc">$</span>event_id[<span class="fu">match</span>(<span class="fu">rownames</span>(counts), clinical_data<span class="sc">$</span>sample_id)]</span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a><span class="co"># Keep genes with at least 10 counts in 20% of samples</span></span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a>keep <span class="ot">&lt;-</span> <span class="fu">colSums</span>(counts<span class="sc">&gt;=</span><span class="dv">10</span>) <span class="sc">&gt;=</span> <span class="fl">0.2</span><span class="sc">*</span><span class="fu">nrow</span>(counts)</span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> counts[,keep]</span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-51"><a href="#cb12-51" aria-hidden="true" tabindex="-1"></a>clin.sample.event.individ<span class="fl">.1</span> <span class="ot">&lt;-</span> clinical_data <span class="sc">%&gt;%</span></span>
+<span id="cb12-52"><a href="#cb12-52" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(event_id <span class="sc">%in%</span> <span class="fu">rownames</span>(counts)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-53"><a href="#cb12-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(event_id, discretized_admit_age_quantile, sex, trajectory_group,</span>
+<span id="cb12-54"><a href="#cb12-54" aria-hidden="true" tabindex="-1"></a>           event_type, respiratory_status) <span class="sc">%&gt;%</span></span>
+<span id="cb12-55"><a href="#cb12-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">trajectory_group =</span> <span class="fu">ordered</span>(<span class="fu">as.factor</span>(trajectory_group)),</span>
+<span id="cb12-56"><a href="#cb12-56" aria-hidden="true" tabindex="-1"></a>         <span class="at">respiratory_status =</span> <span class="fu">ordered</span>(<span class="fu">as.factor</span>(respiratory_status))) <span class="sc">%&gt;%</span></span>
+<span id="cb12-57"><a href="#cb12-57" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(comb_data <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(event_id, Betacoronavirus.nasal) <span class="sc">%&gt;%</span></span>
+<span id="cb12-58"><a href="#cb12-58" aria-hidden="true" tabindex="-1"></a>              <span class="fu">mutate</span>(<span class="at">Betacoronavirus.nasal =</span> <span class="fu">log2</span>(Betacoronavirus.nasal<span class="sc">+</span><span class="dv">1</span>)))</span>
+<span id="cb12-59"><a href="#cb12-59" aria-hidden="true" tabindex="-1"></a>clin.sample.event.individ<span class="fl">.1</span> <span class="ot">&lt;-</span> clin.sample.event.individ<span class="fl">.1</span>[<span class="fu">match</span>(<span class="fu">rownames</span>(counts),clin.sample.event.individ<span class="fl">.1</span><span class="sc">$</span>event_id),]</span>
+<span id="cb12-60"><a href="#cb12-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-61"><a href="#cb12-61" aria-hidden="true" tabindex="-1"></a><span class="do">## Filter for samples that have complete information</span></span>
+<span id="cb12-62"><a href="#cb12-62" aria-hidden="true" tabindex="-1"></a>clin.sample.event.individ<span class="fl">.1</span> <span class="ot">&lt;-</span> clin.sample.event.individ<span class="fl">.1</span>[<span class="fu">complete.cases</span>(clin.sample.event.individ<span class="fl">.1</span>),]</span>
+<span id="cb12-63"><a href="#cb12-63" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> counts[<span class="fu">rownames</span>(counts) <span class="sc">%in%</span> clin.sample.event.individ<span class="fl">.1</span><span class="sc">$</span>event_id,]</span>
+<span id="cb12-64"><a href="#cb12-64" aria-hidden="true" tabindex="-1"></a>clin.sample.event.individ<span class="fl">.1</span> <span class="ot">&lt;-</span> clin.sample.event.individ<span class="fl">.1</span>[clin.sample.event.individ<span class="fl">.1</span><span class="sc">$</span>event_id <span class="sc">%in%</span> <span class="fu">rownames</span>(counts), ]</span>
+<span id="cb12-65"><a href="#cb12-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-66"><a href="#cb12-66" aria-hidden="true" tabindex="-1"></a><span class="do">## Convert detection of the virus to yes or no</span></span>
+<span id="cb12-67"><a href="#cb12-67" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(binary){</span>
+<span id="cb12-68"><a href="#cb12-68" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(knockin){</span>
+<span id="cb12-69"><a href="#cb12-69" aria-hidden="true" tabindex="-1"></a>    virus_pos <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb12-70"><a href="#cb12-70" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>(event_id, .data[[virus]]) <span class="sc">%&gt;%</span></span>
+<span id="cb12-71"><a href="#cb12-71" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">virus_now =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(.data[[virus]]) <span class="sc">|</span> .data[[virus]] <span class="sc">==</span><span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-72"><a href="#cb12-72" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(event_id, event_date, participant_id)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-73"><a href="#cb12-73" aria-hidden="true" tabindex="-1"></a>      <span class="fu">left_join</span>(earliest_part <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(participant_id, name, event_date) <span class="sc">%&gt;%</span></span>
+<span id="cb12-74"><a href="#cb12-74" aria-hidden="true" tabindex="-1"></a>                  <span class="fu">filter</span>(name <span class="sc">==</span> virus) <span class="sc">%&gt;%</span></span>
+<span id="cb12-75"><a href="#cb12-75" aria-hidden="true" tabindex="-1"></a>                  dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"min_event_date"</span><span class="ot">=</span><span class="dv">3</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-76"><a href="#cb12-76" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">group =</span> <span class="fu">ifelse</span>(event_date <span class="sc">&gt;=</span> min_event_date, <span class="dv">1</span>,<span class="cn">NA</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-77"><a href="#cb12-77" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">group =</span> <span class="fu">ifelse</span>(participant_id <span class="sc">%in%</span> ctl_part, <span class="dv">0</span>, group))</span>
+<span id="cb12-78"><a href="#cb12-78" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb12-79"><a href="#cb12-79" aria-hidden="true" tabindex="-1"></a>    virus_pos <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb12-80"><a href="#cb12-80" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>(event_id, .data[[virus]]) <span class="sc">%&gt;%</span></span>
+<span id="cb12-81"><a href="#cb12-81" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">group =</span> <span class="fu">ifelse</span>( .data[[virus]] <span class="sc">==</span><span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>)) <span class="sc">%&gt;%</span> <span class="do">##is.na(.data[[virus]]) |</span></span>
+<span id="cb12-82"><a href="#cb12-82" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(event_id, participant_id)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-83"><a href="#cb12-83" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(group <span class="sc">==</span> <span class="dv">1</span> <span class="sc">|</span> participant_id <span class="sc">%in%</span> ctl_part)</span>
+<span id="cb12-84"><a href="#cb12-84" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-85"><a href="#cb12-85" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb12-86"><a href="#cb12-86" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb12-87"><a href="#cb12-87" aria-hidden="true" tabindex="-1"></a>  virus_pos <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb12-88"><a href="#cb12-88" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>(event_id, .data[[virus]]) <span class="sc">%&gt;%</span></span>
+<span id="cb12-89"><a href="#cb12-89" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">group =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(.data[[virus]]) <span class="sc">|</span> .data[[virus]] <span class="sc">==</span><span class="dv">0</span>, <span class="dv">0</span>, <span class="fu">log2</span>(.data[[virus]]))) <span class="sc">%&gt;%</span></span>
+<span id="cb12-90"><a href="#cb12-90" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(group <span class="sc">==</span> <span class="dv">1</span> <span class="sc">|</span> <span class="fu">grepl</span>(<span class="fu">paste</span>(ctl_part, <span class="at">collapse =</span> <span class="st">"|"</span>), event_id))</span>
+<span id="cb12-91"><a href="#cb12-91" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-92"><a href="#cb12-92" aria-hidden="true" tabindex="-1"></a><span class="do">## New lines</span></span>
+<span id="cb12-93"><a href="#cb12-93" aria-hidden="true" tabindex="-1"></a>tmp <span class="ot">&lt;-</span> clin.sample.event.individ<span class="fl">.1</span> <span class="sc">%&gt;%</span> <span class="fu">inner_join</span>(virus_pos) <span class="sc">%&gt;%</span></span>
+<span id="cb12-94"><a href="#cb12-94" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(group))</span>
+<span id="cb12-95"><a href="#cb12-95" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> counts[<span class="fu">rownames</span>(counts) <span class="sc">%in%</span> tmp<span class="sc">$</span>event_id,]</span>
+<span id="cb12-96"><a href="#cb12-96" aria-hidden="true" tabindex="-1"></a>tmp <span class="ot">&lt;-</span> tmp[tmp<span class="sc">$</span>event_id <span class="sc">%in%</span> <span class="fu">rownames</span>(counts), ]</span>
+<span id="cb12-97"><a href="#cb12-97" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-98"><a href="#cb12-98" aria-hidden="true" tabindex="-1"></a>metaa <span class="ot">&lt;-</span> tmp <span class="sc">%&gt;%</span> <span class="fu">left_join</span>(virus_pos)</span>
+<span id="cb12-99"><a href="#cb12-99" aria-hidden="true" tabindex="-1"></a>design <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(<span class="sc">~</span> discretized_admit_age_quantile <span class="sc">+</span> sex <span class="sc">+</span> event_type <span class="sc">+</span> trajectory_group <span class="sc">+</span> Betacoronavirus.nasal <span class="sc">+</span> group, </span>
+<span id="cb12-100"><a href="#cb12-100" aria-hidden="true" tabindex="-1"></a>                       <span class="at">data=</span>metaa) </span>
+<span id="cb12-101"><a href="#cb12-101" aria-hidden="true" tabindex="-1"></a><span class="fu">browser</span>()</span>
+<span id="cb12-102"><a href="#cb12-102" aria-hidden="true" tabindex="-1"></a>vwts <span class="ot">&lt;-</span> <span class="fu">voom</span>(<span class="fu">t</span>(counts), </span>
+<span id="cb12-103"><a href="#cb12-103" aria-hidden="true" tabindex="-1"></a>             <span class="at">design =</span> design,</span>
+<span id="cb12-104"><a href="#cb12-104" aria-hidden="true" tabindex="-1"></a>             <span class="at">normalize.method =</span> <span class="st">"quantile"</span>,</span>
+<span id="cb12-105"><a href="#cb12-105" aria-hidden="true" tabindex="-1"></a>             <span class="at">plot =</span> T)</span>
+<span id="cb12-106"><a href="#cb12-106" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-107"><a href="#cb12-107" aria-hidden="true" tabindex="-1"></a>vfit <span class="ot">&lt;-</span> <span class="fu">lmFit</span>(vwts)</span>
+<span id="cb12-108"><a href="#cb12-108" aria-hidden="true" tabindex="-1"></a>vfit <span class="ot">&lt;-</span> <span class="fu">eBayes</span>(vfit)</span>
+<span id="cb12-109"><a href="#cb12-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-110"><a href="#cb12-110" aria-hidden="true" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">topTable</span>(vfit, <span class="at">coef =</span> <span class="st">"group"</span>,</span>
+<span id="cb12-111"><a href="#cb12-111" aria-hidden="true" tabindex="-1"></a>                <span class="at">sort.by =</span> <span class="st">"none"</span>, <span class="at">number =</span> <span class="cn">Inf</span>,</span>
+<span id="cb12-112"><a href="#cb12-112" aria-hidden="true" tabindex="-1"></a>                <span class="at">adjust.method =</span> <span class="st">"BH"</span>, <span class="at">p.value =</span> <span class="dv">1</span>)</span>
+<span id="cb12-113"><a href="#cb12-113" aria-hidden="true" tabindex="-1"></a><span class="fu">return</span>(res)</span>
+<span id="cb12-114"><a href="#cb12-114" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-115"><a href="#cb12-115" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-116"><a href="#cb12-116" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"AnnotationDbi"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: stats4</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: BiocGenerics</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: parallel</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'BiocGenerics'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:parallel':
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+    clusterExport, clusterMap, parApply, parCapply, parLapply,
+    parLapplyLB, parRapply, parSapply, parSapplyLB</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:limma':
+
+    plotMA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:lubridate':
+
+    intersect, setdiff, union</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:dplyr':
+
+    combine, intersect, setdiff, union</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:stats':
+
+    IQR, mad, sd, var, xtabs</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    anyDuplicated, append, as.data.frame, basename, cbind, colnames,
+    dirname, do.call, duplicated, eval, evalq, Filter, Find, get, grep,
+    grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget,
+    order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    rbind, Reduce, rownames, sapply, setdiff, sort, table, tapply,
+    union, unique, unsplit, which.max, which.min</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: Biobase</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: IRanges</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: S4Vectors</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'S4Vectors'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:lubridate':
+
+    second, second&lt;-</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:dplyr':
+
+    first, rename</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:tidyr':
+
+    expand</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:base':
+
+    expand.grid</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'IRanges'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:lubridate':
+
+    %within%</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:dplyr':
+
+    collapse, desc, slice</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:purrr':
+
+    reduce</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'AnnotationDbi'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:dplyr':
+
+    select</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"org.Hs.eg.db"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>mart_retrieved <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="st">"ensembl_gene_id"</span> <span class="ot">=</span> <span class="fu">colnames</span>(data_env<span class="sc">$</span>pbmc_transcriptomics_counts))</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>mart_retrieved<span class="sc">$</span>entrezgene_id <span class="ot">=</span> <span class="fu">mapIds</span>(org.Hs.eg.db,</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>                    <span class="at">keys=</span>mart_retrieved<span class="sc">$</span>ensembl_gene_id,</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>                    <span class="at">column=</span><span class="st">"ENTREZID"</span>,</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>                    <span class="at">keytype=</span><span class="st">"ENSEMBL"</span>,</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>                    <span class="at">multiVals=</span><span class="st">"first"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>'select()' returned 1:many mapping between keys and columns</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>keggdb <span class="ot">&lt;-</span>  <span class="fu">readRDS</span>(<span class="at">file =</span> <span class="st">"/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds"</span>)</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>enrichment_df <span class="ot">&lt;-</span> <span class="cf">function</span>(res, mart_retrieved, <span class="at">rowfeatures =</span> data_env<span class="sc">$</span>pbmc_transcriptomics_rowfeature,</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>                          <span class="at">KEGG =</span> keggdb<span class="sc">$</span>pbmc, <span class="at">FC_threshold =</span> <span class="fl">0.5</span>, <span class="at">p_threshold =</span> <span class="fl">0.05</span>){</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(biomaRt)</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(clusterProfiler)</span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ReactomePA)</span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> res <span class="sc">%&gt;%</span></span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">"ensembl_gene_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(rowfeatures <span class="sc">%&gt;%</span></span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">"ensembl_gene_id"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(mart_retrieved) <span class="sc">%&gt;%</span></span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(entrezgene_id))</span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>results_out <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="fu">length</span>(data<span class="sc">$</span>entrezgene_id[data<span class="sc">$</span>adj.P.Val<span class="sc">&lt;=</span> p_threshold <span class="sc">&amp;</span>data<span class="sc">$</span>logFC<span class="sc">&gt;</span> FC_threshold]) <span class="sc">&gt;</span> <span class="dv">0</span>){</span>
+<span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a>    up <span class="ot">&lt;-</span> <span class="fu">try</span>(<span class="fu">enrichPathway</span>(data<span class="sc">$</span>entrezgene_id[data<span class="sc">$</span>adj.P.Val<span class="sc">&lt;=</span> p_threshold <span class="sc">&amp;</span>data<span class="sc">$</span>logFC<span class="sc">&gt;</span> FC_threshold],</span>
+<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a>                <span class="at">organism =</span> <span class="st">"human"</span>,</span>
+<span id="cb42-19"><a href="#cb42-19" aria-hidden="true" tabindex="-1"></a>                <span class="at">universe =</span> <span class="fu">as.character</span>(<span class="fu">unique</span>(data<span class="sc">$</span>entrezgene_id))), <span class="at">silent =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb42-20"><a href="#cb42-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(<span class="sc">!</span><span class="fu">class</span>(up) <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"try-error"</span>, <span class="st">"NULL"</span>)){</span>
+<span id="cb42-21"><a href="#cb42-21" aria-hidden="true" tabindex="-1"></a>      results_out <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(results_out, up<span class="sc">@</span>result <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">dir =</span> <span class="st">"up"</span>,</span>
+<span id="cb42-22"><a href="#cb42-22" aria-hidden="true" tabindex="-1"></a>                                                                        <span class="at">database =</span> <span class="st">"Reactome"</span>))</span>
+<span id="cb42-23"><a href="#cb42-23" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb42-24"><a href="#cb42-24" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb42-25"><a href="#cb42-25" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="fu">length</span>(data<span class="sc">$</span>entrezgene_id[data<span class="sc">$</span>adj.P.Val<span class="sc">&lt;=</span> p_threshold <span class="sc">&amp;</span>data<span class="sc">$</span>logFC<span class="sc">&gt;</span>FC_threshold]) <span class="sc">&gt;</span> <span class="dv">0</span>){</span>
+<span id="cb42-26"><a href="#cb42-26" aria-hidden="true" tabindex="-1"></a>    up <span class="ot">&lt;-</span> <span class="fu">try</span>(<span class="fu">enricher</span>(data<span class="sc">$</span>gene_name[data<span class="sc">$</span>adj.P.Val<span class="sc">&lt;=</span> p_threshold <span class="sc">&amp;</span>data<span class="sc">$</span>logFC<span class="sc">&gt;</span>FC_threshold],</span>
+<span id="cb42-27"><a href="#cb42-27" aria-hidden="true" tabindex="-1"></a>                <span class="at">TERM2GENE =</span> KEGG,<span class="at">minGSSize =</span> <span class="dv">3</span>,</span>
+<span id="cb42-28"><a href="#cb42-28" aria-hidden="true" tabindex="-1"></a>                <span class="at">universe =</span> <span class="fu">as.character</span>(<span class="fu">unique</span>(data<span class="sc">$</span>entrezgene_id))), <span class="at">silent =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb42-29"><a href="#cb42-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(<span class="sc">!</span><span class="fu">class</span>(up) <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"try-error"</span>, <span class="st">"NULL"</span>)){</span>
+<span id="cb42-30"><a href="#cb42-30" aria-hidden="true" tabindex="-1"></a>      results_out <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(results_out, up<span class="sc">@</span>result <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">dir =</span> <span class="st">"up"</span>,</span>
+<span id="cb42-31"><a href="#cb42-31" aria-hidden="true" tabindex="-1"></a>                                                                        <span class="at">database =</span> <span class="st">"KEGG"</span>))</span>
+<span id="cb42-32"><a href="#cb42-32" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb42-33"><a href="#cb42-33" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb42-34"><a href="#cb42-34" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb42-35"><a href="#cb42-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-36"><a href="#cb42-36" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(<span class="fu">length</span>(data<span class="sc">$</span>entrezgene_id[data<span class="sc">$</span>adj.P.Val<span class="sc">&lt;=</span> p_threshold <span class="sc">&amp;</span>data<span class="sc">$</span>logFC<span class="sc">&lt;</span>FC_threshold]) <span class="sc">&gt;</span> <span class="dv">0</span>){</span>
+<span id="cb42-37"><a href="#cb42-37" aria-hidden="true" tabindex="-1"></a>  down <span class="ot">&lt;-</span> <span class="fu">try</span>(<span class="fu">enrichPathway</span>(data<span class="sc">$</span>entrezgene_id[data<span class="sc">$</span>adj.P.Val<span class="sc">&lt;=</span> p_threshold <span class="sc">&amp;</span>data<span class="sc">$</span>logFC<span class="sc">&lt;</span>FC_threshold],</span>
+<span id="cb42-38"><a href="#cb42-38" aria-hidden="true" tabindex="-1"></a>              <span class="at">organism =</span> <span class="st">"human"</span>,</span>
+<span id="cb42-39"><a href="#cb42-39" aria-hidden="true" tabindex="-1"></a>              <span class="at">universe =</span> <span class="fu">as.character</span>(<span class="fu">unique</span>(data<span class="sc">$</span>entrezgene_id))), <span class="at">silent =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb42-40"><a href="#cb42-40" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="sc">!</span><span class="fu">class</span>(down) <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"try-error"</span>, <span class="st">"NULL"</span>)){</span>
+<span id="cb42-41"><a href="#cb42-41" aria-hidden="true" tabindex="-1"></a>    results_out <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(results_out, down<span class="sc">@</span>result <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">dir =</span> <span class="st">"down"</span>,</span>
+<span id="cb42-42"><a href="#cb42-42" aria-hidden="true" tabindex="-1"></a>                                                                      <span class="at">database =</span> <span class="st">"Reactome"</span>))</span>
+<span id="cb42-43"><a href="#cb42-43" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb42-44"><a href="#cb42-44" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="fu">length</span>(data<span class="sc">$</span>entrezgene_id[data<span class="sc">$</span>adj.P.Val<span class="sc">&lt;=</span> p_threshold <span class="sc">&amp;</span>data<span class="sc">$</span>logFC<span class="sc">&gt;</span>FC_threshold]) <span class="sc">&gt;</span> <span class="dv">0</span>){</span>
+<span id="cb42-45"><a href="#cb42-45" aria-hidden="true" tabindex="-1"></a>    down <span class="ot">&lt;-</span> <span class="fu">try</span>(<span class="fu">enricher</span>(data<span class="sc">$</span>gene_name[data<span class="sc">$</span>adj.P.Val<span class="sc">&lt;=</span> p_threshold <span class="sc">&amp;</span>data<span class="sc">$</span>logFC<span class="sc">&gt;</span>FC_threshold],</span>
+<span id="cb42-46"><a href="#cb42-46" aria-hidden="true" tabindex="-1"></a>                <span class="at">TERM2GENE =</span> KEGG, <span class="at">minGSSize =</span> <span class="dv">3</span>,</span>
+<span id="cb42-47"><a href="#cb42-47" aria-hidden="true" tabindex="-1"></a>                <span class="at">universe =</span> <span class="fu">as.character</span>(<span class="fu">unique</span>(data<span class="sc">$</span>entrezgene_id))), <span class="at">silent =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb42-48"><a href="#cb42-48" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(<span class="sc">!</span><span class="fu">class</span>(down) <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"try-error"</span>, <span class="st">"NULL"</span>)){</span>
+<span id="cb42-49"><a href="#cb42-49" aria-hidden="true" tabindex="-1"></a>      results_out <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(results_out, down<span class="sc">@</span>result <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">dir =</span> <span class="st">"down"</span>,</span>
+<span id="cb42-50"><a href="#cb42-50" aria-hidden="true" tabindex="-1"></a>                                                                        <span class="at">database =</span> <span class="st">"KEGG"</span>))</span>
+<span id="cb42-51"><a href="#cb42-51" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb42-52"><a href="#cb42-52" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb42-53"><a href="#cb42-53" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb42-54"><a href="#cb42-54" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb42-55"><a href="#cb42-55" aria-hidden="true" tabindex="-1"></a><span class="fu">return</span>(results_out)</span>
+<span id="cb42-56"><a href="#cb42-56" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb42-57"><a href="#cb42-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-58"><a href="#cb42-58" aria-hidden="true" tabindex="-1"></a>enrichment_plot <span class="ot">&lt;-</span> <span class="cf">function</span>(data){</span>
+<span id="cb42-59"><a href="#cb42-59" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(biomaRt)</span>
+<span id="cb42-60"><a href="#cb42-60" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(clusterProfiler)</span>
+<span id="cb42-61"><a href="#cb42-61" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ReactomePA)</span>
+<span id="cb42-62"><a href="#cb42-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-63"><a href="#cb42-63" aria-hidden="true" tabindex="-1"></a>data  <span class="sc">%&gt;%</span></span>
+<span id="cb42-64"><a href="#cb42-64" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">p.adjust =</span> <span class="fu">as.numeric</span>(p.adjust)) <span class="sc">%&gt;%</span></span>
+<span id="cb42-65"><a href="#cb42-65" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p.adjust <span class="sc">&lt;=</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb42-66"><a href="#cb42-66" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_min</span>(p.adjust, <span class="at">n=</span> <span class="dv">20</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb42-67"><a href="#cb42-67" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Description =</span> stringr<span class="sc">::</span><span class="fu">str_trunc</span>(Description, <span class="dv">30</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb42-68"><a href="#cb42-68" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log10p =</span> <span class="sc">-</span><span class="fu">log10</span>(p.adjust),</span>
+<span id="cb42-69"><a href="#cb42-69" aria-hidden="true" tabindex="-1"></a>         <span class="at">Description =</span> <span class="fu">as.factor</span>(Description)) <span class="sc">%&gt;%</span></span>
+<span id="cb42-70"><a href="#cb42-70" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span><span class="sc">-</span><span class="fu">log10</span>(p.adjust), <span class="at">y=</span><span class="fu">fct_reorder</span>(Description, log10p), <span class="at">fill =</span> dir)) <span class="sc">+</span></span>
+<span id="cb42-71"><a href="#cb42-71" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>) <span class="sc">+</span></span>
+<span id="cb42-72"><a href="#cb42-72" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="sc">-</span><span class="fu">log10</span>(<span class="fl">0.05</span>), <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb42-73"><a href="#cb42-73" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb42-74"><a href="#cb42-74" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"up"</span> <span class="ot">=</span> scales<span class="sc">::</span><span class="fu">muted</span>(<span class="st">"red"</span>),</span>
+<span id="cb42-75"><a href="#cb42-75" aria-hidden="true" tabindex="-1"></a>                               <span class="st">"down"</span> <span class="ot">=</span> scales<span class="sc">::</span><span class="fu">muted</span>(<span class="st">"blue"</span>))) <span class="sc">+</span> </span>
+<span id="cb42-76"><a href="#cb42-76" aria-hidden="true" tabindex="-1"></a>  <span class="co">#scale_fill_gradient2(low = "gray", high = scales::muted("red")) +</span></span>
+<span id="cb42-77"><a href="#cb42-77" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Reactome Pathway"</span>)</span>
+<span id="cb42-78"><a href="#cb42-78" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>diff_exp_time_indep <span class="ot">&lt;-</span> <span class="cf">function</span>(counts, rowfeatures, clinical_data, virus, comb_data, <span class="at">binary =</span> <span class="cn">TRUE</span>, <span class="at">omic =</span> <span class="st">"Same"</span>,</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>                     <span class="at">event_date_cutoff =</span> <span class="dv">40</span>, <span class="at">lower_date_cutoff =</span> <span class="dv">0</span>, <span class="at">knockin =</span> <span class="cn">FALSE</span>){</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a> earliest_part <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(data_env<span class="sc">$</span>clinical_data <span class="sc">%&gt;%</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>              <span class="fu">distinct</span>(event_id, participant_id, event_date, event_type)) <span class="sc">%&gt;%</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(event_date <span class="sc">&gt;=</span> lower_date_cutoff) <span class="sc">%&gt;%</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(event_date <span class="sc">&lt;=</span> event_date_cutoff) <span class="sc">%&gt;%</span></span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(participant_id, name) <span class="sc">%&gt;%</span></span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">!=</span> <span class="st">"Betacoronavirus.nasal"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(value <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(value <span class="sc">!=</span> <span class="sc">-</span><span class="cn">Inf</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_min</span>(value, <span class="at">n=</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb43-17"><a href="#cb43-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">grepl</span>(<span class="st">".ea|Betacorona|Simplexvirus.pbmc"</span>, name))</span>
+<span id="cb43-18"><a href="#cb43-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-19"><a href="#cb43-19" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb43-20"><a href="#cb43-20" aria-hidden="true" tabindex="-1"></a>  max_part <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb43-21"><a href="#cb43-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>event_id) <span class="sc">%&gt;%</span></span>
+<span id="cb43-22"><a href="#cb43-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(data_env<span class="sc">$</span>clinical_data <span class="sc">%&gt;%</span></span>
+<span id="cb43-23"><a href="#cb43-23" aria-hidden="true" tabindex="-1"></a>                <span class="fu">distinct</span>(event_id, participant_id, event_date)) <span class="sc">%&gt;%</span></span>
+<span id="cb43-24"><a href="#cb43-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_date <span class="sc">&gt;=</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-25"><a href="#cb43-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_date <span class="sc">&lt;=</span> event_date_cutoff) <span class="sc">%&gt;%</span></span>
+<span id="cb43-26"><a href="#cb43-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(participant_id, name) <span class="sc">%&gt;%</span></span>
+<span id="cb43-27"><a href="#cb43-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(name <span class="sc">!=</span> <span class="st">"Betacoronavirus.nasal"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-28"><a href="#cb43-28" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">value =</span> <span class="fu">max</span>(value, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb43-29"><a href="#cb43-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(value <span class="sc">!=</span> <span class="sc">-</span><span class="cn">Inf</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-30"><a href="#cb43-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb43-31"><a href="#cb43-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> name, <span class="at">values_from =</span> value) <span class="sc">%&gt;%</span></span>
+<span id="cb43-32"><a href="#cb43-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb43-33"><a href="#cb43-33" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="sc">-</span><span class="fu">ends_with</span>(<span class="st">".ea"</span>), <span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"Betacorona"</span>))</span>
+<span id="cb43-34"><a href="#cb43-34" aria-hidden="true" tabindex="-1"></a>  <span class="do">## Filter for participants that we have both a nasal and pbmc sample for</span></span>
+<span id="cb43-35"><a href="#cb43-35" aria-hidden="true" tabindex="-1"></a>  max_part <span class="ot">&lt;-</span> max_part[<span class="fu">complete.cases</span>(max_part),]</span>
+<span id="cb43-36"><a href="#cb43-36" aria-hidden="true" tabindex="-1"></a>  ctl_part <span class="ot">&lt;-</span> max_part<span class="sc">$</span>participant_id[<span class="fu">rowSums</span>(max_part[,<span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>)]) <span class="sc">==</span> <span class="dv">0</span>]</span>
+<span id="cb43-37"><a href="#cb43-37" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb43-38"><a href="#cb43-38" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> counts[,<span class="fu">colnames</span>(counts) <span class="sc">%in%</span> <span class="fu">rownames</span>(rowfeatures)[rowfeatures<span class="sc">$</span>gene_biotype <span class="sc">==</span> <span class="st">"protein_coding"</span>]]</span>
+<span id="cb43-39"><a href="#cb43-39" aria-hidden="true" tabindex="-1"></a><span class="do">## counts &lt;- counts[rownames(counts) %in% clinical_data$sample_id[clinical_data$event_type == event],]</span></span>
+<span id="cb43-40"><a href="#cb43-40" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> counts[<span class="fu">rownames</span>(counts) <span class="sc">%in%</span> clinical_data<span class="sc">$</span>sample_id[<span class="sc">!</span><span class="fu">is.na</span>(clinical_data<span class="sc">$</span>trajectory_group)],]</span>
+<span id="cb43-41"><a href="#cb43-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-42"><a href="#cb43-42" aria-hidden="true" tabindex="-1"></a>event_ids_conv <span class="ot">&lt;-</span> clinical_data<span class="sc">$</span>event_id[<span class="fu">match</span>(<span class="fu">rownames</span>(counts), clinical_data<span class="sc">$</span>sample_id)]</span>
+<span id="cb43-43"><a href="#cb43-43" aria-hidden="true" tabindex="-1"></a>dups <span class="ot">&lt;-</span> event_ids_conv[<span class="fu">duplicated</span>(event_ids_conv)]</span>
+<span id="cb43-44"><a href="#cb43-44" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> counts[<span class="sc">!</span><span class="fu">rownames</span>(counts) <span class="sc">%in%</span> clinical_data<span class="sc">$</span>sample_id[clinical_data<span class="sc">$</span>event_id <span class="sc">%in%</span> dups],]</span>
+<span id="cb43-45"><a href="#cb43-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-46"><a href="#cb43-46" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(counts) <span class="ot">&lt;-</span> clinical_data<span class="sc">$</span>event_id[<span class="fu">match</span>(<span class="fu">rownames</span>(counts), clinical_data<span class="sc">$</span>sample_id)]</span>
+<span id="cb43-47"><a href="#cb43-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-48"><a href="#cb43-48" aria-hidden="true" tabindex="-1"></a><span class="co"># Keep genes with at least 10 counts in 20% of samples</span></span>
+<span id="cb43-49"><a href="#cb43-49" aria-hidden="true" tabindex="-1"></a>keep <span class="ot">&lt;-</span> <span class="fu">colSums</span>(counts<span class="sc">&gt;=</span><span class="dv">10</span>) <span class="sc">&gt;=</span> <span class="fl">0.2</span><span class="sc">*</span><span class="fu">nrow</span>(counts)</span>
+<span id="cb43-50"><a href="#cb43-50" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> counts[,keep]</span>
+<span id="cb43-51"><a href="#cb43-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-52"><a href="#cb43-52" aria-hidden="true" tabindex="-1"></a>clin.sample.event.individ<span class="fl">.1</span> <span class="ot">&lt;-</span> clinical_data <span class="sc">%&gt;%</span></span>
+<span id="cb43-53"><a href="#cb43-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(event_id <span class="sc">%in%</span> <span class="fu">rownames</span>(counts)) <span class="sc">%&gt;%</span></span>
+<span id="cb43-54"><a href="#cb43-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(event_id, discretized_admit_age_quantile, sex, trajectory_group,</span>
+<span id="cb43-55"><a href="#cb43-55" aria-hidden="true" tabindex="-1"></a>           event_type, respiratory_status) <span class="sc">%&gt;%</span></span>
+<span id="cb43-56"><a href="#cb43-56" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">trajectory_group =</span> <span class="fu">ordered</span>(<span class="fu">as.factor</span>(trajectory_group)),</span>
+<span id="cb43-57"><a href="#cb43-57" aria-hidden="true" tabindex="-1"></a>         <span class="at">respiratory_status =</span> <span class="fu">ordered</span>(<span class="fu">as.factor</span>(respiratory_status))) <span class="sc">%&gt;%</span></span>
+<span id="cb43-58"><a href="#cb43-58" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(comb_data <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(event_id, Betacoronavirus.nasal) <span class="sc">%&gt;%</span></span>
+<span id="cb43-59"><a href="#cb43-59" aria-hidden="true" tabindex="-1"></a>              <span class="fu">mutate</span>(<span class="at">Betacoronavirus.nasal =</span> <span class="fu">log2</span>(Betacoronavirus.nasal<span class="sc">+</span><span class="dv">1</span>)))</span>
+<span id="cb43-60"><a href="#cb43-60" aria-hidden="true" tabindex="-1"></a>clin.sample.event.individ<span class="fl">.1</span> <span class="ot">&lt;-</span> clin.sample.event.individ<span class="fl">.1</span>[<span class="fu">match</span>(<span class="fu">rownames</span>(counts),clin.sample.event.individ<span class="fl">.1</span><span class="sc">$</span>event_id),]</span>
+<span id="cb43-61"><a href="#cb43-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-62"><a href="#cb43-62" aria-hidden="true" tabindex="-1"></a><span class="do">## Filter for samples that have complete information</span></span>
+<span id="cb43-63"><a href="#cb43-63" aria-hidden="true" tabindex="-1"></a>clin.sample.event.individ<span class="fl">.1</span> <span class="ot">&lt;-</span> clin.sample.event.individ<span class="fl">.1</span>[<span class="fu">complete.cases</span>(clin.sample.event.individ<span class="fl">.1</span>),]</span>
+<span id="cb43-64"><a href="#cb43-64" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> counts[<span class="fu">rownames</span>(counts) <span class="sc">%in%</span> clin.sample.event.individ<span class="fl">.1</span><span class="sc">$</span>event_id,]</span>
+<span id="cb43-65"><a href="#cb43-65" aria-hidden="true" tabindex="-1"></a>clin.sample.event.individ<span class="fl">.1</span> <span class="ot">&lt;-</span> clin.sample.event.individ<span class="fl">.1</span>[clin.sample.event.individ<span class="fl">.1</span><span class="sc">$</span>event_id <span class="sc">%in%</span> <span class="fu">rownames</span>(counts), ]</span>
+<span id="cb43-66"><a href="#cb43-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-67"><a href="#cb43-67" aria-hidden="true" tabindex="-1"></a><span class="do">## Convert detection of the virus to yes or no</span></span>
+<span id="cb43-68"><a href="#cb43-68" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(binary){</span>
+<span id="cb43-69"><a href="#cb43-69" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(knockin){</span>
+<span id="cb43-70"><a href="#cb43-70" aria-hidden="true" tabindex="-1"></a>    virus_pos <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb43-71"><a href="#cb43-71" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>(event_id, .data[[virus]]) <span class="sc">%&gt;%</span></span>
+<span id="cb43-72"><a href="#cb43-72" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">virus_now =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(.data[[virus]]) <span class="sc">|</span> .data[[virus]] <span class="sc">==</span><span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb43-73"><a href="#cb43-73" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(event_id, event_date, participant_id)) <span class="sc">%&gt;%</span></span>
+<span id="cb43-74"><a href="#cb43-74" aria-hidden="true" tabindex="-1"></a>      <span class="fu">left_join</span>(earliest_part <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(participant_id, name, event_date) <span class="sc">%&gt;%</span></span>
+<span id="cb43-75"><a href="#cb43-75" aria-hidden="true" tabindex="-1"></a>                  <span class="fu">filter</span>(name <span class="sc">==</span> virus) <span class="sc">%&gt;%</span></span>
+<span id="cb43-76"><a href="#cb43-76" aria-hidden="true" tabindex="-1"></a>                  dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"min_event_date"</span><span class="ot">=</span><span class="dv">3</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb43-77"><a href="#cb43-77" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">group =</span> <span class="fu">ifelse</span>(event_date <span class="sc">&gt;=</span> min_event_date, <span class="dv">1</span>,<span class="cn">NA</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb43-78"><a href="#cb43-78" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">group =</span> <span class="fu">ifelse</span>(participant_id <span class="sc">%in%</span> ctl_part, <span class="dv">0</span>, group))</span>
+<span id="cb43-79"><a href="#cb43-79" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb43-80"><a href="#cb43-80" aria-hidden="true" tabindex="-1"></a>    virus_pos <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb43-81"><a href="#cb43-81" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>(event_id, .data[[virus]]) <span class="sc">%&gt;%</span></span>
+<span id="cb43-82"><a href="#cb43-82" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">group =</span> <span class="fu">ifelse</span>( .data[[virus]] <span class="sc">==</span><span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>)) <span class="sc">%&gt;%</span> <span class="do">##is.na(.data[[virus]]) |</span></span>
+<span id="cb43-83"><a href="#cb43-83" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(clinical_data <span class="sc">%&gt;%</span> <span class="fu">distinct</span>(event_id, participant_id)) <span class="sc">%&gt;%</span></span>
+<span id="cb43-84"><a href="#cb43-84" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(group <span class="sc">==</span> <span class="dv">1</span> <span class="sc">|</span> participant_id <span class="sc">%in%</span> ctl_part)</span>
+<span id="cb43-85"><a href="#cb43-85" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb43-86"><a href="#cb43-86" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb43-87"><a href="#cb43-87" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb43-88"><a href="#cb43-88" aria-hidden="true" tabindex="-1"></a>  virus_pos <span class="ot">&lt;-</span> comb_data <span class="sc">%&gt;%</span></span>
+<span id="cb43-89"><a href="#cb43-89" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>(event_id, .data[[virus]]) <span class="sc">%&gt;%</span></span>
+<span id="cb43-90"><a href="#cb43-90" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">group =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(.data[[virus]]) <span class="sc">|</span> .data[[virus]] <span class="sc">==</span><span class="dv">0</span>, <span class="dv">0</span>, .data[[virus]]))<span class="sc">%&gt;%</span></span>
+<span id="cb43-91"><a href="#cb43-91" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(group <span class="sc">==</span> <span class="dv">1</span> <span class="sc">|</span> <span class="fu">grepl</span>(<span class="fu">paste</span>(ctl_part, <span class="at">collapse =</span> <span class="st">"|"</span>), event_id))</span>
+<span id="cb43-92"><a href="#cb43-92" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb43-93"><a href="#cb43-93" aria-hidden="true" tabindex="-1"></a><span class="do">## New lines</span></span>
+<span id="cb43-94"><a href="#cb43-94" aria-hidden="true" tabindex="-1"></a>tmp <span class="ot">&lt;-</span> clin.sample.event.individ<span class="fl">.1</span> <span class="sc">%&gt;%</span> <span class="fu">inner_join</span>(virus_pos) <span class="sc">%&gt;%</span></span>
+<span id="cb43-95"><a href="#cb43-95" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(group))</span>
+<span id="cb43-96"><a href="#cb43-96" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> counts[<span class="fu">rownames</span>(counts) <span class="sc">%in%</span> tmp<span class="sc">$</span>event_id,]</span>
+<span id="cb43-97"><a href="#cb43-97" aria-hidden="true" tabindex="-1"></a>tmp <span class="ot">&lt;-</span> tmp[tmp<span class="sc">$</span>event_id <span class="sc">%in%</span> <span class="fu">rownames</span>(counts), ]</span>
+<span id="cb43-98"><a href="#cb43-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-99"><a href="#cb43-99" aria-hidden="true" tabindex="-1"></a>metaa <span class="ot">&lt;-</span> tmp <span class="sc">%&gt;%</span> <span class="fu">left_join</span>(virus_pos)</span>
+<span id="cb43-100"><a href="#cb43-100" aria-hidden="true" tabindex="-1"></a>design <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(<span class="sc">~</span> discretized_admit_age_quantile <span class="sc">+</span> sex <span class="sc">+</span> event_type <span class="sc">+</span> trajectory_group <span class="sc">+</span> Betacoronavirus.nasal <span class="sc">+</span> group, <span class="do">## Can consider adding TG back in</span></span>
+<span id="cb43-101"><a href="#cb43-101" aria-hidden="true" tabindex="-1"></a>                       <span class="at">data=</span>metaa) </span>
+<span id="cb43-102"><a href="#cb43-102" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-103"><a href="#cb43-103" aria-hidden="true" tabindex="-1"></a><span class="co"># vobj_tmp = voom(t(counts), design, plot=FALSE)</span></span>
+<span id="cb43-104"><a href="#cb43-104" aria-hidden="true" tabindex="-1"></a><span class="co"># dupcor &lt;- duplicateCorrelation(vobj_tmp,design,block=metaa$participant_id)</span></span>
+<span id="cb43-105"><a href="#cb43-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-106"><a href="#cb43-106" aria-hidden="true" tabindex="-1"></a><span class="co"># run voom considering the duplicateCorrelation results</span></span>
+<span id="cb43-107"><a href="#cb43-107" aria-hidden="true" tabindex="-1"></a><span class="co"># in order to compute more accurate precision weights</span></span>
+<span id="cb43-108"><a href="#cb43-108" aria-hidden="true" tabindex="-1"></a><span class="co"># Otherwise, use the results from the first voom run</span></span>
+<span id="cb43-109"><a href="#cb43-109" aria-hidden="true" tabindex="-1"></a>vwts <span class="ot">&lt;-</span> <span class="fu">voom</span>(<span class="fu">t</span>(counts), </span>
+<span id="cb43-110"><a href="#cb43-110" aria-hidden="true" tabindex="-1"></a>             <span class="at">design =</span> design,</span>
+<span id="cb43-111"><a href="#cb43-111" aria-hidden="true" tabindex="-1"></a>             <span class="at">normalize.method =</span> <span class="st">"quantile"</span>,</span>
+<span id="cb43-112"><a href="#cb43-112" aria-hidden="true" tabindex="-1"></a>             <span class="at">plot =</span> T)</span>
+<span id="cb43-113"><a href="#cb43-113" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-114"><a href="#cb43-114" aria-hidden="true" tabindex="-1"></a>vfit <span class="ot">&lt;-</span> <span class="fu">lmFit</span>(vwts)</span>
+<span id="cb43-115"><a href="#cb43-115" aria-hidden="true" tabindex="-1"></a>vfit <span class="ot">&lt;-</span> <span class="fu">eBayes</span>(vfit)</span>
+<span id="cb43-116"><a href="#cb43-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-117"><a href="#cb43-117" aria-hidden="true" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">topTable</span>(vfit, <span class="at">coef =</span> <span class="st">"group"</span>,</span>
+<span id="cb43-118"><a href="#cb43-118" aria-hidden="true" tabindex="-1"></a>                <span class="at">sort.by =</span> <span class="st">"none"</span>, <span class="at">number =</span> <span class="cn">Inf</span>,</span>
+<span id="cb43-119"><a href="#cb43-119" aria-hidden="true" tabindex="-1"></a>                <span class="at">adjust.method =</span> <span class="st">"BH"</span>, <span class="at">p.value =</span> <span class="dv">1</span>)</span>
+<span id="cb43-120"><a href="#cb43-120" aria-hidden="true" tabindex="-1"></a><span class="fu">return</span>(res)</span>
+<span id="cb43-121"><a href="#cb43-121" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="calculate-pbmc-and-nasal-degs-and-enriched-pathways" class="level2">
+<h2 class="anchored" data-anchor-id="calculate-pbmc-and-nasal-degs-and-enriched-pathways">Calculate PBMC and Nasal DEGs and Enriched Pathways</h2>
+<p>Pathway enrichment using hypergeometric enrichment on DEGs either Up or Down regulated</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="do">####################### Viral Load Dependent Pathway</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>pbmc_enrichment_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>nasal_enrichment_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>pbmc_diff <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>nasal_diff <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(active_vir <span class="cf">in</span> <span class="fu">colnames</span>(comb_data[<span class="dv">2</span><span class="sc">:</span><span class="dv">8</span>])){</span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>    knock_in <span class="ot">=</span> <span class="cn">FALSE</span></span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>      <span class="do">## PBMC Transcriptomic</span></span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>      res <span class="ot">&lt;-</span> <span class="fu">diff_exp_time_indep</span>(<span class="at">counts =</span> data_env<span class="sc">$</span>pbmc_transcriptomics_counts,</span>
+<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a>                      data_env<span class="sc">$</span>pbmc_transcriptomics_rowfeature,</span>
+<span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a>                    data_env<span class="sc">$</span>clinical_data, active_vir, <span class="at">comb_data =</span> comb_data,</span>
+<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a>                    <span class="at">knockin =</span> knock_in,</span>
+<span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a>                    <span class="at">binary =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb44-14"><a href="#cb44-14" aria-hidden="true" tabindex="-1"></a>      pbmc_diff <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(pbmc_diff, res <span class="sc">%&gt;%</span> <span class="fu">rownames_to_column</span>(<span class="st">"gene_name"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb44-15"><a href="#cb44-15" aria-hidden="true" tabindex="-1"></a>                                      <span class="fu">mutate</span>(<span class="at">virus =</span> active_vir,</span>
+<span id="cb44-16"><a href="#cb44-16" aria-hidden="true" tabindex="-1"></a>                                          <span class="at">knock_in =</span> knock_in))</span>
+<span id="cb44-17"><a href="#cb44-17" aria-hidden="true" tabindex="-1"></a>      <span class="fu">plot</span>(res <span class="sc">%&gt;%</span></span>
+<span id="cb44-18"><a href="#cb44-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rownames_to_column</span>(<span class="st">"ensembl_gene_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb44-19"><a href="#cb44-19" aria-hidden="true" tabindex="-1"></a>        <span class="fu">left_join</span>(data_env<span class="sc">$</span>pbmc_transcriptomics_rowfeature<span class="sc">%&gt;%</span></span>
+<span id="cb44-20"><a href="#cb44-20" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rownames_to_column</span>(<span class="st">"ensembl_gene_id"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb44-21"><a href="#cb44-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">gene_name =</span> <span class="fu">ifelse</span>(adj.P.Val <span class="sc">&gt;</span> <span class="fl">0.05</span>, <span class="cn">NA</span>, gene_name)) <span class="sc">%&gt;%</span></span>
+<span id="cb44-22"><a href="#cb44-22" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">diffexpressed =</span> <span class="fu">ifelse</span>(adj.P.Val <span class="sc">&lt;=</span> <span class="fl">0.05</span>, <span class="fu">ifelse</span>(logFC <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="st">"UP"</span>, <span class="st">"DOWN"</span>), <span class="st">"Not Diff"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb44-23"><a href="#cb44-23" aria-hidden="true" tabindex="-1"></a>               <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>logFC, <span class="at">y=</span><span class="sc">-</span><span class="fu">log10</span>(adj.P.Val), <span class="at">col=</span>diffexpressed, <span class="at">label=</span>gene_name)) <span class="sc">+</span></span>
+<span id="cb44-24"><a href="#cb44-24" aria-hidden="true" tabindex="-1"></a>              <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb44-25"><a href="#cb44-25" aria-hidden="true" tabindex="-1"></a>              <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb44-26"><a href="#cb44-26" aria-hidden="true" tabindex="-1"></a>              <span class="fu">geom_text_repel</span>() <span class="sc">+</span></span>
+<span id="cb44-27"><a href="#cb44-27" aria-hidden="true" tabindex="-1"></a>              <span class="fu">scale_color_manual</span>(<span class="at">values=</span><span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"black"</span>, <span class="st">"red"</span>)) <span class="sc">+</span></span>
+<span id="cb44-28"><a href="#cb44-28" aria-hidden="true" tabindex="-1"></a>              <span class="fu">geom_hline</span>(<span class="at">yintercept=</span><span class="sc">-</span><span class="fu">log10</span>(<span class="fl">0.05</span>), <span class="at">col=</span><span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb44-29"><a href="#cb44-29" aria-hidden="true" tabindex="-1"></a>        <span class="fu">ggtitle</span>(<span class="fu">paste0</span>(<span class="st">"PBMC_"</span>, active_vir, <span class="st">"_"</span>, knock_in)))</span>
+<span id="cb44-30"><a href="#cb44-30" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb44-31"><a href="#cb44-31" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(<span class="fu">sum</span>(res<span class="sc">$</span>adj.P.Val <span class="sc">&lt;=</span> <span class="fl">0.05</span>) <span class="sc">&lt;</span> <span class="dv">5</span>){} <span class="cf">else</span>{</span>
+<span id="cb44-32"><a href="#cb44-32" aria-hidden="true" tabindex="-1"></a>        enrichment <span class="ot">&lt;-</span> <span class="fu">enrichment_df</span>(res, mart_retrieved, <span class="at">rowfeatures =</span> data_env<span class="sc">$</span>pbmc_transcriptomics_rowfeature,</span>
+<span id="cb44-33"><a href="#cb44-33" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">KEGG =</span> keggdb<span class="sc">$</span>pbmc,<span class="at">FC_threshold =</span> <span class="fl">0.25</span>)</span>
+<span id="cb44-34"><a href="#cb44-34" aria-hidden="true" tabindex="-1"></a>        pbmc_enrichment_df <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(pbmc_enrichment_df, enrichment <span class="sc">%&gt;%</span></span>
+<span id="cb44-35"><a href="#cb44-35" aria-hidden="true" tabindex="-1"></a>                                                  <span class="fu">mutate</span>(<span class="at">virus =</span> active_vir,</span>
+<span id="cb44-36"><a href="#cb44-36" aria-hidden="true" tabindex="-1"></a>                                                              <span class="at">knock_in =</span> knock_in))</span>
+<span id="cb44-37"><a href="#cb44-37" aria-hidden="true" tabindex="-1"></a>        <span class="fu">plot</span>(<span class="fu">enrichment_plot</span>(enrichment) <span class="sc">+</span> <span class="fu">ggtitle</span>(<span class="fu">paste0</span>(<span class="st">"PBMC "</span>, active_vir)))</span>
+<span id="cb44-38"><a href="#cb44-38" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb44-39"><a href="#cb44-39" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb44-40"><a href="#cb44-40" aria-hidden="true" tabindex="-1"></a>      <span class="do">## Nasal Transcriptomic</span></span>
+<span id="cb44-41"><a href="#cb44-41" aria-hidden="true" tabindex="-1"></a>      res <span class="ot">&lt;-</span> <span class="fu">diff_exp_time_indep</span>(<span class="at">counts =</span> data_env<span class="sc">$</span>nasal_transcriptomics_counts,</span>
+<span id="cb44-42"><a href="#cb44-42" aria-hidden="true" tabindex="-1"></a>                      data_env<span class="sc">$</span>nasal_transcriptomics_rowfeature,</span>
+<span id="cb44-43"><a href="#cb44-43" aria-hidden="true" tabindex="-1"></a>                    data_env<span class="sc">$</span>clinical_data, active_vir, <span class="at">comb_data =</span> comb_data,</span>
+<span id="cb44-44"><a href="#cb44-44" aria-hidden="true" tabindex="-1"></a>                    <span class="at">knockin =</span> knock_in,</span>
+<span id="cb44-45"><a href="#cb44-45" aria-hidden="true" tabindex="-1"></a>                    <span class="at">binary =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb44-46"><a href="#cb44-46" aria-hidden="true" tabindex="-1"></a>      nasal_diff <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(nasal_diff, res <span class="sc">%&gt;%</span> <span class="fu">rownames_to_column</span>(<span class="st">"gene_name"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb44-47"><a href="#cb44-47" aria-hidden="true" tabindex="-1"></a>                                       <span class="fu">mutate</span>(<span class="at">virus =</span> active_vir,</span>
+<span id="cb44-48"><a href="#cb44-48" aria-hidden="true" tabindex="-1"></a>                                              <span class="at">knock_in =</span> knock_in))</span>
+<span id="cb44-49"><a href="#cb44-49" aria-hidden="true" tabindex="-1"></a>      <span class="fu">plot</span>(res <span class="sc">%&gt;%</span></span>
+<span id="cb44-50"><a href="#cb44-50" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rownames_to_column</span>(<span class="st">"ensembl_gene_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb44-51"><a href="#cb44-51" aria-hidden="true" tabindex="-1"></a>        <span class="fu">left_join</span>(data_env<span class="sc">$</span>pbmc_transcriptomics_rowfeature<span class="sc">%&gt;%</span></span>
+<span id="cb44-52"><a href="#cb44-52" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rownames_to_column</span>(<span class="st">"ensembl_gene_id"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb44-53"><a href="#cb44-53" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">gene_name =</span> <span class="fu">ifelse</span>(adj.P.Val <span class="sc">&gt;</span> <span class="fl">0.05</span>, <span class="cn">NA</span>, gene_name)) <span class="sc">%&gt;%</span></span>
+<span id="cb44-54"><a href="#cb44-54" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">diffexpressed =</span> <span class="fu">ifelse</span>(adj.P.Val <span class="sc">&lt;=</span> <span class="fl">0.05</span>, <span class="fu">ifelse</span>(logFC <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="st">"UP"</span>, <span class="st">"DOWN"</span>), <span class="st">"Not Diff"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb44-55"><a href="#cb44-55" aria-hidden="true" tabindex="-1"></a>               <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>logFC, <span class="at">y=</span><span class="sc">-</span><span class="fu">log10</span>(adj.P.Val), <span class="at">col=</span>diffexpressed, <span class="at">label=</span>gene_name)) <span class="sc">+</span></span>
+<span id="cb44-56"><a href="#cb44-56" aria-hidden="true" tabindex="-1"></a>              <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb44-57"><a href="#cb44-57" aria-hidden="true" tabindex="-1"></a>              <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb44-58"><a href="#cb44-58" aria-hidden="true" tabindex="-1"></a>              <span class="fu">geom_text_repel</span>() <span class="sc">+</span></span>
+<span id="cb44-59"><a href="#cb44-59" aria-hidden="true" tabindex="-1"></a>              <span class="fu">scale_color_manual</span>(<span class="at">values=</span><span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"black"</span>, <span class="st">"red"</span>)) <span class="sc">+</span></span>
+<span id="cb44-60"><a href="#cb44-60" aria-hidden="true" tabindex="-1"></a>              <span class="fu">geom_hline</span>(<span class="at">yintercept=</span><span class="sc">-</span><span class="fu">log10</span>(<span class="fl">0.05</span>), <span class="at">col=</span><span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb44-61"><a href="#cb44-61" aria-hidden="true" tabindex="-1"></a>        <span class="fu">ggtitle</span>(<span class="fu">paste0</span>(<span class="st">"Nasal_"</span>, active_vir, <span class="st">"_"</span>,knock_in)))</span>
+<span id="cb44-62"><a href="#cb44-62" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb44-63"><a href="#cb44-63" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(<span class="fu">sum</span>(res<span class="sc">$</span>adj.P.Val <span class="sc">&lt;=</span> <span class="fl">0.05</span>) <span class="sc">&lt;</span> <span class="dv">5</span>){} <span class="cf">else</span>{</span>
+<span id="cb44-64"><a href="#cb44-64" aria-hidden="true" tabindex="-1"></a>        enrichment <span class="ot">&lt;-</span> <span class="fu">enrichment_df</span>(res, mart_retrieved, <span class="at">rowfeatures =</span> data_env<span class="sc">$</span>nasal_transcriptomics_rowfeature,</span>
+<span id="cb44-65"><a href="#cb44-65" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">KEGG =</span> keggdb<span class="sc">$</span>nt,<span class="at">FC_threshold =</span> <span class="fl">0.25</span>)</span>
+<span id="cb44-66"><a href="#cb44-66" aria-hidden="true" tabindex="-1"></a>        nasal_enrichment_df <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(nasal_enrichment_df, enrichment <span class="sc">%&gt;%</span></span>
+<span id="cb44-67"><a href="#cb44-67" aria-hidden="true" tabindex="-1"></a>                                                  <span class="fu">mutate</span>(<span class="at">virus =</span> active_vir,</span>
+<span id="cb44-68"><a href="#cb44-68" aria-hidden="true" tabindex="-1"></a>                                                              <span class="at">knock_in =</span> knock_in))</span>
+<span id="cb44-69"><a href="#cb44-69" aria-hidden="true" tabindex="-1"></a>      <span class="fu">plot</span>(<span class="fu">enrichment_plot</span>(enrichment) <span class="sc">+</span> <span class="fu">ggtitle</span>(<span class="fu">paste0</span>(<span class="st">"Nasal "</span>,active_vir)))</span>
+<span id="cb44-70"><a href="#cb44-70" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb44-71"><a href="#cb44-71" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb44-72"><a href="#cb44-72" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(pbmc_diff, <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_5_part1.csv"</span>)) <span class="do">## pbmc_DEGs.csv</span></span>
+<span id="cb44-73"><a href="#cb44-73" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(nasal_diff, <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_5_part2.csv"</span>)) <span class="do">## nasal_DEGs.csv</span></span>
+<span id="cb44-74"><a href="#cb44-74" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(pbmc_enrichment_df, <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_5_part3.csv"</span>)) <span class="do">## pbmc_enrichment.csv</span></span>
+<span id="cb44-75"><a href="#cb44-75" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(nasal_enrichment_df, <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_5_part4.csv"</span>)) <span class="do">## nasal_enrichment.csv</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="figure-6c-convalescent-signatures" class="level2">
+<h2 class="anchored" data-anchor-id="figure-6c-convalescent-signatures">Figure 6C: Convalescent Signatures</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="do">####################### Viral Load Dependent Pathway</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>pbmc_enrichment_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>nasal_enrichment_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>pbmc_diff <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>nasal_diff <span class="ot">&lt;-</span> <span class="fu">data.frame</span>()</span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(active_vir <span class="cf">in</span> <span class="fu">colnames</span>(comb_data)[<span class="fu">c</span>(<span class="dv">4</span>)]){</span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a> knock_in <span class="ot">=</span> <span class="cn">FALSE</span></span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>      <span class="do">## PBMC Transcriptomic</span></span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a>      res <span class="ot">&lt;-</span> <span class="fu">diff_exp_time_indep</span>(<span class="at">counts =</span> data_env<span class="sc">$</span>pbmc_transcriptomics_counts,</span>
+<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a>                      data_env<span class="sc">$</span>pbmc_transcriptomics_rowfeature,<span class="at">lower_date_cutoff =</span> <span class="dv">70</span>, <span class="at">event_date_cutoff =</span> <span class="dv">999</span>,</span>
+<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a>                    data_env<span class="sc">$</span>clinical_data, active_vir, <span class="at">comb_data =</span> comb_data,</span>
+<span id="cb45-12"><a href="#cb45-12" aria-hidden="true" tabindex="-1"></a>                    <span class="at">knockin =</span> knock_in,</span>
+<span id="cb45-13"><a href="#cb45-13" aria-hidden="true" tabindex="-1"></a>                    <span class="at">binary =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb45-14"><a href="#cb45-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-15"><a href="#cb45-15" aria-hidden="true" tabindex="-1"></a>      pbmc_diff <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(pbmc_diff, res <span class="sc">%&gt;%</span> <span class="fu">rownames_to_column</span>(<span class="st">"gene_name"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb45-16"><a href="#cb45-16" aria-hidden="true" tabindex="-1"></a>                                      <span class="fu">mutate</span>(<span class="at">virus =</span> active_vir,</span>
+<span id="cb45-17"><a href="#cb45-17" aria-hidden="true" tabindex="-1"></a>                                          <span class="at">knock_in =</span> knock_in))</span>
+<span id="cb45-18"><a href="#cb45-18" aria-hidden="true" tabindex="-1"></a>      <span class="fu">plot</span>(res <span class="sc">%&gt;%</span></span>
+<span id="cb45-19"><a href="#cb45-19" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rownames_to_column</span>(<span class="st">"ensembl_gene_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb45-20"><a href="#cb45-20" aria-hidden="true" tabindex="-1"></a>        <span class="fu">left_join</span>(data_env<span class="sc">$</span>pbmc_transcriptomics_rowfeature<span class="sc">%&gt;%</span></span>
+<span id="cb45-21"><a href="#cb45-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rownames_to_column</span>(<span class="st">"ensembl_gene_id"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb45-22"><a href="#cb45-22" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">gene_name =</span> <span class="fu">ifelse</span>(adj.P.Val <span class="sc">&gt;</span> <span class="fl">0.05</span>, <span class="cn">NA</span>, gene_name)) <span class="sc">%&gt;%</span></span>
+<span id="cb45-23"><a href="#cb45-23" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">diffexpressed =</span> <span class="fu">ifelse</span>(adj.P.Val <span class="sc">&lt;=</span> <span class="fl">0.05</span>, <span class="fu">ifelse</span>(logFC <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="st">"UP"</span>, <span class="st">"DOWN"</span>), <span class="st">"Not Diff"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb45-24"><a href="#cb45-24" aria-hidden="true" tabindex="-1"></a>               <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>logFC, <span class="at">y=</span><span class="sc">-</span><span class="fu">log10</span>(adj.P.Val), <span class="at">col=</span>diffexpressed, <span class="at">label=</span>gene_name)) <span class="sc">+</span></span>
+<span id="cb45-25"><a href="#cb45-25" aria-hidden="true" tabindex="-1"></a>              <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb45-26"><a href="#cb45-26" aria-hidden="true" tabindex="-1"></a>              <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb45-27"><a href="#cb45-27" aria-hidden="true" tabindex="-1"></a>              <span class="fu">geom_text_repel</span>() <span class="sc">+</span></span>
+<span id="cb45-28"><a href="#cb45-28" aria-hidden="true" tabindex="-1"></a>              <span class="fu">scale_color_manual</span>(<span class="at">values=</span><span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"black"</span>, <span class="st">"red"</span>)) <span class="sc">+</span></span>
+<span id="cb45-29"><a href="#cb45-29" aria-hidden="true" tabindex="-1"></a>              <span class="fu">geom_hline</span>(<span class="at">yintercept=</span><span class="sc">-</span><span class="fu">log10</span>(<span class="fl">0.05</span>), <span class="at">col=</span><span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb45-30"><a href="#cb45-30" aria-hidden="true" tabindex="-1"></a>        <span class="fu">ggtitle</span>(<span class="fu">paste0</span>(<span class="st">"PBMC_"</span>, active_vir, <span class="st">"_"</span>, knock_in)))</span>
+<span id="cb45-31"><a href="#cb45-31" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb45-32"><a href="#cb45-32" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(<span class="fu">sum</span>(res<span class="sc">$</span>adj.P.Val <span class="sc">&lt;=</span> <span class="fl">0.05</span>) <span class="sc">&lt;</span> <span class="dv">5</span>){} <span class="cf">else</span>{</span>
+<span id="cb45-33"><a href="#cb45-33" aria-hidden="true" tabindex="-1"></a>        enrichment <span class="ot">&lt;-</span> <span class="fu">enrichment_df</span>(res, mart_retrieved, <span class="at">rowfeatures =</span> data_env<span class="sc">$</span>pbmc_transcriptomics_rowfeature,</span>
+<span id="cb45-34"><a href="#cb45-34" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">KEGG =</span> keggdb<span class="sc">$</span>pbmc,<span class="at">FC_threshold =</span> <span class="fl">0.25</span>)</span>
+<span id="cb45-35"><a href="#cb45-35" aria-hidden="true" tabindex="-1"></a>        pbmc_enrichment_df <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(pbmc_enrichment_df, enrichment <span class="sc">%&gt;%</span></span>
+<span id="cb45-36"><a href="#cb45-36" aria-hidden="true" tabindex="-1"></a>                                                  <span class="fu">mutate</span>(<span class="at">virus =</span> active_vir,</span>
+<span id="cb45-37"><a href="#cb45-37" aria-hidden="true" tabindex="-1"></a>                                                              <span class="at">knock_in =</span> knock_in))</span>
+<span id="cb45-38"><a href="#cb45-38" aria-hidden="true" tabindex="-1"></a>        <span class="fu">plot</span>(<span class="fu">enrichment_plot</span>(enrichment) <span class="sc">+</span> <span class="fu">ggtitle</span>(<span class="fu">paste0</span>(<span class="st">"PBMC "</span>, active_vir)))</span>
+<span id="cb45-39"><a href="#cb45-39" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb45-40"><a href="#cb45-40" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb45-41"><a href="#cb45-41" aria-hidden="true" tabindex="-1"></a>      <span class="do">## Nasal Transcriptomic</span></span>
+<span id="cb45-42"><a href="#cb45-42" aria-hidden="true" tabindex="-1"></a>      res <span class="ot">&lt;-</span> <span class="fu">diff_exp_time_indep</span>(<span class="at">counts =</span> data_env<span class="sc">$</span>nasal_transcriptomics_counts,</span>
+<span id="cb45-43"><a href="#cb45-43" aria-hidden="true" tabindex="-1"></a>                      data_env<span class="sc">$</span>nasal_transcriptomics_rowfeature,<span class="at">lower_date_cutoff =</span> <span class="dv">70</span>, <span class="at">event_date_cutoff =</span> <span class="dv">999</span>,</span>
+<span id="cb45-44"><a href="#cb45-44" aria-hidden="true" tabindex="-1"></a>                    data_env<span class="sc">$</span>clinical_data, active_vir, <span class="at">comb_data =</span> comb_data,</span>
+<span id="cb45-45"><a href="#cb45-45" aria-hidden="true" tabindex="-1"></a>                    <span class="at">knockin =</span> knock_in,</span>
+<span id="cb45-46"><a href="#cb45-46" aria-hidden="true" tabindex="-1"></a>                    <span class="at">binary =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb45-47"><a href="#cb45-47" aria-hidden="true" tabindex="-1"></a>      nasal_diff <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(nasal_diff, res <span class="sc">%&gt;%</span> <span class="fu">rownames_to_column</span>(<span class="st">"gene_name"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb45-48"><a href="#cb45-48" aria-hidden="true" tabindex="-1"></a>                                       <span class="fu">mutate</span>(<span class="at">virus =</span> active_vir,</span>
+<span id="cb45-49"><a href="#cb45-49" aria-hidden="true" tabindex="-1"></a>                                              <span class="at">knock_in =</span> knock_in))</span>
+<span id="cb45-50"><a href="#cb45-50" aria-hidden="true" tabindex="-1"></a>      <span class="fu">plot</span>(res <span class="sc">%&gt;%</span></span>
+<span id="cb45-51"><a href="#cb45-51" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rownames_to_column</span>(<span class="st">"ensembl_gene_id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb45-52"><a href="#cb45-52" aria-hidden="true" tabindex="-1"></a>        <span class="fu">left_join</span>(data_env<span class="sc">$</span>pbmc_transcriptomics_rowfeature<span class="sc">%&gt;%</span></span>
+<span id="cb45-53"><a href="#cb45-53" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rownames_to_column</span>(<span class="st">"ensembl_gene_id"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb45-54"><a href="#cb45-54" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">gene_name =</span> <span class="fu">ifelse</span>(adj.P.Val <span class="sc">&gt;</span> <span class="fl">0.05</span>, <span class="cn">NA</span>, gene_name)) <span class="sc">%&gt;%</span></span>
+<span id="cb45-55"><a href="#cb45-55" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">diffexpressed =</span> <span class="fu">ifelse</span>(adj.P.Val <span class="sc">&lt;=</span> <span class="fl">0.05</span>, <span class="fu">ifelse</span>(logFC <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="st">"UP"</span>, <span class="st">"DOWN"</span>), <span class="st">"Not Diff"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb45-56"><a href="#cb45-56" aria-hidden="true" tabindex="-1"></a>               <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>logFC, <span class="at">y=</span><span class="sc">-</span><span class="fu">log10</span>(adj.P.Val), <span class="at">col=</span>diffexpressed, <span class="at">label=</span>gene_name)) <span class="sc">+</span></span>
+<span id="cb45-57"><a href="#cb45-57" aria-hidden="true" tabindex="-1"></a>              <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb45-58"><a href="#cb45-58" aria-hidden="true" tabindex="-1"></a>              <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb45-59"><a href="#cb45-59" aria-hidden="true" tabindex="-1"></a>              <span class="fu">geom_text_repel</span>() <span class="sc">+</span></span>
+<span id="cb45-60"><a href="#cb45-60" aria-hidden="true" tabindex="-1"></a>              <span class="fu">scale_color_manual</span>(<span class="at">values=</span><span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"black"</span>, <span class="st">"red"</span>)) <span class="sc">+</span></span>
+<span id="cb45-61"><a href="#cb45-61" aria-hidden="true" tabindex="-1"></a>              <span class="fu">geom_hline</span>(<span class="at">yintercept=</span><span class="sc">-</span><span class="fu">log10</span>(<span class="fl">0.05</span>), <span class="at">col=</span><span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb45-62"><a href="#cb45-62" aria-hidden="true" tabindex="-1"></a>        <span class="fu">ggtitle</span>(<span class="fu">paste0</span>(<span class="st">"Nasal_"</span>, active_vir, <span class="st">"_"</span>, knock_in)))</span>
+<span id="cb45-63"><a href="#cb45-63" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb45-64"><a href="#cb45-64" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(<span class="fu">sum</span>(res<span class="sc">$</span>adj.P.Val <span class="sc">&lt;=</span> <span class="fl">0.05</span>) <span class="sc">&lt;</span> <span class="dv">5</span>){} <span class="cf">else</span>{</span>
+<span id="cb45-65"><a href="#cb45-65" aria-hidden="true" tabindex="-1"></a>        enrichment <span class="ot">&lt;-</span> <span class="fu">enrichment_df</span>(res, mart_retrieved, <span class="at">rowfeatures =</span> data_env<span class="sc">$</span>nasal_transcriptomics_rowfeature,</span>
+<span id="cb45-66"><a href="#cb45-66" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">KEGG =</span> keggdb<span class="sc">$</span>nt,<span class="at">FC_threshold =</span> <span class="fl">0.25</span>)</span>
+<span id="cb45-67"><a href="#cb45-67" aria-hidden="true" tabindex="-1"></a>        nasal_enrichment_df <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(nasal_enrichment_df, enrichment <span class="sc">%&gt;%</span></span>
+<span id="cb45-68"><a href="#cb45-68" aria-hidden="true" tabindex="-1"></a>                                                  <span class="fu">mutate</span>(<span class="at">virus =</span> active_vir,</span>
+<span id="cb45-69"><a href="#cb45-69" aria-hidden="true" tabindex="-1"></a>                                                              <span class="at">knock_in =</span> knock_in))</span>
+<span id="cb45-70"><a href="#cb45-70" aria-hidden="true" tabindex="-1"></a>      <span class="fu">plot</span>(<span class="fu">enrichment_plot</span>(enrichment) <span class="sc">+</span> <span class="fu">ggtitle</span>(<span class="fu">paste0</span>(<span class="st">"Nasal "</span>, active_vir)))</span>
+<span id="cb45-71"><a href="#cb45-71" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb45-72"><a href="#cb45-72" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb45-73"><a href="#cb45-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-74"><a href="#cb45-74" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(pbmc_diff, <span class="fu">paste0</span>(<span class="st">"../output/Supplemental_Data_6_part7.csv"</span>)) <span class="do">## pbmc_DEGs.csv</span></span>
+<span id="cb45-75"><a href="#cb45-75" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(nasal_diff, <span class="fu">paste0</span>(<span class="st">"../output/Supplemental_Data_6_part8.csv"</span>)) <span class="do">## nasal_DEGs.csv</span></span>
+<span id="cb45-76"><a href="#cb45-76" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(pbmc_enrichment_df, <span class="fu">paste0</span>(<span class="st">"../output/Supplemental_Data_6_part9.csv"</span>)) <span class="do">## pbmc_enrichment.csv</span></span>
+<span id="cb45-77"><a href="#cb45-77" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(nasal_enrichment_df, <span class="fu">paste0</span>(<span class="st">"../output/Supplemental_Data_6_part10.csv"</span>)) <span class="do">## nasal_enrichment.csv</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(scales)</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>pbmc_enrichment_df <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="fu">paste0</span>(<span class="st">"../output/Supplemental_Data_6_part9.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>New names:
+Rows: 2285 Columns: 14
+── Column specification
+──────────────────────────────────────────────────────── Delimiter: "," chr
+(9): ...1, ID, Description, GeneRatio, BgRatio, geneID, dir, database, v... dbl
+(4): pvalue, p.adjust, qvalue, Count lgl (1): knock_in
+ℹ Use `spec()` to retrieve the full column specification for this data. ℹ
+Specify the column types or set `show_col_types = FALSE` to quiet this message.
+• `` -&gt; `...1`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>tmp <span class="ot">&lt;-</span> pbmc_enrichment_df <span class="sc">%&gt;%</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(virus) <span class="sc">%&gt;%</span></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a><span class="fu">mutate</span>(<span class="at">coef =</span> <span class="fu">ifelse</span>(dir <span class="sc">==</span> <span class="st">"up"</span>,<span class="dv">1</span>, <span class="sc">-</span><span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log10p =</span> <span class="sc">-</span><span class="fu">log10</span>(p.adjust),</span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">signed_log10p =</span> log10p <span class="sc">*</span> coef) <span class="sc">%&gt;%</span></span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(log10p, <span class="at">n=</span><span class="dv">10</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p.adjust <span class="sc">&lt;=</span> <span class="fl">0.01</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() </span>
+<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a>pbmc.plot.data <span class="ot">&lt;-</span> pbmc_enrichment_df <span class="sc">%&gt;%</span></span>
+<span id="cb48-11"><a href="#cb48-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p.adjust <span class="sc">&lt;=</span> <span class="fl">0.01</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb48-12"><a href="#cb48-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Description <span class="sc">%in%</span> <span class="fu">c</span>(tmp<span class="sc">$</span>Description, <span class="st">'Neutrophil degranulation'</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb48-13"><a href="#cb48-13" aria-hidden="true" tabindex="-1"></a><span class="fu">mutate</span>(<span class="at">coef =</span> <span class="fu">ifelse</span>(dir <span class="sc">==</span> <span class="st">"up"</span>,<span class="dv">1</span>, <span class="sc">-</span><span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb48-14"><a href="#cb48-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log10p =</span> <span class="sc">-</span><span class="fu">log10</span>(p.adjust),</span>
+<span id="cb48-15"><a href="#cb48-15" aria-hidden="true" tabindex="-1"></a>         <span class="at">signed_log10p =</span> log10p <span class="sc">*</span> coef)</span>
+<span id="cb48-16"><a href="#cb48-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-17"><a href="#cb48-17" aria-hidden="true" tabindex="-1"></a>cluster_order <span class="ot">&lt;-</span> pbmc.plot.data <span class="sc">%&gt;%</span></span>
+<span id="cb48-18"><a href="#cb48-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(Description, virus, signed_log10p) <span class="sc">%&gt;%</span></span>
+<span id="cb48-19"><a href="#cb48-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">id_cols =</span> Description, <span class="at">names_from =</span> virus, <span class="at">values_from =</span> signed_log10p) <span class="sc">%&gt;%</span></span>
+<span id="cb48-20"><a href="#cb48-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_to_rownames</span>(<span class="st">"Description"</span>)</span>
+<span id="cb48-21"><a href="#cb48-21" aria-hidden="true" tabindex="-1"></a>cluster_order[<span class="fu">is.na</span>(cluster_order)] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb48-22"><a href="#cb48-22" aria-hidden="true" tabindex="-1"></a>heir_cluster <span class="ot">&lt;-</span> <span class="fu">hclust</span>(vegan<span class="sc">::</span><span class="fu">vegdist</span>(cluster_order,<span class="at">method=</span><span class="st">"jaccard"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in vegan::vegdist(cluster_order, method = "jaccard"): results may be meaningless because data have negative entries
+                 in method "jaccard"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>gg7 <span class="ot">&lt;-</span> </span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>pbmc.plot.data <span class="sc">%&gt;%</span></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">virus =</span> <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">")"</span>, <span class="st">""</span>, virus))) <span class="sc">%&gt;%</span></span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Description =</span> <span class="fu">factor</span>(Description, heir_cluster[[<span class="st">"labels"</span>]])) <span class="sc">%&gt;%</span></span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">virus =</span> <span class="fu">factor</span>(virus, <span class="fu">c</span>(<span class="st">"Anelloviridae.pbmc"</span>, <span class="st">"Simplexvirus.nasal"</span>,</span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>                                 <span class="st">"CMV.pbmc"</span>,</span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>                                 <span class="st">"CMV.nasal"</span>,<span class="st">"EBV.pbmc"</span>,</span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a>                                 <span class="st">"EBV.nasal"</span> ))) <span class="sc">%&gt;%</span></span>
+<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>virus, <span class="at">y=</span> Description)) <span class="sc">+</span></span>
+<span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">color =</span> signed_log10p, <span class="at">fill =</span> signed_log10p),</span>
+<span id="cb50-11"><a href="#cb50-11" aria-hidden="true" tabindex="-1"></a>             <span class="at">shape =</span> <span class="dv">21</span>, <span class="at">size =</span> <span class="dv">3</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb50-12"><a href="#cb50-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_light</span>() <span class="sc">+</span></span>
+<span id="cb50-13"><a href="#cb50-13" aria-hidden="true" tabindex="-1"></a>   <span class="fu">scale_color_distiller</span>(<span class="at">palette =</span> <span class="st">"RdBu"</span>, <span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">10</span>,<span class="dv">10</span>), <span class="at">oob=</span>squish,</span>
+<span id="cb50-14"><a href="#cb50-14" aria-hidden="true" tabindex="-1"></a>                         <span class="at">name =</span> <span class="st">"Signed -log10</span><span class="sc">\n</span><span class="st">p.adjust"</span>)<span class="sc">+</span></span>
+<span id="cb50-15"><a href="#cb50-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_distiller</span>(<span class="at">palette =</span> <span class="st">"RdBu"</span>, <span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">10</span>,<span class="dv">10</span>), <span class="at">oob=</span>squish,</span>
+<span id="cb50-16"><a href="#cb50-16" aria-hidden="true" tabindex="-1"></a>                         <span class="at">name =</span> <span class="st">"Signed -log10</span><span class="sc">\n</span><span class="st">p.adjust"</span>) <span class="sc">+</span></span>
+<span id="cb50-17"><a href="#cb50-17" aria-hidden="true" tabindex="-1"></a>   <span class="fu">ggtitle</span>(<span class="st">"PBMC Transcriptomics Associated with Anelloviridae"</span>) <span class="sc">+</span></span>
+<span id="cb50-18"><a href="#cb50-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">vjust =</span> <span class="dv">1</span>, <span class="at">hjust=</span><span class="dv">1</span>),</span>
+<span id="cb50-19"><a href="#cb50-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb50-20"><a href="#cb50-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb50-21"><a href="#cb50-21" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.border =</span> <span class="fu">element_rect</span>(<span class="at">color =</span> <span class="st">"black"</span>, </span>
+<span id="cb50-22"><a href="#cb50-22" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">fill =</span> <span class="cn">NA</span>, </span>
+<span id="cb50-23"><a href="#cb50-23" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">size =</span> <span class="dv">1</span>))<span class="sc">+</span></span>
+<span id="cb50-24"><a href="#cb50-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">" "</span>) <span class="sc">+</span></span>
+<span id="cb50-25"><a href="#cb50-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_flip</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The `size` argument of `element_rect()` is deprecated as of ggplot2 3.4.0.
+ℹ Please use the `linewidth` argument instead.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>gg7</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure6C_S9F_H_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="480"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(<span class="st">"../output/Figure6C.pdf"</span>), <span class="at">width =</span> <span class="dv">5</span>, <span class="at">height =</span> <span class="fl">4.5</span>)</span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(gg7<span class="sc">$</span>data, <span class="fu">paste0</span>(<span class="st">"../output/source_data_Figure6C.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="figure-s9f-degs-by-compartment" class="level2">
+<h2 class="anchored" data-anchor-id="figure-s9f-degs-by-compartment">Figure S9F: DEGs by Compartment</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>pbmc_diff <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_5_part1.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>New names:
+Rows: 96075 Columns: 10
+── Column specification
+──────────────────────────────────────────────────────── Delimiter: "," chr
+(2): gene_name, virus dbl (7): ...1, logFC, AveExpr, t, P.Value, adj.P.Val, B
+lgl (1): knock_in
+ℹ Use `spec()` to retrieve the full column specification for this data. ℹ
+Specify the column types or set `show_col_types = FALSE` to quiet this message.
+• `` -&gt; `...1`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>nasal_diff <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_5_part2.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>New names:
+Rows: 101703 Columns: 10
+── Column specification
+──────────────────────────────────────────────────────── Delimiter: "," chr
+(2): gene_name, virus dbl (7): ...1, logFC, AveExpr, t, P.Value, adj.P.Val, B
+lgl (1): knock_in
+ℹ Use `spec()` to retrieve the full column specification for this data. ℹ
+Specify the column types or set `show_col_types = FALSE` to quiet this message.
+• `` -&gt; `...1`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="do">## I'm removing the up/down color (by just making them the same color)</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Because 1) the up/down is not important or highlighted</span></span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a><span class="do">## and 2) by putting the values on a sqrt axis, a stacked barplot is </span></span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a><span class="do">## inappropriate (because the heights of the up/down are being inconsistently </span></span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a><span class="do">## transformed). Easiest solution: just remove the color distinguishing</span></span>
+<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a>ggs8 <span class="ot">&lt;-</span> <span class="fu">rbind.data.frame</span>(pbmc_diff <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">omic =</span> <span class="st">"PBMC DEGs"</span>),</span>
+<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>                 nasal_diff <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">omic =</span> <span class="st">"Nasal DEGs"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb58-8"><a href="#cb58-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(virus <span class="sc">!=</span> <span class="st">"Human alphaherpesvirus 2 (HSV2).nasal"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Tissue =</span> <span class="fu">ifelse</span>(<span class="fu">grepl</span>(<span class="st">".nasal"</span>, virus), <span class="st">"Virus in Nasal RNA"</span>, <span class="st">"Virus in PBMC RNA"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb58-10"><a href="#cb58-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">virus =</span> <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">..*"</span>, <span class="st">""</span>, virus)) <span class="sc">%&gt;%</span></span>
+<span id="cb58-11"><a href="#cb58-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">virus =</span> <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">")"</span>, <span class="st">""</span>, virus))) <span class="sc">%&gt;%</span></span>
+<span id="cb58-12"><a href="#cb58-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">virus =</span> <span class="fu">gsub</span>(<span class="st">"Simplexvirus"</span>, <span class="st">"HSV"</span>, virus)) <span class="sc">%&gt;%</span></span>
+<span id="cb58-13"><a href="#cb58-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">direction =</span> <span class="fu">ifelse</span>(logFC <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="st">"Up"</span>, <span class="st">"Down"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb58-14"><a href="#cb58-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(adj.P.Val <span class="sc">&lt;=</span> <span class="fl">0.01</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb58-15"><a href="#cb58-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Tissue, omic, virus, direction) <span class="sc">%&gt;%</span></span>
+<span id="cb58-16"><a href="#cb58-16" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarize</span>(<span class="at">count =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb58-17"><a href="#cb58-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>virus, <span class="at">y =</span> count, <span class="at">fill =</span> direction)) <span class="sc">+</span></span>
+<span id="cb58-18"><a href="#cb58-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">position =</span> <span class="st">"stack"</span>) <span class="sc">+</span></span>
+<span id="cb58-19"><a href="#cb58-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(Tissue <span class="sc">~</span> omic, <span class="at">drop =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb58-20"><a href="#cb58-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb58-21"><a href="#cb58-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">vjust =</span> <span class="dv">1</span>, <span class="at">hjust=</span><span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb58-22"><a href="#cb58-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Number of DEGs"</span>) <span class="sc">+</span></span>
+<span id="cb58-23"><a href="#cb58-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"red"</span>, <span class="st">"red"</span>), <span class="at">name =</span> <span class="st">"DEG Direction"</span>) <span class="sc">+</span></span>
+<span id="cb58-24"><a href="#cb58-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb58-25"><a href="#cb58-25" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb58-26"><a href="#cb58-26" aria-hidden="true" tabindex="-1"></a>         <span class="at">panel.border =</span> <span class="fu">element_rect</span>(<span class="at">color =</span> <span class="st">"black"</span>, <span class="at">fill =</span> <span class="cn">NA</span>, <span class="at">size =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb58-27"><a href="#cb58-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Virus"</span>) <span class="sc">+</span>  <span class="fu">scale_y_continuous</span>(<span class="at">trans=</span><span class="st">'sqrt'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'Tissue', 'omic', 'virus'. You can override
+using the `.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>ggs8</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure6C_S9F_H_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="480"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9F.pdf"</span>), <span class="at">width =</span> <span class="dv">5</span>, <span class="at">height =</span> <span class="dv">4</span>)</span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(ggs8<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9F.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="figure-s9g-pbmc-enrichment" class="level2">
+<h2 class="anchored" data-anchor-id="figure-s9g-pbmc-enrichment">Figure S9G: PBMC Enrichment</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(scales)</span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>pbmc_enrichment_df <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_5_part3.csv"</span>)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>New names:
+Rows: 13565 Columns: 14
+── Column specification
+──────────────────────────────────────────────────────── Delimiter: "," chr
+(9): ...1, ID, Description, GeneRatio, BgRatio, geneID, dir, database, v... dbl
+(4): pvalue, p.adjust, qvalue, Count lgl (1): knock_in
+ℹ Use `spec()` to retrieve the full column specification for this data. ℹ
+Specify the column types or set `show_col_types = FALSE` to quiet this message.
+• `` -&gt; `...1`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>tmp <span class="ot">&lt;-</span> pbmc_enrichment_df <span class="sc">%&gt;%</span></span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(virus <span class="sc">!=</span> <span class="st">"Enterovirus.nasal"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Count <span class="sc">&gt;</span> <span class="dv">5</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(virus) <span class="sc">%&gt;%</span></span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a><span class="fu">mutate</span>(<span class="at">coef =</span> <span class="fu">ifelse</span>(dir <span class="sc">==</span> <span class="st">"up"</span>,<span class="dv">1</span>, <span class="sc">-</span><span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log10p =</span> <span class="sc">-</span><span class="fu">log10</span>(p.adjust),</span>
+<span id="cb64-7"><a href="#cb64-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">signed_log10p =</span> log10p <span class="sc">*</span> coef) <span class="sc">%&gt;%</span></span>
+<span id="cb64-8"><a href="#cb64-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(log10p, <span class="at">n=</span><span class="dv">10</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb64-9"><a href="#cb64-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p.adjust <span class="sc">&lt;=</span> <span class="fl">0.01</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb64-10"><a href="#cb64-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() </span>
+<span id="cb64-11"><a href="#cb64-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-12"><a href="#cb64-12" aria-hidden="true" tabindex="-1"></a>pbmc.plot.data <span class="ot">&lt;-</span> pbmc_enrichment_df <span class="sc">%&gt;%</span></span>
+<span id="cb64-13"><a href="#cb64-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(virus <span class="sc">!=</span> <span class="st">"Enterovirus.nasal"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb64-14"><a href="#cb64-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Count <span class="sc">&gt;</span> <span class="dv">5</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb64-15"><a href="#cb64-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p.adjust <span class="sc">&lt;=</span> <span class="fl">0.01</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb64-16"><a href="#cb64-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Description <span class="sc">%in%</span> <span class="fu">c</span>(tmp<span class="sc">$</span>Description, <span class="st">'Neutrophil degranulation'</span>, <span class="st">"Platelet degranulation "</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-17"><a href="#cb64-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Description =</span> <span class="fu">gsub</span>(<span class="st">" $"</span>, <span class="st">""</span>, Description)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-18"><a href="#cb64-18" aria-hidden="true" tabindex="-1"></a><span class="fu">mutate</span>(<span class="at">coef =</span> <span class="fu">ifelse</span>(dir <span class="sc">==</span> <span class="st">"up"</span>,<span class="dv">1</span>, <span class="sc">-</span><span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-19"><a href="#cb64-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log10p =</span> <span class="sc">-</span><span class="fu">log10</span>(p.adjust),</span>
+<span id="cb64-20"><a href="#cb64-20" aria-hidden="true" tabindex="-1"></a>         <span class="at">signed_log10p =</span> log10p <span class="sc">*</span> coef)</span>
+<span id="cb64-21"><a href="#cb64-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-22"><a href="#cb64-22" aria-hidden="true" tabindex="-1"></a>cluster_order <span class="ot">&lt;-</span> pbmc.plot.data <span class="sc">%&gt;%</span></span>
+<span id="cb64-23"><a href="#cb64-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(Description, virus, signed_log10p) <span class="sc">%&gt;%</span></span>
+<span id="cb64-24"><a href="#cb64-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">id_cols =</span> Description, <span class="at">names_from =</span> virus, <span class="at">values_from =</span> signed_log10p) <span class="sc">%&gt;%</span></span>
+<span id="cb64-25"><a href="#cb64-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_to_rownames</span>(<span class="st">"Description"</span>)</span>
+<span id="cb64-26"><a href="#cb64-26" aria-hidden="true" tabindex="-1"></a>cluster_order[<span class="fu">is.na</span>(cluster_order)] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb64-27"><a href="#cb64-27" aria-hidden="true" tabindex="-1"></a>heir_cluster <span class="ot">&lt;-</span> <span class="fu">hclust</span>(vegan<span class="sc">::</span><span class="fu">vegdist</span>(cluster_order,<span class="at">method=</span><span class="st">"jaccard"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in vegan::vegdist(cluster_order, method = "jaccard"): results may be meaningless because data have negative entries
+                 in method "jaccard"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>slight_manual_resuffle <span class="ot">&lt;-</span> heir_cluster[[<span class="st">"labels"</span>]]</span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a>slight_manual_resuffle <span class="ot">&lt;-</span> slight_manual_resuffle[<span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">3</span>,<span class="dv">8</span>,<span class="dv">9</span>,</span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a>                                                   <span class="dv">2</span>,<span class="dv">4</span><span class="sc">:</span><span class="dv">7</span>,<span class="dv">35</span>,<span class="dv">12</span><span class="sc">:</span><span class="dv">14</span>,<span class="dv">11</span>,<span class="dv">15</span>,<span class="dv">16</span>,<span class="dv">17</span>,<span class="dv">18</span>,</span>
+<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a>                                                   <span class="dv">10</span>,</span>
+<span id="cb66-5"><a href="#cb66-5" aria-hidden="true" tabindex="-1"></a>                                                   <span class="dv">19</span>,</span>
+<span id="cb66-6"><a href="#cb66-6" aria-hidden="true" tabindex="-1"></a>                                                   <span class="dv">20</span><span class="sc">:</span><span class="dv">34</span>)]</span>
+<span id="cb66-7"><a href="#cb66-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-8"><a href="#cb66-8" aria-hidden="true" tabindex="-1"></a>ggpbmc <span class="ot">&lt;-</span> pbmc.plot.data <span class="sc">%&gt;%</span></span>
+<span id="cb66-9"><a href="#cb66-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">virus =</span> <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">")"</span>, <span class="st">""</span>, virus))) <span class="sc">%&gt;%</span></span>
+<span id="cb66-10"><a href="#cb66-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Description =</span> <span class="fu">factor</span>(Description, slight_manual_resuffle)) <span class="sc">%&gt;%</span></span>
+<span id="cb66-11"><a href="#cb66-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">virus =</span> <span class="fu">factor</span>(virus, <span class="fu">c</span>(<span class="st">"Anelloviridae.pbmc"</span>,</span>
+<span id="cb66-12"><a href="#cb66-12" aria-hidden="true" tabindex="-1"></a>                                 <span class="st">"HSV1.nasal"</span>, <span class="st">"HSV2.nasal"</span>,</span>
+<span id="cb66-13"><a href="#cb66-13" aria-hidden="true" tabindex="-1"></a>                                 <span class="st">"CMV.pbmc"</span>,</span>
+<span id="cb66-14"><a href="#cb66-14" aria-hidden="true" tabindex="-1"></a>                                 <span class="st">"CMV.nasal"</span>,<span class="st">"EBV.pbmc"</span>,</span>
+<span id="cb66-15"><a href="#cb66-15" aria-hidden="true" tabindex="-1"></a>                                 <span class="st">"EBV.nasal"</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb66-16"><a href="#cb66-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>virus, <span class="at">y=</span> Description)) <span class="sc">+</span></span>
+<span id="cb66-17"><a href="#cb66-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">color =</span> signed_log10p, <span class="at">fill =</span> signed_log10p),</span>
+<span id="cb66-18"><a href="#cb66-18" aria-hidden="true" tabindex="-1"></a>             <span class="at">shape =</span> <span class="dv">21</span>, <span class="at">size =</span> <span class="dv">3</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb66-19"><a href="#cb66-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_light</span>() <span class="sc">+</span></span>
+<span id="cb66-20"><a href="#cb66-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_distiller</span>(<span class="at">palette =</span> <span class="st">"RdBu"</span>, <span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">10</span>,<span class="dv">10</span>), <span class="at">oob=</span>squish,</span>
+<span id="cb66-21"><a href="#cb66-21" aria-hidden="true" tabindex="-1"></a>                         <span class="at">name =</span> <span class="st">"Signed -log10</span><span class="sc">\n</span><span class="st">p.adjust"</span>,</span>
+<span id="cb66-22"><a href="#cb66-22" aria-hidden="true" tabindex="-1"></a>                       <span class="at">guide =</span> <span class="fu">guide_colorbar</span>(<span class="at">frame.colour =</span> <span class="st">"black"</span>, <span class="at">ticks.colour =</span> <span class="st">"black"</span>)) <span class="sc">+</span></span>
+<span id="cb66-23"><a href="#cb66-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>, <span class="at">legend.direction =</span> <span class="st">"horizontal"</span>,</span>
+<span id="cb66-24"><a href="#cb66-24" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">vjust =</span> <span class="dv">1</span>, <span class="at">hjust=</span><span class="dv">1</span>),</span>
+<span id="cb66-25"><a href="#cb66-25" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb66-26"><a href="#cb66-26" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb66-27"><a href="#cb66-27" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.border =</span> <span class="fu">element_rect</span>(<span class="at">color =</span> <span class="st">"black"</span>, </span>
+<span id="cb66-28"><a href="#cb66-28" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">fill =</span> <span class="cn">NA</span>, </span>
+<span id="cb66-29"><a href="#cb66-29" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">size =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb66-30"><a href="#cb66-30" aria-hidden="true" tabindex="-1"></a>   <span class="fu">ggtitle</span>(<span class="st">"PBMC Transcriptomics"</span>)</span>
+<span id="cb66-31"><a href="#cb66-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-32"><a href="#cb66-32" aria-hidden="true" tabindex="-1"></a>ggpbmc <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure6C_S9F_H_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="624"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9G.pdf"</span>), <span class="at">width =</span> <span class="fl">6.5</span>, <span class="at">height =</span> <span class="dv">7</span>)</span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a>ggpbmc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure6C_S9F_H_files/figure-html/unnamed-chunk-8-2.png" class="img-fluid figure-img" width="624"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9G_color_scale.pdf"</span>), <span class="at">width =</span> <span class="fl">6.5</span>, <span class="at">height =</span> <span class="dv">7</span>)</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(ggpbmc<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9G.csv"</span>))</span>
+<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a><span class="do">## Same as supplemental data 6</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="figure-s9h-nasal-enrichment" class="level2">
+<h2 class="anchored" data-anchor-id="figure-s9h-nasal-enrichment">Figure S9H: Nasal Enrichment</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(vegan)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: permute</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: lattice</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>This is vegan 2.6-5</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ape)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'ape'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:dplyr':
+
+    where</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb76"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a>nasal_enrichment_df <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_5_part4.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>New names:
+• `` -&gt; `...1`</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 8454 Columns: 14
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (9): ...1, ID, Description, GeneRatio, BgRatio, geneID, dir, database, v...
+dbl (4): pvalue, p.adjust, qvalue, Count
+lgl (1): knock_in
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a>tmp <span class="ot">&lt;-</span> nasal_enrichment_df <span class="sc">%&gt;%</span></span>
+<span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(virus <span class="sc">!=</span> <span class="st">"Enterovirus.nasal"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb79-3"><a href="#cb79-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Count <span class="sc">&gt;</span> <span class="dv">10</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb79-4"><a href="#cb79-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(virus) <span class="sc">%&gt;%</span></span>
+<span id="cb79-5"><a href="#cb79-5" aria-hidden="true" tabindex="-1"></a><span class="fu">mutate</span>(<span class="at">coef =</span> <span class="fu">ifelse</span>(dir <span class="sc">==</span> <span class="st">"up"</span>,<span class="dv">1</span>, <span class="sc">-</span><span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb79-6"><a href="#cb79-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log10p =</span> <span class="sc">-</span><span class="fu">log10</span>(p.adjust),</span>
+<span id="cb79-7"><a href="#cb79-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">signed_log10p =</span> log10p <span class="sc">*</span> coef) <span class="sc">%&gt;%</span></span>
+<span id="cb79-8"><a href="#cb79-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(log10p, <span class="at">n=</span><span class="dv">13</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb79-9"><a href="#cb79-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p.adjust <span class="sc">&lt;=</span> <span class="fl">0.01</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb79-10"><a href="#cb79-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() </span>
+<span id="cb79-11"><a href="#cb79-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb79-12"><a href="#cb79-12" aria-hidden="true" tabindex="-1"></a>nasal.plot.data <span class="ot">&lt;-</span> nasal_enrichment_df <span class="sc">%&gt;%</span></span>
+<span id="cb79-13"><a href="#cb79-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(virus <span class="sc">!=</span> <span class="st">"Enterovirus.nasal"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb79-14"><a href="#cb79-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Count <span class="sc">&gt;</span> <span class="dv">10</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb79-15"><a href="#cb79-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p.adjust <span class="sc">&lt;=</span> <span class="fl">0.01</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb79-16"><a href="#cb79-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Description <span class="sc">%in%</span> <span class="fu">c</span>(tmp<span class="sc">$</span>Description)) <span class="sc">%&gt;%</span> </span>
+<span id="cb79-17"><a href="#cb79-17" aria-hidden="true" tabindex="-1"></a><span class="fu">mutate</span>(<span class="at">coef =</span> <span class="fu">ifelse</span>(dir <span class="sc">==</span> <span class="st">"up"</span>,<span class="dv">1</span>, <span class="sc">-</span><span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb79-18"><a href="#cb79-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log10p =</span> <span class="sc">-</span><span class="fu">log10</span>(p.adjust),</span>
+<span id="cb79-19"><a href="#cb79-19" aria-hidden="true" tabindex="-1"></a>         <span class="at">signed_log10p =</span> log10p <span class="sc">*</span> coef)</span>
+<span id="cb79-20"><a href="#cb79-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb79-21"><a href="#cb79-21" aria-hidden="true" tabindex="-1"></a>genes <span class="ot">&lt;-</span> <span class="fu">unique</span>(<span class="fu">unlist</span>(<span class="fu">strsplit</span>(nasal.plot.data<span class="sc">$</span>geneID, <span class="st">"/"</span>)))</span>
+<span id="cb79-22"><a href="#cb79-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb79-23"><a href="#cb79-23" aria-hidden="true" tabindex="-1"></a>fill_matrix <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">matrix</span>(<span class="at">ncol =</span> <span class="fu">length</span>(<span class="fu">unique</span>(nasal.plot.data<span class="sc">$</span>Description)),</span>
+<span id="cb79-24"><a href="#cb79-24" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">nrow =</span> <span class="fu">length</span>(genes)))</span>
+<span id="cb79-25"><a href="#cb79-25" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(fill_matrix) <span class="ot">&lt;-</span> <span class="fu">unique</span>(nasal.plot.data<span class="sc">$</span>Description)</span>
+<span id="cb79-26"><a href="#cb79-26" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(fill_matrix) <span class="ot">&lt;-</span> genes</span>
+<span id="cb79-27"><a href="#cb79-27" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(active_set <span class="cf">in</span> <span class="fu">unique</span>(nasal.plot.data<span class="sc">$</span>Description)){</span>
+<span id="cb79-28"><a href="#cb79-28" aria-hidden="true" tabindex="-1"></a>  tmp <span class="ot">&lt;-</span> nasal.plot.data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(Description <span class="sc">==</span> active_set)</span>
+<span id="cb79-29"><a href="#cb79-29" aria-hidden="true" tabindex="-1"></a>  tmp_genes <span class="ot">&lt;-</span> <span class="fu">unique</span>(<span class="fu">unlist</span>(<span class="fu">strsplit</span>(tmp<span class="sc">$</span>geneID, <span class="st">"/"</span>)))</span>
+<span id="cb79-30"><a href="#cb79-30" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb79-31"><a href="#cb79-31" aria-hidden="true" tabindex="-1"></a>  fill_matrix[,active_set] <span class="ot">&lt;-</span> genes <span class="sc">%in%</span> tmp_genes</span>
+<span id="cb79-32"><a href="#cb79-32" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb79-33"><a href="#cb79-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb79-34"><a href="#cb79-34" aria-hidden="true" tabindex="-1"></a>heir_cluster <span class="ot">&lt;-</span> <span class="fu">hclust</span>(vegan<span class="sc">::</span><span class="fu">vegdist</span>(<span class="fu">t</span>(fill_matrix),<span class="at">method=</span><span class="st">"jaccard"</span>))</span>
+<span id="cb79-35"><a href="#cb79-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb79-36"><a href="#cb79-36" aria-hidden="true" tabindex="-1"></a>manual_ordering <span class="ot">&lt;-</span> heir_cluster[[<span class="st">"labels"</span>]][heir_cluster[[<span class="st">"order"</span>]]]</span>
+<span id="cb79-37"><a href="#cb79-37" aria-hidden="true" tabindex="-1"></a>ggb <span class="ot">&lt;-</span> nasal.plot.data <span class="sc">%&gt;%</span></span>
+<span id="cb79-38"><a href="#cb79-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">virus =</span> <span class="fu">gsub</span>(<span class="st">".*</span><span class="sc">\\</span><span class="st">("</span>, <span class="st">""</span>, <span class="fu">gsub</span>(<span class="st">")"</span>, <span class="st">""</span>, virus))) <span class="sc">%&gt;%</span></span>
+<span id="cb79-39"><a href="#cb79-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Description =</span> <span class="fu">factor</span>(Description, manual_ordering)) <span class="sc">%&gt;%</span></span>
+<span id="cb79-40"><a href="#cb79-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">virus =</span> <span class="fu">factor</span>(virus, <span class="fu">c</span>(<span class="st">"CMV.nasal"</span>,<span class="st">"HSV1.nasal"</span>,</span>
+<span id="cb79-41"><a href="#cb79-41" aria-hidden="true" tabindex="-1"></a>                                 <span class="st">"HSV2.nasal"</span>,</span>
+<span id="cb79-42"><a href="#cb79-42" aria-hidden="true" tabindex="-1"></a>                                 <span class="st">"EBV.nasal"</span>, <span class="st">"EBV.pbmc"</span>,</span>
+<span id="cb79-43"><a href="#cb79-43" aria-hidden="true" tabindex="-1"></a>                                 <span class="st">"CMV.pbmc"</span>,</span>
+<span id="cb79-44"><a href="#cb79-44" aria-hidden="true" tabindex="-1"></a>                                 <span class="st">"Anelloviridae.pbmc"</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb79-45"><a href="#cb79-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x=</span>virus, <span class="at">y=</span> Description)) <span class="sc">+</span></span>
+<span id="cb79-46"><a href="#cb79-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">color =</span> signed_log10p, <span class="at">fill =</span> signed_log10p),</span>
+<span id="cb79-47"><a href="#cb79-47" aria-hidden="true" tabindex="-1"></a>             <span class="at">shape =</span> <span class="dv">21</span>, <span class="at">size =</span> <span class="dv">3</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb79-48"><a href="#cb79-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_light</span>() <span class="sc">+</span></span>
+<span id="cb79-49"><a href="#cb79-49" aria-hidden="true" tabindex="-1"></a>   <span class="fu">scale_color_distiller</span>(<span class="at">palette =</span> <span class="st">"RdBu"</span>, <span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">10</span>,<span class="dv">10</span>), <span class="at">oob=</span>squish,</span>
+<span id="cb79-50"><a href="#cb79-50" aria-hidden="true" tabindex="-1"></a>                         <span class="at">name =</span> <span class="st">"Signed -log10</span><span class="sc">\n</span><span class="st">p.adjust"</span>)<span class="sc">+</span></span>
+<span id="cb79-51"><a href="#cb79-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_distiller</span>(<span class="at">palette =</span> <span class="st">"RdBu"</span>, <span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">10</span>,<span class="dv">10</span>), <span class="at">oob=</span>squish,</span>
+<span id="cb79-52"><a href="#cb79-52" aria-hidden="true" tabindex="-1"></a>                         <span class="at">name =</span> <span class="st">"Signed -log10</span><span class="sc">\n</span><span class="st">p.adjust"</span>) <span class="sc">+</span></span>
+<span id="cb79-53"><a href="#cb79-53" aria-hidden="true" tabindex="-1"></a>   <span class="fu">ggtitle</span>(<span class="st">"Nasal Transcriptomics"</span>) <span class="sc">+</span></span>
+<span id="cb79-54"><a href="#cb79-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">vjust =</span> <span class="dv">1</span>, <span class="at">hjust=</span><span class="dv">1</span>),</span>
+<span id="cb79-55"><a href="#cb79-55" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb79-56"><a href="#cb79-56" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb79-57"><a href="#cb79-57" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.border =</span> <span class="fu">element_rect</span>(<span class="at">color =</span> <span class="st">"black"</span>, </span>
+<span id="cb79-58"><a href="#cb79-58" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">fill =</span> <span class="cn">NA</span>, </span>
+<span id="cb79-59"><a href="#cb79-59" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">size =</span> <span class="dv">1</span>))</span>
+<span id="cb79-60"><a href="#cb79-60" aria-hidden="true" tabindex="-1"></a>ggb</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure6C_S9F_H_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9H.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">7</span>)</span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(ggb<span class="sc">$</span>data, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9H.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(heir_cluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Figure6C_S9F_H_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Shows overlapping leading gene features to find the splits</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="session-info" class="level1">
+<h1>Session Info</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>R version 4.0.3 (2020-10-10)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 24.04.1 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
+LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+attached base packages:
+[1] parallel  stats4    stats     graphics  grDevices utils     datasets 
+[8] methods   base     
+
+other attached packages:
+ [1] ape_5.6-2            vegan_2.6-5          lattice_0.20-41     
+ [4] permute_0.9-7        org.Hs.eg.db_3.12.0  AnnotationDbi_1.52.0
+ [7] IRanges_2.24.1       S4Vectors_0.28.1     Biobase_2.50.0      
+[10] BiocGenerics_0.36.1  biomaRt_2.46.3       scales_1.2.1        
+[13] ggrepel_0.9.3        edgeR_3.32.1         limma_3.46.0        
+[16] lubridate_1.9.3      forcats_1.0.0        stringr_1.5.0       
+[19] dplyr_1.1.2          purrr_1.0.2          readr_2.1.5         
+[22] tidyr_1.3.1          tibble_3.2.1         ggplot2_3.4.2       
+[25] tidyverse_2.0.0     
+
+loaded via a namespace (and not attached):
+ [1] httr_1.4.7           splines_4.0.3        bit64_4.0.5         
+ [4] vroom_1.6.5          jsonlite_1.8.9       askpass_1.2.1       
+ [7] BiocFileCache_1.14.0 blob_1.2.2           yaml_2.3.10         
+[10] progress_1.2.2       pillar_1.9.0         RSQLite_2.2.10      
+[13] glue_1.6.2           digest_0.6.37        RColorBrewer_1.1-2  
+[16] colorspace_2.0-3     Matrix_1.4-1         htmltools_0.5.8.1   
+[19] XML_3.99-0.9         pkgconfig_2.0.3      tzdb_0.4.0          
+[22] timechange_0.3.0     openssl_2.2.2        mgcv_1.8-33         
+[25] farver_2.1.0         generics_0.1.2       cachem_1.0.6        
+[28] withr_3.0.2          cli_3.6.3            magrittr_2.0.3      
+[31] crayon_1.5.0         memoise_2.0.1        evaluate_1.0.1      
+[34] fansi_1.0.6          nlme_3.1-149         MASS_7.3-53         
+[37] xml2_1.3.3           textshaping_0.4.0    tools_4.0.3         
+[40] prettyunits_1.2.0    hms_1.1.3            lifecycle_1.0.4     
+[43] munsell_0.5.0        locfit_1.5-9.4       cluster_2.1.0       
+[46] compiler_4.0.3       systemfonts_1.1.0    rlang_1.1.4         
+[49] grid_4.0.3           rstudioapi_0.17.1    rappdirs_0.3.3      
+[52] htmlwidgets_1.5.4    labeling_0.4.2       rmarkdown_2.29      
+[55] gtable_0.3.0         DBI_1.1.2            curl_6.2.2          
+[58] R6_2.5.1             knitr_1.51           fastmap_1.2.0       
+[61] bit_4.0.4            utf8_1.2.4           ragg_1.3.3          
+[64] stringi_1.8.4        Rcpp_1.0.8           vctrs_0.6.5         
+[67] dbplyr_2.3.3         tidyselect_1.2.1     xfun_0.56           </code></pre>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
