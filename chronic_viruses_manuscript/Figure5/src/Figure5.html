@@ -1207,7 +1207,7 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure5C.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure5C.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>) </span>
 <span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>ggc_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"urea"</span>],</span>
 <span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Urea"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
@@ -1251,7 +1251,7 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 <span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb55-11"><a href="#cb55-11" aria-hidden="true" tabindex="-1"></a><span class="do">## Protectors against Oxidative Stress</span></span>
 <span id="cb55-12"><a href="#cb55-12" aria-hidden="true" tabindex="-1"></a>gge <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"6-bromotryptophan"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">6-bromotryptophan"</span>, <span class="at">base_size =</span> <span class="dv">12</span>,</span>
-<span id="cb55-13"><a href="#cb55-13" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>,</span>
+<span id="cb55-13"><a href="#cb55-13" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Human gammaherpesvirus 4 (EBV).nasal"</span>,</span>
 <span id="cb55-14"><a href="#cb55-14" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 1 (HSV1).nasal"</span>, <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
@@ -1282,7 +1282,7 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 <div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure5E.pdf"</span>), <span class="at">width =</span> <span class="fl">14.16</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>gge_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"6-bromotryptophan"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">6-bromotryptophan"</span>, <span class="at">base_size =</span> <span class="dv">12</span>,</span>
-<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>,</span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Human gammaherpesvirus 4 (EBV).nasal"</span>,</span>
 <span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 1 (HSV1).nasal"</span>, <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span>
 <span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(gge_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
 <span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>            <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
@@ -1290,10 +1290,8 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 <span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(gge_data[[<span class="dv">2</span>]], <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_Figure5E_part2.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="supplementary-figure-9" class="level2">
-<h2 class="anchored" data-anchor-id="supplementary-figure-9">Supplementary Figure 9</h2>
-<section id="figure-s9a" class="level3">
-<h3 class="anchored" data-anchor-id="figure-s9a">Figure S9A</h3>
+<section id="supplementary-figure-8" class="level2">
+<h2 class="anchored" data-anchor-id="supplementary-figure-8">Supplementary Figure 8</h2>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ComplexHeatmap)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
@@ -1371,7 +1369,7 @@ This message can be suppressed by:
 <span id="cb66-12"><a href="#cb66-12" aria-hidden="true" tabindex="-1"></a>heat_df3[<span class="fu">is.na</span>(heat_df3)] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
 <span id="cb66-13"><a href="#cb66-13" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(heat_df3) <span class="ot">&lt;-</span> data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME[<span class="fu">match</span>(<span class="fu">rownames</span>(heat_df3), <span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature))]</span>
 <span id="cb66-14"><a href="#cb66-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-15"><a href="#cb66-15" aria-hidden="true" tabindex="-1"></a><span class="fu">pdf</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9A.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="dv">26</span>)</span>
+<span id="cb66-15"><a href="#cb66-15" aria-hidden="true" tabindex="-1"></a><span class="fu">pdf</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS8.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="dv">26</span>)</span>
 <span id="cb66-16"><a href="#cb66-16" aria-hidden="true" tabindex="-1"></a><span class="fu">Heatmap</span>(heat_df3, <span class="at">border =</span> <span class="cn">TRUE</span>, <span class="at">row_split =</span> data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>SUPER_PATHWAY[<span class="fu">match</span>(<span class="fu">rownames</span>(heat_df3), data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME)],</span>
 <span id="cb66-17"><a href="#cb66-17" aria-hidden="true" tabindex="-1"></a>        <span class="at">col =</span> col_fun, <span class="at">show_row_dend =</span> F, <span class="at">show_column_dend =</span> F,<span class="at">column_title =</span> <span class="st">"Virus"</span>,</span>
 <span id="cb66-18"><a href="#cb66-18" aria-hidden="true" tabindex="-1"></a>        <span class="at">column_split =</span> <span class="fu">gsub</span>(<span class="st">"_.*"</span>, <span class="st">""</span>, <span class="fu">colnames</span>(heat_df3)), <span class="at">cluster_rows =</span> T,</span>
@@ -1385,7 +1383,7 @@ This message can be suppressed by:
 <pre><code>png 
   2 </code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(heat_df3, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9A.csv"</span>))</span>
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(heat_df3, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS8.csv"</span>))</span>
 <span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(pmg <span class="sc">%&gt;%</span> <span class="fu">left_join</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature <span class="sc">%&gt;%</span> <span class="fu">rownames_to_column</span>(<span class="st">"feature"</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>              <span class="fu">select</span>(feature, CHEMICAL_NAME)), <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_part1_named_compounds.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1394,18 +1392,21 @@ This message can be suppressed by:
 </div>
 </div>
 </section>
-<section id="figure-s9b-f" class="level3">
-<h3 class="anchored" data-anchor-id="figure-s9b-f">Figure S9B-F</h3>
+<section id="supplementary-figure-9" class="level2">
+<h2 class="anchored" data-anchor-id="supplementary-figure-9">Supplementary Figure 9</h2>
+<section id="figure-s9a-e" class="level3">
+<h3 class="anchored" data-anchor-id="figure-s9a-e">Figure S9A-E</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a>ggb <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"N,N,N-trimethyl-alanylproline betaine (TMAP)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">TMAP"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
-<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="do">### A</span></span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>gga <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"N,N,N-trimethyl-alanylproline betaine (TMAP)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">TMAP"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
 Adding another scale for colour, which will replace the existing scale.
 Scale for fill is already present.
 Adding another scale for fill, which will replace the existing scale.</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a>ggb</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a>gga</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -1413,19 +1414,19 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9B.pdf"</span>), <span class="at">width =</span> <span class="fl">4.92</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9A.pdf"</span>), <span class="at">width =</span> <span class="fl">4.92</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb75-4"><a href="#cb75-4" aria-hidden="true" tabindex="-1"></a>ggb_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"N,N,N-trimethyl-alanylproline betaine (TMAP)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">TMAP"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb75-4"><a href="#cb75-4" aria-hidden="true" tabindex="-1"></a>gga_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"N,N,N-trimethyl-alanylproline betaine (TMAP)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">TMAP"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb75-5"><a href="#cb75-5" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>), modeling_results, viral_colors)</span>
-<span id="cb75-6"><a href="#cb75-6" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file =</span> <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9B_part1.csv"</span>), <span class="at">x =</span> ggb_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
+<span id="cb75-6"><a href="#cb75-6" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file =</span> <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9A_part1.csv"</span>), <span class="at">x =</span> gga_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
 <span id="cb75-7"><a href="#cb75-7" aria-hidden="true" tabindex="-1"></a>            <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb75-8"><a href="#cb75-8" aria-hidden="true" tabindex="-1"></a>            <span class="fu">select</span>(<span class="sc">-</span>participant_id))</span>
-<span id="cb75-9"><a href="#cb75-9" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9B_part2.csv"</span>), <span class="at">x=</span>ggb_data[[<span class="dv">2</span>]])</span>
+<span id="cb75-9"><a href="#cb75-9" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9A_part2.csv"</span>), <span class="at">x=</span>gga_data[[<span class="dv">2</span>]])</span>
 <span id="cb75-10"><a href="#cb75-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb75-11"><a href="#cb75-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb75-12"><a href="#cb75-12" aria-hidden="true" tabindex="-1"></a><span class="do">### C</span></span>
-<span id="cb75-13"><a href="#cb75-13" aria-hidden="true" tabindex="-1"></a>ggc <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"arachidate (20:0)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Arachidate (20:0)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb75-12"><a href="#cb75-12" aria-hidden="true" tabindex="-1"></a><span class="do">### B</span></span>
+<span id="cb75-13"><a href="#cb75-13" aria-hidden="true" tabindex="-1"></a>ggb <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"arachidate (20:0)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Arachidate (20:0)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb75-14"><a href="#cb75-14" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
@@ -1437,7 +1438,7 @@ Adding another scale for colour, which will replace the existing scale.
 Scale for fill is already present.
 Adding another scale for fill, which will replace the existing scale.</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>ggc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>ggb</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -1445,9 +1446,11 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a>ggc_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"arachidate (20:0)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Arachidate (20:0)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
-<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span>
-<span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a>ggc_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9B.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a>ggb_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"arachidate (20:0)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Arachidate (20:0)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb78-4"><a href="#cb78-4" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span>
+<span id="cb78-5"><a href="#cb78-5" aria-hidden="true" tabindex="-1"></a>ggb_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[[1]]
     participant_id               name value     residuals
@@ -2446,13 +2449,13 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 151            Control  40
 152            Control  40</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9C_part1.csv"</span>), <span class="at">x=</span>ggc_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9B_part1.csv"</span>), <span class="at">x=</span>ggb_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
 <span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>            <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a>            <span class="fu">select</span>(<span class="sc">-</span>participant_id))</span>
-<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9C_part2.csv"</span>), <span class="at">x=</span>ggc_data[[<span class="dv">2</span>]])</span>
+<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9B_part2.csv"</span>), <span class="at">x=</span>ggb_data[[<span class="dv">2</span>]])</span>
 <span id="cb80-5"><a href="#cb80-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb80-6"><a href="#cb80-6" aria-hidden="true" tabindex="-1"></a><span class="do">### D</span></span>
-<span id="cb80-7"><a href="#cb80-7" aria-hidden="true" tabindex="-1"></a>ggd <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"docosadienoate (22:2n6)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Docosadienoate (22:2n6)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb80-6"><a href="#cb80-6" aria-hidden="true" tabindex="-1"></a><span class="do">### C</span></span>
+<span id="cb80-7"><a href="#cb80-7" aria-hidden="true" tabindex="-1"></a>ggc <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"docosadienoate (22:2n6)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Docosadienoate (22:2n6)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb80-8"><a href="#cb80-8" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
@@ -2464,7 +2467,7 @@ Adding another scale for colour, which will replace the existing scale.
 Scale for fill is already present.
 Adding another scale for fill, which will replace the existing scale.</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a>ggd</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a>ggc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -2472,11 +2475,11 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9D.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9C.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a>ggd_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"docosadienoate (22:2n6)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Docosadienoate (22:2n6)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a>ggc_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"docosadienoate (22:2n6)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Docosadienoate (22:2n6)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb83-4"><a href="#cb83-4" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span>
-<span id="cb83-5"><a href="#cb83-5" aria-hidden="true" tabindex="-1"></a>ggd_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb83-5"><a href="#cb83-5" aria-hidden="true" tabindex="-1"></a>ggc_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[[1]]
     participant_id               name value    residuals
@@ -3475,14 +3478,14 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 151            Control  40
 152            Control  40</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9D_part1.csv"</span>), <span class="at">x=</span>ggd_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
+<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9C_part1.csv"</span>), <span class="at">x=</span>ggc_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
 <span id="cb85-2"><a href="#cb85-2" aria-hidden="true" tabindex="-1"></a>            <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb85-3"><a href="#cb85-3" aria-hidden="true" tabindex="-1"></a>            <span class="fu">select</span>(<span class="sc">-</span>participant_id))</span>
-<span id="cb85-4"><a href="#cb85-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9D_part2.csv"</span>), <span class="at">x=</span>ggd_data[[<span class="dv">2</span>]])</span>
+<span id="cb85-4"><a href="#cb85-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9C_part2.csv"</span>), <span class="at">x=</span>ggc_data[[<span class="dv">2</span>]])</span>
 <span id="cb85-5"><a href="#cb85-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb85-6"><a href="#cb85-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb85-7"><a href="#cb85-7" aria-hidden="true" tabindex="-1"></a><span class="do">## E</span></span>
-<span id="cb85-8"><a href="#cb85-8" aria-hidden="true" tabindex="-1"></a>gge <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"X100001810"</span>, <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Dimethylarginine"</span>, <span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb85-7"><a href="#cb85-7" aria-hidden="true" tabindex="-1"></a><span class="do">## D</span></span>
+<span id="cb85-8"><a href="#cb85-8" aria-hidden="true" tabindex="-1"></a>ggd <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"X100001810"</span>, <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Dimethylarginine"</span>, <span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb85-9"><a href="#cb85-9" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>, <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
@@ -3494,7 +3497,7 @@ Adding another scale for colour, which will replace the existing scale.
 Scale for fill is already present.
 Adding another scale for fill, which will replace the existing scale.</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>gge</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>ggd</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -3502,12 +3505,12 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9E.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9D.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb88-3"><a href="#cb88-3" aria-hidden="true" tabindex="-1"></a>gge_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="st">"X100001810"</span>, <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Dimethylarginine"</span>,</span>
+<span id="cb88-3"><a href="#cb88-3" aria-hidden="true" tabindex="-1"></a>ggd_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="st">"X100001810"</span>, <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Dimethylarginine"</span>,</span>
 <span id="cb88-4"><a href="#cb88-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb88-5"><a href="#cb88-5" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>, <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span>
-<span id="cb88-6"><a href="#cb88-6" aria-hidden="true" tabindex="-1"></a>gge_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb88-6"><a href="#cb88-6" aria-hidden="true" tabindex="-1"></a>ggd_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[[1]]
     participant_id               name value     residuals
@@ -4506,13 +4509,13 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 151            Control  40
 152            Control  40</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9E_part1.csv"</span>), <span class="at">x=</span>gge_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
+<div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9D_part1.csv"</span>), <span class="at">x=</span>ggd_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
 <span id="cb90-2"><a href="#cb90-2" aria-hidden="true" tabindex="-1"></a>            <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb90-3"><a href="#cb90-3" aria-hidden="true" tabindex="-1"></a>            <span class="fu">select</span>(<span class="sc">-</span>participant_id))</span>
-<span id="cb90-4"><a href="#cb90-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9E_part2.csv"</span>), <span class="at">x=</span>gge_data[[<span class="dv">2</span>]])</span>
+<span id="cb90-4"><a href="#cb90-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9D_part2.csv"</span>), <span class="at">x=</span>ggd_data[[<span class="dv">2</span>]])</span>
 <span id="cb90-5"><a href="#cb90-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb90-6"><a href="#cb90-6" aria-hidden="true" tabindex="-1"></a><span class="do">### F</span></span>
-<span id="cb90-7"><a href="#cb90-7" aria-hidden="true" tabindex="-1"></a>ggf <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"S-methylcysteine sulfoxide"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">S-methylcysteine sulfoxide"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb90-6"><a href="#cb90-6" aria-hidden="true" tabindex="-1"></a><span class="do">### E</span></span>
+<span id="cb90-7"><a href="#cb90-7" aria-hidden="true" tabindex="-1"></a>gge <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"S-methylcysteine sulfoxide"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">S-methylcysteine sulfoxide"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb90-8"><a href="#cb90-8" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>,</span>
 <span id="cb90-9"><a href="#cb90-9" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 1 (HSV1).nasal"</span>, <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
@@ -4533,7 +4536,7 @@ Adding another scale for colour, which will replace the existing scale.
 Scale for fill is already present.
 Adding another scale for fill, which will replace the existing scale.</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a>ggf</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a>gge</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -4541,12 +4544,12 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb93"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9F.pdf"</span>), <span class="at">width =</span> <span class="fl">14.16</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<div class="sourceCode cell-code" id="cb93"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9E.pdf"</span>), <span class="at">width =</span> <span class="fl">14.16</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb93-2"><a href="#cb93-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb93-3"><a href="#cb93-3" aria-hidden="true" tabindex="-1"></a>ggf_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"S-methylcysteine sulfoxide"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">S-methylcysteine sulfoxide"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb93-3"><a href="#cb93-3" aria-hidden="true" tabindex="-1"></a>gge_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"S-methylcysteine sulfoxide"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">S-methylcysteine sulfoxide"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb93-4"><a href="#cb93-4" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>,</span>
 <span id="cb93-5"><a href="#cb93-5" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 1 (HSV1).nasal"</span>, <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span>
-<span id="cb93-6"><a href="#cb93-6" aria-hidden="true" tabindex="-1"></a>ggf_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb93-6"><a href="#cb93-6" aria-hidden="true" tabindex="-1"></a>gge_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[[1]]
     participant_id               name value    residuals
@@ -5952,10 +5955,10 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 305            Control  40
 306            Control  40</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb95"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9F_part1.csv"</span>), <span class="at">x=</span>ggf_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
+<div class="sourceCode cell-code" id="cb95"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9E_part1.csv"</span>), <span class="at">x=</span>gge_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
 <span id="cb95-2"><a href="#cb95-2" aria-hidden="true" tabindex="-1"></a>            <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb95-3"><a href="#cb95-3" aria-hidden="true" tabindex="-1"></a>            <span class="fu">select</span>(<span class="sc">-</span>participant_id))</span>
-<span id="cb95-4"><a href="#cb95-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9F_part2.csv"</span>), <span class="at">x=</span>ggf_data[[<span class="dv">2</span>]])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb95-4"><a href="#cb95-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9E_part2.csv"</span>), <span class="at">x=</span>gge_data[[<span class="dv">2</span>]])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 </section>
@@ -6013,13 +6016,13 @@ loaded via a namespace (and not attached):
 [52] yaml_2.3.10         carData_3.0-5       MASS_7.3-53        
 [55] plyr_1.8.6          parallel_4.0.3      crayon_1.5.0       
 [58] lattice_0.20-41     cowplot_1.1.1       splines_4.0.3      
-[61] hms_1.1.3           knitr_1.49          pillar_1.9.0       
+[61] hms_1.1.3           knitr_1.51          pillar_1.9.0       
 [64] rjson_0.2.21        boot_1.3-25         ggsignif_0.6.3     
 [67] stats4_4.0.3        codetools_0.2-16    glue_1.6.2         
 [70] evaluate_1.0.1      ggfun_0.0.9         png_0.1-7          
 [73] vctrs_0.6.5         nloptr_2.0.0        tzdb_0.4.0         
 [76] foreach_1.5.2       gtable_0.3.0        clue_0.3-60        
-[79] xfun_0.49           broom_1.0.7         rstatix_0.7.2      
+[79] xfun_0.56           broom_1.0.7         rstatix_0.7.2      
 [82] ragg_1.3.3          iterators_1.0.14    IRanges_2.24.1     
 [85] beeswarm_0.4.0      cluster_2.1.0       timechange_0.3.0   </code></pre>
 </div>
