@@ -5,27 +5,27 @@ Contact Information: Cole Maguire (colemag@utexas.edu)
 ## Instructions
 This code is for the manuscript titled "Chronic Viral Reactivation and Associated Host Immune Response and Clinical Outcomes in Acute COVID-19 and Post-Acute Sequelae of COVID-19"
 Update 6/16/2025: The codebase has been updated for revisions to the manuscript as part of the peer review process. Due to Figures shifting, particularly the supplement, a mapping of the pre-print supplement to the current supplement is provided at the bottom.
+Update 5/3/2026: The codebase has been updated to match the final figure order. Of note, Extended Data Figures are still referred to as "Supplementary Figures" and are denoted with an "S" in front of them (e.g. Figure S2A would be Extended Data Figure 2a). The mapping of figures compared to the pre-print has been updated at the bottom of this file. The data availability statement has been updated to include more details.
 ### Data availability
-Data used in this study is available at ImmPort Shared Data under the accession number [SDY1760](https://www.immport.org/shared/search?text=SDY1760%20) and in the NLM's
-769 Database of Genotypes and Phenotypes (dbGaP) under the accession number [phs002686.v2.p2](https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs002686.v2.p2). Note this is a controlled database with approval from NIAID required (please follow the instructions as you try to access the data). However, Immport has agreed to provide special access to reviewers of this article upon request by the IMPACC team.
-
+The IMPACC Data Sharing Plan aims to support broad data dissemination while safeguarding participant privacy and data integrity through de-identification and masking of sensitive data fields. All IMPACC data, including those produced as part of this study, have been submitted to the Immunology Database and Analysis Portal (ImmPort), a repository supported by the NIAID Division of Allergy, Immunology and Transplantation under accession code SDY1760 (https://www.immport.org/shared/study/SDY1760), as well as to the NLM's Database of Genotypes and Phenotypes (dbGaP) under accession number phs002686.v2.p2. Both raw and processed datasets are available through restricted access in accordance with the NIH public data sharing policy for IRB-exempted public health surveillance studies. Access may be requested through AccessClinicalData@NIAID (https://accessclinicaldata.niaid.nih.gov/study-viewer/clinical_trials). Further detailed guidance on data access is provided on ImmPort (https://docs.immport.org/home/impaccslides).
 Once downloaded, see the [data_object_generation.Rmd](data_object_generation.qmd) file for how to load the omics into a singular data environment (which downstream Figure code will depend on).
 
 ### Code Install and Run Time
-The codebase itself is small and should install in a few minutes or less depending on your download speed. The run time is variable between the figures' scripts, with Figures 1, 3, and 7 running in just a few minutes, Figure 2 and 6 taking ~30 min-1 hour, Figure 4 taking ~2 hours, and Figure 5 taking several hours.
+The codebase itself is small and should install in a few minutes or less depending on your download speed. The run time is variable between the figures' scripts, the GAMM modeling may take much longer to run than other files.
 
 ### Figures and Tables
-Scripts used to generate figures and tables.
+Scripts used to generate figures and tables. Of note, Figures denoted with "S" are now the Extended Data Figures.
 
 | Figure |Source File| Output |
 |:-----|:-----|:-----|
-| Figure 1, S2, S3, S4, S5, and S12 | [Figure1.Rmd](Figure1/src/Figure1.qmd) | [Figure1](Figure1/output) |
+| Figure 1, S2, S3, and S4 | [Figure1.Rmd](Figure1/src/Figure1.qmd) | [Figure1](Figure1/output) |
+| Figure S5 | [Figure1.Rmd](Figure1/src/FigureS5_External_Validation.qmd) | [Figure1](Figure1/output) |
 | Figure 2 and S6  | [Figure2.Rmd](Figure2/src/Figure2.qmd) | [Figure2](Figure2/output) |
-| Figure 3 and S7  | [Figure3.Rmd](Figure3/src/Figure3.qmd) | [Figure3](Figure3/output) |
-| Figure 4 and S8  | [Figure4.Rmd](Figure4/src/Figure4.qmd) | [Figure4](Figure4/output) |
-| Figure 5 and S9  | [Figure5.Rmd](Figure5/src/Figure5.qmd) | [Figure5](Figure5/output) |
-| Figure 6 and S10 (and Figure 7C)  | [Figure6.Rmd](Figure6/src/Figure6.qmd) | [Figure6](Figure6/output) |
-| Figure 7 and S11  | [Figure7.Rmd](Figure7/src/Figure7.qmd) | [Figure7](Figure7/output) |
+| Figure 3 and S7A-B  | [Figure3.Rmd](Figure3/src/Figure3.qmd) | [Figure3](Figure3/output) |
+| Figure 4 and S7C-D  | [Figure4.Rmd](Figure4/src/Figure4.qmd) | [Figure4](Figure4/output) |
+| Figure 5 and S8 and S9A-E  | [Figure5.Rmd](Figure5/src/Figure5.qmd) | [Figure5](Figure5/output) |
+| Figure 6A-B and S10 (and Figure 7C)  | [Figure6.Rmd](Figure6/src/Figure6.qmd) | [Figure6](Figure6/output) |
+| Figure 6C and S9F-H  | [Figure6C_S9F_H.Rmd](Transcriptomics/src/Figure6C_S9F_H.qmd) | [Transcriptomics](Transcriptomics/output) |
 
 </br>
 
@@ -38,16 +38,16 @@ License details: MIT License (see the [LICENSE file](LICENSE))
 The codes were run in R v4.0.3. The sessionInfo() with the package used and their versions are reported at the bottom of each Figures script.
 
 ## Mapping of Pre-print to Latest Version of Code and Supplement
-The following shows how the pre-print supplement maps to the current revised copy of the supplement. 
+The following shows how the pre-print supplement maps to the final Extended Data Figures. 
 
 | Pre-print | Current |
 |:-----|:-----|
 | Figure 1 and S1 | Figure 1, S2, S3, and S4 |
 | Figure 2 and S2  | Figure 2 and S6  |
-| Figure 3 and S3  | Figure 3 and S7  |
-| Figure 4 and S4  | Figure 4 and S8 |
-| Figure 5 and S5  | Figure 5 and S9 |
-| Figure 6 and S6 (and Figure 7C)  | Figure 6 and S10 (and Figure 7C) |
-| Figure 7 and S7  | Figure 7 and S11 |
+| Figure 3 and S3  | Figure 3 and S7A-B  |
+| Figure 4 and S4  | Figure 4 and S7C-D |
+| Figure 5 and S5  | Figure 5, S8, and S9A-E |
+| Figure 6 and S6 (and Figure 7C)  | Figure S9F-H (and Figure 6C) |
+| Figure 7 and S7  | Figure 6 and S10 |
 
 </br>
