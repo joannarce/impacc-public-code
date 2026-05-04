@@ -501,7 +501,7 @@ traj_plot <- function(feature, viruses, results_obj, colors,
   
   gg2 <- as.data.frame(results_obj[[3]][[feature]]) %>%
     dplyr::rename("residuals" = 16) %>%
-    pivot_longer(cols = 17:22) %>%
+    pivot_longer(cols = 17:24) %>%
     mutate(value = ifelse(value > 0, 1, 0)) %>%
     group_by(participant_id, name, value) %>%
     distinct(participant_id, name, value, residuals) %>%
@@ -555,7 +555,7 @@ source_data <- function(feature, viruses, results_obj, colors,
   
   source_data_dfa <- as.data.frame(results_obj[[3]][[feature]]) %>%
     dplyr::rename("residuals" = 16) %>%
-    pivot_longer(cols = 17:22) %>%
+    pivot_longer(cols = 17:24) %>%
     mutate(value = ifelse(value > 0, 1, 0)) %>%
     group_by(participant_id, name, value) %>%
     distinct(participant_id, name, value, residuals) %>%

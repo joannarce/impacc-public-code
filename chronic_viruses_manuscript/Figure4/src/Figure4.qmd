@@ -434,17 +434,66 @@ traj_plot <- function(feature, viruses, results_obj, colors, log_residuals = F,
                        nrow = 1, align = "hv"))
 }
 
+#####################################
+source_data <- function(feature, viruses, results_obj, colors,
+                      variable_width = 0.6, base_size = 12, better_name){
+  library(ggpubr)
+  if(missing(better_name)){
+    feature_name <- feature
+  } else {
+    feature_name <- better_name
+  }
+  source_data_dfb <- data.frame()
+  
+  for(active_virus in viruses){
+      plots <- results_obj[[2]][[paste0(feature, "___", active_virus)]]
+      plots$data <- plots$data %>%
+        mutate(virus = ifelse(virus == 0, "Control",
+                              gsub("\\)", "", gsub(".*\\(", "", active_virus))))
+      source_data_dfb <- plyr::rbind.fill(source_data_dfb, plots$data)
+  }
+ 
+  source_data_dfa <- as.data.frame(results_obj[[3]][[feature]]) %>%
+    dplyr::rename("residuals" = 16) %>%
+    pivot_longer(cols = 17:24) %>%
+    mutate(value = ifelse(value > 0, 1, 0)) %>%
+    group_by(participant_id, name, value) %>%
+    distinct(participant_id, name, value, residuals) %>%
+    slice_max(abs(residuals)) %>%
+    mutate(name = ifelse(participant_id %in%results_obj[[4]], "Control", name)) %>%
+    filter(value!=0|name=="Control") %>%
+    mutate(name = gsub("\\)", "", gsub(".*\\(", "", name))) %>%
+    filter(name %in% c("Control", gsub("\\)", "", gsub(".*\\(", "", viruses)))) %>%
+    distinct() %>%
+    as.data.frame() %>%
+    mutate(name = fct_relevel(name, "Control"))
+    
+  return(list(source_data_dfa, source_data_dfb))
+}
+
 viral_colors <- c("Control"="#757575", "EBV.pbmc"="#BF5700", "EBV.nasal"="#008080",
                   "CMV.pbmc"="#005F86", "Anelloviridae.pbmc" = "#86005F",
                   "HSV1.nasal" = "#1b820d", "HSV2.nasal" = "#cba90a")
 
-
+###################################
 ggb <- traj_plot("CXCL10", c("Human betaherpesvirus 5 (CMV).pbmc",
                       "Human gammaherpesvirus 4 (EBV).pbmc",
                      "Human alphaherpesvirus 1 (HSV1).nasal"),
           modeling_results, viral_colors, base_size = 14, log_residuals = T)
 ggb
 ggsave(paste0(out_dir, "Figure4B.pdf"), width = 12.32142, height = 3)
+
+ggb_data <- source_data("CXCL10",
+                 base_size = 14,
+                 c("Human betaherpesvirus 5 (CMV).pbmc",
+                      "Human gammaherpesvirus 4 (EBV).pbmc",
+                     "Human alphaherpesvirus 1 (HSV1).nasal"), modeling_results, viral_colors)
+
+write.csv(file = paste0(out_dir, "source_data_Figure4B_part1.csv"),
+          x= ggb_data[[1]] %>%
+            ungroup() %>%
+            select(-participant_id))
+write.csv(ggb_data[[2]], paste0(out_dir, "source_data_Figure4B_part2.csv"))
 
 ggc <- traj_plot("CXCL11", c("Human betaherpesvirus 5 (CMV).pbmc",
                       "Human gammaherpesvirus 4 (EBV).nasal",
@@ -454,6 +503,21 @@ ggc <- traj_plot("CXCL11", c("Human betaherpesvirus 5 (CMV).pbmc",
 ggc
 ggsave(paste0(out_dir, "Figure4C.pdf"), width = 15, height = 3)
 
+ggc_data <- source_data("CXCL11",
+                 base_size = 14,
+                 c("Human betaherpesvirus 5 (CMV).pbmc",
+                      "Human gammaherpesvirus 4 (EBV).nasal",
+                     "Human alphaherpesvirus 1 (HSV1).nasal",
+                     "Anelloviridae.pbmc"),
+                 modeling_results, viral_colors)
+
+write.csv(file = paste0(out_dir, "source_data_Figure4C_part1.csv"),
+          x= ggc_data[[1]] %>%
+            ungroup() %>%
+            select(-participant_id))
+write.csv(ggc_data[[2]], paste0(out_dir, "source_data_Figure4C_part2.csv"))
+
+
 ggd <- traj_plot("IL18", c("Human betaherpesvirus 5 (CMV).pbmc",
                      "Human alphaherpesvirus 1 (HSV1).nasal",
                      "Anelloviridae.pbmc"), modeling_results, viral_colors,
@@ -461,20 +525,68 @@ ggd <- traj_plot("IL18", c("Human betaherpesvirus 5 (CMV).pbmc",
 ggd
 ggsave(paste0(out_dir, "Figure4D.pdf"), width = 12.32142, height = 3)
 
+ggd_data <- source_data("IL18",
+                 base_size = 14,
+                 c("Human betaherpesvirus 5 (CMV).pbmc",
+                     "Human alphaherpesvirus 1 (HSV1).nasal",
+                     "Anelloviridae.pbmc"),
+                 modeling_results, viral_colors)
+
+write.csv(file = paste0(out_dir, "source_data_Figure4D_part1.csv"),
+          x= ggd_data[[1]] %>%
+            ungroup() %>%
+            select(-participant_id))
+write.csv(ggd_data[[2]], paste0(out_dir, "source_data_Figure4D_part2.csv"))
+
 gge <- traj_plot("IL6", c("Human gammaherpesvirus 4 (EBV).pbmc"), modeling_results,
           viral_colors, base_size = 14, log_residuals = T)
 gge
 ggsave(paste0(out_dir, "Figure4E.pdf"), width = 4.285714, height = 3)
+
+gge_data <- source_data("IL6",
+                 base_size = 14,
+                 c("Human gammaherpesvirus 4 (EBV).pbmc"),
+                 modeling_results, viral_colors)
+
+write.csv(file = paste0(out_dir, "source_data_Figure4E_part1.csv"),
+          x= gge_data[[1]] %>%
+            ungroup() %>%
+            select(-participant_id))
+write.csv(gge_data[[2]], paste0(out_dir, "source_data_Figure4E_part2.csv"))
+
 
 ggf <- traj_plot("IL10", c("Human gammaherpesvirus 4 (EBV).pbmc", "Human betaherpesvirus 5 (CMV).pbmc"),
           modeling_results, viral_colors, base_size = 14, log_residuals = T)
 ggf
 ggsave(paste0(out_dir, "Figure4F.pdf"), width = 6.964285, height = 3)
 
+ggf_data <- source_data("IL10",
+                 base_size = 14,
+                 c("Human gammaherpesvirus 4 (EBV).pbmc",
+                   "Human betaherpesvirus 5 (CMV).pbmc"),
+                 modeling_results, viral_colors)
+
+write.csv(file = paste0(out_dir, "source_data_Figure4F_part1.csv"),
+          x= ggf_data[[1]] %>%
+            ungroup() %>%
+            select(-participant_id))
+write.csv(ggf_data[[2]], paste0(out_dir, "source_data_Figure4F_part2.csv"))
+
 ggg <- traj_plot("IFNG", c("Human betaherpesvirus 5 (CMV).pbmc"), modeling_results,
           viral_colors, base_size = 14, log_residuals = T)
 ggg
 ggsave(paste0(out_dir, "Figure4G.pdf"), width = 4.285714, height = 3)
+
+ggg_data <- source_data("IFNG",
+                 base_size = 14,
+                 c("Human betaherpesvirus 5 (CMV).pbmc"),
+                 modeling_results, viral_colors)
+
+write.csv(file = paste0(out_dir, "source_data_Figure4G_part1.csv"),
+          x= ggg_data[[1]] %>%
+            ungroup() %>%
+            select(-participant_id))
+write.csv(ggg_data[[2]], paste0(out_dir, "source_data_Figure4G_part2.csv"))
 
 ```
 
