@@ -24,7 +24,7 @@ Scripts used to generate figures and tables. Of note, Figures denoted with "S" a
 | Figure 3 and S7A-B  | [Figure3.Rmd](Figure3/src/Figure3.qmd) | [Figure3](Figure3/output) |
 | Figure 4 and S7C-D  | [Figure4.Rmd](Figure4/src/Figure4.qmd) | [Figure4](Figure4/output) |
 | Figure 5 and S8 and S9A-E  | [Figure5.Rmd](Figure5/src/Figure5.qmd) | [Figure5](Figure5/output) |
-| Figure 6A-B and S10 (and Figure 7C)  | [Figure6.Rmd](Figure6/src/Figure6.qmd) | [Figure6](Figure6/output) |
+| Figure 6A-B and S10  | [Figure6.Rmd](Figure6/src/Figure6.qmd) | [Figure6](Figure6/output) |
 | Figure 6C and S9F-H  | [Figure6C_S9F_H.Rmd](Transcriptomics/src/Figure6C_S9F_H.qmd) | [Transcriptomics](Transcriptomics/output) |
 
 </br>
