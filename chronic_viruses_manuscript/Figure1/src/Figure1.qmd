@@ -1314,8 +1314,9 @@ pbmc_ready <- pbmc_reports %>%
   filter(name != "Betacoronavirus") %>%
   rowwise() %>%
   mutate(nt_e_value2 = (eval(parse(text = nt_e_value)))) %>%
-  group_by(czid_id, full_czid_id, name,event_id) %>% 
-  dplyr::summarize(nt_e_value3 = mean(rep(nt_e_value2, nt_count)))
+  left_join(clinical_data %>% distinct(participant_id, sample_id, event_type)) %>%
+  group_by(czid_id, full_czid_id, name,event_id,event_type, sample_id, participant_id) %>% 
+  dplyr::summarize(nt_e_value3 = mean(rep(nt_e_value2, nt_count))) 
 
 ```
 
@@ -1355,8 +1356,13 @@ nasal_ready <- nasal_reports %>%
   rowwise() %>%
   mutate(nt_e_value2 = (eval(parse(text = nt_e_value)))) %>%
   group_by(full_czid_id, name) %>% 
-  dplyr::summarize(nt_e_value3 = mean(rep(nt_e_value2, nt_count))) ## weighted average
+  dplyr::summarize(nt_e_value3 = mean(rep(nt_e_value2, nt_count)))%>%## weighted average
 ## Have to combine the Anelloviridae RPMs (with a weighted average)
+  left_join(nasal_metagenomics_metadata %>%
+              select(core_specific_ID, sample_id, participant_id),
+            by = c("full_czid_id" = "core_specific_ID")) %>%
+  left_join(clinical_data %>% select(sample_id, event_id, event_type)) %>%
+  select(-sample_id)
 
 
 ### EA ####
@@ -1389,7 +1395,12 @@ ea_ready <- ea_reports %>%
   rowwise() %>%
   mutate(nt_e_value2 = (eval(parse(text = nt_e_value)))) %>%
   group_by(full_czid_id, name) %>% 
-  dplyr::summarize(nt_e_value3 = mean(rep(nt_e_value2, nt_count)))
+  dplyr::summarize(nt_e_value3 = mean(rep(nt_e_value2, nt_count))) %>%
+  left_join(ea_metagenomics_metadata %>%
+              select(core_specific_ID, sample_id, participant_id),
+            by = c("full_czid_id" = "core_specific_ID")) %>%
+  left_join(clinical_data %>% select(sample_id, event_id, event_type)) %>%
+  select(-sample_id)
 
 ##### Combine them all #####
 all_ready <- plyr::rbind.fill(pbmc_ready %>% mutate(omic = "PBMC"),
@@ -1416,9 +1427,11 @@ ggS2I
 ggsave(paste0(out_dir, "FigureS2I.pdf"), width =6.5,height = 4)
 ## Randomized particpant_id
 write_csv(ggS2I$data %>% select(-czid_id, -full_czid_id) %>%
-            left_join(clinical_data %>% distinct(participant_id, event_id, event_type)) %>%
             mutate(participant_id = as.numeric(as.factor(participant_id))) %>%
-            select(-event_id),
+            mutate(participant_id = ifelse(is.na(participant_id),
+                                           "322",
+                                           participant_id)) %>%
+            select(-event_id, -sample_id),
           paste0(out_dir, "source_data_FigureS2I.csv"))
 
 ```
