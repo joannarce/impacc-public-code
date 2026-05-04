@@ -1,0 +1,1283 @@
+---
+title: "test_cv_new"
+output: html_document
+date: "2024-12-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+load(file = "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/deep_dive_data_TG.Rdata")
+```
+
+```{r}
+# Load required libraries
+library(randomForest)
+library(pROC)
+library(caret)
+library(dplyr)
+
+visit1_data <- clinical_data_TG %>% filter(event_type == "Visit 1")
+
+Metabolomics_counts_TG <- Metabolomics_counts_TG[rownames(Metabolomics_counts_TG) %in% visit1_data$sample_id, ]
+visit1_data <- visit1_data[visit1_data$sample_id %in% rownames(Metabolomics_counts_TG), ]
+
+Metabolomics_counts_TG <- Metabolomics_counts_TG[visit1_data$sample_id, ]
+
+visit1_data <- visit1_data %>%  mutate(OUTCOME = case_when(
+    trajectory_group %in% c(1,2,3) ~ 0,
+    trajectory_group %in% c(4,5)  ~ 1
+    ))
+
+response <- visit1_data$OUTCOME
+table(response)
+
+# Initialize a list to store results
+auc_results <- list()
+
+# Define cross-validation setup
+cv_folds <- createFolds(response, k = 5, list = TRUE)
+
+# Loop through each super pathway
+for (pathway in unique(Metabolomics_rowfeature_TG$SUPER_PATHWAY)) {
+  # Get the metabolites belonging to the current pathway
+  pathway_metabolites <- rownames(Metabolomics_rowfeature_TG %>% filter(SUPER_PATHWAY == pathway))
+  
+  # Subset the Metabolomics_counts to include only the metabolites in the current pathway
+  pathway_data <- Metabolomics_counts_TG[, colnames(Metabolomics_counts_TG) %in% pathway_metabolites, drop = FALSE]
+  
+  # Ensure there are enough metabolites in this pathway for analysis
+  if (ncol(pathway_data) < 2) {
+    warning(paste("Skipping pathway:", pathway, "due to insufficient metabolites."))
+    next
+  }
+  
+  # Combine response and features
+  analysis_data <- data.frame(response = factor(response), pathway_data)
+  
+  # Initialize a vector to store fold AUCs
+  fold_aucs <- numeric(length(cv_folds))
+  
+  # Perform 5-fold cross-validation
+  for (i in seq_along(cv_folds)) {
+    # Split into training and testing sets
+    train_indices <- cv_folds[[i]]
+     test_data<- analysis_data[train_indices, ]
+     train_data<- analysis_data[-train_indices, ]
+    
+    # Train a random forest model
+    rf_model <- randomForest(response ~ ., data = train_data, ntree = 500, importance = TRUE)
+    
+    # Predict probabilities on the test set
+    rf_predictions <- predict(rf_model, newdata = test_data, type = "prob")[, 2]
+    
+    # Calculate AUC for this fold
+    fold_aucs[i] <- auc(roc(test_data$response, rf_predictions))
+  }
+  
+  # Store the average AUC for this pathway
+  auc_results[[pathway]] <- mean(fold_aucs, na.rm = TRUE)
+}
+
+# Convert the results to a data frame for easy viewing
+auc_results_df_severe <- data.frame(
+  SuperPathway = names(auc_results),
+  AUC = unlist(auc_results)
+)
+
+# Print the results
+print(auc_results_df_severe)
+
+
+```
+
+```{r}
+# Define cross-validation setup
+cv_folds <- createFolds(response, k = 5, list = TRUE)
+
+# Initialize a list to store ROC objects
+roc_list <- list()
+
+# Initialize a list to store AUC results
+auc_results <- list()
+
+# Loop through each super pathway
+for (pathway in unique(Metabolomics_rowfeature_TG$SUPER_PATHWAY)) {
+  # Get the metabolites belonging to the current pathway
+  pathway_metabolites <- rownames(Metabolomics_rowfeature_TG %>% filter(SUPER_PATHWAY == pathway))
+  
+  # Subset the Metabolomics_counts to include only the metabolites in the current pathway
+  pathway_data <- Metabolomics_counts_TG[, colnames(Metabolomics_counts_TG) %in% pathway_metabolites, drop = FALSE]
+  
+  # Ensure there are enough metabolites in this pathway for analysis
+  if (ncol(pathway_data) < 2) {
+    warning(paste("Skipping pathway:", pathway, "due to insufficient metabolites."))
+    next
+  }
+  
+  # Combine response and features
+  analysis_data <- data.frame(response = factor(response), pathway_data)
+  
+  # Initialize vectors to store predictions and true labels
+  all_predictions <- c()
+  all_true_labels <- c()
+  
+  # Perform 5-fold cross-validation
+  for (i in seq_along(cv_folds)) {
+    # Split into training and testing sets
+    train_indices <- cv_folds[[i]]
+     test_data <- analysis_data[train_indices, ]
+     train_data <- analysis_data[-train_indices, ]
+    
+    # Train a random forest model
+    rf_model <- randomForest(response ~ ., data = train_data, ntree = 500, importance = TRUE)
+    
+    # Predict probabilities on the test set
+    rf_predictions <- predict(rf_model, newdata = test_data, type = "prob")[, 2]
+    
+    # Store predictions and true labels for ROC analysis
+    all_predictions <- c(all_predictions, rf_predictions)
+    all_true_labels <- c(all_true_labels, test_data$response)
+  }
+  
+  # Calculate the ROC curve for the pathway
+  roc_curve <- roc(all_true_labels, all_predictions, quiet = TRUE)
+  roc_list[[pathway]] <- roc_curve
+  
+  # Store the average AUC for this pathway
+  auc_results[[pathway]] <- auc(roc_curve)
+}
+
+# Convert the results to a data frame for easy viewing
+auc_results_df <- data.frame(
+  SuperPathway = names(auc_results),
+  AUC = unlist(auc_results)
+)
+
+# Plot all ROC curves together
+roc_plot_data <- do.call(rbind, lapply(names(roc_list), function(pathway) {
+  roc_curve <- roc_list[[pathway]]
+  data.frame(
+    FPR = 1 - roc_curve$specificities,
+    TPR = roc_curve$sensitivities,
+    Pathway = pathway
+  )
+}))
+
+# Generate the ROC plot
+severe_roc_plot <- ggplot(roc_plot_data, aes(x = FPR, y = TPR, color = Pathway)) +
+  geom_line(size = 0.5) +
+  labs(
+    title = "ROC Curves for Acute",
+    x = "False Positive Rate",
+    y = "True Positive Rate",
+    color = "Pathway"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Print the plot
+print(severe_roc_plot)
+
+```
+
+```{r}
+
+# Initialize a list to store results
+auc_results <- list()
+roc_list <- list()
+
+# Define cross-validation setup
+cv_folds <- createFolds(response, k = 5, list = TRUE)
+Metabolomics_rowfeature_TG_AA = subset(Metabolomics_rowfeature_TG, Metabolomics_rowfeature_TG$SUPER_PATHWAY == "Amino Acid")
+# Loop through each super pathway
+for (pathway in unique(Metabolomics_rowfeature_TG_AA$SUB_PATHWAY)) {
+  # Get the metabolites belonging to the current pathway
+  pathway_metabolites <- rownames(Metabolomics_rowfeature_TG %>% filter(SUB_PATHWAY == pathway))
+  
+  # Subset the Metabolomics_counts to include only the metabolites in the current pathway
+  pathway_data <- Metabolomics_counts_TG[, colnames(Metabolomics_counts_TG) %in% pathway_metabolites, drop = FALSE]
+  
+  # Ensure there are enough metabolites in this pathway for analysis
+  if (ncol(pathway_data) < 2) {
+    warning(paste("Skipping pathway:", pathway, "due to insufficient metabolites."))
+    next
+  }
+  
+  # Combine response and features
+  analysis_data <- data.frame(response = factor(response), pathway_data)
+  
+  # Initialize vectors to store predictions and true labels
+  all_predictions <- c()
+  all_true_labels <- c()
+  
+  # Perform 5-fold cross-validation
+  for (i in seq_along(cv_folds)) {
+    # Split into training and testing sets
+    train_indices <- cv_folds[[i]]
+    test_data <- analysis_data[train_indices, ]
+    train_data <- analysis_data[-train_indices, ]
+    
+    # Train a random forest model
+    rf_model <- randomForest(response ~ ., data = train_data, ntree = 500, importance = TRUE)
+    
+    # Predict probabilities on the test set
+    rf_predictions <- predict(rf_model, newdata = test_data, type = "prob")[, 2]
+    
+    # Store predictions and true labels for ROC analysis
+    all_predictions <- c(all_predictions, rf_predictions)
+    all_true_labels <- c(all_true_labels, test_data$response)
+  }
+  
+  # Calculate the ROC curve for the pathway
+  roc_curve <- roc(all_true_labels, all_predictions, quiet = TRUE)
+  roc_list[[pathway]] <- roc_curve
+  
+  # Store the average AUC for this pathway
+  auc_results[[pathway]] <- auc(roc_curve)
+}
+
+# Convert the results to a data frame for easy viewing
+auc_results_df_severe_aa <- data.frame(
+  SubPathway = names(auc_results),
+  AUC = unlist(auc_results)
+)
+
+# Print the results
+print(auc_results_df_severe_aa)
+
+# Plot all ROC curves together
+roc_plot_data_aa <- do.call(rbind, lapply(names(roc_list), function(pathway) {
+  roc_curve <- roc_list[[pathway]]
+  data.frame(
+    FPR = 1 - roc_curve$specificities,
+    TPR = roc_curve$sensitivities,
+    Pathway = pathway
+  )
+}))
+
+# Generate the ROC plot
+severe_roc_plot_aa <- ggplot(roc_plot_data_aa, aes(x = FPR, y = TPR, color = Pathway)) +
+  geom_line(size = 1) +
+  labs(
+    title = "ROC Curves for severe",
+    x = "False Positive Rate",
+    y = "True Positive Rate",
+    color = "Pathway"
+  ) +
+  theme_minimal() +
+  theme(legend.position = NULL)
+
+# Print the plot
+print(severe_roc_plot_aa)
+
+
+```
+```{r}
+
+# Initialize a list to store results
+auc_results <- list()
+roc_list <- list()
+
+# Define cross-validation setup
+cv_folds <- createFolds(response, k = 5, list = TRUE)
+Metabolomics_rowfeature_TG_L = subset(Metabolomics_rowfeature_TG, Metabolomics_rowfeature_TG$SUPER_PATHWAY == "Lipid")
+# Loop through each super pathway
+for (pathway in unique(Metabolomics_rowfeature_TG_L$SUB_PATHWAY)) {
+  # Get the metabolites belonging to the current pathway
+  pathway_metabolites <- rownames(Metabolomics_rowfeature_TG %>% filter(SUB_PATHWAY == pathway))
+  
+  # Subset the Metabolomics_counts to include only the metabolites in the current pathway
+  pathway_data <- Metabolomics_counts_TG[, colnames(Metabolomics_counts_TG) %in% pathway_metabolites, drop = FALSE]
+  
+   # Ensure there are enough metabolites in this pathway for analysis
+  if (ncol(pathway_data) < 2) {
+    warning(paste("Skipping pathway:", pathway, "due to insufficient metabolites."))
+    next
+  }
+  
+  # Combine response and features
+  analysis_data <- data.frame(response = factor(response), pathway_data)
+  
+  # Initialize vectors to store predictions and true labels
+  all_predictions <- c()
+  all_true_labels <- c()
+  
+  # Perform 5-fold cross-validation
+  for (i in seq_along(cv_folds)) {
+    # Split into training and testing sets
+    train_indices <- cv_folds[[i]]
+    test_data <- analysis_data[train_indices, ]
+    train_data <- analysis_data[-train_indices, ]
+    
+    # Train a random forest model
+    rf_model <- randomForest(response ~ ., data = train_data, ntree = 500, importance = TRUE)
+    
+    # Predict probabilities on the test set
+    rf_predictions <- predict(rf_model, newdata = test_data, type = "prob")[, 2]
+    
+    # Store predictions and true labels for ROC analysis
+    all_predictions <- c(all_predictions, rf_predictions)
+    all_true_labels <- c(all_true_labels, test_data$response)
+  }
+  
+  # Calculate the ROC curve for the pathway
+  roc_curve <- roc(all_true_labels, all_predictions, quiet = TRUE)
+  roc_list[[pathway]] <- roc_curve
+  
+  # Store the average AUC for this pathway
+  auc_results[[pathway]] <- auc(roc_curve)
+}
+
+# Convert the results to a data frame for easy viewing
+auc_results_df_severe_lipid <- data.frame(
+  SubPathway = names(auc_results),
+  AUC = unlist(auc_results)
+)
+
+# Print the results
+print(auc_results_df_severe_lipid)
+# Plot all ROC curves together
+roc_plot_data_lipid <- do.call(rbind, lapply(names(roc_list), function(pathway) {
+  roc_curve <- roc_list[[pathway]]
+  data.frame(
+    FPR = 1 - roc_curve$specificities,
+    TPR = roc_curve$sensitivities,
+    Pathway = pathway
+  )
+}))
+
+# Generate the ROC plot
+severe_roc_plot_lipid <- ggplot(roc_plot_data_lipid, aes(x = FPR, y = TPR, color = Pathway)) +
+  geom_line(size = 1) +
+  labs(
+    title = "ROC Curves for severe",
+    x = "False Positive Rate",
+    y = "True Positive Rate",
+    color = "Pathway"
+  ) +
+  theme_minimal() +
+  theme(legend.position = NULL)
+
+# Print the plot
+print(severe_roc_plot_lipid)
+
+
+```
+
+```{r}
+load("/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/deep_dive_TG.Rdata")
+load( "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/PRO_data_use_heatmap_v7.Rdata")
+load( "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/D_data_use_heatmap.Rdata")
+```
+
+```{r}
+S_sig = subset(lr_output_123_baseline, lr_output_123_baseline$qval <= 0.05)
+# Initialize a list to store results
+auc_results <- list()
+
+# Define cross-validation setup
+cv_folds <- createFolds(response, k = 5, list = TRUE)
+Metabolomics_rowfeature_TG_AA = subset(Metabolomics_rowfeature_TG, Metabolomics_rowfeature_TG$SUPER_PATHWAY == "Amino Acid")
+Metabolomics_rowfeature_TG_AA = subset(Metabolomics_rowfeature_TG_AA, Metabolomics_rowfeature_TG_AA$CHEMICAL_NAME %in%  S_sig$Name)
+Metabolomics_counts_TG_aa  = Metabolomics_counts_TG[,rownames(Metabolomics_rowfeature_TG_AA)]
+# Loop through each super pathway
+for (pathway in unique(Metabolomics_rowfeature_TG_AA$SUB_PATHWAY)) {
+  # Get the metabolites belonging to the current pathway
+  pathway_metabolites <- rownames(Metabolomics_rowfeature_TG_AA %>% filter(SUB_PATHWAY == pathway))
+  
+  # Subset the Metabolomics_counts to include only the metabolites in the current pathway
+  pathway_data <- Metabolomics_counts_TG_aa[, colnames(Metabolomics_counts_TG_aa) %in% pathway_metabolites, drop = FALSE]
+  
+  # Ensure there are enough metabolites in this pathway for analysis
+  if (ncol(pathway_data) < 2) {
+    warning(paste("Skipping pathway:", pathway, "due to insufficient metabolites."))
+    next
+  }
+  
+  # Combine response and features
+  analysis_data <- data.frame(response = factor(response), pathway_data)
+  
+  # Initialize a vector to store fold AUCs
+  fold_aucs <- numeric(length(cv_folds))
+  
+  # Perform 5-fold cross-validation
+  for (i in seq_along(cv_folds)) {
+    # Split into training and testing sets
+    train_indices <- cv_folds[[i]]
+    test_data <- analysis_data[train_indices, ]
+    train_data <- analysis_data[-train_indices, ]
+    
+    # Train a random forest model
+    rf_model <- randomForest(response ~ ., data = train_data, ntree = 500, importance = TRUE)
+    
+    # Predict probabilities on the test set
+    rf_predictions <- predict(rf_model, newdata = test_data, type = "prob")[, 2]
+    
+    # Calculate AUC for this fold
+    fold_aucs[i] <- auc(roc(test_data$response, rf_predictions))
+  }
+  
+  # Store the average AUC for this pathway
+  auc_results[[pathway]] <- mean(fold_aucs, na.rm = TRUE)
+}
+
+# Convert the results to a data frame for easy viewing
+auc_results_df_severe_aa_sig <- data.frame(
+  SubPathway = names(auc_results),
+  AUC = unlist(auc_results)
+)
+
+# Print the results
+print(auc_results_df_severe_aa_sig)
+
+
+```
+
+
+```{r}
+
+# Initialize a list to store results
+auc_results <- list()
+
+# Define cross-validation setup
+cv_folds <- createFolds(response, k = 5, list = TRUE)
+Metabolomics_rowfeature_TG_L = subset(Metabolomics_rowfeature_TG, Metabolomics_rowfeature_TG$SUPER_PATHWAY == "Lipid")
+Metabolomics_rowfeature_TG_L = subset(Metabolomics_rowfeature_TG_L, Metabolomics_rowfeature_TG_L$CHEMICAL_NAME %in%  S_sig$Name)
+Metabolomics_counts_TG_l  = Metabolomics_counts_TG[,rownames(Metabolomics_rowfeature_TG_L)]
+# Loop through each super pathway
+for (pathway in unique(Metabolomics_rowfeature_TG_L$SUB_PATHWAY)) {
+  # Get the metabolites belonging to the current pathway
+  pathway_metabolites <- rownames(Metabolomics_rowfeature_TG_L %>% filter(SUB_PATHWAY == pathway))
+  
+  # Subset the Metabolomics_counts to include only the metabolites in the current pathway
+  pathway_data <- Metabolomics_counts_TG_l[, colnames(Metabolomics_counts_TG_l) %in% pathway_metabolites, drop = FALSE]
+  
+  # Ensure there are enough metabolites in this pathway for analysis
+  if (ncol(pathway_data) < 2) {
+    warning(paste("Skipping pathway:", pathway, "due to insufficient metabolites."))
+    next
+  }
+  
+  # Combine response and features
+  analysis_data <- data.frame(response = factor(response), pathway_data)
+  
+  # Initialize a vector to store fold AUCs
+  fold_aucs <- numeric(length(cv_folds))
+  
+  # Perform 5-fold cross-validation
+  for (i in seq_along(cv_folds)) {
+    # Split into training and testing sets
+    train_indices <- cv_folds[[i]]
+    test_data <- analysis_data[train_indices, ]
+    train_data <- analysis_data[-train_indices, ]
+    
+    # Train a random forest model
+    rf_model <- randomForest(response ~ ., data = train_data, ntree = 500, importance = TRUE)
+    
+    # Predict probabilities on the test set
+    rf_predictions <- predict(rf_model, newdata = test_data, type = "prob")[, 2]
+    
+    # Calculate AUC for this fold
+    fold_aucs[i] <- auc(roc(test_data$response, rf_predictions))
+  }
+  
+  # Store the average AUC for this pathway
+  auc_results[[pathway]] <- mean(fold_aucs, na.rm = TRUE)
+}
+
+# Convert the results to a data frame for easy viewing
+auc_results_df_severe_lipid_sig <- data.frame(
+  SubPathway = names(auc_results),
+  AUC = unlist(auc_results)
+)
+
+# Print the results
+print(auc_results_df_severe_lipid_sig)
+
+
+```
+#predict fatal 
+```{ r}
+
+
+visit1_data <- visit1_data %>%  mutate(OUTCOME = case_when(
+    trajectory_group %in% c(1,2,3,4) ~ 0,
+    trajectory_group %in% c(5)  ~ 1
+    ))
+
+response <- visit1_data$OUTCOME
+table(response)
+
+auc_results <- list()
+cv_folds <- createFolds(response, k = 5, list = TRUE)
+lapply(cv_folds, function(fold_indices) table(response[fold_indices]))
+
+
+# Loop through each super pathway
+for (pathway in unique(Metabolomics_rowfeature_TG$SUPER_PATHWAY)) {
+  # Get the metabolites belonging to the current pathway
+  pathway_metabolites <- rownames(Metabolomics_rowfeature_TG %>% filter(SUPER_PATHWAY == pathway))
+  
+  # Subset the Metabolomics_counts to include only the metabolites in the current pathway
+  pathway_data <- Metabolomics_counts_TG[, colnames(Metabolomics_counts_TG) %in% pathway_metabolites, drop = FALSE]
+  
+  # Ensure there are enough metabolites in this pathway for analysis
+  if (ncol(pathway_data) < 2) {
+    warning(paste("Skipping pathway:", pathway, "due to insufficient metabolites."))
+    next
+  }
+  
+ # Initialize a vector to store fold AUCs
+  fold_aucs <- numeric(length(cv_folds))
+  
+  # Perform 5-fold cross-validation
+  for (i in seq_along(cv_folds)) {
+    # Split into training and testing sets
+    train_indices <- cv_folds[[i]]
+    train_data <- analysis_data[train_indices, ]
+    test_data <- analysis_data[-train_indices, ]
+    
+    # Train a random forest model
+    rf_model <- randomForest(response ~ ., data = train_data, ntree = 500, importance = TRUE,classwt = c(1,0.1))
+    
+    # Predict probabilities on the test set
+    rf_predictions <- predict(rf_model, newdata = test_data, type = "prob")[, 2]
+    
+    # Calculate AUC for this fold
+    fold_aucs[i] <- auc(roc(test_data$response, rf_predictions))
+  }
+  
+  # Store the average AUC for this pathway
+  auc_results[[pathway]] <- mean(fold_aucs, na.rm = TRUE)
+}
+
+# Convert the results to a data frame for easy viewing
+auc_results_df_fatal <- data.frame(
+  SuperPathway = names(auc_results),
+  AUC = unlist(auc_results)
+)
+
+# Print the results
+print(auc_results_df_fatal)
+
+```
+
+```{r}
+load("/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/deep_dive_data.Rdata")
+
+Metabolomics_counts_conv = Metabolomics_counts_conv[clinical_data$sample_id,]
+plasma_metabolomics_global_rowfeature = Metabolomics_rowfeature
+
+
+visit1_data <- clinical_data %>% filter(event_type == "Visit 1")
+
+Metabolomics_counts_conv <- Metabolomics_counts_conv[rownames(Metabolomics_counts_conv) %in% visit1_data$sample_id, ]
+visit1_data <- visit1_data[visit1_data$sample_id %in% rownames(Metabolomics_counts_conv), ]
+
+Metabolomics_counts_conv <- Metabolomics_counts_conv[visit1_data$sample_id, ]
+
+visit1_data <- visit1_data %>%  mutate(OUTCOME = case_when(
+    conv_cluster4 %in% c(1) ~ 0,
+    conv_cluster4 %in% c(2,5,6)  ~ 1
+    ))
+
+response <- visit1_data$OUTCOME
+table(response)
+
+auc_results <- list()
+cv_folds <- createFolds(response, k = 5, list = TRUE)
+
+# Loop through each super pathway
+for (pathway in unique(plasma_metabolomics_global_rowfeature$SUPER_PATHWAY)) {
+  # Get the metabolites belonging to the current pathway
+  pathway_metabolites <- rownames(plasma_metabolomics_global_rowfeature %>% filter(SUPER_PATHWAY == pathway))
+  
+  # Subset the Metabolomics_counts to include only the metabolites in the current pathway
+  pathway_data <- Metabolomics_counts_conv[, colnames(Metabolomics_counts_conv) %in% pathway_metabolites, drop = FALSE]
+  
+  # Ensure there are enough metabolites in this pathway for analysis
+  if (ncol(pathway_data) < 2) {
+    warning(paste("Skipping pathway:", pathway, "due to insufficient metabolites."))
+    next
+  }
+  
+  # Combine response and features
+  analysis_data <- data.frame(response = factor(response), pathway_data)
+  
+ # Initialize a vector to store fold AUCs
+  fold_aucs <- numeric(length(cv_folds))
+  
+  # Perform 5-fold cross-validation
+  for (i in seq_along(cv_folds)) {
+    # Split into training and testing sets
+    train_indices <- cv_folds[[i]]
+    test_data <- analysis_data[train_indices, ]
+    train_data <- analysis_data[-train_indices, ]
+    
+    # Train a random forest model
+    rf_model <- randomForest(response ~ ., data = train_data, ntree = 500, importance = TRUE)
+    
+    # Predict probabilities on the test set
+    rf_predictions <- predict(rf_model, newdata = test_data, type = "prob")[, 2]
+    
+    # Calculate AUC for this fold
+    fold_aucs[i] <- auc(roc(test_data$response, rf_predictions))
+  }
+  
+  # Store the average AUC for this pathway
+  auc_results[[pathway]] <- mean(fold_aucs, na.rm = TRUE)
+}
+
+# Convert the results to a data frame for easy viewing
+auc_results_df_PRO <- data.frame(
+  SuperPathway = names(auc_results),
+  AUC = unlist(auc_results)
+)
+
+# Print the results
+print(auc_results_df_PRO)
+
+```
+```{r}
+# Define cross-validation setup
+cv_folds <- createFolds(response, k = 5, list = TRUE)
+
+# Initialize a list to store ROC objects
+roc_list <- list()
+
+# Initialize a list to store AUC results
+auc_results <- list()
+
+# Loop through each super pathway
+for (pathway in unique(plasma_metabolomics_global_rowfeature$SUPER_PATHWAY)) {
+  # Get the metabolites belonging to the current pathway
+  pathway_metabolites <- rownames(plasma_metabolomics_global_rowfeature %>% filter(SUPER_PATHWAY == pathway))
+  
+  # Subset the Metabolomics_counts to include only the metabolites in the current pathway
+  pathway_data <- Metabolomics_counts_conv[, colnames(Metabolomics_counts_conv) %in% pathway_metabolites, drop = FALSE]
+  
+  # Ensure there are enough metabolites in this pathway for analysis
+  if (ncol(pathway_data) < 2) {
+    warning(paste("Skipping pathway:", pathway, "due to insufficient metabolites."))
+    next
+  }
+  
+  # Combine response and features
+  analysis_data <- data.frame(response = factor(response), pathway_data)
+  
+  # Initialize vectors to store predictions and true labels
+  all_predictions <- c()
+  all_true_labels <- c()
+  
+  # Perform 5-fold cross-validation
+  for (i in seq_along(cv_folds)) {
+    # Split into training and testing sets
+    train_indices <- cv_folds[[i]]
+    test_data <- analysis_data[train_indices, ]
+    train_data <- analysis_data[-train_indices, ]
+    
+    # Train a random forest model
+    rf_model <- randomForest(response ~ ., data = train_data, ntree = 500, importance = TRUE)
+    
+    # Predict probabilities on the test set
+    rf_predictions <- predict(rf_model, newdata = test_data, type = "prob")[, 2]
+    
+    # Store predictions and true labels for ROC analysis
+    all_predictions <- c(all_predictions, rf_predictions)
+    all_true_labels <- c(all_true_labels, test_data$response)
+  }
+  
+  # Calculate the ROC curve for the pathway
+  roc_curve <- roc(all_true_labels, all_predictions, quiet = TRUE)
+  roc_list[[pathway]] <- roc_curve
+  
+  # Store the average AUC for this pathway
+  auc_results[[pathway]] <- auc(roc_curve)
+}
+
+# Convert the results to a data frame for easy viewing
+auc_results_df <- data.frame(
+  SuperPathway = names(auc_results),
+  AUC = unlist(auc_results)
+)
+
+# Plot all ROC curves together
+roc_plot_data <- do.call(rbind, lapply(names(roc_list), function(pathway) {
+  roc_curve <- roc_list[[pathway]]
+  data.frame(
+    FPR = 1 - roc_curve$specificities,
+    TPR = roc_curve$sensitivities,
+    Pathway = pathway
+  )
+}))
+
+# Generate the ROC plot
+PRO_roc_plot <- ggplot(roc_plot_data, aes(x = FPR, y = TPR, color = Pathway)) +
+  geom_line(size = 0.5) +
+  labs(
+    title = "ROC Curves for Long COVID",
+    x = "False Positive Rate",
+    y = "True Positive Rate",
+    color = "Pathway"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Print the plot
+print(PRO_roc_plot)
+
+```
+```{r}
+b = ggarrange(PRO_roc_plot, severe_roc_plot, ncol = 1)
+```
+
+```{r}
+
+auc_results <- list()
+# Initialize a list to store ROC objects
+roc_list <- list()
+cv_folds <- createFolds(response, k = 5, list = TRUE)
+plasma_metabolomics_global_rowfeature_AA = subset(plasma_metabolomics_global_rowfeature, plasma_metabolomics_global_rowfeature$SUPER_PATHWAY == "Amino Acid")
+# Loop through each super pathway
+for (pathway in unique(plasma_metabolomics_global_rowfeature_AA$SUB_PATHWAY)) {
+  # Get the metabolites belonging to the current pathway
+  pathway_metabolites <- rownames(plasma_metabolomics_global_rowfeature %>% filter(SUB_PATHWAY == pathway))
+  
+  # Subset the Metabolomics_counts to include only the metabolites in the current pathway
+  pathway_data <- Metabolomics_counts_conv[, colnames(Metabolomics_counts_conv) %in% pathway_metabolites, drop = FALSE]
+  
+  # Ensure there are enough metabolites in this pathway for analysis
+  if (ncol(pathway_data) < 2) {
+    warning(paste("Skipping pathway:", pathway, "due to insufficient metabolites."))
+    next
+  }
+  
+  # Combine response and features
+  analysis_data <- data.frame(response = factor(response), pathway_data)
+  
+  # Initialize vectors to store predictions and true labels
+  all_predictions <- c()
+  all_true_labels <- c()
+  
+  # Perform 5-fold cross-validation
+  for (i in seq_along(cv_folds)) {
+    # Split into training and testing sets
+    train_indices <- cv_folds[[i]]
+     test_data<- analysis_data[train_indices, ]
+    train_data <- analysis_data[-train_indices, ]
+    
+    # Train a random forest model
+    rf_model <- randomForest(response ~ ., data = train_data, ntree = 500, importance = TRUE)
+    
+    # Predict probabilities on the test set
+    rf_predictions <- predict(rf_model, newdata = test_data, type = "prob")[, 2]
+    
+    # Store predictions and true labels for ROC analysis
+    all_predictions <- c(all_predictions, rf_predictions)
+    all_true_labels <- c(all_true_labels, test_data$response)
+  }
+  
+  # Calculate the ROC curve for the pathway
+  roc_curve <- roc(all_true_labels, all_predictions, quiet = TRUE)
+  roc_list[[pathway]] <- roc_curve
+  
+  # Store the average AUC for this pathway
+  auc_results[[pathway]] <- auc(roc_curve)
+}
+
+# Convert the results to a data frame for easy viewing
+auc_results_df_PRO_aa <- data.frame(
+  SubPathway = names(auc_results),
+  AUC = unlist(auc_results)
+)
+
+# Plot all ROC curves together
+roc_plot_data_aa <- do.call(rbind, lapply(names(roc_list), function(pathway) {
+  roc_curve <- roc_list[[pathway]]
+  data.frame(
+    FPR = 1 - roc_curve$specificities,
+    TPR = roc_curve$sensitivities,
+    Pathway = pathway
+  )
+}))
+
+# Print the results
+print(auc_results_df_PRO_aa)
+
+# Generate the ROC plot
+PRO_roc_plot_aa <- ggplot(roc_plot_data_aa, aes(x = FPR, y = TPR, color = Pathway)) +
+  geom_line(size = 1) +
+  labs(
+    title = "ROC Curves for PRO",
+    x = "False Positive Rate",
+    y = "True Positive Rate",
+    color = "Pathway"
+  ) +
+  theme_minimal() +
+  theme(legend.position =NULL)
+
+# Print the plot
+print(PRO_roc_plot_aa)
+
+
+```
+
+```{r}
+
+auc_results <- list()
+roc_list <- list()
+cv_folds <- createFolds(response, k = 5, list = TRUE)
+plasma_metabolomics_global_rowfeature_L = subset(plasma_metabolomics_global_rowfeature, plasma_metabolomics_global_rowfeature$SUPER_PATHWAY == "Lipid")
+# Loop through each super pathway
+for (pathway in unique(plasma_metabolomics_global_rowfeature_L$SUB_PATHWAY)) {
+  # Get the metabolites belonging to the current pathway
+  pathway_metabolites <- rownames(plasma_metabolomics_global_rowfeature %>% filter(SUB_PATHWAY == pathway))
+  
+  # Subset the Metabolomics_counts to include only the metabolites in the current pathway
+  pathway_data <- Metabolomics_counts_conv[, colnames(Metabolomics_counts_conv) %in% pathway_metabolites, drop = FALSE]
+  
+  # Ensure there are enough metabolites in this pathway for analysis
+  if (ncol(pathway_data) < 2) {
+    warning(paste("Skipping pathway:", pathway, "due to insufficient metabolites."))
+    next
+  }
+  
+  # Combine response and features
+  analysis_data <- data.frame(response = factor(response), pathway_data)
+  
+  # Initialize vectors to store predictions and true labels
+  all_predictions <- c()
+  all_true_labels <- c()
+  
+  # Perform 5-fold cross-validation
+  for (i in seq_along(cv_folds)) {
+    # Split into training and testing sets
+    train_indices <- cv_folds[[i]]
+    test_data <- analysis_data[train_indices, ]
+    train_data <- analysis_data[-train_indices, ]
+    
+    # Train a random forest model
+    rf_model <- randomForest(response ~ ., data = train_data, ntree = 500, importance = TRUE)
+    
+    # Predict probabilities on the test set
+    rf_predictions <- predict(rf_model, newdata = test_data, type = "prob")[, 2]
+    
+    # Store predictions and true labels for ROC analysis
+    all_predictions <- c(all_predictions, rf_predictions)
+    all_true_labels <- c(all_true_labels, test_data$response)
+  }
+  
+  # Calculate the ROC curve for the pathway
+  roc_curve <- roc(all_true_labels, all_predictions, quiet = TRUE)
+  roc_list[[pathway]] <- roc_curve
+  
+  # Store the average AUC for this pathway
+  auc_results[[pathway]] <- auc(roc_curve)
+}
+
+#  Convert the results to a data frame for easy viewing
+auc_results_df_PRO_lipid <- data.frame(
+  SubPathway = names(auc_results),
+  AUC = unlist(auc_results)
+)
+
+# Plot all ROC curves together
+roc_plot_data_lipid <- do.call(rbind, lapply(names(roc_list), function(pathway) {
+  roc_curve <- roc_list[[pathway]]
+  data.frame(
+    FPR = 1 - roc_curve$specificities,
+    TPR = roc_curve$sensitivities,
+    Pathway = pathway
+  )
+}))
+
+# Print the results
+print(auc_results_df_PRO_lipid)
+
+# Generate the ROC plot
+PRO_roc_plot_lipid <- ggplot(roc_plot_data_lipid, aes(x = FPR, y = TPR, color = Pathway)) +
+  geom_line(size = 1) +
+  labs(
+    title = "ROC Curves for PRO",
+    x = "False Positive Rate",
+    y = "True Positive Rate",
+    color = "Pathway"
+  ) +
+  theme_minimal() +
+  theme(legend.position = NULL)
+
+# Print the plot
+print(PRO_roc_plot_lipid)
+
+```
+
+```{r}
+
+auc_results <- list()
+cv_folds <- createFolds(response, k = 5, list = TRUE)
+plasma_metabolomics_global_rowfeature_AA = subset(plasma_metabolomics_global_rowfeature, plasma_metabolomics_global_rowfeature$SUPER_PATHWAY == "Amino Acid")
+plasma_metabolomics_global_rowfeature_AA = subset(plasma_metabolomics_global_rowfeature_AA, plasma_metabolomics_global_rowfeature_AA$CHEMICAL_NAME %in% S_sig$Name)
+Metabolomics_counts_conv_AA = Metabolomics_counts_conv[,rownames(plasma_metabolomics_global_rowfeature_AA)]
+# Loop through each super pathway
+for (pathway in unique(plasma_metabolomics_global_rowfeature_AA$SUB_PATHWAY)) {
+  # Get the metabolites belonging to the current pathway
+  pathway_metabolites <- rownames(plasma_metabolomics_global_rowfeature_AA %>% filter(SUB_PATHWAY == pathway))
+  
+  # Subset the Metabolomics_counts to include only the metabolites in the current pathway
+  pathway_data <- Metabolomics_counts_conv_AA[, colnames(Metabolomics_counts_conv_AA) %in% pathway_metabolites, drop = FALSE]
+  
+  # Ensure there are enough metabolites in this pathway for analysis
+  if (ncol(pathway_data) < 2) {
+    warning(paste("Skipping pathway:", pathway, "due to insufficient metabolites."))
+    next
+  }
+  
+  # Combine response and features
+  analysis_data <- data.frame(response = factor(response), pathway_data)
+  
+ # Initialize a vector to store fold AUCs
+  fold_aucs <- numeric(length(cv_folds))
+  
+  # Perform 5-fold cross-validation
+  for (i in seq_along(cv_folds)) {
+    # Split into training and testing sets
+    train_indices <- cv_folds[[i]]
+     test_data<- analysis_data[train_indices, ]
+     train_data<- analysis_data[-train_indices, ]
+    
+    # Train a random forest model
+    rf_model <- randomForest(response ~ ., data = train_data, ntree = 500, importance = TRUE)
+    
+    # Predict probabilities on the test set
+    rf_predictions <- predict(rf_model, newdata = test_data, type = "prob")[, 2]
+    
+    # Calculate AUC for this fold
+    fold_aucs[i] <- auc(roc(test_data$response, rf_predictions))
+  }
+  
+  # Store the average AUC for this pathway
+  auc_results[[pathway]] <- mean(fold_aucs, na.rm = TRUE)
+}
+
+# Convert the results to a data frame for easy viewing
+auc_results_df_PRO_aa_sig <- data.frame(
+  SubPathway = names(auc_results),
+  AUC = unlist(auc_results)
+)
+
+# Print the results
+print(auc_results_df_PRO_aa_sig)
+
+```
+
+```{r}
+
+auc_results <- list()
+cv_folds <- createFolds(response, k = 5, list = TRUE)
+plasma_metabolomics_global_rowfeature_L = subset(plasma_metabolomics_global_rowfeature, plasma_metabolomics_global_rowfeature$SUPER_PATHWAY == "Lipid")
+plasma_metabolomics_global_rowfeature_L = subset(plasma_metabolomics_global_rowfeature_L, plasma_metabolomics_global_rowfeature_L$CHEMICAL_NAME %in% S_sig$Name)
+Metabolomics_counts_conv_l = Metabolomics_counts_conv[,rownames(plasma_metabolomics_global_rowfeature_L)]
+# Loop through each super pathway
+for (pathway in unique(plasma_metabolomics_global_rowfeature_L$SUB_PATHWAY)) {
+  # Get the metabolites belonging to the current pathway
+  pathway_metabolites <- rownames(plasma_metabolomics_global_rowfeature_L %>% filter(SUB_PATHWAY == pathway))
+  
+  # Subset the Metabolomics_counts to include only the metabolites in the current pathway
+  pathway_data <- Metabolomics_counts_conv_l[, colnames(Metabolomics_counts_conv_l) %in% pathway_metabolites, drop = FALSE]
+  
+  # Ensure there are enough metabolites in this pathway for analysis
+  if (ncol(pathway_data) < 2) {
+    warning(paste("Skipping pathway:", pathway, "due to insufficient metabolites."))
+    next
+  }
+  
+  # Combine response and features
+  analysis_data <- data.frame(response = factor(response), pathway_data)
+  
+ # Initialize a vector to store fold AUCs
+  fold_aucs <- numeric(length(cv_folds))
+  
+  # Perform 5-fold cross-validation
+  for (i in seq_along(cv_folds)) {
+    # Split into training and testing sets
+    train_indices <- cv_folds[[i]]
+    test_data <- analysis_data[train_indices, ]
+    train_data <- analysis_data[-train_indices, ]
+    
+    # Train a random forest model
+    rf_model <- randomForest(response ~ ., data = train_data, ntree = 500, importance = TRUE)
+    
+    # Predict probabilities on the test set
+    rf_predictions <- predict(rf_model, newdata = test_data, type = "prob")[, 2]
+    
+    # Calculate AUC for this fold
+    fold_aucs[i] <- auc(roc(test_data$response, rf_predictions))
+  }
+  
+  # Store the average AUC for this pathway
+  auc_results[[pathway]] <- mean(fold_aucs, na.rm = TRUE)
+}
+
+# Convert the results to a data frame for easy viewing
+auc_results_df_PRO_lipid_sig <- data.frame(
+  SubPathway = names(auc_results),
+  AUC = unlist(auc_results)
+)
+
+# Print the results
+print(auc_results_df_PRO_lipid_sig)
+
+```
+
+```{r}
+auc_results_df_PRO <- auc_results_df_PRO %>%
+  dplyr::rename(AUC_PRO = AUC)
+
+auc_results_df_severe <- auc_results_df_severe %>%
+  dplyr::rename(AUC_Severe = AUC)
+
+#auc_results_df_fatal <- auc_results_df_fatal %>%
+#  dplyr::rename(AUC_Fatal = AUC)
+
+# Merge the three data frames by SuperPathway
+merged_auc_df <- auc_results_df_PRO %>%
+  full_join(auc_results_df_severe, by = "SuperPathway") 
+
+# Replace missing values (if any) with NA or 0
+merged_auc_df[is.na(merged_auc_df)] <- 0
+
+# Convert the data frame into a matrix for heatmap generation
+auc_matrix <- as.matrix(merged_auc_df[, -1]) # Exclude the "SuperPathway" column
+rownames(auc_matrix) <- merged_auc_df$SuperPathway
+library(pheatmap)
+# Generate the heatmap
+colnames(auc_matrix)[1] = "AUC_LongCOVID"
+colnames(auc_matrix)[2] = "AUC_Acute"
+auc_matrix = auc_matrix[c("Amino Acid", "Carbohydrate","Cofactors and Vitamins","Energy","Lipid", "Partially Characterized Molecules","Peptide","Xenobiotics"),]
+pheatmap(
+  auc_matrix,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  scale = "none",
+  display_numbers = TRUE,
+  main = "AUC Heatmap by Super Pathway",
+  color = colorRampPalette(c("blue", "white", "red"))(50)
+)
+auc_matrix_ordered <- auc_matrix[order(auc_matrix[, "AUC_Acute"], decreasing = TRUE), ]
+
+pheatmap(
+  auc_matrix_ordered,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  scale = "none",
+  display_numbers = TRUE,
+  main = "AUC Heatmap by Super Pathway",
+  color = colorRampPalette(c("blue", "white", "red"))(50),
+  breaks = seq(0.5, 1, length.out = 51)  # 50 colors = 51 breaks
+)
+
+a = pheatmap(
+  auc_matrix_ordered,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  scale = "none",
+  display_numbers = TRUE,
+  main = "AUC Heatmap by Super Pathway",
+  color = colorRampPalette(c("blue", "white", "red"))(50),
+  breaks = seq(0.5, 1, length.out = 51)  # 50 colors = 51 breaks
+)
+```
+```{r}
+library(ggplotify)
+panala = ggarrange(as.ggplot(a),b , ncol = 2)
+panala
+```
+
+```{r}
+auc_results_df_PRO_aa <- auc_results_df_PRO_aa %>%
+  dplyr::rename(AUC_PRO = AUC)
+
+auc_results_df_severe_aa <- auc_results_df_severe_aa %>%
+  dplyr::rename(AUC_Severe = AUC)
+
+#auc_results_df_fatal <- auc_results_df_fatal %>%
+#  dplyr::rename(AUC_Fatal = AUC)
+
+# Merge the three data frames by SuperPathway
+merged_auc_df <- auc_results_df_PRO_aa %>%
+  full_join(auc_results_df_severe_aa, by = "SubPathway") 
+
+# Replace missing values (if any) with NA or 0
+merged_auc_df[is.na(merged_auc_df)] <- 0
+
+# Convert the data frame into a matrix for heatmap generation
+auc_matrix <- as.matrix(merged_auc_df[, -1]) # Exclude the "SuperPathway" column
+rownames(auc_matrix) <- merged_auc_df$SubPathway
+library(pheatmap)
+colnames(auc_matrix)[1] = "AUC_LongCOVID"
+colnames(auc_matrix)[2] = "AUC_Acute"
+# Generate the heatmap
+pheatmap(
+  auc_matrix,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  scale = "none",
+  display_numbers = TRUE,
+  main = "AUC Heatmap by Sub Pathway - Amino Acid",
+  color = colorRampPalette(c("blue", "white", "red"))(50),
+  breaks = seq(0.5, 1, length.out = 51)  # 50 colors = 51 breaks
+)
+c = pheatmap(
+  auc_matrix,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  scale = "none", show_rownames = FALSE, 
+  display_numbers = TRUE,
+  main = "Amino Acid",
+ color = colorRampPalette(c("blue", "white", "red"))(50),
+  breaks = seq(0.5, 1, length.out = 51)  ,legend = FALSE
+)
+```
+```{r}
+x = ggarrange(PRO_roc_plot_aa+
+  theme(legend.position = "none") , severe_roc_plot_aa+
+  theme(legend.position = "none") , ncol = 1)
+ggarrange(as.ggplot(c),x , ncol = 2)
+```
+
+```{r}
+auc_results_df_PRO_lipid <- auc_results_df_PRO_lipid %>%
+  dplyr::rename(AUC_PRO = AUC)
+
+auc_results_df_severe_lipid <- auc_results_df_severe_lipid %>%
+  dplyr::rename(AUC_Severe = AUC)
+
+#auc_results_df_fatal <- auc_results_df_fatal %>%
+#  dplyr::rename(AUC_Fatal = AUC)
+
+# Merge the three data frames by SuperPathway
+merged_auc_df <- auc_results_df_PRO_lipid %>%
+  full_join(auc_results_df_severe_lipid, by = "SubPathway") 
+
+# Replace missing values (if any) with NA or 0
+merged_auc_df[is.na(merged_auc_df)] <- 0
+
+# Convert the data frame into a matrix for heatmap generation
+auc_matrix <- as.matrix(merged_auc_df[, -1]) # Exclude the "SuperPathway" column
+rownames(auc_matrix) <- merged_auc_df$SubPathway
+library(pheatmap)
+colnames(auc_matrix)[1] = "AUC_LongCOVID"
+colnames(auc_matrix)[2] = "AUC_Acute"
+# Generate the heatmap
+pheatmap(
+  auc_matrix,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  scale = "none",
+  display_numbers = TRUE,
+  main = "AUC Heatmap by Sub Pathway - Lipid",
+  color = colorRampPalette(c("blue", "white", "red"))(50)
+)
+d = pheatmap(
+  auc_matrix,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  scale = "none",
+  display_numbers = TRUE, show_rownames = FALSE, 
+  main = "Lipid",
+color = colorRampPalette(c("blue", "white", "red"))(50),
+  breaks = seq(0.5, 1, length.out = 51)  ,legend = FALSE
+)
+```
+```{r}
+y = ggarrange(PRO_roc_plot_lipid+
+  theme(legend.position = "none") , severe_roc_plot_lipid+
+  theme(legend.position = "none") , ncol = 1)
+ggarrange(as.ggplot(d),y , ncol = 2)
+```
+```{r}
+panelb = ggarrange(as.ggplot(c)+theme(legend.position = NULL),as.ggplot(d)+theme(legend.position = NULL) , ncol = 2)
+ggarrange(panala, panelb, ncol = 1, labels = c("A","B"))
+```
+```{r}
+p1 <- as.ggplot(c) + theme(legend.position = "none", 
+                           plot.margin = ggplot2::margin(t = 10, r = 300, b = 10, l = 10))
+p2 <- as.ggplot(d) + theme(legend.position = "none", 
+                          plot.margin = ggplot2::margin(t = 10, r = 300, b = 10, l = 10))
+
+panelb <- ggarrange(p1, p2, ncol = 2, widths = c(1, 1))  # Adjust to e.g., c(0.8, 1.2) if one plot is wider
+ggarrange(panala, panelb, ncol = 1, labels = c("A","B"))
+```
+
+```{r}
+auc_results_df_PRO_aa_sig <- auc_results_df_PRO_aa_sig %>%
+  dplyr::rename(AUC_PRO = AUC)
+
+auc_results_df_severe_aa_sig <- auc_results_df_severe_aa_sig %>%
+  dplyr::rename(AUC_Severe = AUC)
+
+#auc_results_df_fatal <- auc_results_df_fatal %>%
+#  dplyr::rename(AUC_Fatal = AUC)
+
+# Merge the three data frames by SuperPathway
+merged_auc_df <- auc_results_df_PRO_aa_sig %>%
+  full_join(auc_results_df_severe_aa_sig, by = "SubPathway") 
+
+# Replace missing values (if any) with NA or 0
+merged_auc_df[is.na(merged_auc_df)] <- 0
+
+# Convert the data frame into a matrix for heatmap generation
+auc_matrix <- as.matrix(merged_auc_df[, -1]) # Exclude the "SuperPathway" column
+rownames(auc_matrix) <- merged_auc_df$SubPathway
+names(auc_matrix)[1] = "AUC_LongCOVID"
+names(auc_matrix)[2] = "AUC_Acute"
+library(pheatmap)
+# Generate the heatmap
+pheatmap(
+  auc_matrix,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  scale = "none",
+  display_numbers = TRUE,
+  main = "AUC Heatmap by Sub Pathway - Amino Acid",
+  color = colorRampPalette(c("blue", "white", "red"))(50)
+)
+```
+```{r}
+auc_results_df_PRO_lipid_sig <- auc_results_df_PRO_lipid_sig %>%
+  dplyr::rename(AUC_PRO = AUC)
+
+auc_results_df_severe_lipid_sig <- auc_results_df_severe_lipid_sig %>%
+  dplyr::rename(AUC_Severe = AUC)
+
+#auc_results_df_fatal <- auc_results_df_fatal %>%
+#  dplyr::rename(AUC_Fatal = AUC)
+
+# Merge the three data frames by SuperPathway
+merged_auc_df <- auc_results_df_PRO_lipid_sig %>%
+  full_join(auc_results_df_severe_lipid_sig, by = "SubPathway") 
+
+# Replace missing values (if any) with NA or 0
+merged_auc_df[is.na(merged_auc_df)] <- 0
+
+# Convert the data frame into a matrix for heatmap generation
+auc_matrix <- as.matrix(merged_auc_df[, -1]) # Exclude the "SuperPathway" column
+rownames(auc_matrix) <- merged_auc_df$SubPathway
+library(pheatmap)
+names(auc_matrix)[1] = "AUC_LongCOVID"
+names(auc_matrix)[2] = "AUC_Acute"
+# Generate the heatmap
+pheatmap(
+  auc_matrix,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  scale = "none",
+  display_numbers = TRUE,
+  main = "AUC Heatmap by Sub Pathway - Lipid",
+  color = colorRampPalette(c("blue", "white", "red"))(100)
+)
+```

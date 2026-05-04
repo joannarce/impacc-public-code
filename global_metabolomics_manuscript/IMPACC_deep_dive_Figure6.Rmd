@@ -1,0 +1,700 @@
+---
+title: "Groupped_heatmap"
+output: html_document
+date: "2024-10-10"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+load( "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/TG_data_use_heatmap.Rdata")
+load( "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/PRO_data_use_heatmap.Rdata")
+load( "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/D_data_use_heatmap.Rdata")
+```
+```{r}
+load("/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/deep_dive_TG.Rdata")
+load( "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/PRO_data_use_heatmap_v7.Rdata")
+load( "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/D_data_use_heatmap.Rdata")
+```
+```{r}
+lr_output_discharge = lr_output_discharge[,c("Name","SUB_PATHWAY", "coef", "qval")]
+names(lr_output_discharge) = c("Name","SUB_PATHWAY", "Discharge", "qval_D")
+```
+```{r}
+lr_output_all_glm_info = subset(lr_output_all_glm_info, lr_output_all_glm_info$type == "Visit 7")
+lr_output_all_glm_info = lr_output_cat7_all_glm_info[,c("CHEMICAL_NAME","SUB_PATHWAY", "coef", "qval")]
+
+names(lr_output_all_glm_info) = c("Name","SUB_PATHWAY", "Convalacent", "qval_PRO")
+```
+
+
+```{r}
+lr_output_all = merge(lr_output_baseline_all_heat, lr_output_discharge, by = c("Name","SUB_PATHWAY"))
+lr_output_all = merge(lr_output_all, lr_output_all_glm_info, by = c("Name","SUB_PATHWAY"))
+```
+```{r}
+lr_output_all_sph = subset(lr_output_all, lr_output_all$SUB_PATHWAY %in% c( "Sphingomyelins","Ceramides","Lactosylceramides (LCER)" ,"Sphingosines"))
+lr_output_all_sph_p2 = subset(lr_output_all, lr_output_all$Name %in% c( "sphinganine","serine","sphingosine 1-phosphate"))
+lr_output_all_sph_p2$Name[3] = "sphingosine-1-phosphate"
+lr_output_all_sph_p2$SUB_PATHWAY = lr_output_all_sph_p2$Name
+lr_output_all_sph = rbind(lr_output_all_sph, lr_output_all_sph_p2)
+data_heat = lr_output_all_sph[,c( "Name", "Fatal vs. Non-fatal", "Severe vs. Non-severe", "Non-survivors vs. Survivors",  "Discharge", "Convalacent" )]
+rownames(data_heat) = data_heat$Name
+data_heat$Name = NULL
+data_p = lr_output_all_sph[,c( "Name", "qval_AD", "qval_123", "qval_su",  "qval_D", "qval_PRO" )]
+rownames(data_p) = data_p$Name
+data_p$Name = NULL
+```
+
+```{ r}
+Heatmap_corr  = Heatmap(data_heat,column_split = c(rep("TG", 3),rep("Discharge", 1), rep("Convalacent", 1)),
+                          cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,
+                          heatmap_legend_param = list(title = "Sphingomyelins",
+             direction = "horizontal", title_position = "topcenter", 
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)) )
+ComplexHeatmap::draw(Heatmap_corr, heatmap_legend_side = "bottom",padding = unit(c(2, 2, 2, 30), "mm"))
+
+```
+```{r}
+lr_output_all_sph = subset(lr_output_all, lr_output_all$SUB_PATHWAY %in% c( "Sphingomyelins","Ceramides","Lactosylceramides (LCER)" ,"Sphingosines"))
+lr_output_all_sph_p2 = subset(lr_output_all, lr_output_all$Name %in% c( "sphinganine","serine"))
+lr_output_all_sph_p2$SUB_PATHWAY = lr_output_all_sph_p2$Name
+lr_output_all_sph = rbind(lr_output_all_sph, lr_output_all_sph_p2)
+lr_output_all_sph = lr_output_all_sph[order(lr_output_all_sph$SUB_PATHWAY),]
+data_heat1 = as.data.frame(lr_output_all_sph[,c( "Name", "Fatal vs. Non-fatal", "Severe vs. Non-severe", "Non-survivors vs. Survivors")])
+rownames(data_heat1) = data_heat1$Name
+data_heat1$Name = NULL
+data_p1 =  as.data.frame(lr_output_all_sph[,c( "Name", "qval_AD", "qval_123", "qval_su")])
+rownames(data_p1) = data_p1$Name
+data_p1$Name = NULL
+
+```
+```{r}
+lr_output_all[lr_output_all$Name == "serine",]$SUB_PATHWAY = "serine"
+lr_output_all[lr_output_all$Name == "sphinganine",]$SUB_PATHWAY = "sphinganine"
+annotation = subset(lr_output_all, lr_output_all$Name %in% rownames(data_heat1))
+annotation = as.data.frame(annotation)
+rownames(annotation) = annotation$Name
+annotation = annotation[rownames(data_heat1),]
+ha = rowAnnotation(SUB_PATHWAY = annotation$SUB_PATHWAY, col = list(SUB_PATHWAY = c("Sphingomyelins" =  "#43E40C", "Lactosylceramides (LCER)" = "#E4AD0C", "Ceramides" = "#0CAFE4", "Sphingosines" = "#E40C43", "serine" = "gray", "sphinganine" = "pink")))
+
+library(ComplexHeatmap)
+Heatmap_1 = Heatmap(data_heat1,column_title = "TG",left_annotation = ha
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45, row_names_side = "left",show_column_names = FALSE,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(data_p1[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_1, heatmap_legend_side = "bottom")
+Heatmap_1
+```
+```{r}
+data_heat2 = as.data.frame(lr_output_all_sph[,c( "Name", "Discharge")])
+rownames(data_heat2) = data_heat1$Name
+data_heat2$Name = NULL
+data_p2 =  as.data.frame(lr_output_all_sph[,c( "Name", "qval_D")])
+rownames(data_p2) = data_p2$Name
+data_p2$Name = NULL
+```
+```{r}
+Heatmap_2 = Heatmap(data_heat2,column_title = "Discharge"
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,show_column_names = FALSE,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(data_p2[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_2, heatmap_legend_side = "bottom")
+Heatmap_2
+```
+```{r}
+data_heat3 = as.data.frame(lr_output_all_sph[,c( "Name", "Convalacent")])
+rownames(data_heat3) = data_heat1$Name
+data_heat3$Name = NULL
+data_p3 =  as.data.frame(lr_output_all_sph[,c( "Name", "qval_PRO")])
+rownames(data_p3) = data_p3$Name
+data_p3$Name = NULL
+```
+```{r}
+Heatmap_3 = Heatmap(data_heat3,column_title = "Convalacent"
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,show_column_names = FALSE,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(data_p3[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_3, heatmap_legend_side = "bottom")
+Heatmap_3
+```
+
+```{r}
+library(ggpubr)
+ggarrange(grid.grabExpr(ComplexHeatmap::draw(Heatmap_1, heatmap_legend_side = "bottom")),
+          grid.grabExpr(ComplexHeatmap::draw(Heatmap_2, heatmap_legend_side = "bottom")),
+          grid.grabExpr(ComplexHeatmap::draw(Heatmap_3, heatmap_legend_side = "bottom"))  , nrow = 1, widths = c(4,1,1))
+```
+
+```{r}
+data_heat_all = cbind(data_heat1, data_heat2, data_heat3)
+data_all = cbind(data_p1, data_p2, data_p3)
+Heatmap_all= Heatmap(data_heat_all,left_annotation = ha, column_split = c(rep("TG", 3),rep("Discharge", 1), rep("Convalacent", 1)),
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,show_column_names = FALSE,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(data_all[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_all, heatmap_legend_side = "bottom")
+Heatmap_all
+```
+```{r}
+data_heat_all = cbind(data_heat1, data_heat3)
+data_all = cbind(data_p1, data_p3)
+names(data_heat_all)[4] = "Long COVID"
+Heatmap_all= Heatmap(data_heat_all,left_annotation = ha, column_split = c(rep("TG", 3), rep("Long COVID", 1)),
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,show_column_names = FALSE,show_row_names = FALSE,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(data_all[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_all, heatmap_legend_side = "bottom")
+Heatmap_all
+```
+```{r}
+library(ComplexHeatmap)
+library(grid)
+
+data_heat_all = cbind(data_heat1, data_heat3)
+data_all = cbind(data_p1, data_p3)
+names(data_heat_all)[4] = "Long COVID"
+
+TG_labels <- c("Fatal vs. Non-fatal", "Severe vs. Non-severe", "Non-survivors vs. Survivors")
+column_groups <- c(rep("TG", length(TG_labels)), "Long COVID")
+
+bottom_anno <- HeatmapAnnotation(
+  TG_Group = anno_text(
+    c(TG_labels, ""),  
+    rot = 45,
+    just = "right",
+    gp = gpar(fontsize = 10)
+  ),
+  annotation_name_side = "left",
+  annotation_name_rot = 0
+)
+
+Heatmap_all <- Heatmap(
+  data_heat_all,
+  left_annotation = ha,
+  column_split = column_groups,
+  cluster_rows = FALSE,
+  cluster_columns = FALSE,
+  column_names_rot = 45,
+  show_column_names = FALSE,
+  show_row_names = FALSE,
+  bottom_annotation = bottom_anno,
+  heatmap_legend_param = list(
+    title = "Coefficient",
+    direction = "horizontal",
+    title_position = "topcenter",
+    title_gp = gpar(fontsize = 15),
+    labels_gp = gpar(fontsize = 15)
+  ),
+  cell_fun = function(j, i, x, y, w, h, fill) {
+    if (data_all[i, j] < 0.05) {
+      grid.text("*", x, y, gp = gpar(cex = 2), vjust = 0.7)
+    }
+  }
+)
+
+draw(Heatmap_all, heatmap_legend_side = "bottom")
+
+```
+
+```{r}
+lr_output_all_sph_Ceramides = subset(lr_output_all_sph, lr_output_all_sph$SUB_PATHWAY == "Ceramides")
+sum(lr_output_all_sph_Ceramides$`Severe vs. Non-severe` >= 0)
+sum(lr_output_all_sph_Ceramides$`Severe vs. Non-severe` < 0)
+sum(lr_output_all_sph_Ceramides$Convalacent >= 0)
+sum(lr_output_all_sph_Ceramides$Convalacent < 0)
+```
+```{r}
+lr_output_all_sph_S = subset(lr_output_all_sph, lr_output_all_sph$SUB_PATHWAY == "Sphingomyelins")
+sum(lr_output_all_sph_S$`Severe vs. Non-severe` >= 0)
+sum(lr_output_all_sph_S$`Severe vs. Non-severe` < 0)
+sum(lr_output_all_sph_S$Convalacent >= 0)
+sum(lr_output_all_sph_S$Convalacent < 0)
+```
+```{r}
+lr_output_all_sph_Si = subset(lr_output_all_sph, lr_output_all_sph$SUB_PATHWAY == "Sphingosines")
+sum(lr_output_all_sph_Si$`Severe vs. Non-severe` >= 0)
+sum(lr_output_all_sph_Si$`Severe vs. Non-severe` < 0)
+sum(lr_output_all_sph_Si$Convalacent >= 0)
+sum(lr_output_all_sph_Si$Convalacent < 0)
+```
+```{r}
+library(ggforestplot)
+
+b_Sphingomyelins_PRO <- lr_output_cat7_all_glm_info[SUB_PATHWAY %in% c("Sphingomyelins")] 
+b_Sphingomyelins_PRO = b_Sphingomyelins_PRO %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Sphingomyelins_PRO$sig = factor(b_Sphingomyelins_PRO$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Sphingomyelins_PRO$type = "Convalacent"
+b_Sphingomyelins_PRO = b_Sphingomyelins_PRO[,c("CHEMICAL_NAME", "type","coef","std","sig")]
+
+names(b_Sphingomyelins_PRO)[1] = "name"
+names(b_Sphingomyelins_PRO)[4] = "se"
+
+b_Sphingomyelins_TG1 =  lr_output_AD_baseline[SUB_PATHWAY %in% c("Sphingomyelins")] 
+b_Sphingomyelins_TG1 = b_Sphingomyelins_TG1 %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Sphingomyelins_TG1$sig = factor(b_Sphingomyelins_TG1$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Sphingomyelins_TG1$type = "Fatal vs. Non-fatal"
+b_Sphingomyelins_TG1 = b_Sphingomyelins_TG1[,c("Name", "type","coef","std","sig")]
+
+names(b_Sphingomyelins_TG1)[1] = "name"
+names(b_Sphingomyelins_TG1)[4] = "se"
+
+b_Sphingomyelins_TG2 =  lr_output_123_baseline[SUB_PATHWAY %in% c("Sphingomyelins")] 
+b_Sphingomyelins_TG2 = b_Sphingomyelins_TG2 %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Sphingomyelins_TG2$sig = factor(b_Sphingomyelins_TG2$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Sphingomyelins_TG2$type = "Severe vs. Non-severe"
+b_Sphingomyelins_TG2 = b_Sphingomyelins_TG2[,c("Name", "type","coef","std","sig")]
+
+names(b_Sphingomyelins_TG2)[1] = "name"
+names(b_Sphingomyelins_TG2)[4] = "se"
+
+b_Sphingomyelins_TG3 =  lr_output_diedever_baseline[SUB_PATHWAY %in% c("Sphingomyelins")] 
+b_Sphingomyelins_TG3 = b_Sphingomyelins_TG3 %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Sphingomyelins_TG3$sig = factor(b_Sphingomyelins_TG3$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Sphingomyelins_TG3$type = "Non-survivors vs. Survivors"
+b_Sphingomyelins_TG3 = b_Sphingomyelins_TG3[,c("Name", "type","coef","std","sig")]
+
+names(b_Sphingomyelins_TG3)[1] = "name"
+names(b_Sphingomyelins_TG3)[4] = "se"
+
+
+b_Sphingomyelins_discharge=  lr_output_discharge[SUB_PATHWAY %in% c("Sphingomyelins")] 
+b_Sphingomyelins_discharge = b_Sphingomyelins_discharge %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Sphingomyelins_discharge$sig = factor(b_Sphingomyelins_discharge$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Sphingomyelins_discharge$type = "Discharge"
+b_Sphingomyelins_discharge = b_Sphingomyelins_discharge[,c("Name", "type","coef","std","sig")]
+
+names(b_Sphingomyelins_discharge)[1] = "name"
+names(b_Sphingomyelins_discharge)[4] = "se"
+
+
+
+b_Sphingomyelins = rbind(b_Sphingomyelins_TG1,b_Sphingomyelins_TG2,b_Sphingomyelins_TG3,b_Sphingomyelins_discharge,b_Sphingomyelins_PRO)
+#b_Sphingomyelins_v7 = subset(b_Sphingomyelins, b_Sphingomyelins$type == "Visit 7")
+#b_Sphingomyelins_v7 = b_Sphingomyelins_v7[order(b_Sphingomyelins_v7$sig),]
+b_Sphingomyelins$name = factor(b_Sphingomyelins$name, levels=b_Sphingomyelins_PRO$name)
+b_Sphingomyelins <- b_Sphingomyelins[order(b_Sphingomyelins$name),]
+b_Sphingomyelins$type = factor(b_Sphingomyelins$type, levels=c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors","Discharge","Convalacent"))
+p_Sphingomyelins= forestplot(
+  df =b_Sphingomyelins,
+  estimate = coef,
+  logodds = FALSE,
+  colour =sig,
+  title = "Sphingomyelins",
+  xlab = "coefficient"
+)  + facet_grid(. ~ type, scales = "free") +  theme(legend.position = "bottom")  +scale_color_manual("Legend", values = c("FDR significant" = "red", "Not significant" = "ivory4", "Raw significant" = "lightsalmon")) 
+p_Sphingomyelins
+
+```
+
+```{r}
+
+b_Ceramides_PRO <- lr_output_cat7_all_glm_info[SUB_PATHWAY %in% c("Ceramides")] 
+b_Ceramides_PRO = b_Ceramides_PRO %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Ceramides_PRO$sig = factor(b_Ceramides_PRO$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Ceramides_PRO$type = "Convalacent"
+b_Ceramides_PRO = b_Ceramides_PRO[,c("CHEMICAL_NAME", "type","coef","std","sig")]
+
+names(b_Ceramides_PRO)[1] = "name"
+names(b_Ceramides_PRO)[4] = "se"
+
+b_Ceramides_TG1 =  lr_output_AD_baseline[SUB_PATHWAY %in% c("Ceramides")] 
+b_Ceramides_TG1 = b_Ceramides_TG1 %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Ceramides_TG1$sig = factor(b_Ceramides_TG1$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Ceramides_TG1$type = "Fatal vs. Non-fatal"
+b_Ceramides_TG1 = b_Ceramides_TG1[,c("Name", "type","coef","std","sig")]
+
+names(b_Ceramides_TG1)[1] = "name"
+names(b_Ceramides_TG1)[4] = "se"
+
+b_Ceramides_TG2 =  lr_output_123_baseline[SUB_PATHWAY %in% c("Ceramides")] 
+b_Ceramides_TG2 = b_Ceramides_TG2 %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Ceramides_TG2$sig = factor(b_Ceramides_TG2$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Ceramides_TG2$type = "Severe vs. Non-severe"
+b_Ceramides_TG2 = b_Ceramides_TG2[,c("Name", "type","coef","std","sig")]
+
+names(b_Ceramides_TG2)[1] = "name"
+names(b_Ceramides_TG2)[4] = "se"
+
+b_Ceramides_TG3 =  lr_output_diedever_baseline[SUB_PATHWAY %in% c("Ceramides")] 
+b_Ceramides_TG3 = b_Ceramides_TG3 %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Ceramides_TG3$sig = factor(b_Ceramides_TG3$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Ceramides_TG3$type = "Non-survivors vs. Survivors"
+b_Ceramides_TG3 = b_Ceramides_TG3[,c("Name", "type","coef","std","sig")]
+
+names(b_Ceramides_TG3)[1] = "name"
+names(b_Ceramides_TG3)[4] = "se"
+
+
+b_Ceramides_discharge=  lr_output_discharge[SUB_PATHWAY %in% c("Ceramides")] 
+b_Ceramides_discharge = b_Ceramides_discharge %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Ceramides_discharge$sig = factor(b_Ceramides_discharge$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Ceramides_discharge$type = "Discharge"
+b_Ceramides_discharge = b_Ceramides_discharge[,c("Name", "type","coef","std","sig")]
+
+names(b_Ceramides_discharge)[1] = "name"
+names(b_Ceramides_discharge)[4] = "se"
+
+
+
+b_Ceramides = rbind(b_Ceramides_TG1,b_Ceramides_TG2,b_Ceramides_TG3,b_Ceramides_discharge,b_Ceramides_PRO)
+#b_Ceramides_v7 = subset(b_Ceramides, b_Ceramides$type == "Visit 7")
+#b_Ceramides_v7 = b_Ceramides_v7[order(b_Ceramides_v7$sig),]
+b_Ceramides$name = factor(b_Ceramides$name, levels=b_Ceramides_PRO$name)
+b_Ceramides <- b_Ceramides[order(b_Ceramides$name),]
+b_Ceramides$type = factor(b_Ceramides$type, levels=c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors","Discharge","Convalacent"))
+
+p_Ceramides= forestplot(
+  df =b_Ceramides,
+  estimate = coef,
+  logodds = FALSE,
+  colour =sig,
+  title = "Ceramides",
+  xlab = "coefficient"
+)  + facet_grid(. ~ type, scales = "free") +  theme(legend.position = "bottom")  +scale_color_manual("Legend", values = c("FDR significant" = "red", "Not significant" = "ivory4", "Raw significant" = "lightsalmon")) 
+p_Ceramides
+
+```
+
+```{r}
+
+b_Lactosylceramide_PRO <- lr_output_cat7_all_glm_info[SUB_PATHWAY %in% c("Lactosylceramides (LCER)")] 
+b_Lactosylceramide_PRO = b_Lactosylceramide_PRO %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Lactosylceramide_PRO$sig = factor(b_Lactosylceramide_PRO$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Lactosylceramide_PRO$type = "Convalacent"
+b_Lactosylceramide_PRO = b_Lactosylceramide_PRO[,c("CHEMICAL_NAME", "type","coef","std","sig")]
+
+names(b_Lactosylceramide_PRO)[1] = "name"
+names(b_Lactosylceramide_PRO)[4] = "se"
+
+b_Lactosylceramide_TG1 =  lr_output_AD_baseline[SUB_PATHWAY %in% c("Lactosylceramides (LCER)")] 
+b_Lactosylceramide_TG1 = b_Lactosylceramide_TG1 %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Lactosylceramide_TG1$sig = factor(b_Lactosylceramide_TG1$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Lactosylceramide_TG1$type = "Fatal vs. Non-fatal"
+b_Lactosylceramide_TG1 = b_Lactosylceramide_TG1[,c("Name", "type","coef","std","sig")]
+
+names(b_Lactosylceramide_TG1)[1] = "name"
+names(b_Lactosylceramide_TG1)[4] = "se"
+
+b_Lactosylceramide_TG2 =  lr_output_123_baseline[SUB_PATHWAY %in% c("Lactosylceramides (LCER)")] 
+b_Lactosylceramide_TG2 = b_Lactosylceramide_TG2 %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Lactosylceramide_TG2$sig = factor(b_Lactosylceramide_TG2$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Lactosylceramide_TG2$type = "Severe vs. Non-severe"
+b_Lactosylceramide_TG2 = b_Lactosylceramide_TG2[,c("Name", "type","coef","std","sig")]
+
+names(b_Lactosylceramide_TG2)[1] = "name"
+names(b_Lactosylceramide_TG2)[4] = "se"
+
+b_Lactosylceramide_TG3 =  lr_output_diedever_baseline[SUB_PATHWAY %in% c("Lactosylceramides (LCER)")] 
+b_Lactosylceramide_TG3 = b_Lactosylceramide_TG3 %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Lactosylceramide_TG3$sig = factor(b_Lactosylceramide_TG3$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Lactosylceramide_TG3$type = "Non-survivors vs. Survivors"
+b_Lactosylceramide_TG3 = b_Lactosylceramide_TG3[,c("Name", "type","coef","std","sig")]
+
+names(b_Lactosylceramide_TG3)[1] = "name"
+names(b_Lactosylceramide_TG3)[4] = "se"
+
+
+b_Lactosylceramide_discharge=  lr_output_discharge[SUB_PATHWAY %in% c("Lactosylceramides (LCER)")] 
+b_Lactosylceramide_discharge = b_Lactosylceramide_discharge %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Lactosylceramide_discharge$sig = factor(b_Lactosylceramide_discharge$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Lactosylceramide_discharge$type = "Discharge"
+b_Lactosylceramide_discharge = b_Lactosylceramide_discharge[,c("Name", "type","coef","std","sig")]
+
+names(b_Lactosylceramide_discharge)[1] = "name"
+names(b_Lactosylceramide_discharge)[4] = "se"
+
+
+
+b_Lactosylceramide = rbind(b_Lactosylceramide_TG1,b_Lactosylceramide_TG2,b_Lactosylceramide_TG3,b_Lactosylceramide_discharge,b_Lactosylceramide_PRO)
+#b_Lactosylceramide_v7 = subset(b_Lactosylceramide, b_Lactosylceramide$type == "Visit 7")
+#b_Lactosylceramide_v7 = b_Lactosylceramide_v7[order(b_Lactosylceramide_v7$sig),]
+b_Lactosylceramide$name = factor(b_Lactosylceramide$name, levels=b_Lactosylceramide_PRO$name)
+b_Lactosylceramide <- b_Lactosylceramide[order(b_Lactosylceramide$name),]
+b_Lactosylceramide$type = factor(b_Lactosylceramide$type, levels=c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors","Discharge","Convalacent"))
+
+p_Lactosylceramide= forestplot(
+  df =b_Lactosylceramide,
+  estimate = coef,
+  logodds = FALSE,
+  colour =sig,
+  title = "Lactosylceramide",
+  xlab = "coefficient"
+)  + facet_grid(. ~ type, scales = "free") +  theme(legend.position = "bottom")  +scale_color_manual("Legend", values = c("FDR significant" = "red", "Not significant" = "ivory4", "Raw significant" = "lightsalmon")) 
+p_Lactosylceramide
+
+```
+
+```{r}
+
+b_Sphingosines_PRO <- lr_output_cat7_all_glm_info[SUB_PATHWAY %in% c("Sphingosines")] 
+b_Sphingosines_PRO = b_Sphingosines_PRO %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Sphingosines_PRO$sig = factor(b_Sphingosines_PRO$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Sphingosines_PRO$type = "Convalacent"
+b_Sphingosines_PRO = b_Sphingosines_PRO[,c("CHEMICAL_NAME", "type","coef","std","sig")]
+
+names(b_Sphingosines_PRO)[1] = "name"
+names(b_Sphingosines_PRO)[4] = "se"
+
+b_Sphingosines_TG1 =  lr_output_AD_baseline[SUB_PATHWAY %in% c("Sphingosines")] 
+b_Sphingosines_TG1 = b_Sphingosines_TG1 %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Sphingosines_TG1$sig = factor(b_Sphingosines_TG1$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Sphingosines_TG1$type = "Fatal vs. Non-fatal"
+b_Sphingosines_TG1 = b_Sphingosines_TG1[,c("Name", "type","coef","std","sig")]
+
+names(b_Sphingosines_TG1)[1] = "name"
+names(b_Sphingosines_TG1)[4] = "se"
+
+b_Sphingosines_TG2 =  lr_output_123_baseline[SUB_PATHWAY %in% c("Sphingosines")] 
+b_Sphingosines_TG2 = b_Sphingosines_TG2 %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Sphingosines_TG2$sig = factor(b_Sphingosines_TG2$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Sphingosines_TG2$type = "Severe vs. Non-severe"
+b_Sphingosines_TG2 = b_Sphingosines_TG2[,c("Name", "type","coef","std","sig")]
+
+names(b_Sphingosines_TG2)[1] = "name"
+names(b_Sphingosines_TG2)[4] = "se"
+
+b_Sphingosines_TG3 =  lr_output_diedever_baseline[SUB_PATHWAY %in% c("Sphingosines")] 
+b_Sphingosines_TG3 = b_Sphingosines_TG3 %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Sphingosines_TG3$sig = factor(b_Sphingosines_TG3$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Sphingosines_TG3$type = "Non-survivors vs. Survivors"
+b_Sphingosines_TG3 = b_Sphingosines_TG3[,c("Name", "type","coef","std","sig")]
+
+names(b_Sphingosines_TG3)[1] = "name"
+names(b_Sphingosines_TG3)[4] = "se"
+
+
+b_Sphingosines_discharge=  lr_output_discharge[SUB_PATHWAY %in% c("Sphingosines")] 
+b_Sphingosines_discharge = b_Sphingosines_discharge %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Sphingosines_discharge$sig = factor(b_Sphingosines_discharge$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_Sphingosines_discharge$type = "Discharge"
+b_Sphingosines_discharge = b_Sphingosines_discharge[,c("Name", "type","coef","std","sig")]
+
+names(b_Sphingosines_discharge)[1] = "name"
+names(b_Sphingosines_discharge)[4] = "se"
+
+
+
+b_Sphingosines = rbind(b_Sphingosines_TG1,b_Sphingosines_TG2,b_Sphingosines_TG3,b_Sphingosines_discharge,b_Sphingosines_PRO)
+#b_Sphingosines_v7 = subset(b_Sphingosines, b_Sphingosines$type == "Visit 7")
+#b_Sphingosines_v7 = b_Sphingosines_v7[order(b_Sphingosines_v7$sig),]
+b_Sphingosines$name = factor(b_Sphingosines$name, levels=b_Sphingosines_PRO$name)
+b_Sphingosines <- b_Sphingosines[order(b_Sphingosines$name),]
+p_Sphingosines= forestplot(
+  df =b_Sphingosines,
+  estimate = coef,
+  logodds = FALSE,
+  colour =sig,
+  title = "Sphingosines",
+  xlab = "coefficient"
+)  + facet_grid(. ~ type, scales = "free") +  theme(legend.position = "bottom")  +scale_color_manual("Legend", values = c("FDR significant" = "red", "Not significant" = "ivory4", "Raw significant" = "lightsalmon")) 
+p_Sphingosines
+
+```
+
+```{r}
+library(ggforestplot)
+
+b_SAM_PRO <- lr_output_cat7_all_glm_info[SUB_PATHWAY %in% c("Methionine, Cysteine, SAM and Taurine Metabolism")] 
+b_SAM_PRO = b_SAM_PRO %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_SAM_PRO$sig = factor(b_SAM_PRO$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_SAM_PRO$type = "Convalacent"
+b_SAM_PRO = b_SAM_PRO[,c("CHEMICAL_NAME", "type","coef","std","sig")]
+
+names(b_SAM_PRO)[1] = "name"
+names(b_SAM_PRO)[4] = "se"
+
+b_SAM_TG1 =  lr_output_AD_baseline[SUB_PATHWAY %in% c("Methionine, Cysteine, SAM and Taurine Metabolism")] 
+b_SAM_TG1 = b_SAM_TG1 %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_SAM_TG1$sig = factor(b_SAM_TG1$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_SAM_TG1$type = "Fatal vs. Non-fatal"
+b_SAM_TG1 = b_SAM_TG1[,c("Name", "type","coef","std","sig")]
+
+names(b_SAM_TG1)[1] = "name"
+names(b_SAM_TG1)[4] = "se"
+
+b_SAM_TG2 =  lr_output_123_baseline[SUB_PATHWAY %in% c("Methionine, Cysteine, SAM and Taurine Metabolism")] 
+b_SAM_TG2 = b_SAM_TG2 %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_SAM_TG2$sig = factor(b_SAM_TG2$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_SAM_TG2$type = "Severe vs. Non-severe"
+b_SAM_TG2 = b_SAM_TG2[,c("Name", "type","coef","std","sig")]
+
+names(b_SAM_TG2)[1] = "name"
+names(b_SAM_TG2)[4] = "se"
+
+b_SAM_TG3 =  lr_output_diedever_baseline[SUB_PATHWAY %in% c("Methionine, Cysteine, SAM and Taurine Metabolism")] 
+b_SAM_TG3 = b_SAM_TG3 %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_SAM_TG3$sig = factor(b_SAM_TG3$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_SAM_TG3$type = "Non-survivors vs. Survivors"
+b_SAM_TG3 = b_SAM_TG3[,c("Name", "type","coef","std","sig")]
+
+names(b_SAM_TG3)[1] = "name"
+names(b_SAM_TG3)[4] = "se"
+
+
+b_SAM_discharge=  lr_output_discharge[SUB_PATHWAY %in% c("Methionine, Cysteine, SAM and Taurine Metabolism")] 
+b_SAM_discharge = b_SAM_discharge %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_SAM_discharge$sig = factor(b_SAM_discharge$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+   b_SAM_discharge$type = "Discharge"
+b_SAM_discharge = b_SAM_discharge[,c("Name", "type","coef","std","sig")]
+
+names(b_SAM_discharge)[1] = "name"
+names(b_SAM_discharge)[4] = "se"
+
+
+
+b_SAM = rbind(b_SAM_TG1,b_SAM_TG2,b_SAM_TG3,b_SAM_discharge,b_SAM_PRO)
+#b_SAM_v7 = subset(b_SAM, b_SAM$type == "Visit 7")
+#b_SAM_v7 = b_SAM_v7[order(b_SAM_v7$sig),]
+b_SAM$name = factor(b_SAM$name, levels=b_SAM_PRO$name)
+b_SAM <- b_SAM[order(b_SAM$name),]
+b_SAM$type = factor(b_SAM$type, levels=c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors","Discharge","Convalacent"))
+p_SAM= forestplot(
+  df =b_SAM,
+  estimate = coef,
+  logodds = FALSE,
+  colour =sig,
+  title = "SAM",
+  xlab = "coefficient"
+)  + facet_grid(. ~ type, scales = "free") +  theme(legend.position = "bottom")  +scale_color_manual("Legend", values = c("FDR significant" = "red", "Not significant" = "ivory4", "Raw significant" = "lightsalmon")) 
+b_SAM_discharge
+p_SAM
+
+```

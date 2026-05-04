@@ -1,0 +1,1110 @@
+---
+title: "IMPACC_deep_dive_figure3"
+output: html_document
+date: "2023-12-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(data.table)
+library(DT)
+library(e1071)
+library(openxlsx)
+library(stringr)
+library(dplyr)
+library(plyr)
+library(ggplot2)
+library(ggpubr)
+source("~/Bitbucket/impacc-full-cohort/Analysis/IMPACC_data_analysis_codebase.R")
+load("/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/deep_dive_data.Rdata")
+```
+
+```{r}
+Metabolomics_counts_conv = Metabolomics_counts_conv[clinical_data$sample_id,]
+plasma_metabolomics_global_rowfeature = Metabolomics_rowfeature
+```
+ 
+ 
+#Figure3
+```{r}
+
+logistic_CCall_cat_glm_simple = function(visit_type, clinical_data, Metabolomics_counts_conv){
+  clinical_temp = subset(clinical_data, clinical_data$conv_cluster4 %in% c(1,2,5,6))
+clinical_temp_16_V = subset(clinical_temp, clinical_temp$event_type == visit_type)
+
+clinical_temp_16_V <- clinical_temp_16_V %>%  mutate(Conv = case_when(
+    conv_cluster4 == 1 ~ 0,
+    conv_cluster4 %in% c(2,5,6)  ~ 1
+    ))
+
+
+plasma_metabolomics_global_counts_temp = Metabolomics_counts_conv[clinical_temp_16_V$sample_id,]
+
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+lowerCI <- c()
+upperCI <- c()
+x_met =  data.table(plasma_metabolomics_global_counts_temp)
+
+CC = clinical_temp_16_V$Conv
+sex <- as.factor(clinical_temp_16_V$sex)
+age <- as.factor(clinical_temp_16_V$discretized_admit_age_quantile)
+#bmi <- as.numeric(clinical_temp_16_V$bmi) #numerical
+site = as.factor(clinical_temp_16_V$enrollment_site)
+event_location = as.factor(clinical_temp_16_V$event_location)
+type = as.factor(clinical_temp_16_V$Type)
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+   # print(i)
+    # Build data frame
+    
+    df <- cbind(CC, x_met,sex,age,site,event_location)
+    df <- df[complete.cases(df),]
+    if(visit_type %in%c("WK2_3","WK4")){
+      vars <- c("sex","age","site","event_location") 
+    }
+    else{
+      vars <- c("sex","age","site") 
+    }
+      
+
+    
+    xvars <- c(met_i_name,vars)#
+    fmla <- as.formula(paste("CC ~ ", paste(xvars, collapse= "+")))
+    #fmla <- as.formula(paste("CC ~ ", paste(xvars)))
+    fmla 
+    
+    # Build model and keep pvalue
+   
+    lr<-glm(fmla, data=df, family=binomial)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+    lowerCI <- c(lowerCI,confint.default(lr)[2,1])
+    upperCI <- c(upperCI,confint.default(lr)[2,2])
+}
+ feature_list = colnames(x_met)
+  lr_output<- data.table(feature_list)
+  
+  
+  lr_output$coef <- coef
+  lr_output$std <- std
+ lr_output$lowerCI <- lowerCI 
+ lr_output$upperCI <- upperCI
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'BH')
+  return(lr_output)
+  
+}
+```
+```{r}
+lr_output_cat1_all_glm_simple = logistic_CCall_cat_glm_simple("Visit 1",  clinical_data, Metabolomics_counts_conv)
+lr_output_cat2_all_glm_simple = logistic_CCall_cat_glm_simple("Visit 2",  clinical_data, Metabolomics_counts_conv)
+lr_output_cat3_all_glm_simple = logistic_CCall_cat_glm_simple("Visit 3",  clinical_data, Metabolomics_counts_conv)
+lr_output_cat4_all_glm_simple = logistic_CCall_cat_glm_simple("Visit 4",  clinical_data, Metabolomics_counts_conv)
+lr_output_cat5_all_glm_simple = logistic_CCall_cat_glm_simple("Visit 5",  clinical_data, Metabolomics_counts_conv)
+lr_output_cat6_all_glm_simple = logistic_CCall_cat_glm_simple("Visit 6",  clinical_data, Metabolomics_counts_conv)
+lr_output_cat7_all_glm_simple = logistic_CCall_cat_glm_simple("Visit 7",  clinical_data, Metabolomics_counts_conv)
+lr_output_cat8_all_glm_simple = logistic_CCall_cat_glm_simple("Visit 8",  clinical_data, Metabolomics_counts_conv)
+lr_output_cat9_all_glm_simple = logistic_CCall_cat_glm_simple("Visit 9",  clinical_data, Metabolomics_counts_conv)
+lr_output_cat10_all_glm_simple = logistic_CCall_cat_glm_simple("Visit 10",  clinical_data, Metabolomics_counts_conv)
+
+```
+
+```{r}
+sum(lr_output_cat1_all_glm_simple$qval <= 0.05)
+sum(lr_output_cat2_all_glm_simple$qval <= 0.05)
+sum(lr_output_cat3_all_glm_simple$qval <= 0.05)
+sum(lr_output_cat4_all_glm_simple$qval <= 0.05)
+sum(lr_output_cat5_all_glm_simple$qval <= 0.05)
+sum(lr_output_cat6_all_glm_simple$qval <= 0.05)
+sum(lr_output_cat7_all_glm_simple$qval <= 0.05)
+sum(lr_output_cat8_all_glm_simple$qval <= 0.05)
+sum(lr_output_cat9_all_glm_simple$qval <= 0.05)
+sum(lr_output_cat10_all_glm_simple$qval <= 0.05)
+```
+
+
+
+```{r}
+sum(lr_output_cat1_all_glm_simple$pval <= 0.05)
+sum(lr_output_cat2_all_glm_simple$pval <= 0.05)
+sum(lr_output_cat3_all_glm_simple$pval <= 0.05)
+sum(lr_output_cat4_all_glm_simple$pval <= 0.05)
+sum(lr_output_cat5_all_glm_simple$pval <= 0.05)
+sum(lr_output_cat6_all_glm_simple$pval <= 0.05)
+sum(lr_output_cat7_all_glm_simple$pval <= 0.05)
+sum(lr_output_cat8_all_glm_simple$pval <= 0.05)
+sum(lr_output_cat9_all_glm_simple$pval <= 0.05)
+sum(lr_output_cat10_all_glm_simple$pval <= 0.05)
+```
+```{r}
+plasma_metabolomics_global_rowfeature_temp = plasma_metabolomics_global_rowfeature[colnames(Metabolomics_counts_conv),]
+plasma_metabolomics_global_rowfeature_temp$feature_list = rownames(plasma_metabolomics_global_rowfeature_temp)
+lr_output_cat7_all_glm_info = merge(lr_output_cat7_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "feature_list")
+save(lr_output_cat7_all_glm_info,file ="/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/PRO_data_use_heatmap_v7.Rdata")
+
+lr_output_cat1_all_glm_simple_sig = subset(lr_output_cat1_all_glm_simple,lr_output_cat1_all_glm_simple$pval <= 0.05)
+lr_output_cat2_all_glm_simple_sig = subset(lr_output_cat2_all_glm_simple,lr_output_cat2_all_glm_simple$pval <= 0.05)
+lr_output_cat3_all_glm_simple_sig = subset(lr_output_cat3_all_glm_simple,lr_output_cat3_all_glm_simple$pval <= 0.05)
+lr_output_cat4_all_glm_simple_sig = subset(lr_output_cat4_all_glm_simple,lr_output_cat4_all_glm_simple$pval <= 0.05)
+lr_output_cat5_all_glm_simple_sig = subset(lr_output_cat5_all_glm_simple,lr_output_cat5_all_glm_simple$pval <= 0.05)
+lr_output_cat6_all_glm_simple_sig = subset(lr_output_cat6_all_glm_simple,lr_output_cat6_all_glm_simple$pval <= 0.05)
+lr_output_cat7_all_glm_simple_sig = subset(lr_output_cat7_all_glm_simple,lr_output_cat7_all_glm_simple$pval <= 0.05)
+lr_output_cat8_all_glm_simple_sig = subset(lr_output_cat8_all_glm_simple,lr_output_cat8_all_glm_simple$pval <= 0.05)
+lr_output_cat9_all_glm_simple_sig = subset(lr_output_cat8_all_glm_simple,lr_output_cat9_all_glm_simple$pval <= 0.05)
+lr_output_cat10_all_glm_simple_sig = subset(lr_output_cat8_all_glm_simple,lr_output_cat10_all_glm_simple$pval <= 0.05)
+
+Sub_pathway_table2 = c(lr_output_cat1_all_glm_simple_sig$feature_list, lr_output_cat2_all_glm_simple_sig$feature_list, lr_output_cat3_all_glm_simple_sig$feature_list, lr_output_cat4_all_glm_simple_sig$feature_list,lr_output_cat5_all_glm_simple_sig$feature_list,lr_output_cat6_all_glm_simple_sig$feature_list,lr_output_cat7_all_glm_simple_sig$feature_list,lr_output_cat8_all_glm_simple_sig$feature_list,lr_output_cat9_all_glm_simple_sig$feature_list,lr_output_cat10_all_glm_simple_sig$feature_list)
+Sub_pathway_table2 = unique(Sub_pathway_table2)
+plasma_metabolomics_global_rowfeature_temp = subset(plasma_metabolomics_global_rowfeature_temp, plasma_metabolomics_global_rowfeature_temp$feature_list %in% Sub_pathway_table2)
+figure_table = function(lr_table,plasma_metabolomics_global_rowfeature_temp){
+  tmp <- lr_table
+tmp = merge(tmp, plasma_metabolomics_global_rowfeature_temp, by = "feature_list", all.y = TRUE)
+tmp <- tmp[!is.na(tmp$SUPER_PATHWAY),]
+tmp2 <- tmp[tmp$pval < 0.05, ]
+tmp3 <- tmp[tmp$qval < 0.05, ]
+dim(tmp3)
+tmp3 <- tmp[tmp$pval < 0.05 / 578, ]
+dim(tmp3)
+
+pathways <- unique(tmp$SUB_PATHWAY)
+
+# get a count of the total mets in each pathway 
+df <- data.table(pathways) # list of pathways
+df$total_pos <- 0 # create empty rows
+df$total_neg <- 0 # create empty rows
+for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp)){
+    if(df$pathways[i] == tmp$SUB_PATHWAY[j]){
+      if(tmp$coef[j] > 0){
+        df$total_pos[i] <- df$total_pos[i] + 1 
+      }
+      else{
+         df$total_neg[i] <- df$total_neg[i] - 1
+      }
+     
+    }
+  }
+}
+# get a count of sig mets in each pathway at P<0.05
+df$sig_neg <- 0
+df$sig_pos <- 0
+if(dim(tmp2)[1] > 0){
+for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp2)){
+    if(df$pathways[i] == tmp2$SUB_PATHWAY[j]){
+      ifelse(tmp2$coef[j] < 0, 
+             df$sig_neg[i] <- df$sig_neg[i] - 1,
+             df$sig_pos[i] <- df$sig_pos[i] + 1)
+    }
+  }
+}
+}
+# get a count of sig mets in each pathway at FDR<0.05
+df$sig_neg_fdr <- 0
+df$sig_pos_fdr <- 0
+if(dim(tmp3)[1] > 0){
+  for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp3)){
+    if(df$pathways[i] == tmp3$SUB_PATHWAY[j]){
+      ifelse(tmp3$coef[j] < 0, 
+             df$sig_neg_fdr[i] <- df$sig_neg_fdr[i] - 1,
+             df$sig_pos_fdr[i] <- df$sig_pos_fdr[i] + 1)
+    }
+  }
+}
+}
+
+
+# add in super pathways for coloring
+mets_info_all = plasma_metabolomics_global_rowfeature_temp
+mets_info_tmp <- mets_info_all[, c("SUPER_PATHWAY", "SUB_PATHWAY")]
+colnames(mets_info_tmp) <- c("SUPER_PATHWAY", "SUB_PATHWAY")
+df <- merge(mets_info_tmp, df, by.x = "SUB_PATHWAY", by.y = "pathways", all.y = T)
+
+# sort column and give idx
+df <- df[order(df$SUPER_PATHWAY, df$SUB_PATHWAY),] 
+
+df$idx <- as.factor(1:nrow(df))
+
+# create long df for plotting
+long <- melt(setDT(df), id.vars = c("SUB_PATHWAY","SUPER_PATHWAY", "idx"), variable.name = "key")
+long$SUB_PATHWAY <- as.factor(long$SUB_PATHWAY)
+long$color <- ifelse(long$SUPER_PATHWAY == "Amino Acid", "#FF689F",
+              ifelse(long$SUPER_PATHWAY == "Carbohydrate", "#E76BF3",
+              ifelse(long$SUPER_PATHWAY == "Cofactors and Vitamins", "#00A5FF",
+              ifelse(long$SUPER_PATHWAY == "Lipid", "#00B81F",
+              ifelse(long$SUPER_PATHWAY == "Nucleotide", "#BB9D00",
+              ifelse(long$SUPER_PATHWAY == "Peptide", "#F8766D",
+              ifelse(long$SUPER_PATHWAY == "Partially Characterized Molecules", "#E08B00",
+              ifelse(long$SUPER_PATHWAY == "Xenobiotics", "firebrick2",
+              ifelse(long$SUPER_PATHWAY == "Energy", "chocolate2", "pink")))))))))
+
+long$name <- paste0(long$SUPER_PATHWAY, " | ", long$SUB_PATHWAY)
+
+long2 <- long
+long2 <- long[!duplicated(long$name), ]
+rev_names =  rev(unique(long$name))
+long$name = factor(long$name, levels = rev_names)
+return(list(a = long, b= long2))
+}
+Callcat1 = figure_table(lr_output_cat1_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat2 = figure_table(lr_output_cat2_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat3 = figure_table(lr_output_cat3_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat4 = figure_table(lr_output_cat4_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat5 = figure_table(lr_output_cat5_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat6 = figure_table(lr_output_cat6_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat7 = figure_table(lr_output_cat7_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat8 = figure_table(lr_output_cat8_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat9 = figure_table(lr_output_cat9_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat10 = figure_table(lr_output_cat10_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+
+p_cat1 = ggplot(Callcat1$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 1') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat1$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat2 = ggplot(Callcat2$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 2') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat2$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat3 = ggplot(Callcat3$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 3') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat3$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat4 = ggplot(Callcat4$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 4') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat4$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat5 = ggplot(Callcat5$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 5') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat5$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat6 = ggplot(Callcat6$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 6') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat6$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat7 = ggplot(Callcat7$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 7') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat7$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat8 = ggplot(Callcat8$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 8') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat8$b$color)
+                                   )) +geom_vline(xintercept = 0)#,linetype="dotted"
+
+remove_y <- theme(
+  axis.text.y = element_blank(),
+  axis.ticks.y = element_blank(),
+  axis.title.y = element_blank()
+  
+)
+p_cat9 = ggplot(Callcat9$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 9') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat9$b$color)
+                                   )) +geom_vline(xintercept = 0)#,linetype="dotted"
+
+remove_y <- theme(
+  axis.text.y = element_blank(),
+  axis.ticks.y = element_blank(),
+  axis.title.y = element_blank()
+  
+)
+p_cat10 = ggplot(Callcat10$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 10') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat10$b$color)
+                                   )) +geom_vline(xintercept = 0)#,linetype="dotted"
+
+remove_y <- theme(
+  axis.text.y = element_blank(),
+  axis.ticks.y = element_blank(),
+  axis.title.y = element_blank()
+  
+)
+p <- list(
+  p_cat1 + 
+  theme(legend.position="none")+ xlim(-30,30),# + remove_y
+  p_cat2 + remove_y + xlim(-30,20)+
+  theme(legend.position="none"),
+  p_cat3+ remove_y + xlim(-30,30)+
+      theme(legend.position="none"),
+  p_cat4 + remove_y +xlim(-30,30)+
+      theme(legend.position="none"),
+  p_cat5 + remove_y +xlim(-30,30)+
+      theme(legend.position="bottom"),
+  p_cat6 + remove_y +xlim(-30,30)+
+      theme(legend.position="none"),
+  p_cat7 + remove_y +xlim(-30,30)+
+      theme(legend.position="none"),
+  p_cat8 + remove_y +xlim(-30,30)+
+      theme(legend.position="none"),
+  p_cat9 + remove_y +xlim(-30,30)+
+      theme(legend.position="none"),
+  p_cat10 + remove_y +xlim(-30,30)+
+      theme(legend.position="none")
+ 
+)
+library(patchwork)
+p_cocatall <- wrap_plots(p, nrow = 1) + plot_layout(guides = "collect")& theme(legend.position = 'bottom')
+p_cocatall
+```
+```{r}
+Metabolomics_rowfeature$Compound_ID = rownames(Metabolomics_rowfeature)
+Metabolomics_rowfeature_sort =  Metabolomics_rowfeature %>%
+  arrange(SUPER_PATHWAY, SUB_PATHWAY)
+```
+```{r}
+lr_output_cat1_all_glm_simple_sorted = lr_output_cat1_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat1_all_glm_simple$Compound_ID),
+]
+lr_output_cat1_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat1_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat1_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat1_all_glm_simple_sorted = lr_output_cat1_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat1_all_glm_simple_sorted) = c("Name","Visit 1 coef","Visit 1 P","Visit 1 Adjusted Bonferroni","Visit 1 Adjusted FDR")
+##
+lr_output_cat2_all_glm_simple_sorted = lr_output_cat2_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat2_all_glm_simple$Compound_ID),
+]
+lr_output_cat2_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat2_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat2_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat2_all_glm_simple_sorted = lr_output_cat2_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat2_all_glm_simple_sorted) = c("Name","Visit 2 coef","Visit 2 P","Visit 2 Adjusted Bonferroni","Visit 2 Adjusted FDR")
+##
+lr_output_cat3_all_glm_simple_sorted = lr_output_cat3_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat3_all_glm_simple$Compound_ID),
+]
+lr_output_cat3_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat3_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat3_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat3_all_glm_simple_sorted = lr_output_cat3_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat3_all_glm_simple_sorted) = c("Name","Visit 3 coef","Visit 3 P","Visit 3 Adjusted Bonferroni","Visit 3 Adjusted FDR")
+##
+lr_output_cat4_all_glm_simple_sorted = lr_output_cat4_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat4_all_glm_simple$Compound_ID),
+]
+lr_output_cat4_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat4_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat4_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat4_all_glm_simple_sorted = lr_output_cat4_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat4_all_glm_simple_sorted) = c("Name","Visit 4 coef","Visit 4 P","Visit 4 Adjusted Bonferroni","Visit 4 Adjusted FDR")
+##
+lr_output_cat5_all_glm_simple_sorted = lr_output_cat5_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat5_all_glm_simple$Compound_ID),
+]
+lr_output_cat5_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat5_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat5_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat5_all_glm_simple_sorted = lr_output_cat5_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat5_all_glm_simple_sorted) = c("Name","Visit 5 coef","Visit 5 P","Visit 5 Adjusted Bonferroni","Visit 5 Adjusted FDR")
+##
+lr_output_cat6_all_glm_simple_sorted = lr_output_cat6_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat6_all_glm_simple$Compound_ID),
+]
+lr_output_cat6_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat6_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat6_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat6_all_glm_simple_sorted = lr_output_cat6_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat6_all_glm_simple_sorted) = c("Name","Visit 6 coef","Visit 6 P","Visit 6 Adjusted Bonferroni","Visit 6 Adjusted FDR")
+
+##
+lr_output_cat7_all_glm_simple_sorted = lr_output_cat7_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat7_all_glm_simple$Compound_ID),
+]
+lr_output_cat7_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat7_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat7_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat7_all_glm_simple_sorted = lr_output_cat7_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat7_all_glm_simple_sorted) = c("Name","Visit 7 coef","Visit 7 P","Visit 7 Adjusted Bonferroni","Visit 7 Adjusted FDR")
+##
+lr_output_cat8_all_glm_simple_sorted = lr_output_cat8_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat8_all_glm_simple$Compound_ID),
+]
+lr_output_cat8_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat8_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat8_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat8_all_glm_simple_sorted = lr_output_cat8_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat8_all_glm_simple_sorted) = c("Name","Visit 8 coef","Visit 8 P","Visit 8 Adjusted Bonferroni","Visit 8 Adjusted FDR")
+##
+lr_output_cat9_all_glm_simple_sorted = lr_output_cat9_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat9_all_glm_simple$Compound_ID),
+]
+lr_output_cat9_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat9_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat9_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat9_all_glm_simple_sorted = lr_output_cat9_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat9_all_glm_simple_sorted) = c("Name","Visit 9 coef","Visit 9 P","Visit 9 Adjusted Bonferroni","Visit 9 Adjusted FDR")
+##
+lr_output_cat10_all_glm_simple_sorted = lr_output_cat10_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat10_all_glm_simple$Compound_ID),
+]
+lr_output_cat10_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat10_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat10_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat10_all_glm_simple_sorted = lr_output_cat10_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat10_all_glm_simple_sorted) = c("Name","Visit 10 coef","Visit 10 P","Visit 10 Adjusted Bonferroni","Visit 10 Adjusted FDR")
+
+
+lr_output_all = cbind(lr_output_cat1_all_glm_simple_sorted, lr_output_cat2_all_glm_simple_sorted[,c("Visit 2 coef","Visit 2 P","Visit 2 Adjusted Bonferroni","Visit 2 Adjusted FDR")], lr_output_cat3_all_glm_simple_sorted[,c("Visit 3 coef","Visit 3 P","Visit 3 Adjusted Bonferroni","Visit 3 Adjusted FDR")], lr_output_cat4_all_glm_simple_sorted[,c("Visit 4 coef","Visit 4 P","Visit 4 Adjusted Bonferroni","Visit 4 Adjusted FDR")], lr_output_cat5_all_glm_simple_sorted[,c("Visit 5 coef","Visit 5 P","Visit 5 Adjusted Bonferroni","Visit 5 Adjusted FDR")], lr_output_cat6_all_glm_simple_sorted[,c("Visit 6 coef","Visit 6 P","Visit 6 Adjusted Bonferroni","Visit 6 Adjusted FDR")], lr_output_cat7_all_glm_simple_sorted[,c("Visit 7 coef","Visit 7 P","Visit 7 Adjusted Bonferroni","Visit 7 Adjusted FDR")], lr_output_cat8_all_glm_simple_sorted[,c("Visit 8 coef","Visit 8 P","Visit 8 Adjusted Bonferroni","Visit 8 Adjusted FDR")], lr_output_cat9_all_glm_simple_sorted[,c("Visit 9 coef","Visit 9 P","Visit 9 Adjusted Bonferroni","Visit 9 Adjusted FDR")], lr_output_cat10_all_glm_simple_sorted[,c("Visit 10 coef","Visit 10 P","Visit 10 Adjusted Bonferroni","Visit 10 Adjusted FDR")])
+write_csv(lr_output_all, file = "~/deep_dive_rowfeature_long_visit.csv")
+```
+
+
+```{r}
+lr_output_cat1_all_glm_info = merge(lr_output_cat1_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "feature_list")
+lr_output_cat2_all_glm_info = merge(lr_output_cat2_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "feature_list")
+lr_output_cat3_all_glm_info = merge(lr_output_cat3_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "feature_list")
+lr_output_cat4_all_glm_info = merge(lr_output_cat4_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "feature_list")
+lr_output_cat5_all_glm_info = merge(lr_output_cat5_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "feature_list")
+lr_output_cat6_all_glm_info = merge(lr_output_cat6_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "feature_list")
+lr_output_cat7_all_glm_info = merge(lr_output_cat7_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "feature_list")
+lr_output_cat8_all_glm_info = merge(lr_output_cat8_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "feature_list")
+lr_output_cat9_all_glm_info = merge(lr_output_cat9_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "feature_list")
+lr_output_cat10_all_glm_info = merge(lr_output_cat10_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "feature_list")
+```
+
+```{r}
+lr_output_cat1_all_glm_info$type = "Visit 1"
+lr_output_cat2_all_glm_info$type = "Visit 2"
+lr_output_cat3_all_glm_info$type = "Visit 3"
+lr_output_cat4_all_glm_info$type = "Visit 4"
+lr_output_cat5_all_glm_info$type = "Visit 5"
+lr_output_cat6_all_glm_info$type = "Visit 6"
+lr_output_cat7_all_glm_info$type = "Visit 7"
+lr_output_cat8_all_glm_info$type = "Visit 8"
+lr_output_cat9_all_glm_info$type = "Visit 9"
+lr_output_cat10_all_glm_info$type = "Visit 10"
+
+lr_output_all_glm_info = rbind(lr_output_cat1_all_glm_info,lr_output_cat2_all_glm_info,lr_output_cat3_all_glm_info,lr_output_cat4_all_glm_info,lr_output_cat5_all_glm_info,lr_output_cat6_all_glm_info,lr_output_cat7_all_glm_info,lr_output_cat8_all_glm_info,lr_output_cat9_all_glm_info,lr_output_cat10_all_glm_info)
+lr_output_all_glm_info$type = factor(lr_output_all_glm_info$type, levels = c("Visit 1","Visit 2","Visit 3","Visit 4","Visit 5","Visit 6","Visit 7","Visit 8","Visit 9","Visit 10"))
+```
+```{r}
+save(lr_output_all_glm_info,file ="/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/PRO_data_use_heatmap.Rdata")
+```
+```{r}
+library(ggforestplot)
+b_Sphingomyelins <- lr_output_all_glm_info[SUB_PATHWAY %in% c("Sphingomyelins")] 
+b_Sphingomyelins = b_Sphingomyelins %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Sphingomyelins$sig = factor(b_Sphingomyelins$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+b_Sphingomyelins = b_Sphingomyelins[,c("CHEMICAL_NAME", "type","coef","std","sig")]
+
+names(b_Sphingomyelins)[1] = "name"
+names(b_Sphingomyelins)[4] = "se"
+
+b_Sphingomyelins_v7 = subset(b_Sphingomyelins, b_Sphingomyelins$type == "Visit 7")
+b_Sphingomyelins_v7 = b_Sphingomyelins_v7[order(b_Sphingomyelins_v7$sig),]
+b_Sphingomyelins$name = factor(b_Sphingomyelins$name, levels=b_Sphingomyelins_v7$name)
+b_Sphingomyelins <- b_Sphingomyelins[order(b_Sphingomyelins$name),]
+p_Sphingomyelins= forestplot(
+  df =b_Sphingomyelins,
+  estimate = coef,
+  logodds = FALSE,
+  colour =sig,
+  title = "Sphingomyelins",
+  xlab = "coefficient"
+)  + facet_grid(. ~ type, scales = "free") +  theme(legend.position = "bottom")  +scale_color_manual("Legend", values = c("FDR significant" = "red", "Not significant" = "ivory4", "Raw significant" = "lightsalmon")) 
+p_Sphingomyelins
+#names(b_Sphingomyelins) = c("type","name",  "coef", "se",   "sig" )
+#p_Sphingomyelins= forestplot(
+#  df =b_Sphingomyelins,
+#  estimate = coef,
+#  logodds = FALSE,
+#  colour =sig,
+#  title = "Sphingomyelins",
+#  xlab = "coefficient"
+#) + facet_grid(. ~ type) + scale_color_manual("Legend", values = c("FDR significant" = "red", "Not significant" = "ivory4", "Raw significant" = "lightsalmon")) + theme(legend.position = "botton")
+```
+#"Phosphatidylcholine (PC)"
+```{r}
+b_PC <- lr_output_all_glm_info[SUB_PATHWAY %in% c("Phosphatidylcholine (PC)")] 
+b_PC = b_PC %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_PC$sig = factor(b_PC$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+b_PC = b_PC[,c("CHEMICAL_NAME", "type","coef","std","sig")]
+names(b_PC)[1] = "name"
+names(b_PC)[4] = "se"
+
+b_PC_v6 = subset(b_PC, b_PC$type == "Visit 6")
+b_PC_v6 = b_PC_v6[order(b_PC_v6$sig),]
+b_PC$name = factor(b_PC$name, levels=b_PC_v6$name)
+b_PC <- b_PC[order(b_PC$name),]
+
+p_PC= forestplot(
+  df =b_PC,
+  estimate = coef,
+  logodds = FALSE,
+  colour =sig,
+  title = "Phosphatidylcholine (PC)",
+  xlab = "coefficient"
+)  + facet_grid(. ~ type, scales = "free") + scale_color_manual("Legend", values = c("FDR significant" = "red", "Not significant" = "ivory4", "Raw significant" = "lightsalmon")) + theme(legend.position = "bottom")
+p_PC  
+```
+#"Phosphatidylethanolamine (PE)"
+```{r}
+b_PE <- lr_output_all_glm_info[SUB_PATHWAY %in% c("Phosphatidylethanolamine (PE)")] 
+b_PE = b_PE %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_PE$sig = factor(b_PE$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+b_PE = b_PE[,c("CHEMICAL_NAME", "type","coef","std","sig")]
+names(b_PE)[1] = "name"
+names(b_PE)[4] = "se"
+p_PE= forestplot(
+  df =b_PE,
+  estimate = coef,
+  logodds = FALSE,
+  colour =sig,
+  title = "Phosphatidylethanolamine (PE)",
+  xlab = "coefficient"
+)  + facet_grid(. ~ type, scales = "free") + scale_color_manual("Legend", values = c("FDR significant" = "red", "Not significant" = "ivory4", "Raw significant" = "lightsalmon")) + theme(legend.position = "botton")
+p_PE  
+
+```
+```{r}
+ggarrange(p_Sphingomyelins, p_PC, p_PE, ncol = 1, common.legend = TRUE, legend = "bottom") #20*12
+```
+
+
+#"Leucine, Isoleucine and Valine Metabolism"
+```{r}
+b_Leucine <- lr_output_all_glm_info[SUB_PATHWAY %in% c("Leucine, Isoleucine and Valine Metabolism")] 
+b_Leucine = b_Leucine %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Leucine$sig = factor(b_Leucine$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+b_Leucine = b_Leucine[,c("CHEMICAL_NAME", "type","coef","std","sig")]
+names(b_Leucine)[1] = "name"
+names(b_Leucine)[4] = "se"
+
+b_Leucine_v1 = subset(b_Leucine, b_Leucine$type == "Visit 1")
+b_Leucine_v1 = b_Leucine_v1[order(b_Leucine_v1$sig),]
+b_Leucine$name = factor(b_Leucine$name, levels=b_Leucine_v1$name)
+b_Leucine <- b_Leucine[order(b_Leucine$name),]
+
+
+p_Leucine= forestplot(
+  df =b_Leucine,
+  estimate = coef,
+  logodds = FALSE,
+  colour =sig,
+  title = "Leucine, Isoleucine and Valine Metabolism",
+  xlab = "coefficient"
+)  + facet_grid(. ~ type, scales = "free") + scale_color_manual("Legend", values = c("FDR significant" = "red", "Not significant" = "ivory4", "Raw significant" = "lightsalmon")) + theme(legend.position = "botton")
+p_Leucine  
+```
+
+#"Tryptophan Metabolism"
+```{r}
+b_Tryptophan <- lr_output_all_glm_info[SUB_PATHWAY %in% c("Tryptophan Metabolism")] 
+b_Tryptophan = b_Tryptophan %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Tryptophan$sig = factor(b_Tryptophan$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+b_Tryptophan = b_Tryptophan[,c("CHEMICAL_NAME", "type","coef","std","sig")]
+names(b_Tryptophan)[1] = "name"
+names(b_Tryptophan)[4] = "se"
+p_Tryptophan= forestplot(
+  df =b_Tryptophan,
+  estimate = coef,
+  logodds = FALSE,
+  colour =sig,
+  title = "Tryptophan Metabolism",
+  xlab = "coefficient"
+)  + facet_grid(. ~ type, scales = "free") + scale_color_manual("Legend", values = c("FDR significant" = "red", "Not significant" = "ivory4", "Raw significant" = "lightsalmon")) + theme(legend.position = "botton")
+p_Tryptophan  
+```
+#"Androgenic Steroids"
+```{r}
+b_Steroids <- lr_output_all_glm_info[SUB_PATHWAY %in% c("Androgenic Steroids")] 
+b_Steroids = b_Steroids %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Steroids$sig = factor(b_Steroids$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+b_Steroids = b_Steroids[,c("CHEMICAL_NAME", "type","coef","std","sig")]
+names(b_Steroids)[1] = "name"
+names(b_Steroids)[4] = "se"
+
+b_Steroids_v6 = subset(b_Steroids, b_Steroids$type == "Visit 6")
+b_Steroids_v6 = b_Steroids_v6[order(b_Steroids_v6$sig),]
+b_Steroids$name = factor(b_Steroids$name, levels=b_Steroids_v6$name)
+b_Steroids <- b_Steroids[order(b_Steroids$name),]
+
+p_Steroids= forestplot(
+  df =b_Steroids,
+  estimate = coef,
+  logodds = FALSE,
+  colour =sig,
+  title = "Androgenic Steroids",
+  xlab = "coefficient"
+)  + facet_grid(. ~ type, scales = "free") + scale_color_manual("Legend", values = c("FDR significant" = "red", "Not significant" = "ivory4", "Raw significant" = "lightsalmon")) + theme(legend.position = "botton")
+p_Steroids  
+```
+```{r}
+ggarrange(p_Leucine, p_Tryptophan, p_Steroids, ncol = 1, common.legend = TRUE, legend = "bottom")
+```
+```{r}
+ggarrange(p_Sphingomyelins, p_PC,p_Leucine, p_Steroids,ncol = 1, common.legend = TRUE, legend = "bottom", labels = c("A","B","C","D"))
+```
+```{r}
+ p1= p_Sphingomyelins+ theme(
+ panel.background = element_rect(fill = "transparent"))
+p1$layers[[1]]$aes_params$odd <- "#00000000"
+
+p2= p_PC+ theme(
+ panel.background = element_rect(fill = "transparent"))
+p2$layers[[1]]$aes_params$odd <- "#00000000"
+
+p3= p_Leucine+ theme(
+ panel.background = element_rect(fill = "transparent"))
+p3$layers[[1]]$aes_params$odd <- "#00000000"
+
+p4= p_Steroids+ theme(
+ panel.background = element_rect(fill = "transparent"))
+p4$layers[[1]]$aes_params$odd <- "#00000000"
+```
+```{r}
+ggarrange(p1, p2,p3, p4,ncol = 1, common.legend = TRUE, legend = "bottom", labels = c("A","B","C","D"))
+
+```
+
+```{ r}
+plot_visit = function(pathway_name,lr_data, visit_name){
+  b <- lr_data[SUB_PATHWAY %in% c(pathway_name)] 
+  b = b %>%  mutate(sig = case_when(
+    pval <= 0.05 ~ "significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b$sig = factor(b$sig, levels = c("significant", "Not significant"))
+   discrete_palettes =  c("lightsalmon", "ivory4")
+  p <- b %>% 
+     ggplot( aes(x =CHEMICAL_NAME, y = coef)) +
+
+      geom_errorbar(aes(ymin = lowerCI, ymax = upperCI,colour = sig), width = 0.5, size = 1) +
+      geom_pointrange(aes(ymin = lowerCI, ymax = upperCI, colour = sig),shape = 15,  size = 0.5) +#shape = 15, 
+      
+      geom_hline(yintercept = 0, linetype = 2) +
+      labs(title = visit_name, x = "Metabolites", y = "coefficient") +
+      
+      theme(title = element_text(size = 2),
+            axis.title = element_text(size = 2),
+            axis.text = element_text(size = 2),
+            strip.text.x = element_text(size = 2),
+            legend.position = "right",
+            legend.title = element_text(size = 2),
+            legend.text = element_text(size = 2)) +  scale_color_manual("Legend", values = c("significant" = "lightsalmon", "Not significant" = "ivory4")) +
+      theme_bw() +
+      coord_flip()
+  p2 <- 
+  return(p)
+}
+```
+
+#sphingomyelins
+```{ r}
+sphingomyelins_p1 = plot_visit("Sphingomyelins",lr_output_cat1_all_glm_info,"Admission")
+sphingomyelins_p2 = plot_visit("Sphingomyelins",lr_output_cat2_all_glm_info,"WK1")
+sphingomyelins_p3 = plot_visit("Sphingomyelins",lr_output_cat3_all_glm_info,"WK2_3")
+sphingomyelins_p4 = plot_visit("Sphingomyelins",lr_output_cat4_all_glm_info,"WK4")
+sphingomyelins_p5 = plot_visit("Sphingomyelins",lr_output_cat5_all_glm_info,"MO3")
+sphingomyelins_p6 = plot_visit("Sphingomyelins",lr_output_cat6_all_glm_info,"MO6")
+sphingomyelins_p7 = plot_visit("Sphingomyelins",lr_output_cat7_all_glm_info,"MO9")
+sphingomyelins_p8 = plot_visit("Sphingomyelins",lr_output_cat8_all_glm_info,"MO12")
+
+p <- list(
+  sphingomyelins_p1 + ylim(-5,2.5)+
+  theme(legend.position="none"),# + remove_y
+  sphingomyelins_p2 + remove_y + ylim(-5,2.5)+
+  theme(legend.position="none"),
+  sphingomyelins_p3+ remove_y + ylim(-5,2.5)+
+      theme(legend.position="none"),
+  sphingomyelins_p4 + remove_y+ylim(-5,2.5)+
+      theme(legend.position="none"),
+  sphingomyelins_p5 + remove_y+ylim(-5,2.5)+
+      theme(legend.position="none"),
+  sphingomyelins_p6 + remove_y +ylim(-5,2.5)+
+      theme(legend.position="none"),
+  sphingomyelins_p7 + remove_y +ylim(-5,2.5)+
+      theme(legend.position="none"),
+  sphingomyelins_p8 + remove_y +ylim(-5,2.5)+
+      theme(legend.position="none")
+ 
+)
+#library(patchwork)
+p_sphingomyelins <- wrap_plots(p, nrow = 1) + plot_layout(guides = "collect")& theme(legend.position = 'right') 
+p_sphingomyelins
+```
+#Phosphatidylcholine (PC)
+```{ r}
+PC_p1 = plot_visit("Phosphatidylcholine (PC)",lr_output_cat1_all_glm_info,"Admission")
+PC_p1
+PC_p2 = plot_visit("Phosphatidylcholine (PC)",lr_output_cat2_all_glm_info,"WK1")
+PC_p2
+PC_p3 = plot_visit("Phosphatidylcholine (PC)",lr_output_cat3_all_glm_info,"WK2_3")
+PC_p3
+PC_p4 = plot_visit("Phosphatidylcholine (PC)",lr_output_cat4_all_glm_info,"WK4")
+PC_p4
+PC_p5 = plot_visit("Phosphatidylcholine (PC)",lr_output_cat5_all_glm_info,"MO3")
+PC_p5
+PC_p6 = plot_visit("Phosphatidylcholine (PC)",lr_output_cat6_all_glm_info,"MO6")
+PC_p6
+PC_p7 = plot_visit("Phosphatidylcholine (PC)",lr_output_cat7_all_glm_info,"MO9")
+PC_p7
+PC_p8 = plot_visit("Phosphatidylcholine (PC)",lr_output_cat8_all_glm_info,"MO12")
+PC_p8
+p <- list(
+  PC_p1 + ylim(-9.5,2)+
+  theme(legend.position="none"),# + remove_y
+  PC_p2 + remove_y + ylim(-9.5,2)+
+  theme(legend.position="none"),
+  PC_p3+ remove_y +  ylim(-9.5,2)+
+      theme(legend.position="none"),
+  PC_p4 + remove_y+ ylim(-9.5,2)+
+      theme(legend.position="none"),
+  PC_p5 + remove_y+ ylim(-9.5,2)+
+      theme(legend.position="none"),
+  PC_p6 + remove_y + ylim(-9.5,2)+
+      theme(legend.position="none"),
+  PC_p7 + remove_y + ylim(-9.5,2)+
+      theme(legend.position="none"),
+ PC_p8 + remove_y + ylim(-9.5,2)+
+      theme(legend.position="none")
+ 
+)
+#library(patchwork)
+p_PC <- wrap_plots(p, nrow = 1) + plot_layout(guides = "collect")& theme(legend.position = 'right') 
+p_PC
+```
+
+#Phosphatidylethanolamine (PE)
+```{ r}
+PE_p1 = plot_visit("Phosphatidylethanolamine (PE)",lr_output_cat1_all_glm_info,"Admission")
+PE_p1
+PE_p2 = plot_visit("Phosphatidylethanolamine (PE)",lr_output_cat2_all_glm_info,"WK1")
+PE_p2
+PE_p3 = plot_visit("Phosphatidylethanolamine (PE)",lr_output_cat3_all_glm_info,"WK2_3")
+PE_p3
+PE_p4 = plot_visit("Phosphatidylethanolamine (PE)",lr_output_cat4_all_glm_info,"WK4")
+PE_p4
+PE_p5 = plot_visit("Phosphatidylethanolamine (PE)",lr_output_cat5_all_glm_info,"MO3")
+PE_p5
+PE_p6 = plot_visit("Phosphatidylethanolamine (PE)",lr_output_cat6_all_glm_info,"MO6")
+PE_p6
+PE_p7 = plot_visit("Phosphatidylethanolamine (PE)",lr_output_cat7_all_glm_info,"MO9")
+PE_p7
+PE_p8 = plot_visit("Phosphatidylethanolamine (PE)",lr_output_cat8_all_glm_info,"MO12")
+PE_p8
+p <- list(
+  PE_p1 + ylim(-3,3)+
+  theme(legend.position="none"),# + remove_y
+  PE_p2 + remove_y + ylim(-3,3)+
+  theme(legend.position="none"),
+  PE_p3+ remove_y +  ylim(-3,3)+
+      theme(legend.position="none"),
+  PE_p4 + remove_y+ ylim(-3,3)+
+      theme(legend.position="none"),
+  PE_p5 + remove_y+ ylim(-3,3)+
+      theme(legend.position="none"),
+  PE_p6 + remove_y +ylim(-3,3)+
+      theme(legend.position="none"),
+  PE_p7 + remove_y + ylim(-3,3)+
+      theme(legend.position="none"),
+ PE_p8 + remove_y + ylim(-3,3)+
+      theme(legend.position="none")
+ 
+)
+#library(patchwork)
+p_PE <- wrap_plots(p, nrow = 1) + plot_layout(guides = "collect")& theme(legend.position = 'right') 
+p_PE
+```
+#Leucine, Isoleucine and Valine Metabolism
+```{ r}
+Leucine_p1 = plot_visit("Leucine, Isoleucine and Valine Metabolism",lr_output_cat1_all_glm_info,"Admission")
+Leucine_p1
+Leucine_p2 = plot_visit("Leucine, Isoleucine and Valine Metabolism",lr_output_cat2_all_glm_info,"WK1")
+Leucine_p2
+Leucine_p3 = plot_visit("Leucine, Isoleucine and Valine Metabolism",lr_output_cat3_all_glm_info,"WK2_3")
+Leucine_p3
+Leucine_p4 = plot_visit("Leucine, Isoleucine and Valine Metabolism",lr_output_cat4_all_glm_info,"WK4")
+Leucine_p4
+Leucine_p5 = plot_visit("Leucine, Isoleucine and Valine Metabolism",lr_output_cat5_all_glm_info,"MO3")
+Leucine_p5
+Leucine_p6 = plot_visit("Leucine, Isoleucine and Valine Metabolism",lr_output_cat6_all_glm_info,"MO6")
+Leucine_p6
+Leucine_p7 = plot_visit("Leucine, Isoleucine and Valine Metabolism",lr_output_cat7_all_glm_info,"MO9")
+Leucine_p7
+Leucine_p8 = plot_visit("Leucine, Isoleucine and Valine Metabolism",lr_output_cat8_all_glm_info,"MO12")
+Leucine_p8
+p <- list(
+  Leucine_p1 + ylim(-5,3)+
+  theme(legend.position="none"),# + remove_y
+  Leucine_p2 + remove_y +ylim(-5,3)+
+  theme(legend.position="none"),
+  Leucine_p3+ remove_y +  ylim(-5,3)+
+      theme(legend.position="none"),
+  Leucine_p4 + remove_y+ ylim(-5,3)+
+      theme(legend.position="none"),
+  Leucine_p5 + remove_y+ ylim(-5,3)+
+      theme(legend.position="none"),
+  Leucine_p6 + remove_y +ylim(-5,3)+
+      theme(legend.position="none"),
+  Leucine_p7 + remove_y + ylim(-5,3)+
+      theme(legend.position="none"),
+ Leucine_p8 + remove_y + ylim(-5,3)+
+      theme(legend.position="none")
+ 
+)
+#library(patchwork)
+p_Leucine <- wrap_plots(p, nrow = 1) + plot_layout(guides = "collect")& theme(legend.position = 'right') 
+p_Leucine
+```
+#	Tryptophan Metabolism
+```{ r}
+Tryptophan_p1 = plot_visit("Tryptophan Metabolism",lr_output_cat1_all_glm_info,"Admission")
+Tryptophan_p1
+Tryptophan_p2 = plot_visit("Tryptophan Metabolism",lr_output_cat2_all_glm_info,"WK1")
+Tryptophan_p2
+Tryptophan_p3 = plot_visit("Tryptophan Metabolism",lr_output_cat3_all_glm_info,"WK2_3")
+Tryptophan_p3
+Tryptophan_p4 = plot_visit("Tryptophan Metabolism",lr_output_cat4_all_glm_info,"WK4")
+Tryptophan_p4
+Tryptophan_p5 = plot_visit("Tryptophan Metabolism",lr_output_cat5_all_glm_info,"MO3")
+Tryptophan_p5
+Tryptophan_p6 = plot_visit("Tryptophan Metabolism",lr_output_cat6_all_glm_info,"MO6")
+Tryptophan_p6
+Tryptophan_p7 = plot_visit("Tryptophan Metabolism",lr_output_cat7_all_glm_info,"MO9")
+Tryptophan_p7
+Tryptophan_p8 = plot_visit("Tryptophan Metabolism",lr_output_cat8_all_glm_info,"MO12")
+Tryptophan_p8
+p <- list(
+  Tryptophan_p1 + ylim(-5,3)+
+  theme(legend.position="none"),# + remove_y
+  Tryptophan_p2 + remove_y +ylim(-5,3)+
+  theme(legend.position="none"),
+  Tryptophan_p3+ remove_y +  ylim(-5,3)+
+      theme(legend.position="none"),
+  Tryptophan_p4 + remove_y+ ylim(-5,3)+
+      theme(legend.position="none"),
+  Tryptophan_p5 + remove_y+ ylim(-5,3)+
+      theme(legend.position="none"),
+  Tryptophan_p6 + remove_y +ylim(-5,3)+
+      theme(legend.position="none"),
+  Tryptophan_p7 + remove_y + ylim(-5,3)+
+      theme(legend.position="none"),
+ Tryptophan_p8 + remove_y + ylim(-5,3)+
+      theme(legend.position="none")
+ 
+)
+#library(patchwork)
+p_Tryptophan <- wrap_plots(p, nrow = 1) + plot_layout(guides = "collect")& theme(legend.position = 'right') 
+p_Tryptophan
+```
+
+#Androgenic Steroids
+```{ r}
+Steroids_p1 = plot_visit("Androgenic Steroids",lr_output_cat1_all_glm_info,"Admission")
+Steroids_p1
+Steroids_p2 = plot_visit("Androgenic Steroids",lr_output_cat2_all_glm_info,"WK1")
+Steroids_p2
+Steroids_p3 = plot_visit("Androgenic Steroids",lr_output_cat3_all_glm_info,"WK2_3")
+Steroids_p3
+Steroids_p4 = plot_visit("Androgenic Steroids",lr_output_cat4_all_glm_info,"WK4")
+Steroids_p4
+Steroids_p5 = plot_visit("Androgenic Steroids",lr_output_cat5_all_glm_info,"MO3")
+Steroids_p5
+Steroids_p6 = plot_visit("Androgenic Steroids",lr_output_cat6_all_glm_info,"MO6")
+Steroids_p6
+Steroids_p7 = plot_visit("Androgenic Steroids",lr_output_cat7_all_glm_info,"MO9")
+Steroids_p7
+Steroids_p8 = plot_visit("Androgenic Steroids",lr_output_cat8_all_glm_info,"MO12")
+Steroids_p8
+p <- list(
+  Steroids_p1 + ylim(-5.5,3)+
+  theme(legend.position="none"),# + remove_y
+  Steroids_p2 + remove_y +ylim(-5.5,3)+
+  theme(legend.position="none"),
+  Steroids_p3+ remove_y +  ylim(-5.5,3)+
+      theme(legend.position="none"),
+  Steroids_p4 + remove_y+ ylim(-5.5,3)+
+      theme(legend.position="none"),
+  Steroids_p5 + remove_y+ ylim(-5.5,3)+
+      theme(legend.position="none"),
+  Steroids_p6 + remove_y +ylim(-5.5,3)+
+      theme(legend.position="none"),
+  Steroids_p7 + remove_y + ylim(-5.5,3)+
+      theme(legend.position="none"),
+ Steroids_p8 + remove_y + ylim(-5.5,3)+
+      theme(legend.position="none")
+ 
+)
+#library(patchwork)
+p_Steroids <- wrap_plots(p, nrow = 1) + plot_layout(guides = "collect")& theme(legend.position = 'right') &scale_color_discrete(drop = F)
+p_Steroids
+```
+

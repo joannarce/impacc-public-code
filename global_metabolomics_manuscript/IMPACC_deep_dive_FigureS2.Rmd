@@ -1,0 +1,769 @@
+---
+title: "IMPACC_deep_dive_correlation"
+output: html_document
+date: "2024-05-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+#Read clinical data
+```{r}
+library(data.table)
+library(DT)
+library(e1071)
+library(openxlsx)
+library(stringr)
+library(dplyr)
+library(plyr)
+ library(tidyr)
+library(tidyverse)
+library(ggpubr)
+library(ComplexHeatmap)
+library(purrr)
+# Clinical characteristics
+clinical_individ_data <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-locked.csv",
+  header = TRUE, row.names = NULL
+)
+# Filter COVID positive samples
+clinical_individ_data <- subset(clinical_individ_data, participant_type == "COVID-19 Positive")
+#print(head(clin.individ))
+
+clinical_sample_data <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-sample-locked.csv",
+  header = TRUE, row.names = NULL
+)
+
+# Explanation of event_id
+clinical_event_data <- read.csv(
+  "/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-event-locked.csv",
+  header = TRUE, row.names = NULL
+)
+```
+```{r}
+library(dplyr) 
+clinical_data <-
+    inner_join(clinical_sample_data,
+               clinical_event_data,
+               by = c("event_id" = "event_id")) %>%    # Join the clinical_sample_data and clinical_event_data tables using "event_id" column
+    mutate(
+      participant_id = participant_id.x,
+      participant_id.x = NULL,
+      participant_id.y = NULL
+    ) %>%   # Remove redundant "participant_id" columns
+    inner_join(clinical_individ_data,
+               by = c("participant_id" = "participant_id"))   # Append the clinical_individ_data table
+cat("Removing COVID-19 negative patients\n")
+clinical_data <- clinical_data %>% dplyr::filter(grepl("COVID-19 Positive", participant_type)) 
+EVENT_DATE_UPPER = 365
+cat("Removing samples with event_date greater than", EVENT_DATE_UPPER, "\n")
+clinical_data <- clinical_data %>% dplyr::filter( event_date <= EVENT_DATE_UPPER )
+VISIT_UPPER = 10
+cat("Removing samples with visit number (event_type) greater than Visit", VISIT_UPPER, "\n")
+allowed_visits = paste("Visit", 1:VISIT_UPPER)
+clinical_data <- clinical_data %>% dplyr::filter( grepl("Escalation|Control donor visit", event_type) | (event_type %in% allowed_visits) )
+
+admit_age_levels = sort(unique(clinical_data$admit_age))
+  admit_age_levels_tiles = ntile(admit_age_levels, 5)
+  label_df_tmp = data.frame( admit_age_levels_tiles, admit_age_levels) %>% 
+    group_by(admit_age_levels_tiles) %>% 
+    dplyr::summarize(min=min(admit_age_levels), max=max(admit_age_levels)) %>% 
+    dplyr::mutate(labels = paste0("[",min, ",", max, "]") ) 
+  admit_age_levels_tiles_labels = label_df_tmp$labels %>% setNames(label_df_tmp$admit_age_levels_tiles)
+  admit_age_levels_labels = admit_age_levels_tiles_labels[admit_age_levels_tiles] %>% setNames(admit_age_levels)
+  discretized_admit_age_quantile = admit_age_levels_labels[ as.character(clinical_data$admit_age) ]
+  
+  
+  ### Generate discretized age based on equal width ages.
+  discretized_admit_age_equalWidth = cut(clinical_data$admit_age, breaks = 5)
+  
+  clinical_data = clinical_data %>% mutate( discretized_admit_age_quantile = discretized_admit_age_quantile, discretized_admit_age_equalWidth = discretized_admit_age_equalWidth )
+  
+  
+  ### Add discharge dates column
+  # Extract discharge dates, concatenate the dates for patients that have multiple dates.
+  discharge_event_data = clinical_event_data[ clinical_event_data$event_type == "Discharge", ] %>% 
+    group_by(participant_id) %>% 
+    summarise(event_dates = paste0(sort(event_date), collapse = ",") )
+  clinical_data = clinical_data %>% 
+    mutate(discharge_dates = 
+             discharge_event_data$event_dates[ match(clinical_data$participant_id, discharge_event_data$participant_id) ]  
+    )
+  
+  death_event_data = clinical_event_data[ clinical_event_data$event_type == "Death", ]
+  clinical_data = clinical_data %>% 
+    mutate(death_date = death_event_data$event_date[ match(clinical_data$participant_id, death_event_data$participant_id) ]
+    )
+  
+
+```
+## 1.2 Prepare Clinical Data
+```{r, met-specific clinical data prep, echo=FALSE, warning=FALSE, warning=FALSE}
+
+clinical_data <- clinical_data %>% #clinical_data1 
+        dplyr::mutate(event_date_week = findInterval(event_date, vec = c(0,7,14,21,28), all.inside = TRUE),
+        day_from_sympt  = event_date - symptom_date,
+        sympt_date_week = findInterval(day_from_sympt, vec = c(0,7,14,21,28,Inf), all.inside = TRUE),
+        age_interval     =  findInterval(admit_age, vec = seq(from = 10, to = 100, by = 10, all.inside = TRUE))) %>%  
+  #mutate(trajectory_group = recode(trajectory_group,
+  #                           `1` = "full recovery - fast",
+  #                           `2` = "full recovery - slow",
+  #                           `3` = "limited recovery", 
+  #                           `4` = "partial recovery",
+  #                           `5` = "did not recover"),
+  #       trajectory_group = factor(trajectory_group,
+  #                           levels = c("full recovery - fast",
+  #                           "full recovery - slow",
+  #                           "limited recovery", 
+  #                          "partial recovery",
+   #                         "did not recover"))) %>%
+  dplyr::mutate (bmi_category = case_when(bmi <=  18.5 ~ "underweight",
+                          bmi >= 18.5 & bmi <= 24.9 ~ "normal",
+                          bmi >= 25 & bmi <= 29.9 ~ "overweight",
+                          bmi >= 30 & bmi <= 34.9 ~ "obese",
+                         TRUE ~ NA_character_ # Just in case anything is # outside of these numbers this will return an NA which means nothing was entered
+                          )) %>%
+     dplyr::mutate (bmi_2class = case_when(
+                          bmi <= 29.9 ~ "non-obese",
+                          bmi >= 30  ~ "obese",
+                          TRUE ~ NA_character_ # Just in case anything is # outside of these numbers this will return an NA which means nothing was entered
+                          )) %>%
+              dplyr::mutate (res_stat_d14 = case_when (respiratory_status_day14 <= 2 ~ "Discharged",
+                                       respiratory_status_day14 ==3 | respiratory_status_day14 ==4 ~ "Moderate",
+                                       respiratory_status_day14 ==5 | respiratory_status_day14 ==6 ~ "Severe",
+                                      respiratory_status_day14 ==7 ~ "Dead",
+                                     TRUE ~ NA_character_)) %>% 
+  dplyr::mutate (res_stat_d28 = case_when (respiratory_status_day28 <= 2 ~ "Discharged",
+                                       respiratory_status_day28 ==3 | respiratory_status_day28 ==4 ~ "Moderate",
+                                       respiratory_status_day28 ==5 | respiratory_status_day28 ==6 ~ "Severe",
+                                       respiratory_status_day28 ==7 ~ "Dead",
+                                      TRUE ~ NA_character_)) %>%
+              #dplyr::mutate (res_stat = case_when (respiratory_status <= 2 ~ "Discharged",
+              #                         respiratory_status ==3 | respiratory_status ==4 ~ "Moderate",
+              #                         respiratory_status ==5 | respiratory_status ==6 ~ "Severe",
+              #                         respiratory_status ==7 ~ "Dead",
+              #                        TRUE ~ NA_character_)) %>% 
+  dplyr::filter(participant_type==c("COVID-19 Positive")) ### Keep data from COVID-19 Positive individuals
+
+
+```
+
+##add supp file to clinical
+```{r}
+library(readr)
+library(stringr)
+supp_file <- read_csv("/data/clinical/current/2023-01-01-locked/2023-01-01-impacc-clin-individ-supp-locked.csv") %>% mutate_if(is.character, str_trim)
+conv_file <- read_csv("/scratch/clinical/current/impacc-convalescent.csv") %>% mutate_if(is.character, str_trim)
+names(conv_file)[3] <- "conv_cluster4"
+clinical_all <- merge(clinical_data, conv_file, by = "participant_id")
+clinical_data <- clinical_all
+
+
+# combine conv clusters 1, 3, and 4 -> 1 = 1,3,4
+clinical_data$conv_cluster4 <- ifelse(clinical_data$conv_cluster4 == 2, 2, 
+                                     ifelse(clinical_data$conv_cluster4 == 5, 5,
+                                            ifelse(clinical_data$conv_cluster4 == 6, 6, 1)))
+clinical_data$conv_cluster4 <- as.numeric(clinical_data$conv_cluster4)
+
+clinical_all <- merge(clinical_data, supp_file, by = "participant_id", all.x = TRUE)
+#clinical_data
+clinical_all = filter(clinical_all, !clinical_all$event_type %in% c("Escalation 1", "Escalation 2"))
+```
+## Metabolomics concentration
+
+```{r}
+# Concentration
+Metabolomics_counts <- read.csv(
+  "/data/metabolomics/plasma-metabolomics-global/current/GlobalPlasmaMetabolomics-Counts.csv",
+  header = TRUE, row.names = 1
+)
+
+# Row data
+Metabolomics_rowfeature <- read.csv(
+  "/data/metabolomics/plasma-metabolomics-global/current/GlobalPlasmaMetabolomics-RowFeature.csv",
+  header = TRUE, row.names = 1
+)
+print(all(rownames(Metabolomics_counts) == rownames(Metabolomics_rowfeature)))
+
+# metadata
+Metabolomics_metadata <- read.csv(
+  "/data/metabolomics/plasma-metabolomics-global/current/GlobalPlasmaMetabolomics-Metadata.csv",
+  header = TRUE, row.names = NULL
+)
+```
+
+#add_viralload
+```{r}
+vl.counts <- read.csv(
+  "/data/nasal-viralload/current/nasal-viralload-Counts.csv",
+  header = TRUE, row.names = NULL,
+  check.names = FALSE
+)
+vl.meta <- read.csv(
+  "/data/nasal-viralload/current/nasal-viralload-Metadata.csv",
+  header = TRUE, row.names = NULL,
+  check.names = FALSE
+)
+vl.meta_baseline = merge(vl.meta, clinical_all, by = c("sample_id"))
+vl.meta_baseline = subset(vl.meta_baseline, vl.meta_baseline$event_type == "Visit 1")
+vl.meta_baseline = subset(vl.meta_baseline, vl.meta_baseline$sample_status == "IMPACC sample assayed and passed QC")
+vl.meta_baseline = merge(vl.meta_baseline, vl.counts, by = "sample_id")
+vl.meta_baseline = vl.meta_baseline[,c("participant_id","N1_CT","N2_CT")]
+```
+#add_abtiters
+```{r}
+tt.meta <- read.csv(
+  "/data/serum-rbd-abtiters/current/serum-rbd-abtiters-Metadata.csv",
+  header = TRUE, row.names = NULL,
+  check.names = FALSE
+)
+tt.counts <- read.csv(
+  "/data/serum-rbd-abtiters/current/serum-rbd-abtiters-Counts.csv",
+  header = TRUE, row.names = NULL,
+  check.names = FALSE
+)
+tt.meta_baseline = merge(tt.meta, clinical_all, by = c("sample_id","participant_id"))
+tt.meta_baseline = subset(tt.meta_baseline, tt.meta_baseline$event_type == "Visit 1")
+tt.meta_baseline = subset(tt.meta_baseline, tt.meta_baseline$sample_status == "IMPACC sample assayed and passed QC")
+tt.meta_baseline = merge(tt.meta_baseline, tt.counts, by = "sample_id")
+tt.meta_baseline = tt.meta_baseline[,c("participant_id","Last X RBD IgG","Last X Spike IgG")]
+names(tt.meta_baseline)[2] = "Last_X_RBD_IgG"
+names(tt.meta_baseline)[3] = "Last_X_Spike_IgG"
+```
+
+```{r}
+#clinical_all = merge(clinical_all, vl.meta_baseline, by = "participant_id")
+#clinical_all = merge(clinical_all, tt.meta_baseline, by = "participant_id")
+library(mice)
+init = mice(clinical_all, maxit=0) 
+meth = init$method
+predM = init$predictorMatrix
+imputed = mice(clinical_all, method="pmm", predictorMatrix=predM, m=1)
+imputed <- complete(imputed)
+```
+
+```{r}
+Metabolomics_metadata = subset(Metabolomics_metadata, Metabolomics_metadata$sample_status == "IMPACC sample assayed and passed QC")
+Metabolomics_metadata = subset(Metabolomics_metadata, Metabolomics_metadata$sample_id %in% clinical_all$sample_id)
+
+clinical_df <- imputed
+clinical_df = subset(clinical_df, ! is.na(clinical_df$trajectory_group))
+clinical_df = subset(clinical_df, clinical_df$trajectory_group %in% c(1,2,3,4,5))
+metadata = subset(Metabolomics_metadata, Metabolomics_metadata$sample_id %in% clinical_df$sample_id)
+clinical_df_met = subset(clinical_df, clinical_df$sample_id %in% metadata$sample_id)
+participants = as.data.frame(unique(clinical_df_met$participant_id))
+dim(participants)
+#write_csv2(participants, file = "~/Deep_dive_participants.csv")
+dim(Metabolomics_counts)
+plasma_metabolomics_global_counts = Metabolomics_counts[metadata$sample_id,]
+dim(plasma_metabolomics_global_counts)
+dim(metadata)
+plasma_metabolomics_global_metadata = metadata
+rownames(plasma_metabolomics_global_metadata) = plasma_metabolomics_global_metadata$sample_id
+```
+
+
+```{r}
+clinical_df = clinical_df_met
+meta_data_raw <- plasma_metabolomics_global_metadata
+met_data <- merge(meta_data_raw, clinical_df, by = c("sample_id"))#,"phase"
+met_data_baseline = subset(met_data, met_data$event_type == "Visit 1")
+met_data_baseline <-  met_data_baseline[order(met_data_baseline$participant_id),]
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data_baseline$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- Metabolomics_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+```
+
+
+```{r}
+# numeric values from clinical + "Last X RBD IgG", "Last X Spike IgG" + "N1_CT","N2_CT" / AA  and also Lipid - baseline
+#num_columns = c("comorb_count","height","weight","hosp_temp","baseline_vs_o2sat_low","baseline_vs_fio2_low","baseline_spfio2ratio_low","baseline_sofa_score_new","baseline_lab_lymph","baseline_lab_platelets","baseline_lab_alt","baseline_lab_cr","baseline_lab_crp","baseline_lab_ddimer","baseline_lab_trop","los","timetodeath","timetowd","timetodischarge","ncomp","steroids_start","remdes_start")
+met_data_baseline = merge(met_data_baseline, vl.meta_baseline,by = "participant_id")
+met_data_baseline = merge(met_data_baseline, tt.meta_baseline, by = "participant_id")
+#met_data_baseline = na.omit(met_data_baseline)
+PA = subset(plasma_metabolomics_global_rowfeature_tmp, plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY == "Purine Metabolism, Adenine containing")
+
+PA_met = plasma_metabolomics_global_counts_baseline[,rownames(PA)]
+plasma_metabolomics_global_rowfeature_tmp_name = plasma_metabolomics_global_rowfeature_tmp[colnames(PA_met),]
+colnames(PA_met) = plasma_metabolomics_global_rowfeature_tmp_name$CHEMICAL_NAME
+subsetmet <- met_data_baseline[,c("sample_id","admit_age","event_date","comorb_count","baseline_vs_o2sat_low","baseline_vs_fio2_low","baseline_spfio2ratio_low","baseline_sofa_score_new","baseline_lab_lymph","baseline_lab_platelets","baseline_lab_alt","baseline_lab_cr","baseline_lab_crp","baseline_lab_ddimer","baseline_lab_trop","los","timetodeath","timetowd","timetodischarge","ncomp","steroids_start","remdes_start","N1_CT","N2_CT","Last_X_RBD_IgG","Last_X_Spike_IgG")]
+subsetmet = na.omit(subsetmet)
+rownames(subsetmet)= subsetmet$sample_id
+subsetmet$sample_id = NULL
+PA_met = PA_met[rownames(subsetmet),]
+subsetmet_all = cbind(subsetmet,PA_met)
+library(metan)
+#corr_met <- cor(subsetmet_all)
+#corr_met_filter = corr_met[26:dim(corr_met)[2],1:25]
+#library(tidyverse)
+
+#as.data.frame(corr_met_filter) %>%
+#  rownames_to_column() %>%
+#  pivot_longer(-1) %>%
+#  ggplot(aes(x = name, y = rowname, fill = value)) +
+#  geom_tile() +
+#  #geom_text(aes(label = value)) +
+#  #coord_equal() +
+#  scale_fill_gradient2(low = "blue3", mid = "white", high = "red3") +
+#  labs(x = NULL, y = NULL) +theme(axis.text.x = element_text(size = 10, angle = 45, hjust = 1)) 
+
+corr_met <-corr_coef(subsetmet_all)
+plot(corr_met,reorder = FALSE)
+```
+```{r}
+
+PM = subset(plasma_metabolomics_global_rowfeature_tmp, plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY == "Polyamine Metabolism")
+
+PM_met = plasma_metabolomics_global_counts_baseline[,rownames(PM)]
+plasma_metabolomics_global_rowfeature_tmp_name = plasma_metabolomics_global_rowfeature_tmp[colnames(PM_met),]
+colnames(PM_met) = plasma_metabolomics_global_rowfeature_tmp_name$CHEMICAL_NAME
+subsetmet <- met_data_baseline[,c("sample_id","admit_age","event_date","comorb_count","baseline_vs_o2sat_low","baseline_vs_fio2_low","baseline_spfio2ratio_low","baseline_sofa_score_new","baseline_lab_lymph","baseline_lab_platelets","baseline_lab_alt","baseline_lab_cr","baseline_lab_crp","baseline_lab_ddimer","baseline_lab_trop","los","timetodeath","timetowd","timetodischarge","ncomp","steroids_start","remdes_start","N1_CT","N2_CT","Last_X_RBD_IgG","Last_X_Spike_IgG")]
+subsetmet = na.omit(subsetmet)
+rownames(subsetmet)= subsetmet$sample_id
+subsetmet$sample_id = NULL
+PM_met = PM_met[rownames(subsetmet),]
+subsetmet_all = cbind(subsetmet,PM_met)
+library(metan)
+corr_met <-corr_coef(subsetmet_all)
+plot(corr_met,reorder = FALSE)
+```
+
+```{r}
+
+PT = subset(plasma_metabolomics_global_rowfeature_tmp, plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY == "Pentose Metabolism")
+
+PT_met = plasma_metabolomics_global_counts_baseline[,rownames(PT)]
+plasma_metabolomics_global_rowfeature_tmp_name = plasma_metabolomics_global_rowfeature_tmp[colnames(PT_met),]
+colnames(PT_met) = plasma_metabolomics_global_rowfeature_tmp_name$CHEMICAL_NAME
+subsetmet <- met_data_baseline[,c("sample_id","admit_age","event_date","comorb_count","baseline_vs_o2sat_low","baseline_vs_fio2_low","baseline_spfio2ratio_low","baseline_sofa_score_new","baseline_lab_lymph","baseline_lab_platelets","baseline_lab_alt","baseline_lab_cr","baseline_lab_crp","baseline_lab_ddimer","baseline_lab_trop","los","timetodeath","timetowd","timetodischarge","ncomp","steroids_start","remdes_start","N1_CT","N2_CT","Last_X_RBD_IgG","Last_X_Spike_IgG")]
+subsetmet = na.omit(subsetmet)
+rownames(subsetmet)= subsetmet$sample_id
+subsetmet$sample_id = NULL
+PT_met = PT_met[rownames(subsetmet),]
+subsetmet_all = cbind(subsetmet,PT_met)
+library(metan)
+corr_met <-corr_coef(subsetmet_all)
+plot(corr_met,reorder = FALSE)
+```
+
+```{r}
+
+AS = subset(plasma_metabolomics_global_rowfeature_tmp, plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY == "Aminosugar Metabolism")
+
+AS_met = plasma_metabolomics_global_counts_baseline[,rownames(AS)]
+plasma_metabolomics_global_rowfeature_tmp_name = plasma_metabolomics_global_rowfeature_tmp[colnames(AS_met),]
+colnames(AS_met) = plasma_metabolomics_global_rowfeature_tmp_name$CHEMICAL_NAME
+subsetmet <- met_data_baseline[,c("sample_id","admit_age","event_date","comorb_count","baseline_vs_o2sat_low","baseline_vs_fio2_low","baseline_spfio2ratio_low","baseline_sofa_score_new","baseline_lab_lymph","baseline_lab_platelets","baseline_lab_alt","baseline_lab_cr","baseline_lab_crp","baseline_lab_ddimer","baseline_lab_trop","los","timetodeath","timetowd","timetodischarge","ncomp","steroids_start","remdes_start","N1_CT","N2_CT","Last_X_RBD_IgG","Last_X_Spike_IgG")]
+subsetmet = na.omit(subsetmet)
+rownames(subsetmet)= subsetmet$sample_id
+subsetmet$sample_id = NULL
+AS_met = AS_met[rownames(subsetmet),]
+subsetmet_all = cbind(subsetmet,AS_met)
+library(metan)
+corr_met <-corr_coef(subsetmet_all)
+plot(corr_met,reorder = FALSE)
+```
+```{r}
+
+TM = subset(plasma_metabolomics_global_rowfeature_tmp, plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY == "Tryptophan Metabolism")
+
+TM_met = plasma_metabolomics_global_counts_baseline[,rownames(TM)]
+plasma_metabolomics_global_rowfeature_tmp_name = plasma_metabolomics_global_rowfeature_tmp[colnames(TM_met),]
+colnames(TM_met) = plasma_metabolomics_global_rowfeature_tmp_name$CHEMICAL_NAME
+subsetmet <- met_data_baseline[,c("sample_id","admit_age","event_date","comorb_count","baseline_vs_o2sat_low","baseline_vs_fio2_low","baseline_spfio2ratio_low","baseline_sofa_score_new","baseline_lab_lymph","baseline_lab_platelets","baseline_lab_alt","baseline_lab_cr","baseline_lab_crp","baseline_lab_ddimer","baseline_lab_trop","los","timetodeath","timetowd","timetodischarge","ncomp","steroids_start","remdes_start","N1_CT","N2_CT","Last_X_RBD_IgG","Last_X_Spike_IgG")]
+subsetmet = na.omit(subsetmet)
+rownames(subsetmet)= subsetmet$sample_id
+subsetmet$sample_id = NULL
+TM_met = TM_met[rownames(subsetmet),]
+subsetmet_all = cbind(subsetmet,TM_met)
+library(metan)
+corr_met <-corr_coef(subsetmet_all)
+plot(corr_met,reorder = FALSE)
+```
+
+```{r}
+
+LLV = subset(plasma_metabolomics_global_rowfeature_tmp, plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY == "Leucine, Isoleucine and Valine Metabolism")
+
+LLV_met = plasma_metabolomics_global_counts_baseline[,rownames(LLV)]
+plasma_metabolomics_global_rowfeature_tmp_name = plasma_metabolomics_global_rowfeature_tmp[colnames(LLV_met),]
+colnames(LLV_met) = plasma_metabolomics_global_rowfeature_tmp_name$CHEMICAL_NAME
+subsetmet <- met_data_baseline[,c("sample_id","admit_age","event_date","comorb_count","baseline_vs_o2sat_low","baseline_vs_fio2_low","baseline_spfio2ratio_low","baseline_sofa_score_new","baseline_lab_lymph","baseline_lab_platelets","baseline_lab_alt","baseline_lab_cr","baseline_lab_crp","baseline_lab_ddimer","baseline_lab_trop","los","timetodeath","timetowd","timetodischarge","ncomp","steroids_start","remdes_start","N1_CT","N2_CT","Last_X_RBD_IgG","Last_X_Spike_IgG")]
+subsetmet = na.omit(subsetmet)
+rownames(subsetmet)= subsetmet$sample_id
+subsetmet$sample_id = NULL
+LLV_met = LLV_met[rownames(subsetmet),]
+subsetmet_all = cbind(subsetmet,LLV_met)
+library(metan)
+corr_met <-corr_coef(subsetmet_all)
+plot(corr_met,reorder = FALSE)
+```
+
+```{r}
+#Fatty acid, Dicarboxylate
+
+FAD = subset(plasma_metabolomics_global_rowfeature_tmp, plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY == "Fatty Acid, Dicarboxylate")
+
+FAD_met = plasma_metabolomics_global_counts_baseline[,rownames(FAD)]
+plasma_metabolomics_global_rowfeature_tmp_name = plasma_metabolomics_global_rowfeature_tmp[colnames(FAD_met),]
+colnames(FAD_met) = plasma_metabolomics_global_rowfeature_tmp_name$CHEMICAL_NAME
+subsetmet <- met_data_baseline[,c("sample_id","admit_age","event_date","comorb_count","baseline_vs_o2sat_low","baseline_vs_fio2_low","baseline_spfio2ratio_low","baseline_sofa_score_new","baseline_lab_lymph","baseline_lab_platelets","baseline_lab_alt","baseline_lab_cr","baseline_lab_crp","baseline_lab_ddimer","baseline_lab_trop","los","timetodeath","timetowd","timetodischarge","ncomp","steroids_start","remdes_start","N1_CT","N2_CT","Last_X_RBD_IgG","Last_X_Spike_IgG")]
+subsetmet = na.omit(subsetmet)
+rownames(subsetmet)= subsetmet$sample_id
+subsetmet$sample_id = NULL
+FAD_met = FAD_met[rownames(subsetmet),]
+subsetmet_all = cbind(subsetmet,FAD_met)
+library(metan)
+corr_met <-corr_coef(subsetmet_all)
+plot(corr_met,reorder = FALSE)
+```
+```{r}
+load("Figure1_data.Rdata")
+com_all = unique(c(lr_output_cat1_all_glm_simple_sig$Compound_ID,lr_output_cat2_all_glm_simple_sig$Compound_ID,lr_output_cat3_all_glm_simple_sig$Compound_ID))
+com_all_met = plasma_metabolomics_global_rowfeature_tmp[com_all,]
+
+com_all_count = plasma_metabolomics_global_counts_baseline[,rownames(com_all_met)]
+plasma_metabolomics_global_rowfeature_tmp_name = plasma_metabolomics_global_rowfeature_tmp[colnames(com_all_count),]
+plasma_metabolomics_global_rowfeature_tmp_name = plasma_metabolomics_global_rowfeature_tmp_name[order(plasma_metabolomics_global_rowfeature_tmp_name$SUPER_PATHWAY),]
+colnames(com_all_count) = plasma_metabolomics_global_rowfeature_tmp_name$CHEMICAL_NAME
+subsetmet <- met_data_baseline[,c("sample_id","admit_age","event_date","comorb_count","baseline_vs_o2sat_low","baseline_vs_fio2_low","baseline_spfio2ratio_low","baseline_sofa_score_new","baseline_lab_lymph","baseline_lab_platelets","baseline_lab_alt","baseline_lab_cr","baseline_lab_crp","baseline_lab_ddimer","baseline_lab_trop","los","timetodeath","timetowd","timetodischarge","ncomp","steroids_start","remdes_start","N1_CT","N2_CT","Last_X_RBD_IgG","Last_X_Spike_IgG")]
+subsetmet = na.omit(subsetmet)
+rownames(subsetmet)= subsetmet$sample_id
+subsetmet$sample_id = NULL
+com_all_count = com_all_count[rownames(subsetmet),]
+
+
+```
+
+
+```{r}
+subsetmet_all = cbind(subsetmet,AS_met,PT_met,PM_met,PA_met)
+library(metan)
+corr_met <-corr_coef(subsetmet_all)
+plot(corr_met,reorder = FALSE)
+```
+```{r}
+subsetmet_no_clincial = subsetmet[,c("N1_CT","N2_CT","Last_X_RBD_IgG","Last_X_Spike_IgG")]
+subsetmet_all = cbind(subsetmet_no_clincial,AS_met,PT_met,PM_met,PA_met,TM_met, LLV_met, FAD_met)
+library(metan)
+corr_met <-corr_coef(subsetmet_all)
+plot(corr_met,reorder = FALSE)
+```
+
+```{r}
+x = corr_met
+                             type = "lower"
+                             diag = FALSE
+                             reorder = FALSE
+                             signif = "stars"
+                             show = "all"
+                             p_val = 0.05
+                             caption = TRUE
+                             digits.cor = 2
+                             digits.pval = 3
+                             col.low = "blue"
+                             col.mid = "white"
+                             col.high = "red"
+                             lab.x.position = NULL
+                             lab.y.position = NULL
+                             legend.position = NULL
+                             legend.title = "Pearson's\nCorrelation"
+                             size.text.cor = 3
+                             size.text.signif = 3
+                             size.text.lab = 10
+  
+   
+   
+    pval <- x$pval
+    correl <- x$cor
+    if(reorder == TRUE){
+      correl <- reorder_cormat(correl)
+      pval <- pval[rownames(correl), colnames(correl)]
+    }
+
+    nonsign <- which(pval >= p_val)
+    if(show == "signif"){
+      correl[nonsign] <- NA
+    }
+
+    if(type == "lower"){
+      pval <- make_lower_tri(pval)
+      correl <- make_lower_tri(correl)
+    }
+    if(type == "upper"){
+      pval <- make_upper_tri(pval)
+      correl <- make_upper_tri(correl)
+    }
+    bind_data <-
+      expand.grid(dimnames(correl)) %>%
+      mutate(cor = as.vector(correl),
+             pval = as.vector(pval),
+             pval_star = pval) %>%
+      set_names("v1", "v2", "cor", "pval", "pval_star") %>%
+      dplyr::filter(!is.na(pval))
+    if(signif == "stars"){
+      bind_data <-
+        bind_data %>%
+        mutate(pval_star = case_when(pval < 0.001 ~ "***",
+                                     between(pval, 0.001, 0.01) ~ "**",
+                                     between(pval, 0.01, 0.05) ~ "*",
+                                     pval >= 0.05 ~ "ns")) %>%
+        set_names("v1", "v2", "cor", "pval", "pval_star") %>%
+        dplyr::filter(!is.na(pval))
+    } else{
+      bind_data <-
+        expand.grid(dimnames(correl)) %>%
+        mutate(cor = as.vector(correl),
+               pval = as.vector(pval),
+               pval_star <- case_when(
+                 pval < 0.001 ~ "***",
+                 between(pval, 0.001, 0.01) ~ "**",
+                 between(pval, 0.01, 0.05) ~ "*",
+                 pval >= 0.05 ~ "ns"
+               )) %>%
+        set_names("v1", "v2", "cor", "pval", "pval_star") %>%
+        dplyr::filter(!is.na(pval))
+    }
+    if(show == "signif"){
+      bind_data <-
+        bind_data %>%
+        mutate(pval_star = ifelse(pval >= p_val, NA, pval_star),
+               pval = ifelse(pval >= p_val, NA, pval))
+    }
+
+    if(diag == FALSE){
+      bind_data <- dplyr::filter(bind_data, !v1 == v2)
+    }
+    if(type == "lower"){
+      lab.y.position <-"right"
+      lab.x.position <-  "bottom"
+    }
+    if(type == "upper"){
+      lab.y.position <- ifelse(missing(lab.y.position), "left", lab.y.position)
+      lab.x.position <- ifelse(missing(lab.x.position), "top", lab.x.position)
+    }
+    axis.text.x.hjust <- ifelse(lab.x.position == "bottom", 1, 0)
+    if(missing(legend.position) & type == "lower"){
+      legend.position <- c(0.2, 0.85)
+    }
+    if(missing(legend.position) & type == "upper"){
+      legend.position <- c(0.8, 0.17)
+    }
+    if(!missing(legend.position)){
+      legend.position <- legend.position
+    }
+
+a = "red"
+b = "blue"
+c = "purple1"
+d = "purple4"
+e = "pink"
+f = "orange"
+g = "pink2"
+h = "pink3"
+i = "green1"
+
+#colorsx = c(rep(a, 20), rep(b,2), rep(c,2), rep(d,16))
+colorsx = c(rep(a, 1), rep(b,2), rep(c,4), rep(d,5),rep(e,4), rep(f,3), rep(g,17), rep(h,19),rep(i,14))
+#colorsy = c(rep(a, 21), rep(b,2) , rep(c,2),rep(d,15))
+colorsy = c(rep(a, 2), rep(b,2), rep(c,4), rep(d,5),rep(e,4), rep(f,3), rep(g,17), rep(h,19),  rep(i,13))
+    p <-
+      ggplot(bind_data, aes(v1, v2, fill = cor)) +
+      geom_tile(aes(fill = cor),
+                colour = "gray") +
+     # geom_text(aes(label = ifelse(!is.na(cor), format(round(cor, digits.cor), nsmall = digits.cor), "")),
+     #           vjust = 0,
+     #           size = size.text.cor) +
+      {if(signif == "stars")geom_text(aes(label = ifelse(!is.na(pval_star), pval_star, "")),
+                                      vjust =1.5,
+                                      size = size.text.signif)} +
+      {if(signif == "pval")geom_text(aes(label = ifelse(!is.na(pval), as.vector(format(signif(pval, digits = digits.pval), nsmall = digits.pval)), "")),
+                                     vjust = 1.5,
+                                     size = size.text.signif)} +
+      scale_fill_gradient2(low = col.low,
+                           high = col.high,
+                           mid = col.mid,
+                           midpoint = 0,
+                           limit = c(-1, 1),
+                           space = "Lab",
+                           na.value = "transparent",
+                           name = legend.title)+
+      theme_bw() +
+      xlab(NULL) +
+      ylab(NULL) + #geom_segment(aes(x ="N-acetylneuraminate" , y = "N-acetylneuraminate" , xend ="N6-carbamoylthreonyladenosine", yend = "N-acetylneuraminate"))
+      scale_y_discrete(expand = expansion(mult = c(0,0)),
+                       position = lab.y.position)+
+      scale_x_discrete(expand = expansion(mult = c(0,0)),
+                       position = lab.x.position) +
+      coord_fixed() +
+      theme(axis.ticks = element_blank(),
+            panel.border = element_blank(),
+            panel.grid = element_blank(),
+            legend.background = element_blank(),
+            legend.position = legend.position,
+            legend.direction = "horizontal",
+            axis.text = element_text(color = "black", size = size.text.lab),
+            axis.text.x = element_text(angle = 45,
+                                       vjust = 1,
+                                       hjust = axis.text.x.hjust))+
+      guides(fill = guide_colorbar(barwidth = 6,
+                                   barheight = 1,
+                                   title.position = "top",
+                                   title.hjust = 0.5)) +theme(axis.text.x = element_text(colour = colorsx)) + theme(axis.text.y = element_text(colour = colorsy))
+    if(signif == "stars" & caption == TRUE){
+      p <-
+        p + labs(caption = c("ns p >= 0.05; * p < 0.05; ** p < 0.01; and *** p < 0.001"))
+    }
+
+
+```
+
+```{r}
+#subsetmet
+subsetmet_all = cbind(subsetmet_no_clincial,PM_met,TM_met, LLV_met,AS_met,PT_met,FAD_met,PA_met)
+library(metan)
+corr_met <-corr_coef(subsetmet_all)
+
+cor_data = corr_met$cor
+pval_data = corr_met$pval
+
+#colnames(cor_data)
+
+
+
+cor_data_subset = cor_data[c(5:70),c(1:4)]
+pval_data_subset = pval_data[c(5:70),c(1:4)]
+
+pval_data_subset = as.data.frame(pval_data_subset) %>% mutate(
+  sig = case_when(
+    N1_CT <= 0.05 | N2_CT <= 0.05 | Last_X_RBD_IgG <= 0.05 | Last_X_Spike_IgG <= 0.05 ~ "Sig",
+    TRUE ~ "No"
+  )
+)
+
+pval_data_subset_sig = subset(pval_data_subset, pval_data_subset$sig == "Sig")
+pval_data_subset_sig$sig = NULL
+
+cor_data_subset_sig = cor_data_subset[rownames(pval_data_subset_sig),]
+Heatmap_corr  = Heatmap(cor_data_subset_sig,
+                          cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,
+                          heatmap_legend_param = list(title = "Correlation    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(pval_data_subset_sig[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_corr, heatmap_legend_side = "bottom")
+```
+```{r}
+# with clnical
+subsetmet_all = cbind(subsetmet,PM_met,TM_met, LLV_met,AS_met,PT_met,FAD_met,PA_met)
+library(metan)
+corr_met <-corr_coef(subsetmet_all)
+
+cor_data = corr_met$cor
+pval_data = corr_met$pval
+
+#colnames(cor_data)
+
+
+
+cor_data_subset = cor_data[c(26:91),c(1,4:15,22:25)]
+pval_data_subset = pval_data[c(26:91),c(1,4:15,22:25)]
+
+pval_data_subset_sig =  pval_data_subset[apply(pval_data_subset<= 0.05,1,any),]
+
+cor_data_subset_sig = cor_data_subset[rownames(pval_data_subset_sig),]
+rownames(plasma_metabolomics_global_rowfeature_tmp) = plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+
+row_annotation = plasma_metabolomics_global_rowfeature_tmp[rownames(cor_data_subset_sig),]
+
+ha = rowAnnotation(SUPER_PATHWAY = row_annotation$SUPER_PATHWAY, col = list(SUPER_PATHWAY = c("Amino Acid" =  "#43E40C", "Carbohydrate" = "#E4AD0C", "Cofactors and Vitamins" = "#0CAFE4", "Lipid" = "#E40C43", "Nucleotide" = "#AD0CE4", "Partially Characterized Molecules" = "#0C43E4", "Peptide" = "#E4770C", "Xenobiotics" = "yellow")))
+
+Heatmap_corr  = Heatmap(cor_data_subset_sig,column_split = c(rep("Clinical", 13),rep("Viral load", 2), rep("Titers", 2)),
+                          cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,left_annotation = ha,
+                          heatmap_legend_param = list(title = "Correlation    ",
+             direction = "horizontal", title_position = "topcenter", 
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),
+                         cell_fun = function(j, i, x, y, w, h, fill) {
+                         if(pval_data_subset_sig[i, j] >= 0.01 & pval_data_subset_sig[i, j] < 0.05) {
+                           grid.text("*", x, y, gp = gpar(cex=1), vjust=0.7)
+                         }
+                         else if(pval_data_subset_sig[i, j] >= 0.001 & pval_data_subset_sig[i, j] < 0.01)
+                           grid.text("**", x, y, gp = gpar(cex=1), vjust=0.7)
+                         else if( pval_data_subset_sig[i, j] < 0.001)
+                           grid.text("***", x, y, gp = gpar(cex=1), vjust=0.7)
+                         else if( pval_data_subset_sig[i, j] < 0.1 & pval_data_subset_sig[i, j] > 0.05)
+                           grid.text("+", x, y, gp = gpar(cex=1), vjust=0.7)
+                       }
+                          )
+ComplexHeatmap::draw(Heatmap_corr, heatmap_legend_side = "bottom",padding = unit(c(2, 2, 2, 30), "mm"))
+
+lgd = Legend(labels = list("Pval < 0.1", "Pval < 0.05", "Pval < 0.01", "Pval < 0.001"),
+             type = "points",pch = c("+","*","**","***"))
+ComplexHeatmap::draw(lgd, x = unit(30, "cm"), y = unit(1, "cm"),just = c("bottom"))
+```
+```{r}
+
+# with clnical
+subsetmet_all = cbind(subsetmet,com_all_count)
+library(metan)
+corr_met <-corr_coef(subsetmet_all)
+
+cor_data = corr_met$cor
+pval_data = corr_met$pval
+
+#colnames(cor_data)
+
+
+
+cor_data_subset = cor_data[c(26:225),c(1,4:15,22:25)]
+pval_data_subset = pval_data[c(26:225),c(1,4:15,22:25)]
+
+pval_data_subset_sig =  pval_data_subset[apply(pval_data_subset<= 0.05,1,any),]
+
+cor_data_subset_sig = cor_data_subset[rownames(pval_data_subset_sig),]
+rownames(plasma_metabolomics_global_rowfeature_tmp) = plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+
+row_annotation = plasma_metabolomics_global_rowfeature_tmp[rownames(cor_data_subset_sig),]
+
+#ha = rowAnnotation(SUPER_PATHWAY = row_annotation$SUPER_PATHWAY, col = list(SUPER_PATHWAY = c("Amino Acid" =  "#43E40C", "Carbohydrate" = "#E4AD0C", "Cofactors and Vitamins" = "#0CAFE4", "Lipid" = "#E40C43", "Nucleotide" = "#AD0CE4", "Partially Characterized Molecules" = "#0C43E4", "Peptide" = "#E4770C", "Xenobiotics" = "yellow", "Energy" = "grey")))
+#
+ha = rowAnnotation(SUPER_PATHWAY = row_annotation$SUPER_PATHWAY, col = list(SUPER_PATHWAY = c("Amino Acid" = "#fed0ed",
+                                 "Carbohydrate" = "#f4d5fe",
+                                 "Cofactors and Vitamins" = "#d0e1ff",
+                                 "Energy" = "#b3eaf6",
+                                   "Lipid" = "#b3ece2", 
+                                 "Nucleotide" = "#b3eac3",
+                                 "Partially Characterized Molecules" = "#dee5b3",
+                                   "Peptide" = "#f2deb3", "Xenobiotics" = "#Fdd6d3")))
+Heatmap_corr  = Heatmap(cor_data_subset_sig,column_split = c(rep("Clinical", 13),rep("Viral load", 2), rep("Titers", 2)),
+                          cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,left_annotation = ha,
+                          heatmap_legend_param = list(title = "Correlation    ",
+             direction = "horizontal", title_position = "topcenter", 
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),
+                         cell_fun = function(j, i, x, y, w, h, fill) {
+                         if(pval_data_subset_sig[i, j] >= 0.01 & pval_data_subset_sig[i, j] < 0.05) {
+                           grid.text("*", x, y, gp = gpar(cex=1), vjust=0.7)
+                         }
+                         else if(pval_data_subset_sig[i, j] >= 0.001 & pval_data_subset_sig[i, j] < 0.01)
+                           grid.text("**", x, y, gp = gpar(cex=1), vjust=0.7)
+                         else if( pval_data_subset_sig[i, j] < 0.001)
+                           grid.text("***", x, y, gp = gpar(cex=1), vjust=0.7)
+                         else if( pval_data_subset_sig[i, j] < 0.1 & pval_data_subset_sig[i, j] > 0.05)
+                           grid.text("+", x, y, gp = gpar(cex=1), vjust=0.7)
+                       }
+                          )
+ComplexHeatmap::draw(Heatmap_corr, heatmap_legend_side = "bottom",padding = unit(c(2, 2, 2, 30), "mm"))
+
+lgd = Legend(labels = list("Pval < 0.1", "Pval < 0.05", "Pval < 0.01", "Pval < 0.001"),
+             type = "points",pch = c("+","*","**","***"))
+ComplexHeatmap::draw(lgd, x = unit(30, "cm"), y = unit(1, "cm"),just = c("bottom")) #25*20
+```
+
+
