@@ -19,7 +19,7 @@ Scripts used to generate figures and tables. Of note, Figures denoted with "S" a
 | Figure |Source File| Output |
 |:-----|:-----|:-----|
 | Figure 1, S2, S3, and S4 | [Figure1.Rmd](Figure1/src/Figure1.qmd) | [Figure1](Figure1/output) |
-| Figure S5 | [Figure1.Rmd](Figure1/src/FigureS5_External_Validation.qmd) | [Figure1](Figure1/output) |
+| Figure S5 | [Figure1.Rmd](FigureS5/src/FigureS5_External_Validation.qmd) | [Figure1](Figure1/output) |
 | Figure 2 and S6  | [Figure2.Rmd](Figure2/src/Figure2.qmd) | [Figure2](Figure2/output) |
 | Figure 3 and S7A-B  | [Figure3.Rmd](Figure3/src/Figure3.qmd) | [Figure3](Figure3/output) |
 | Figure 4 and S7C-D  | [Figure4.Rmd](Figure4/src/Figure4.qmd) | [Figure4](Figure4/output) |
