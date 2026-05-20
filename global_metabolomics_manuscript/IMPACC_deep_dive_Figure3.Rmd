@@ -1,0 +1,2561 @@
+---
+title: "IMPACC_deep_dive_figure_TG_linear_visits"
+output: html_document
+date: "2023-12-12"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r define dataset version, echo = FALSE}
+##### Authors: Ravi K. Patel, Jeremy Gygi;
+
+# Indicate the version of the data to use ("current" or a date in "YYYY-MM-DD" format)
+# If "current", the data files in "current" directories are used, otherwise, the data files in "legacy" directories that were current on the specified date are used.
+DATA_VERSION <- "current"
+
+# Indicate the phases that you want to include.
+# NOTE: PHASES = 4 refers to 4a
+#.      PHASES = 5 refers to 4b
+#.      PHASES = 9 refers to phase 9 (leftover samples)
+#.      PHASES = NA refers to phase NA
+PHASES <- c(1,2,3,4,5,9, NA)
+
+# Allowed QC? Defaults to pass (including questionable)
+ALLOWED_SMPL_STATUS <- c("IMPACC sample assayed and passed QC", 
+                         "IMPACC sample assayed with questionable QC")
+#ALLOWED_SMPL_STATUS = "ALL"
+# Keep only COVID-19 Positive individuals. Defaults to TRUE
+# (TRUE will remove all COVID-19 Negative individuals)
+KEEP_COVID19_POS <- TRUE
+# Keep Escalation visits (Escalation 1, Escalation 2)? Defaults to FALSE
+KEEP_ESCALATIONS = FALSE
+# Keep Emory Controls? Defaults to FALSE
+KEEP_EMORY_CONTROLS = FALSE
+
+# Upper limit for event_date.
+# Using higher values (e.g. 999) will include all visits (see KEEP_ESCALATIONS
+#   for inclusion of Escalation visits).
+EVENT_DATE_UPPER = 999
+
+# Upper limit for event_type. For example, 6 would use up to 'Visit 6'.
+# Using higher values (e.g. 999) will include all visits (see KEEP_ESCALATIONS
+#   for inclusion of Escalation visits).
+VISIT_LOWER = 1
+VISIT_UPPER = 999
+
+# Use 01/01/2023 locked data in "/data/clinical/current"?
+USE_LOCKED_CLINICAL <- TRUE
+
+# Filtering by manuscript cohorts:
+# Currently supports core assay / integration manuscript cohort filtering.
+FILTER_BY_CORE_ASSAY_COHORT = FALSE
+FILTER_BY_INTEGRATION_COHORT = FALSE
+
+# Provide vector of participant IDs to restrict loading the data to those participants only.
+SELECT_PARTICIPANT_ID = NULL
+
+# Provide vector of samples to exclude from the analysis
+EXCLUDE_SAMPLES = NULL
+```
+
+<!-- ################################################################################################### -->
+<!--           No need to edit any of the code below this point until end of Mandatory Code chunk        -->
+<!-- ################################################################################################### -->
+
+```{r Prepare environment, echo=FALSE}
+##### Authors: Ravi K. Patel, Jeremy Gygi.
+# Set options
+options(encoding = "UTF-8") # instead of ANSI
+options(scipen = 999) # non-scientific output
+```
+
+### ------------------------------------
+#### **Study:** IMPACC
+#### **Analysis title:** IMPACC Convalescent Data Loading
+#### **Analysis description:** Loading combined data from all phases for analyses.
+#### **License:** 
+#### **Author(s):** Ravi K. Patel (ravi.patel2@ucsf.edu), Jeremy Gygi (jeremy.gygi@yale.edu), Steven Kleinstein (steven.kleinstein@yale.edu), Leying Guan (leying.guan@yale.edu)
+#### **Date Created:** `r paste(format(Sys.time(), "%Y-%d-%m %X"), "UTC")`
+
+#### **Source file:** `r knitr::current_input()`
+#### **Dataset version:** `r ifelse(DATA_VERSION == "current", paste0("current (date: ", format(Sys.time(),"%Y-%m-%d"), ")"), paste0("legacy (date: ", DATA_VERSION, ")") )` `r paste0("(phases: ", paste0(PHASES, collapse=","), ")") `
+#### **R version:** `r paste(R.Version()$version.string)`
+#### **Platform:** `r paste(R.Version()$platform)`
+#### **Running under**: `r paste(sessionInfo()$running)`
+
+#### **Notes:** The observations for which the clinical data is unavailable or have failed QC are removed.
+### ------------------------------------
+
+```{r load header template codebase, echo=FALSE}
+# Source the codebase file:
+source("~/Bitbucket/impacc-full-cohort/Analysis/IMPACC_data_analysis_codebase.R")
+```
+
+```{r load datasets, message=FALSE, echo=FALSE}
+# Load all available IMPACC datasets associated with DATA_VERSION.
+data_env <- load_IMPACC_datasets(# Data version:
+                                 DATA_VERSION = DATA_VERSION,
+                                 # QC Sample Filtering:
+                                 ALLOWED_SMPL_STATUS = ALLOWED_SMPL_STATUS,
+                                 # COVID-19 Positive
+                                 KEEP_COVID19_POS = KEEP_COVID19_POS,
+                                 # Emory controls:
+                                 KEEP_EMORY_CONTROLS = KEEP_EMORY_CONTROLS,
+                                 # Escalations:
+                                 KEEP_ESCALATIONS = KEEP_ESCALATIONS,
+                                 # Use the locked clinical data (01/01/2023)
+                                 USE_LOCKED_CLINICAL = USE_LOCKED_CLINICAL,
+                                 
+                                 # Don't restrict filtering by manuscript:
+                                 FILTER_BY_CORE_ASSAY_COHORT = FILTER_BY_CORE_ASSAY_COHORT,
+                                 FILTER_BY_INTEGRATION_COHORT = FILTER_BY_INTEGRATION_COHORT,
+                                 
+                                 # Select participant ID
+                                 SELECT_PARTICIPANT_ID = SELECT_PARTICIPANT_ID,
+                                 
+                                 # Exclude samples
+                                 EXCLUDE_SAMPLES = EXCLUDE_SAMPLES,
+                                 
+                                 # event_type / visit upper limits
+                                 EVENT_DATE_UPPER = EVENT_DATE_UPPER,
+                                 VISIT_LOWER = VISIT_LOWER,
+                                 VISIT_UPPER = VISIT_UPPER,
+                                 
+                                 # Phases
+                                 PHASES = PHASES)
+
+# Load and assign the data objects into the environment
+# User can call upon any assay via the name e.g. serum_olink_counts
+for( n in names(data_env) ) {
+  assign( n, data_env[[n]] )
+}
+
+```
+
+## Metabolomics concentration
+
+```{r}
+# Concentration
+Metabolomics_counts <- plasma_metabolomics_global_counts
+
+# Row data
+Metabolomics_rowfeature <- plasma_metabolomics_global_rowfeature
+print(all(colnames(Metabolomics_counts) == rownames(Metabolomics_rowfeature)))
+
+Metabolomics_rowfeature = subset(Metabolomics_rowfeature, Metabolomics_rowfeature$TYPE == "NAMED")
+Metabolomics_counts = Metabolomics_counts[,rownames(Metabolomics_rowfeature)]
+
+print(all(colnames(Metabolomics_counts) == rownames(Metabolomics_rowfeature)))
+# metadata
+Metabolomics_metadata <- plasma_metabolomics_global_metadata
+Metabolomics_metadata$sample_id = rownames(Metabolomics_metadata)
+print(all(rownames(Metabolomics_counts) == rownames(Metabolomics_metadata)))
+```
+
+```{r}
+clinical_all = clinical_data
+Metabolomics_metadata = subset(Metabolomics_metadata, Metabolomics_metadata$sample_id %in% clinical_all$sample_id)
+
+clinical_df <- clinical_all
+clinical_df = subset(clinical_df, ! is.na(clinical_df$trajectory_group))
+metadata = subset(Metabolomics_metadata, Metabolomics_metadata$sample_id %in% clinical_df$sample_id)
+clinical_df_met = subset(clinical_df, clinical_df$sample_id %in% metadata$sample_id)
+participants = as.data.frame(unique(clinical_df_met$participant_id))
+plasma_metabolomics_global_counts = Metabolomics_counts[metadata$sample_id,]
+plasma_metabolomics_global_metadata = metadata
+rownames(plasma_metabolomics_global_metadata) = plasma_metabolomics_global_metadata$sample_id
+```
+
+
+```{r}
+clinical_data = clinical_df_met[!(clinical_df_met$sample_id %in% "0865-0017MC00-004"),]
+
+clinical_data$adm_date_cat <- ifelse(clinical_data$event_date >= -1 & clinical_data$event_date <= 3, "Admission",
+              ifelse(clinical_data$event_date >3 & clinical_data$event_date <= 8, "WK1",
+              ifelse(clinical_data$event_date >8 & clinical_data$event_date <= 23, "WK2_3",
+              ifelse(clinical_data$event_date >23 & clinical_data$event_date <= 35, "WK4",
+              ifelse(clinical_data$event_date >35 & clinical_data$event_date <= 90, "3MO",
+              ifelse(clinical_data$event_date >90 & clinical_data$event_date <= 200, "6MO",
+              ifelse(clinical_data$event_date >200 & clinical_data$event_date <= 300, "9MO",
+              ifelse(clinical_data$event_date >300 , "12MO", "Out"))))))))
+
+table(clinical_data$adm_date_cat)
+length(unique(clinical_data$participant_id))
+
+
+
+```
+```{r}
+clinical_data = clinical_data[!(clinical_data$sample_id %in% c("0865-0017MC00-004","0865-00CW0A00-004","0865-00DZYB00-004","0865-00956A00-005")),]
+visit1 = subset(clinical_data, clinical_data$event_type == "Visit 1")
+range(visit1$event_date)
+length(unique(visit1$sample_id))
+visit1_in = subset(visit1, visit1$event_date >= 0 & visit1$event_date <= 3)
+length(unique(visit1_in$sample_id))
+
+visit2 = subset(clinical_data, clinical_data$event_type == "Visit 2")
+range(visit2$event_date)
+length(unique(visit2$sample_id))
+visit2_in = subset(visit2, visit2$event_date > 3 & visit2$event_date <= 5)
+length(unique(visit2_in$sample_id))
+
+visit3 = subset(clinical_data, clinical_data$event_type == "Visit 3")
+range(visit3$event_date)
+length(unique(visit3$sample_id))
+visit3_in = subset(visit3, visit3$event_date >= 6 & visit3$event_date <= 8)
+length(unique(visit3_in$sample_id))
+
+
+visit4 = subset(clinical_data, clinical_data$event_type == "Visit 4")
+range(visit4$event_date)
+length(unique(visit4$sample_id))
+visit4_in = subset(visit4, visit4$event_date >= 12 & visit4$event_date <= 16)
+length(unique(visit4_in$sample_id))
+
+visit5 = subset(clinical_data, clinical_data$event_type == "Visit 5")
+range(visit5$event_date)
+length(unique(visit5$sample_id))
+visit5_in = subset(visit5, visit5$event_date >= 19 & visit5$event_date <= 23)
+length(unique(visit5_in$sample_id))
+
+
+visit6 = subset(clinical_data, clinical_data$event_type == "Visit 6")
+range(visit6$event_date)
+length(unique(visit6$sample_id))
+visit6_in = subset(visit6, visit6$event_date >= 26 & visit6$event_date <= 35)
+length(unique(visit6_in$sample_id))
+
+visit7 = subset(clinical_data, clinical_data$event_type == "Visit 7")
+range(visit7$event_date)
+
+length(unique(visit7$sample_id))
+visit7_in = subset(visit7, visit7$event_date >= 76 & visit7$event_date <= 104)
+length(unique(visit7_in$sample_id))
+
+
+visit8 = subset(clinical_data, clinical_data$event_type == "Visit 8")
+range(visit8$event_date)
+length(unique(visit8$sample_id))
+visit8_in = subset(visit8, visit8$event_date >= 166 & visit8$event_date <= 194)
+length(unique(visit8_in$sample_id))
+
+visit9 = subset(clinical_data, clinical_data$event_type == "Visit 9")
+range(visit9$event_date)
+length(unique(visit9$sample_id))
+visit9_in = subset(visit9, visit9$event_date >= 256 & visit9$event_date <= 284)
+length(unique(visit9_in$sample_id))
+
+visit10 = subset(clinical_data, clinical_data$event_type == "Visit 10")
+range(visit10$event_date)
+length(unique(visit10$sample_id))
+visit10_in = subset(visit10, visit10$event_date >= 346 & visit10$event_date <= 374)
+length(unique(visit10_in$sample_id))
+
+visit_all_in = rbind(visit1_in,visit2_in,visit3_in,visit4_in,visit5_in,visit6_in,visit7_in,visit8_in,visit9_in,visit10_in)
+```
+```{r}
+clinical_data$event_type = factor(clinical_data$event_type, levels = c("Visit 1","Visit 2","Visit 3","Visit 4","Visit 5","Visit 6","Visit 7","Visit 8","Visit 9","Visit 10"))
+clinical_data = clinical_data %>% mutate(Type = case_when(
+  sample_id %in% visit_all_in$sample_id ~ "Within",
+  !sample_id %in% visit_all_in$sample_id ~ "Outlier",
+))
+bar_figure = ggplot(clinical_data, aes(event_type,fill = Type)) + geom_bar() + theme_bw() + ggtitle("Number of Samples") +scale_fill_discrete(drop = F) #+ geom_text(aes(Var1,Freq,label = Freq,fill = NULL), data = totals_H, vjust=-0.1)
+print(bar_figure)
+```
+
+```{r}
+clinical_all = clinical_data
+visit1 = subset(clinical_all, clinical_all$event_type == "Visit 1")
+range(visit1$event_date)
+
+visit2 = subset(clinical_all, clinical_all$event_type == "Visit 2")
+range(visit2$event_date)
+visit3 = subset(clinical_all, clinical_all$event_type == "Visit 3")
+range(visit3$event_date)
+visit4 = subset(clinical_all, clinical_all$event_type == "Visit 4")
+range(visit4$event_date)
+visit5 = subset(clinical_all, clinical_all$event_type == "Visit 5")
+range(visit5$event_date)
+visit6 = subset(clinical_all, clinical_all$event_type == "Visit 6")
+range(visit6$event_date)
+visit7 = subset(clinical_all, clinical_all$event_type == "Visit 7")
+range(visit7$event_date)
+visit8 = subset(clinical_all, clinical_all$event_type == "Visit 8")
+range(visit8$event_date)
+visit9 = subset(clinical_all, clinical_all$event_type == "Visit 9")
+range(visit9$event_date)
+visit10 = subset(clinical_all, clinical_all$event_type == "Visit 10")
+range(visit10$event_date)
+```
+```{r}
+clinical_data_TG = clinical_data
+plasma_metabolomics_global_metadata_TG = plasma_metabolomics_global_metadata
+Metabolomics_counts_TG = plasma_metabolomics_global_counts
+Metabolomics_rowfeature_TG = plasma_metabolomics_global_rowfeature
+save(clinical_data_TG,plasma_metabolomics_global_metadata_TG, Metabolomics_counts_TG, Metabolomics_rowfeature_TG, file = "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/deep_dive_data_TG.Rdata")
+```
+
+#Ordinal_regression for V1- V6 - V1
+```{r}
+library(lmtest)
+library(MASS)
+library(data.table)
+clinical_data = clinical_data
+clinical_data_V1 = subset(clinical_data, clinical_data$event_type == "Visit 1")
+
+clinical_data_V1$OUTCOME <- clinical_data_V1[,c("trajectory_group")]
+
+clinical_data_V1 <- clinical_data_V1 %>% drop_na(OUTCOME)
+
+OUTCOME <- factor(clinical_data_V1$OUTCOME, levels=c(1,2,3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_V1$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_V1$admit_age)
+  bmi <- as.numeric(clinical_data_V1$bmi) #numerical
+  race <- as.factor(clinical_data_V1$race)
+  ethnicity <- as.factor(clinical_data_V1$ethnicity)
+  site <- as.factor(clinical_data_V1$enrollment_site)
+  location <- as.factor(clinical_data_V1$event_location)
+  participant <- as.factor(clinical_data_V1$participant_id)
+  type = as.factor(clinical_data_V1$Type)
+  plasma_metabolomics_global_count_admission <- plasma_metabolomics_global_counts[clinical_data_V1$sample_id,]
+  plasma_metabolomics_global_rowfeature_admission  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_admission),]
+  x_met <- data.table(plasma_metabolomics_global_count_admission)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    #print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex, location,participant,type)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name,  "age", "sex", "bmi","type")#, "participant"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(output, c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_admission)
+  Name <- plasma_metabolomics_global_rowfeature_admission$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_admission$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_admission$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_admission$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite")
+  output_V1 = output
+  sum(output_V1$qval <= 0.05)
+write_csv(output_V1, file = "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/ordinal_v1.csv")
+```
+#V2
+```{r}
+library(lmtest)
+library(MASS)
+clinical_data_V2 = subset(clinical_data, clinical_data$event_type == "Visit 2")
+
+clinical_data_V2$OUTCOME <- clinical_data_V2[,c("trajectory_group")]
+
+clinical_data_V2 <- clinical_data_V2 %>% drop_na(OUTCOME)
+
+OUTCOME <- factor(clinical_data_V2$OUTCOME, levels=c(1,2,3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_V2$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_V2$admit_age)
+  bmi <- as.numeric(clinical_data_V2$bmi) #numerical
+  race <- as.factor(clinical_data_V2$race)
+  ethnicity <- as.factor(clinical_data_V2$ethnicity)
+  site <- as.factor(clinical_data_V2$enrollment_site)
+  location <- as.factor(clinical_data_V2$event_location)
+  participant <- as.factor(clinical_data_V2$participant_id)
+  type = as.factor(clinical_data_V2$Type)
+  plasma_metabolomics_global_count_admission <- plasma_metabolomics_global_counts[clinical_data_V2$sample_id,]
+  plasma_metabolomics_global_rowfeature_admission  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_admission),]
+  x_met <- data.table(plasma_metabolomics_global_count_admission)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    #print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex, location,participant,type)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name,  "age", "sex", "bmi","type")#, "participant"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(output, c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_admission)
+  Name <- plasma_metabolomics_global_rowfeature_admission$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_admission$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_admission$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_admission$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite")
+  output_V2 = output
+  sum(output_V2$qval <= 0.05)
+```
+#V3
+```{r}
+library(lmtest)
+library(MASS)
+clinical_data_V3 = subset(clinical_data, clinical_data$event_type == "Visit 3")
+
+clinical_data_V3$OUTCOME <- clinical_data_V3[,c("trajectory_group")]
+
+clinical_data_V3 <- clinical_data_V3 %>% drop_na(OUTCOME)
+
+OUTCOME <- factor(clinical_data_V3$OUTCOME, levels=c(1,2,3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_V3$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_V3$admit_age)
+  bmi <- as.numeric(clinical_data_V3$bmi) #numerical
+  race <- as.factor(clinical_data_V3$race)
+  ethnicity <- as.factor(clinical_data_V3$ethnicity)
+  site <- as.factor(clinical_data_V3$enrollment_site)
+  location <- as.factor(clinical_data_V3$event_location)
+  participant <- as.factor(clinical_data_V3$participant_id)
+   type = as.factor(clinical_data_V3$Type)
+  plasma_metabolomics_global_count_admission <- plasma_metabolomics_global_counts[clinical_data_V3$sample_id,]
+  plasma_metabolomics_global_rowfeature_admission  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_admission),]
+  x_met <- data.table(plasma_metabolomics_global_count_admission)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    #print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex, location,participant,type)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name,  "age", "sex", "bmi","type")#, "participant"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(output, c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_admission)
+  Name <- plasma_metabolomics_global_rowfeature_admission$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_admission$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_admission$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_admission$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite")
+  output_V3 = output
+  sum(output_V3$qval <= 0.05)
+```
+#V4
+```{r}
+library(lmtest)
+library(MASS)
+clinical_data_V4 = subset(clinical_data, clinical_data$event_type == "Visit 4")
+
+clinical_data_V4$OUTCOME <- clinical_data_V4[,c("trajectory_group")]
+clinical_data_V4 = subset(clinical_data_V4, clinical_data_V4$event_location == "Hospital")
+clinical_data_V4 <- clinical_data_V4 %>% drop_na(OUTCOME)
+
+OUTCOME <- factor(clinical_data_V4$OUTCOME, levels=c(1,2,3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_V4$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_V4$admit_age)
+  bmi <- as.numeric(clinical_data_V4$bmi) #numerical
+  race <- as.factor(clinical_data_V4$race)
+  ethnicity <- as.factor(clinical_data_V4$ethnicity)
+  site <- as.factor(clinical_data_V4$enrollment_site)
+  location <- as.factor(clinical_data_V4$event_location)
+  participant <- as.factor(clinical_data_V4$participant_id)
+   type = as.factor(clinical_data_V4$Type)
+  plasma_metabolomics_global_count_admission <- plasma_metabolomics_global_counts[clinical_data_V4$sample_id,]
+  plasma_metabolomics_global_rowfeature_admission  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_admission),]
+  x_met <- data.table(plasma_metabolomics_global_count_admission)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    #print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex,participant,type)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name,  "age", "sex", "bmi","type")#, "participant"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<- matrix(c( NA,NA,NA  ), ncol = 3))
+    #tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<-  matrix(c( NA,NA,NA  ), ncol = 3))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    #tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- matrix(c("Treatment", NA,NA,NA  ), ncol = 4))
+    #tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(as.data.frame(output), c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) colnames(output) <<- c("outc", "metabolite","lowerCI","upperCI"))
+    #tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_admission)
+  Name <- plasma_metabolomics_global_rowfeature_admission$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_admission$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_admission$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_admission$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite", all.x = T)
+  output_V4 = output
+  sum(output_V4$qval <= 0.05)
+```
+#V5
+```{r}
+library(lmtest)
+library(MASS)
+clinical_data_V5 = subset(clinical_data, clinical_data$event_type == "Visit 5")
+
+clinical_data_V5$OUTCOME <- clinical_data_V5[,c("trajectory_group")]
+
+clinical_data_V5 <- clinical_data_V5 %>% drop_na(OUTCOME)
+table(clinical_data_V5$event_location)
+OUTCOME <- factor(clinical_data_V5$OUTCOME, levels=c(3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_V5$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_V5$admit_age)
+  bmi <- as.numeric(clinical_data_V5$bmi) #numerical
+  race <- as.factor(clinical_data_V5$race)
+  ethnicity <- as.factor(clinical_data_V5$ethnicity)
+  site <- as.factor(clinical_data_V5$enrollment_site)
+  location <- as.factor(clinical_data_V5$event_location)
+  participant <- as.factor(clinical_data_V5$participant_id)
+   type = as.factor(clinical_data_V5$Type)
+  plasma_metabolomics_global_count_admission <- plasma_metabolomics_global_counts[clinical_data_V5$sample_id,]
+  plasma_metabolomics_global_rowfeature_admission  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_admission),]
+  x_met <- data.table(plasma_metabolomics_global_count_admission)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    #print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex, location,participant,type)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name, "age", "sex", "bmi","type")#, "participant"  "site", "race", "ethnicity"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<-  c(NA,NA,NA))#matrix(NA, nrow = 1, ncol = 3))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<-  conf <<-  c(NA,NA,NA))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(output, c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_admission)
+  Name <- plasma_metabolomics_global_rowfeature_admission$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_admission$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_admission$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_admission$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite")
+  output_V5 = output
+  sum(output_V5$qval <= 0.05)
+```
+#V6
+```{r}
+library(lmtest)
+library(MASS)
+clinical_data_V6 = subset(clinical_data, clinical_data$event_type == "Visit 6")
+
+clinical_data_V6$OUTCOME <- clinical_data_V6[,c("trajectory_group")]
+
+clinical_data_V6 <- clinical_data_V6 %>% drop_na(OUTCOME)
+clinical_data_V6 = subset(clinical_data_V6, clinical_data_V6$event_location == "Hospital")
+OUTCOME <- factor(clinical_data_V6$OUTCOME, levels=c(1,2,3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_V6$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_V6$admit_age)
+  bmi <- as.numeric(clinical_data_V6$bmi) #numerical
+  race <- as.factor(clinical_data_V6$race)
+  ethnicity <- as.factor(clinical_data_V6$ethnicity)
+  site <- as.factor(clinical_data_V6$enrollment_site)
+  location <- as.factor(clinical_data_V6$event_location)
+  participant <- as.factor(clinical_data_V6$participant_id)
+   type = as.factor(clinical_data_V6$Type)
+   
+  plasma_metabolomics_global_count_admission <- plasma_metabolomics_global_counts[clinical_data_V6$sample_id,]
+  plasma_metabolomics_global_rowfeature_admission  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_admission),]
+  x_met <- data.table(plasma_metabolomics_global_count_admission)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    #print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex,participant,type)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name,  "age", "sex", "bmi","type")#, "participant"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(output, c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_admission)
+  Name <- plasma_metabolomics_global_rowfeature_admission$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_admission$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_admission$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_admission$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite", all.x = T)
+  output_V6 = output
+  sum(output_V6$qval <= 0.05)
+```
+
+```{r}
+lr_output_cat1_all_glm_simple_sig = subset(output_V1,output_V1$pval <= 0.05)
+lr_output_cat1_all_glm_simple_sig = lr_output_cat1_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat1_all_glm_simple= output_V1[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat2_all_glm_simple_sig = subset(output_V2,output_V2$pval <= 0.05)
+lr_output_cat2_all_glm_simple_sig = lr_output_cat2_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat2_all_glm_simple= output_V2[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat3_all_glm_simple_sig = subset(output_V3,output_V3$pval <= 0.05)
+lr_output_cat3_all_glm_simple_sig = lr_output_cat3_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat3_all_glm_simple= output_V3[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat4_all_glm_simple_sig = subset(output_V4,output_V4$pval <= 0.05)
+lr_output_cat4_all_glm_simple_sig = lr_output_cat4_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat4_all_glm_simple= output_V4[,c("Compound_ID","coef","std","pval","qval")]
+
+lr_output_cat5_all_glm_simple_sig = subset(output_V5,output_V5$pval <= 0.05)
+lr_output_cat5_all_glm_simple_sig = lr_output_cat5_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat5_all_glm_simple= output_V5[,c("Compound_ID","coef","std","pval","qval")]
+
+lr_output_cat6_all_glm_simple_sig = subset(output_V6,output_V6$pval <= 0.05)
+lr_output_cat6_all_glm_simple_sig = lr_output_cat6_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat6_all_glm_simple= output_V6[,c("Compound_ID","coef","std","pval","qval")]
+
+Sub_pathway_table2 = c(lr_output_cat1_all_glm_simple_sig$Compound_ID, lr_output_cat2_all_glm_simple_sig$Compound_ID, lr_output_cat3_all_glm_simple_sig$Compound_ID, lr_output_cat4_all_glm_simple_sig$Compound_ID,lr_output_cat5_all_glm_simple_sig$Compound_ID,lr_output_cat6_all_glm_simple_sig$Compound_ID)
+Sub_pathway_table2 = unique(Sub_pathway_table2)
+plasma_metabolomics_global_rowfeature$Compound_ID = rownames(plasma_metabolomics_global_rowfeature)
+plasma_metabolomics_global_rowfeature_temp = subset(plasma_metabolomics_global_rowfeature, plasma_metabolomics_global_rowfeature$Compound_ID %in% Sub_pathway_table2)
+figure_table = function(lr_table,plasma_metabolomics_global_rowfeature_temp){
+  tmp <- lr_table
+tmp = merge(tmp, plasma_metabolomics_global_rowfeature_temp, by = "Compound_ID", all.y = TRUE)
+tmp <- tmp[!is.na(tmp$SUPER_PATHWAY),]
+tmp2 <- tmp[tmp$pval < 0.05, ]
+tmp3 <- tmp[tmp$qval < 0.05, ]
+dim(tmp3)
+tmp3 <- tmp[tmp$pval < 0.05 / 578, ]
+dim(tmp3)
+
+pathways <- unique(tmp$SUB_PATHWAY)
+
+# get a count of the total mets in each pathway 
+df <- data.table(pathways) # list of pathways
+df$total_pos <- 0 # create empty rows
+df$total_neg <- 0 # create empty rows
+for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp)){
+    if(df$pathways[i] == tmp$SUB_PATHWAY[j]){
+      if(tmp$coef[j] > 0){
+        df$total_pos[i] <- df$total_pos[i] + 1 
+      }
+      else{
+         df$total_neg[i] <- df$total_neg[i] - 1
+      }
+     
+    }
+  }
+}
+# get a count of sig mets in each pathway at P<0.05
+df$sig_neg <- 0
+df$sig_pos <- 0
+if(dim(tmp2)[1] > 0){
+for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp2)){
+    if(df$pathways[i] == tmp2$SUB_PATHWAY[j]){
+      ifelse(tmp2$coef[j] < 0, 
+             df$sig_neg[i] <- df$sig_neg[i] - 1,
+             df$sig_pos[i] <- df$sig_pos[i] + 1)
+    }
+  }
+}
+}
+# get a count of sig mets in each pathway at FDR<0.05
+df$sig_neg_fdr <- 0
+df$sig_pos_fdr <- 0
+if(dim(tmp3)[1] > 0){
+  for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp3)){
+    if(df$pathways[i] == tmp3$SUB_PATHWAY[j]){
+      ifelse(tmp3$coef[j] < 0, 
+             df$sig_neg_fdr[i] <- df$sig_neg_fdr[i] - 1,
+             df$sig_pos_fdr[i] <- df$sig_pos_fdr[i] + 1)
+    }
+  }
+}
+}
+
+
+# add in super pathways for coloring
+mets_info_all = plasma_metabolomics_global_rowfeature_temp
+mets_info_tmp <- mets_info_all[, c("SUPER_PATHWAY", "SUB_PATHWAY")]
+colnames(mets_info_tmp) <- c("SUPER_PATHWAY", "SUB_PATHWAY")
+df <- merge(mets_info_tmp, df, by.x = "SUB_PATHWAY", by.y = "pathways", all.y = T)
+
+# sort column and give idx
+df <- df[order(df$SUPER_PATHWAY, df$SUB_PATHWAY),] 
+
+df$idx <- as.factor(1:nrow(df))
+
+# create long df for plotting
+long <- melt(setDT(df), id.vars = c("SUB_PATHWAY","SUPER_PATHWAY", "idx"), variable.name = "key")
+long$SUB_PATHWAY <- as.factor(long$SUB_PATHWAY)
+long$color <- ifelse(long$SUPER_PATHWAY == "Amino Acid", "#FF689F",
+              ifelse(long$SUPER_PATHWAY == "Carbohydrate", "#E76BF3",
+              ifelse(long$SUPER_PATHWAY == "Cofactors and Vitamins", "#00A5FF",
+              ifelse(long$SUPER_PATHWAY == "Lipid", "#00B81F",
+              ifelse(long$SUPER_PATHWAY == "Nucleotide", "#BB9D00",
+              ifelse(long$SUPER_PATHWAY == "Peptide", "#F8766D",
+              ifelse(long$SUPER_PATHWAY == "Partially Characterized Molecules", "#E08B00",
+              ifelse(long$SUPER_PATHWAY == "Xenobiotics", "firebrick2",
+              ifelse(long$SUPER_PATHWAY == "Energy", "chocolate2", "pink")))))))))
+
+long$name <- paste0(long$SUPER_PATHWAY, " | ", long$SUB_PATHWAY)
+
+long2 <- long
+long2 <- long[!duplicated(long$name), ]
+rev_names =  rev(unique(long$name))
+long$name = factor(long$name, levels = rev_names)
+return(list(a = long, b= long2))
+}
+Callcat1 = figure_table(lr_output_cat1_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat2 = figure_table(lr_output_cat2_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat3 = figure_table(lr_output_cat3_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat4 = figure_table(lr_output_cat4_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat5 = figure_table(lr_output_cat5_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat6 = figure_table(lr_output_cat6_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+
+save(lr_output_cat1_all_glm_simple,lr_output_cat2_all_glm_simple,lr_output_cat3_all_glm_simple,lr_output_cat4_all_glm_simple,lr_output_cat5_all_glm_simple,lr_output_cat6_all_glm_simple, file = "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/deep_dive_ordinal.Rdata")
+p_cat1 = ggplot(Callcat1$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 1') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat1$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat2 = ggplot(Callcat2$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 2') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat2$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat3 = ggplot(Callcat3$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 3') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat3$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat4 = ggplot(Callcat4$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 4') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat4$b$color)
+                                   )) +geom_vline(xintercept = 0)
+
+p_cat5 = ggplot(Callcat5$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 5') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat5$b$color)
+                                   )) +geom_vline(xintercept = 0)
+
+
+p_cat6 = ggplot(Callcat6$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 6') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat6$b$color)
+                                   )) +geom_vline(xintercept = 0)
+
+
+remove_y <- theme(
+  axis.text.y = element_blank(),
+  axis.ticks.y = element_blank(),
+  axis.title.y = element_blank()
+  
+)
+p <- list(
+  p_cat1 + 
+  theme(legend.position="none")+ xlim(-40,30),# + remove_y
+  p_cat2 + remove_y + xlim(-40,20)+
+  theme(legend.position="none"),
+  p_cat3+ remove_y + xlim(-40,30)+
+      theme(legend.position="none"),
+  p_cat4 + remove_y +xlim(-40,30)+
+      theme(legend.position="none"),
+   p_cat5 + remove_y +xlim(-40,30)+
+      theme(legend.position="none"),
+   p_cat6 + remove_y +xlim(-40,30)+
+      theme(legend.position="none")
+ 
+)
+library(patchwork)
+p_TGcatall_all <- wrap_plots(p, nrow = 1) + plot_layout(guides = "collect")& theme(legend.position = 'bottom')
+p_TGcatall_all
+```
+```{r}
+Metabolomics_rowfeature$Compound_ID = rownames(Metabolomics_rowfeature)
+Metabolomics_rowfeature_sort =  Metabolomics_rowfeature %>%
+  arrange(SUPER_PATHWAY, SUB_PATHWAY)
+```
+```{r}
+lr_output_cat1_all_glm_simple_sorted = lr_output_cat1_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat1_all_glm_simple$Compound_ID),
+]
+lr_output_cat1_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat1_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat1_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat1_all_glm_simple_sorted = lr_output_cat1_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat1_all_glm_simple_sorted) = c("Name","Visit 1 coef","Visit 1 P","Visit 1 Adjusted Bonferroni","Visit 1 Adjusted FDR")
+##
+lr_output_cat2_all_glm_simple_sorted = lr_output_cat2_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat2_all_glm_simple$Compound_ID),
+]
+lr_output_cat2_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat2_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat2_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat2_all_glm_simple_sorted = lr_output_cat2_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat2_all_glm_simple_sorted) = c("Name","Visit 2 coef","Visit 2 P","Visit 2 Adjusted Bonferroni","Visit 2 Adjusted FDR")
+##
+lr_output_cat3_all_glm_simple_sorted = lr_output_cat3_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat3_all_glm_simple$Compound_ID),
+]
+lr_output_cat3_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat3_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat3_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat3_all_glm_simple_sorted = lr_output_cat3_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat3_all_glm_simple_sorted) = c("Name","Visit 3 coef","Visit 3 P","Visit 3 Adjusted Bonferroni","Visit 3 Adjusted FDR")
+##
+lr_output_cat4_all_glm_simple_sorted = lr_output_cat4_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat4_all_glm_simple$Compound_ID),
+]
+lr_output_cat4_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat4_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat4_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat4_all_glm_simple_sorted = lr_output_cat4_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat4_all_glm_simple_sorted) = c("Name","Visit 4 coef","Visit 4 P","Visit 4 Adjusted Bonferroni","Visit 4 Adjusted FDR")
+##
+lr_output_cat5_all_glm_simple_sorted = lr_output_cat5_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat5_all_glm_simple$Compound_ID),
+]
+lr_output_cat5_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat5_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat5_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat5_all_glm_simple_sorted = lr_output_cat5_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat5_all_glm_simple_sorted) = c("Name","Visit 5 coef","Visit 5 P","Visit 5 Adjusted Bonferroni","Visit 5 Adjusted FDR")
+##
+lr_output_cat6_all_glm_simple_sorted = lr_output_cat6_all_glm_simple[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_cat6_all_glm_simple$Compound_ID),
+]
+lr_output_cat6_all_glm_simple_sorted$Name = Metabolomics_rowfeature_sort$CHEMICAL_NAME
+lr_output_cat6_all_glm_simple_sorted$Bonferroni = p.adjust(lr_output_cat6_all_glm_simple_sorted$pval, method = 'bonferroni')
+lr_output_cat6_all_glm_simple_sorted = lr_output_cat6_all_glm_simple_sorted[,c("Name","coef","pval","Bonferroni", "qval")]
+names(lr_output_cat6_all_glm_simple_sorted) = c("Name","Visit 6 coef","Visit 6 P","Visit 6 Adjusted Bonferroni","Visit 6 Adjusted FDR")
+
+lr_output_all = cbind(lr_output_cat1_all_glm_simple_sorted, lr_output_cat2_all_glm_simple_sorted[,c("Visit 2 coef","Visit 2 P","Visit 2 Adjusted Bonferroni","Visit 2 Adjusted FDR")], lr_output_cat3_all_glm_simple_sorted[,c("Visit 3 coef","Visit 3 P","Visit 3 Adjusted Bonferroni","Visit 3 Adjusted FDR")], lr_output_cat4_all_glm_simple_sorted[,c("Visit 4 coef","Visit 4 P","Visit 4 Adjusted Bonferroni","Visit 4 Adjusted FDR")], lr_output_cat5_all_glm_simple_sorted[,c("Visit 5 coef","Visit 5 P","Visit 5 Adjusted Bonferroni","Visit 5 Adjusted FDR")], lr_output_cat6_all_glm_simple_sorted[,c("Visit 6 coef","Visit 6 P","Visit 6 Adjusted Bonferroni","Visit 6 Adjusted FDR")])
+write_csv(lr_output_all, file = "~/deep_dive_rowfeature_ordinal.csv")
+```
+
+
+
+
+#Ordinal_regression within protocal for V1- V6 - V1
+```{ r}
+library(lmtest)
+library(MASS)
+library(data.table)
+clinical_data = visit_all_in
+clinical_data_V1 = subset(clinical_data, clinical_data$event_type == "Visit 1")
+
+clinical_data_V1$OUTCOME <- clinical_data_V1[,c("trajectory_group")]
+
+clinical_data_V1 <- clinical_data_V1 %>% drop_na(OUTCOME)
+
+OUTCOME <- factor(clinical_data_V1$OUTCOME, levels=c(1,2,3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_V1$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_V1$admit_age)
+  bmi <- as.numeric(clinical_data_V1$bmi) #numerical
+  race <- as.factor(clinical_data_V1$race)
+  ethnicity <- as.factor(clinical_data_V1$ethnicity)
+  site <- as.factor(clinical_data_V1$enrollment_site)
+  location <- as.factor(clinical_data_V1$event_location)
+  participant <- as.factor(clinical_data_V1$participant_id)
+  plasma_metabolomics_global_count_admission <- plasma_metabolomics_global_counts[clinical_data_V1$sample_id,]
+  plasma_metabolomics_global_rowfeature_admission  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_admission),]
+  x_met <- data.table(plasma_metabolomics_global_count_admission)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    #print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex, location,participant)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name,  "age", "sex", "bmi")#, "participant"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(output, c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_admission)
+  Name <- plasma_metabolomics_global_rowfeature_admission$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_admission$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_admission$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_admission$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite")
+  output_V1 = output
+  sum(output_V1$qval <= 0.05)
+```
+#V2
+```{ r}
+library(lmtest)
+library(MASS)
+clinical_data_V2 = subset(clinical_data, clinical_data$event_type == "Visit 2")
+
+clinical_data_V2$OUTCOME <- clinical_data_V2[,c("trajectory_group")]
+
+clinical_data_V2 <- clinical_data_V2 %>% drop_na(OUTCOME)
+
+OUTCOME <- factor(clinical_data_V2$OUTCOME, levels=c(1,2,3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_V2$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_V2$admit_age)
+  bmi <- as.numeric(clinical_data_V2$bmi) #numerical
+  race <- as.factor(clinical_data_V2$race)
+  ethnicity <- as.factor(clinical_data_V2$ethnicity)
+  site <- as.factor(clinical_data_V2$enrollment_site)
+  location <- as.factor(clinical_data_V2$event_location)
+  participant <- as.factor(clinical_data_V2$participant_id)
+  plasma_metabolomics_global_count_admission <- plasma_metabolomics_global_counts[clinical_data_V2$sample_id,]
+  plasma_metabolomics_global_rowfeature_admission  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_admission),]
+  x_met <- data.table(plasma_metabolomics_global_count_admission)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    #print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex, location,participant)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name,  "age", "sex", "bmi")#, "participant"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(output, c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_admission)
+  Name <- plasma_metabolomics_global_rowfeature_admission$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_admission$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_admission$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_admission$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite")
+  output_V2 = output
+  sum(output_V2$qval <= 0.05)
+```
+#V3
+```{ r}
+library(lmtest)
+library(MASS)
+clinical_data_V3 = subset(clinical_data, clinical_data$event_type == "Visit 3")
+
+clinical_data_V3$OUTCOME <- clinical_data_V3[,c("trajectory_group")]
+
+clinical_data_V3 <- clinical_data_V3 %>% drop_na(OUTCOME)
+
+OUTCOME <- factor(clinical_data_V3$OUTCOME, levels=c(1,2,3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_V3$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_V3$admit_age)
+  bmi <- as.numeric(clinical_data_V3$bmi) #numerical
+  race <- as.factor(clinical_data_V3$race)
+  ethnicity <- as.factor(clinical_data_V3$ethnicity)
+  site <- as.factor(clinical_data_V3$enrollment_site)
+  location <- as.factor(clinical_data_V3$event_location)
+  participant <- as.factor(clinical_data_V3$participant_id)
+  plasma_metabolomics_global_count_admission <- plasma_metabolomics_global_counts[clinical_data_V3$sample_id,]
+  plasma_metabolomics_global_rowfeature_admission  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_admission),]
+  x_met <- data.table(plasma_metabolomics_global_count_admission)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    #print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex, location,participant)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name,  "age", "sex", "bmi")#, "participant"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(output, c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_admission)
+  Name <- plasma_metabolomics_global_rowfeature_admission$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_admission$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_admission$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_admission$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite")
+  output_V3 = output
+  sum(output_V3$qval <= 0.05)
+```
+#V4
+```{ r}
+library(lmtest)
+library(MASS)
+clinical_data_V4 = subset(clinical_data, clinical_data$event_type == "Visit 4")
+
+clinical_data_V4$OUTCOME <- clinical_data_V4[,c("trajectory_group")]
+
+clinical_data_V4 <- clinical_data_V4 %>% drop_na(OUTCOME)
+
+OUTCOME <- factor(clinical_data_V4$OUTCOME, levels=c(1,2,3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_V4$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_V4$admit_age)
+  bmi <- as.numeric(clinical_data_V4$bmi) #numerical
+  race <- as.factor(clinical_data_V4$race)
+  ethnicity <- as.factor(clinical_data_V4$ethnicity)
+  site <- as.factor(clinical_data_V4$enrollment_site)
+  location <- as.factor(clinical_data_V4$event_location)
+  participant <- as.factor(clinical_data_V4$participant_id)
+  plasma_metabolomics_global_count_admission <- plasma_metabolomics_global_counts[clinical_data_V4$sample_id,]
+  plasma_metabolomics_global_rowfeature_admission  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_admission),]
+  x_met <- data.table(plasma_metabolomics_global_count_admission)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    #print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex, location,participant)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name,  "age", "sex", "bmi","location")#, "participant"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(output, c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_admission)
+  Name <- plasma_metabolomics_global_rowfeature_admission$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_admission$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_admission$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_admission$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite")
+  output_V4 = output
+  sum(output_V4$qval <= 0.05)
+```
+#V5
+```{ r}
+library(lmtest)
+library(MASS)
+clinical_data_V5 = subset(clinical_data, clinical_data$event_type == "Visit 5")
+
+clinical_data_V5$OUTCOME <- clinical_data_V5[,c("trajectory_group")]
+
+clinical_data_V5 <- clinical_data_V5 %>% drop_na(OUTCOME)
+
+OUTCOME <- factor(clinical_data_V5$OUTCOME, levels=c(1,2,3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_V5$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_V5$admit_age)
+  bmi <- as.numeric(clinical_data_V5$bmi) #numerical
+  race <- as.factor(clinical_data_V5$race)
+  ethnicity <- as.factor(clinical_data_V5$ethnicity)
+  site <- as.factor(clinical_data_V5$enrollment_site)
+  location <- as.factor(clinical_data_V5$event_location)
+  participant <- as.factor(clinical_data_V5$participant_id)
+  plasma_metabolomics_global_count_admission <- plasma_metabolomics_global_counts[clinical_data_V5$sample_id,]
+  plasma_metabolomics_global_rowfeature_admission  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_admission),]
+  x_met <- data.table(plasma_metabolomics_global_count_admission)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    #print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex, location,participant)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name, "age", "sex", "bmi")#, "participant"  "site", "race", "ethnicity"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<-  c(NA,NA,NA))#matrix(NA, nrow = 1, ncol = 3))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<-  conf <<-  c(NA,NA,NA))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(output, c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_admission)
+  Name <- plasma_metabolomics_global_rowfeature_admission$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_admission$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_admission$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_admission$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite")
+  output_V5 = output
+  sum(output_V5$qval <= 0.05)
+```
+#V6
+```{ r}
+library(lmtest)
+library(MASS)
+clinical_data_V6 = subset(clinical_data, clinical_data$event_type == "Visit 6")
+
+clinical_data_V6$OUTCOME <- clinical_data_V6[,c("trajectory_group")]
+
+clinical_data_V6 <- clinical_data_V6 %>% drop_na(OUTCOME)
+
+OUTCOME <- factor(clinical_data_V6$OUTCOME, levels=c(1,2,3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_V6$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_V6$admit_age)
+  bmi <- as.numeric(clinical_data_V6$bmi) #numerical
+  race <- as.factor(clinical_data_V6$race)
+  ethnicity <- as.factor(clinical_data_V6$ethnicity)
+  site <- as.factor(clinical_data_V6$enrollment_site)
+  location <- as.factor(clinical_data_V6$event_location)
+  participant <- as.factor(clinical_data_V6$participant_id)
+  plasma_metabolomics_global_count_admission <- plasma_metabolomics_global_counts[clinical_data_V6$sample_id,]
+  plasma_metabolomics_global_rowfeature_admission  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_admission),]
+  x_met <- data.table(plasma_metabolomics_global_count_admission)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    #print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex, location,participant)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name,  "age", "sex", "bmi","location")#, "participant"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(output, c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_admission)
+  Name <- plasma_metabolomics_global_rowfeature_admission$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_admission$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_admission$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_admission$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite")
+  output_V6 = output
+  sum(output_V6$qval <= 0.05)
+```
+
+```{ r}
+lr_output_cat1_all_glm_simple_sig = subset(output_V1,output_V1$pval <= 0.05)
+lr_output_cat1_all_glm_simple_sig = lr_output_cat1_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat1_all_glm_simple= output_V1[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat2_all_glm_simple_sig = subset(output_V2,output_V2$pval <= 0.05)
+lr_output_cat2_all_glm_simple_sig = lr_output_cat2_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat2_all_glm_simple= output_V2[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat3_all_glm_simple_sig = subset(output_V3,output_V3$pval <= 0.05)
+lr_output_cat3_all_glm_simple_sig = lr_output_cat3_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat3_all_glm_simple= output_V3[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat4_all_glm_simple_sig = subset(output_V4,output_V4$pval <= 0.05)
+lr_output_cat4_all_glm_simple_sig = lr_output_cat4_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat4_all_glm_simple= output_V4[,c("Compound_ID","coef","std","pval","qval")]
+
+lr_output_cat5_all_glm_simple_sig = subset(output_V5,output_V5$pval <= 0.05)
+lr_output_cat5_all_glm_simple_sig = lr_output_cat5_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat5_all_glm_simple= output_V5[,c("Compound_ID","coef","std","pval","qval")]
+
+lr_output_cat6_all_glm_simple_sig = subset(output_V6,output_V6$pval <= 0.05)
+lr_output_cat6_all_glm_simple_sig = lr_output_cat6_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat6_all_glm_simple= output_V6[,c("Compound_ID","coef","std","pval","qval")]
+
+Sub_pathway_table2 = c(lr_output_cat1_all_glm_simple_sig$Compound_ID, lr_output_cat2_all_glm_simple_sig$Compound_ID, lr_output_cat3_all_glm_simple_sig$Compound_ID, lr_output_cat4_all_glm_simple_sig$Compound_ID,lr_output_cat5_all_glm_simple_sig$Compound_ID,lr_output_cat6_all_glm_simple_sig$Compound_ID)
+Sub_pathway_table2 = unique(Sub_pathway_table2)
+plasma_metabolomics_global_rowfeature$Compound_ID = rownames(plasma_metabolomics_global_rowfeature)
+plasma_metabolomics_global_rowfeature_temp = subset(plasma_metabolomics_global_rowfeature, plasma_metabolomics_global_rowfeature$Compound_ID %in% Sub_pathway_table2)
+figure_table = function(lr_table,plasma_metabolomics_global_rowfeature_temp){
+  tmp <- lr_table
+tmp = merge(tmp, plasma_metabolomics_global_rowfeature_temp, by = "Compound_ID", all.y = TRUE)
+tmp <- tmp[!is.na(tmp$SUPER_PATHWAY),]
+tmp2 <- tmp[tmp$pval < 0.05, ]
+tmp3 <- tmp[tmp$qval < 0.05, ]
+dim(tmp3)
+tmp3 <- tmp[tmp$pval < 0.05 / 578, ]
+dim(tmp3)
+
+pathways <- unique(tmp$SUB_PATHWAY)
+
+# get a count of the total mets in each pathway 
+df <- data.table(pathways) # list of pathways
+df$total_pos <- 0 # create empty rows
+df$total_neg <- 0 # create empty rows
+for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp)){
+    if(df$pathways[i] == tmp$SUB_PATHWAY[j]){
+      if(tmp$coef[j] > 0){
+        df$total_pos[i] <- df$total_pos[i] + 1 
+      }
+      else{
+         df$total_neg[i] <- df$total_neg[i] - 1
+      }
+     
+    }
+  }
+}
+# get a count of sig mets in each pathway at P<0.05
+df$sig_neg <- 0
+df$sig_pos <- 0
+if(dim(tmp2)[1] > 0){
+for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp2)){
+    if(df$pathways[i] == tmp2$SUB_PATHWAY[j]){
+      ifelse(tmp2$coef[j] < 0, 
+             df$sig_neg[i] <- df$sig_neg[i] - 1,
+             df$sig_pos[i] <- df$sig_pos[i] + 1)
+    }
+  }
+}
+}
+# get a count of sig mets in each pathway at FDR<0.05
+df$sig_neg_fdr <- 0
+df$sig_pos_fdr <- 0
+if(dim(tmp3)[1] > 0){
+  for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp3)){
+    if(df$pathways[i] == tmp3$SUB_PATHWAY[j]){
+      ifelse(tmp3$coef[j] < 0, 
+             df$sig_neg_fdr[i] <- df$sig_neg_fdr[i] - 1,
+             df$sig_pos_fdr[i] <- df$sig_pos_fdr[i] + 1)
+    }
+  }
+}
+}
+
+
+# add in super pathways for coloring
+mets_info_all = plasma_metabolomics_global_rowfeature_temp
+mets_info_tmp <- mets_info_all[, c("SUPER_PATHWAY", "SUB_PATHWAY")]
+colnames(mets_info_tmp) <- c("SUPER_PATHWAY", "SUB_PATHWAY")
+df <- merge(mets_info_tmp, df, by.x = "SUB_PATHWAY", by.y = "pathways", all.y = T)
+
+# sort column and give idx
+df <- df[order(df$SUPER_PATHWAY, df$SUB_PATHWAY),] 
+
+df$idx <- as.factor(1:nrow(df))
+
+# create long df for plotting
+long <- melt(setDT(df), id.vars = c("SUB_PATHWAY","SUPER_PATHWAY", "idx"), variable.name = "key")
+long$SUB_PATHWAY <- as.factor(long$SUB_PATHWAY)
+long$color <- ifelse(long$SUPER_PATHWAY == "Amino Acid", "#FF689F",
+              ifelse(long$SUPER_PATHWAY == "Carbohydrate", "#E76BF3",
+              ifelse(long$SUPER_PATHWAY == "Cofactors and Vitamins", "#00A5FF",
+              ifelse(long$SUPER_PATHWAY == "Lipid", "#00B81F",
+              ifelse(long$SUPER_PATHWAY == "Nucleotide", "#BB9D00",
+              ifelse(long$SUPER_PATHWAY == "Peptide", "#F8766D",
+              ifelse(long$SUPER_PATHWAY == "Partially Characterized Molecules", "#E08B00",
+              ifelse(long$SUPER_PATHWAY == "Xenobiotics", "firebrick2",
+              ifelse(long$SUPER_PATHWAY == "Energy", "chocolate2", "pink")))))))))
+
+long$name <- paste0(long$SUPER_PATHWAY, " | ", long$SUB_PATHWAY)
+
+long2 <- long
+long2 <- long[!duplicated(long$name), ]
+rev_names =  rev(unique(long$name))
+long$name = factor(long$name, levels = rev_names)
+return(list(a = long, b= long2))
+}
+Callcat1 = figure_table(lr_output_cat1_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat2 = figure_table(lr_output_cat2_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat3 = figure_table(lr_output_cat3_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat4 = figure_table(lr_output_cat4_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat5 = figure_table(lr_output_cat5_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat6 = figure_table(lr_output_cat6_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+
+
+p_cat1 = ggplot(Callcat1$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 1') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat1$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat2 = ggplot(Callcat2$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 2') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat2$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat3 = ggplot(Callcat3$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 3') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat3$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat4 = ggplot(Callcat4$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 4') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat4$b$color)
+                                   )) +geom_vline(xintercept = 0)
+
+p_cat5 = ggplot(Callcat5$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 5') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat5$b$color)
+                                   )) +geom_vline(xintercept = 0)
+
+
+p_cat6 = ggplot(Callcat6$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Visit 6') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat6$b$color)
+                                   )) +geom_vline(xintercept = 0)
+
+
+remove_y <- theme(
+  axis.text.y = element_blank(),
+  axis.ticks.y = element_blank(),
+  axis.title.y = element_blank()
+  
+)
+p <- list(
+  p_cat1 + 
+  theme(legend.position="none")+ xlim(-40,30),# + remove_y
+  p_cat2 + remove_y + xlim(-40,20)+
+  theme(legend.position="none"),
+  p_cat3+ remove_y + xlim(-40,30)+
+      theme(legend.position="none"),
+  p_cat4 + remove_y +xlim(-40,30)+
+      theme(legend.position="none"),
+   p_cat5 + remove_y +xlim(-40,30)+
+      theme(legend.position="none"),
+   p_cat6 + remove_y +xlim(-40,30)+
+      theme(legend.position="none")
+ 
+)
+library(patchwork)
+p_TGcatall <- wrap_plots(p, nrow = 1) + plot_layout(guides = "collect")& theme(legend.position = 'bottom')
+p_TGcatall
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Ordinal_regression for Admission
+```{ r}
+library(lmtest)
+library(MASS)
+clinical_data_admission = subset(clinical_data, clinical_data$adm_date_cat == "Admission")
+
+clinical_data_admission$OUTCOME <- clinical_data_admission[,c("trajectory_group")]
+
+clinical_data_admission <- clinical_data_admission %>% drop_na(OUTCOME)
+
+OUTCOME <- factor(clinical_data_admission$OUTCOME, levels=c(1,2,3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_admission$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_admission$admit_age)
+  bmi <- as.numeric(clinical_data_admission$bmi) #numerical
+  race <- as.factor(clinical_data_admission$race)
+  ethnicity <- as.factor(clinical_data_admission$ethnicity)
+  site <- as.factor(clinical_data_admission$enrollment_site)
+  location <- as.factor(clinical_data_admission$event_location)
+  participant <- as.factor(clinical_data_admission$participant_id)
+  plasma_metabolomics_global_count_admission <- plasma_metabolomics_global_counts[clinical_data_admission$sample_id,]
+  plasma_metabolomics_global_rowfeature_admission  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_admission),]
+  x_met <- data.table(plasma_metabolomics_global_count_admission)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    #print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex, location,participant)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name,  "age", "bmi", "site", "race", "ethnicity", "sex")#, "participant"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(output, c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_admission)
+  Name <- plasma_metabolomics_global_rowfeature_admission$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_admission$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_admission$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_admission$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_admission$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite")
+  output_Admission = output
+  sum(output_Admission$qval <= 0.05)
+```
+#Ordinal_regression for WK1
+```{ r}
+clinical_data_WK1 = subset(clinical_data, clinical_data$adm_date_cat == "WK1")
+
+clinical_data_WK1$OUTCOME <- clinical_data_WK1[,c("trajectory_group")]
+
+clinical_data_WK1 <- clinical_data_WK1 %>% drop_na(OUTCOME)
+OUTCOME <- factor(clinical_data_WK1$OUTCOME, levels=c(1,2,3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_WK1$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_WK1$admit_age)
+  bmi <- as.numeric(clinical_data_WK1$bmi) #numerical
+  race <- as.factor(clinical_data_WK1$race)
+  ethnicity <- as.factor(clinical_data_WK1$ethnicity)
+  site <- as.factor(clinical_data_WK1$enrollment_site)
+  location <- as.factor(clinical_data_WK1$event_location)
+  participant <- as.factor(clinical_data_WK1$participant_id)
+  plasma_metabolomics_global_count_WK1 <- plasma_metabolomics_global_counts[clinical_data_WK1$sample_id,]
+  plasma_metabolomics_global_rowfeature_WK1  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_WK1),]
+  x_met <- data.table(plasma_metabolomics_global_count_WK1)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex, location,participant)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name,  "age", "bmi", "site", "race", "ethnicity", "sex")#, "participant"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(output, c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_WK1)
+  Name <- plasma_metabolomics_global_rowfeature_WK1$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_WK1$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_WK1$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_WK1$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_WK1$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_WK1$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite")
+  output_WK1 = output
+  sum(output_WK1$qval <= 0.05)
+```
+
+#Ordinal_regression for WK2_3
+```{ r}
+clinical_data_WK2_3 = subset(clinical_data, clinical_data$adm_date_cat == "WK2_3")
+
+clinical_data_WK2_3$OUTCOME <- clinical_data_WK2_3[,c("trajectory_group")]
+
+clinical_data_WK2_3 <- clinical_data_WK2_3 %>% drop_na(OUTCOME)
+OUTCOME <- factor(clinical_data_WK2_3$OUTCOME, levels=c(1,2,3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_WK2_3$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_WK2_3$admit_age)
+  bmi <- as.numeric(clinical_data_WK2_3$bmi) #numerical
+  race <- as.factor(clinical_data_WK2_3$race)
+  ethnicity <- as.factor(clinical_data_WK2_3$ethnicity)
+  site <- as.factor(clinical_data_WK2_3$enrollment_site)
+  location <- as.factor(clinical_data_WK2_3$event_location)
+  participant <- as.factor(clinical_data_WK2_3$participant_id)
+  plasma_metabolomics_global_count_WK2_3 <- plasma_metabolomics_global_counts[clinical_data_WK2_3$sample_id,]
+  plasma_metabolomics_global_rowfeature_WK2_3  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_WK2_3),]
+  x_met <- data.table(plasma_metabolomics_global_count_WK2_3)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex, location,participant)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name,  "age", "bmi", "site", "race", "ethnicity", "sex","location")#, "participant"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(output, c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_WK2_3)
+  Name <- plasma_metabolomics_global_rowfeature_WK2_3$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_WK2_3$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_WK2_3$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_WK2_3$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_WK2_3$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_WK2_3$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite")
+  output_WK2_3 = output
+  sum(output_WK2_3$qval <= 0.05)
+```
+
+#Ordinal_regression for WK4
+```{ r}
+clinical_data_WK4 = subset(clinical_data, clinical_data$adm_date_cat == "WK4")
+
+clinical_data_WK4$OUTCOME <- clinical_data_WK4[,c("trajectory_group")]
+
+clinical_data_WK4 <- clinical_data_WK4 %>% drop_na(OUTCOME)
+OUTCOME <- factor(clinical_data_WK4$OUTCOME, levels=c(1,2,3,4,5), ordered=TRUE)
+  
+table(OUTCOME)
+  
+  sex <- as.factor(clinical_data_WK4$sex)
+  y <- OUTCOME
+  age <- as.numeric(clinical_data_WK4$admit_age)
+  bmi <- as.numeric(clinical_data_WK4$bmi) #numerical
+  race <- as.factor(clinical_data_WK4$race)
+  ethnicity <- as.factor(clinical_data_WK4$ethnicity)
+  site <- as.factor(clinical_data_WK4$enrollment_site)
+  location <- as.factor(clinical_data_WK4$event_location)
+  participant <- as.factor(clinical_data_WK4$participant_id)
+  plasma_metabolomics_global_count_WK4 <- plasma_metabolomics_global_counts[clinical_data_WK4$sample_id,]
+  plasma_metabolomics_global_rowfeature_WK4  <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_count_WK4),]
+  x_met <- data.table(plasma_metabolomics_global_count_WK4)
+  pval <- c()
+  coef <- c()
+  zval <- c()
+  std <- c()
+  output_all <- data.frame(matrix(NA, ncol = 4))
+  colnames(output_all) <- c("outc", "metabolite", "lowerCI", "upperCI")
+  for (i in 1:ncol(x_met)){
+    print(i)
+    # Get metab x
+    met_i <- x_met[, ..i]
+    met_i_name <- names(met_i)
+    
+    # Build data frame
+    df <- cbind(y, met_i, age, bmi, site, race, ethnicity, sex, location,participant)
+    df <- df[complete.cases(df),]
+    xvars <- c(met_i_name,  "age", "bmi", "site", "race", "ethnicity", "sex")#, "participant"
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    
+    # Build model and keep pvalue
+    tryCatch (m <- polr(fmla, data=df, Hess=TRUE), error= function (e) m <<- c(m, 1))
+    
+    # Extract
+    
+    # Extract
+    tryCatch(pval <- c(pval, coeftest(m)[1,4]), error = function(e) pval <<- c(pval, 1))
+    tryCatch(zval <- c(zval, coeftest(m)[1,3]), error = function(e) zval <<- c(zval, 1))
+    tryCatch(coef <- c(coef, coeftest(m)[1,1]), error = function(e) coef <<- c(coef, 1))
+    tryCatch(std <- c(std, coeftest(m)[1,2]), error = function(e) std <<- c(std, 1))
+    tryCatch(conf <- confint.default(m) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table(), error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(conf <- conf[rowname == met_i_name, ], error = function(e) conf <<- c(NA,NA,NA))
+    tryCatch(output <- cbind("Treatment", conf), error = function(e) output <<- cbind("Treatment",NA,NA,NA))
+    tryCatch(setnames(output, c("outc", "metabolite","lowerCI","upperCI")), error = function(e) setnames(output, c("outc", "metabolite","lowerCI","upperCI")))
+    tryCatch(output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]], error = function(e) output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]])
+    tryCatch(output_all <- rbind(output_all, output), error = function(e) output_all <- rbind(output_all, output))
+   
+  }
+  mets_list = colnames(x_met)
+  m_output <- data.table(mets_list)
+  
+  
+  m_output$coef<- coef
+  m_output$std <- std
+  m_output$zval  <- zval
+  m_output$pval <- pval
+  m_output$qval  <- p.adjust(pval, method = 'BH')
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_WK4)
+  Name <- plasma_metabolomics_global_rowfeature_WK4$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_WK4$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_WK4$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_WK4$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_WK4$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_WK4$PLATFORM
+  
+  m_output <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, m_output)
+  output <- merge(m_output, output_all, by.x = "Compound_ID", by.y = "metabolite")
+  output_WK4 = output
+  sum(output_WK4$qval <= 0.05)
+```
+```{ r}
+lr_output_cat1_all_glm_simple_sig = subset(output_Admission,output_Admission$pval <= 0.05)
+lr_output_cat1_all_glm_simple_sig = lr_output_cat1_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat1_all_glm_simple= output_Admission[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat2_all_glm_simple_sig = subset(output_WK1,output_WK1$pval <= 0.05)
+lr_output_cat2_all_glm_simple_sig = lr_output_cat2_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat2_all_glm_simple= output_WK1[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat3_all_glm_simple_sig = subset(output_WK2_3,output_WK2_3$pval <= 0.05)
+lr_output_cat3_all_glm_simple_sig = lr_output_cat3_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat3_all_glm_simple= output_WK2_3[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat4_all_glm_simple_sig = subset(output_WK4,output_WK4$pval <= 0.05)
+lr_output_cat4_all_glm_simple_sig = lr_output_cat4_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat4_all_glm_simple= output_WK4[,c("Compound_ID","coef","std","pval","qval")]
+
+
+Sub_pathway_table2 = c(lr_output_cat1_all_glm_simple_sig$Compound_ID, lr_output_cat2_all_glm_simple_sig$Compound_ID, lr_output_cat3_all_glm_simple_sig$Compound_ID, lr_output_cat4_all_glm_simple_sig$Compound_ID)
+Sub_pathway_table2 = unique(Sub_pathway_table2)
+plasma_metabolomics_global_rowfeature$Compound_ID = rownames(plasma_metabolomics_global_rowfeature)
+plasma_metabolomics_global_rowfeature_temp = subset(plasma_metabolomics_global_rowfeature, plasma_metabolomics_global_rowfeature$Compound_ID %in% Sub_pathway_table2)
+figure_table = function(lr_table,plasma_metabolomics_global_rowfeature_temp){
+  tmp <- lr_table
+tmp = merge(tmp, plasma_metabolomics_global_rowfeature_temp, by = "Compound_ID", all.y = TRUE)
+tmp <- tmp[!is.na(tmp$SUPER_PATHWAY),]
+tmp2 <- tmp[tmp$pval < 0.05, ]
+tmp3 <- tmp[tmp$qval < 0.05, ]
+dim(tmp3)
+tmp3 <- tmp[tmp$pval < 0.05 / 578, ]
+dim(tmp3)
+
+pathways <- unique(tmp$SUB_PATHWAY)
+
+# get a count of the total mets in each pathway 
+df <- data.table(pathways) # list of pathways
+df$total_pos <- 0 # create empty rows
+df$total_neg <- 0 # create empty rows
+for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp)){
+    if(df$pathways[i] == tmp$SUB_PATHWAY[j]){
+      if(tmp$coef[j] > 0){
+        df$total_pos[i] <- df$total_pos[i] + 1 
+      }
+      else{
+         df$total_neg[i] <- df$total_neg[i] - 1
+      }
+     
+    }
+  }
+}
+# get a count of sig mets in each pathway at P<0.05
+df$sig_neg <- 0
+df$sig_pos <- 0
+if(dim(tmp2)[1] > 0){
+for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp2)){
+    if(df$pathways[i] == tmp2$SUB_PATHWAY[j]){
+      ifelse(tmp2$coef[j] < 0, 
+             df$sig_neg[i] <- df$sig_neg[i] - 1,
+             df$sig_pos[i] <- df$sig_pos[i] + 1)
+    }
+  }
+}
+}
+# get a count of sig mets in each pathway at FDR<0.05
+df$sig_neg_fdr <- 0
+df$sig_pos_fdr <- 0
+if(dim(tmp3)[1] > 0){
+  for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp3)){
+    if(df$pathways[i] == tmp3$SUB_PATHWAY[j]){
+      ifelse(tmp3$coef[j] < 0, 
+             df$sig_neg_fdr[i] <- df$sig_neg_fdr[i] - 1,
+             df$sig_pos_fdr[i] <- df$sig_pos_fdr[i] + 1)
+    }
+  }
+}
+}
+
+
+# add in super pathways for coloring
+mets_info_all = plasma_metabolomics_global_rowfeature_temp
+mets_info_tmp <- mets_info_all[, c("SUPER_PATHWAY", "SUB_PATHWAY")]
+colnames(mets_info_tmp) <- c("SUPER_PATHWAY", "SUB_PATHWAY")
+df <- merge(mets_info_tmp, df, by.x = "SUB_PATHWAY", by.y = "pathways", all.y = T)
+
+# sort column and give idx
+df <- df[order(df$SUPER_PATHWAY, df$SUB_PATHWAY),] 
+
+df$idx <- as.factor(1:nrow(df))
+
+# create long df for plotting
+long <- melt(setDT(df), id.vars = c("SUB_PATHWAY","SUPER_PATHWAY", "idx"), variable.name = "key")
+long$SUB_PATHWAY <- as.factor(long$SUB_PATHWAY)
+long$color <- ifelse(long$SUPER_PATHWAY == "Amino Acid", "#FF689F",
+              ifelse(long$SUPER_PATHWAY == "Carbohydrate", "#E76BF3",
+              ifelse(long$SUPER_PATHWAY == "Cofactors and Vitamins", "#00A5FF",
+              ifelse(long$SUPER_PATHWAY == "Lipid", "#00B81F",
+              ifelse(long$SUPER_PATHWAY == "Nucleotide", "#BB9D00",
+              ifelse(long$SUPER_PATHWAY == "Peptide", "#F8766D",
+              ifelse(long$SUPER_PATHWAY == "Partially Characterized Molecules", "#E08B00",
+              ifelse(long$SUPER_PATHWAY == "Xenobiotics", "firebrick2",
+              ifelse(long$SUPER_PATHWAY == "Energy", "chocolate2", "pink")))))))))
+
+long$name <- paste0(long$SUPER_PATHWAY, " | ", long$SUB_PATHWAY)
+
+long2 <- long
+long2 <- long[!duplicated(long$name), ]
+rev_names =  rev(unique(long$name))
+long$name = factor(long$name, levels = rev_names)
+return(list(a = long, b= long2))
+}
+Callcat1 = figure_table(lr_output_cat1_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat2 = figure_table(lr_output_cat2_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat3 = figure_table(lr_output_cat3_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat4 = figure_table(lr_output_cat4_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+
+
+p_cat1 = ggplot(Callcat1$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Admission') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat1$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat2 = ggplot(Callcat2$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'WK1') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat2$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat3 = ggplot(Callcat3$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'WK2_3') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat3$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat4 = ggplot(Callcat4$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'WK4') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat4$b$color)
+                                   )) +geom_vline(xintercept = 0)
+
+
+remove_y <- theme(
+  axis.text.y = element_blank(),
+  axis.ticks.y = element_blank(),
+  axis.title.y = element_blank()
+  
+)
+p <- list(
+  p_cat1 + 
+  theme(legend.position="none")+ xlim(-40,30),# + remove_y
+  p_cat2 + remove_y + xlim(-40,20)+
+  theme(legend.position="none"),
+  p_cat3+ remove_y + xlim(-40,30)+
+      theme(legend.position="none"),
+  p_cat4 + remove_y +xlim(-40,30)+
+      theme(legend.position="none")
+ 
+)
+library(patchwork)
+p_TGcatall <- wrap_plots(p, nrow = 1) + plot_layout(guides = "collect")& theme(legend.position = 'bottom')
+p_TGcatall
+```
+
+```{r}
+lr_output_cat1_all_glm_info = merge(lr_output_cat1_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "Compound_ID")
+lr_output_cat2_all_glm_info = merge(lr_output_cat2_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "Compound_ID")
+lr_output_cat3_all_glm_info = merge(lr_output_cat3_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "Compound_ID")
+lr_output_cat4_all_glm_info = merge(lr_output_cat4_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "Compound_ID")
+lr_output_cat5_all_glm_info = merge(lr_output_cat5_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "Compound_ID")
+lr_output_cat6_all_glm_info = merge(lr_output_cat6_all_glm_simple, plasma_metabolomics_global_rowfeature_temp, by = "Compound_ID")
+
+```
+
+```{r}
+lr_output_cat1_all_glm_info$type = "Visit 1"
+lr_output_cat2_all_glm_info$type = "Visit 2"
+lr_output_cat3_all_glm_info$type = "Visit 3"
+lr_output_cat4_all_glm_info$type = "Visit 4"
+lr_output_cat5_all_glm_info$type = "Visit 5"
+lr_output_cat6_all_glm_info$type = "Visit 6"
+
+lr_output_all_glm_info = rbind(lr_output_cat1_all_glm_info,lr_output_cat2_all_glm_info,lr_output_cat3_all_glm_info,lr_output_cat4_all_glm_info,lr_output_cat5_all_glm_info,lr_output_cat6_all_glm_info)
+#lr_output_all_glm_info$type = factor(lr_output_all_glm_info$type, levels = c("Admission","WK1" ,"WK2_3","WK4"))
+```
+```{r}
+library(tidyverse)
+library(ggforestplot)
+b_Sphingomyelins <- lr_output_all_glm_info[SUB_PATHWAY %in% c("Sphingomyelins")] 
+b_Sphingomyelins = b_Sphingomyelins %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Sphingomyelins$sig = factor(b_Sphingomyelins$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+b_Sphingomyelins = b_Sphingomyelins[,c("CHEMICAL_NAME", "type","coef","std","sig")]
+names(b_Sphingomyelins)[1] = "name"
+names(b_Sphingomyelins)[4] = "se"
+p_Sphingomyelins= forestplot(
+  df =b_Sphingomyelins,
+  estimate = coef,
+  logodds = FALSE,
+  colour =sig,
+  title = "Sphingomyelins",
+  xlab = "coefficient"
+)  + facet_grid(. ~ type) + scale_color_manual("Legend", values = c("FDR significant" = "red", "Not significant" = "ivory4", "Raw significant" = "lightsalmon")) + theme(legend.position = "botton")
+p_Sphingomyelins  
+```
+
+#Lysophospholipid
+```{r}
+b_Lysophospholipid <- lr_output_all_glm_info[SUB_PATHWAY %in% c("Lysophospholipid")] 
+b_Lysophospholipid = b_Lysophospholipid %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "FDR significant",
+    pval <= 0.05 & qval >  0.05~ "Raw significant",
+    pval > 0.05  ~ "Not significant"
+    ))
+   b_Lysophospholipid$sig = factor(b_Lysophospholipid$sig, levels = c("FDR significant", "Raw significant","Not significant"))
+b_Lysophospholipid = b_Lysophospholipid[,c("CHEMICAL_NAME", "type","coef","std","sig")]
+names(b_Lysophospholipid)[1] = "name"
+names(b_Lysophospholipid)[4] = "se"
+p_Lysophospholipid= forestplot(
+  df =b_Lysophospholipid,
+  estimate = coef,
+  logodds = FALSE,
+  colour =sig,
+  title = "Lysophospholipid",
+  xlab = "coefficient"
+)  + facet_grid(. ~ type) + scale_color_manual("Legend", values = c("FDR significant" = "red", "Not significant" = "ivory4", "Raw significant" = "lightsalmon")) + theme(legend.position = "botton")
+p_Lysophospholipid  
+```
+
+```{r}
+ggarrange(p_Sphingomyelins,p_Lysophospholipid, ncol = 1, common.legend = TRUE, legend = "bottom") #20*12
+```
+

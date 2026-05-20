@@ -1,0 +1,1542 @@
+---
+title: "IMPACC_deep_dive_figure4"
+output: html_document
+date: "2023-12-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(data.table)
+library(DT)
+library(e1071)
+library(openxlsx)
+library(stringr)
+library(dplyr)
+library(plyr)
+source("~/Bitbucket/impacc-full-cohort/Analysis/IMPACC_data_analysis_codebase.R")
+load("/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/deep_dive_data.Rdata")
+```
+
+```{r}
+Metabolomics_counts_conv = Metabolomics_counts_conv[clinical_data$sample_id,]
+plasma_metabolomics_global_rowfeature = Metabolomics_rowfeature
+```
+
+```{ r}
+source("/scratch/metabolomics/plasma-metabolomics-global/scripts/conv/codebase.R")
+model_loop <- function(inputDF, modelType = "lme", age_sex =TRUE, knots = c(1, 4, 7, 14, 21),
+                       endpoint = "conv_cluster", old_p_corrections = FALSE){
+  inputDF$participant_id = as.factor(inputDF$participant_id )
+  if(modelType == "smoothSpline"){
+    inputDF$event_date_transformed = inputDF$event_date
+    lmDF <- mgcv_global(inputDF, endpoint, age_sex = age_sex)
+    lmDF$name <- rownames(lmDF)
+    ## Because of the pairwise function requires there to be a column for "name"
+    ## the rownames are copied to a new column here, ultimately this column is removed
+  } else {
+    lmDF <- inputDF %>%
+      group_by(name) %>% 
+      do(p.slope = {
+        if(modelType == "lme"){
+          if(age_sex){
+            fit <- try(lme(fixed = as.formula(paste0("value ~ event_date * ", endpoint,
+                            "+sex+discretized_admit_age_quantile+event_location+Type")), data = .,
+                           random =  ~1|enrollment_site/participant_id))
+          } else{
+            fit <- try(lme(fixed = as.formula(paste0("value ~ event_date * ", endpoint)), data = .,
+                           random =  ~1|enrollment_site/participant_id))
+          }
+        } else if (modelType == "fixedKnots"){
+          if(age_sex){
+            fit <- try(lme(fixed = as.formula(paste0("value ~ splines::bs(event_date, 
+                             knots =c(",paste(knots, collapse = ',') ,")) * ", endpoint,
+                             "+sex+discretized_admit_age_quantile+event_location+Type")), 
+                           data = .,random =  ~1|enrollment_site/participant_id))
+          } else{
+            fit <- try(lme(fixed = as.formula(paste0("value ~ splines::bs(event_date, 
+                             knots =c(",paste(knots, collapse = ',') ,")) * ", endpoint)), 
+                           data = .,random =  ~1|enrollment_site/participant_id))
+          }
+        }
+        if(class(fit)[1]!="try-error"){
+            idx <- nrow(anova(fit))
+            result = (anova(fit)$"p-value")[idx]
+        } else {
+          result = NA
+        }
+      }, 
+      p.intercept = {
+        if(modelType == "lme"){
+          if(age_sex){
+            fit <- try(lme(fixed = as.formula(paste0("value ~ event_date * ", endpoint,
+                                                     "+sex+discretized_admit_age_quantile+event_location+Type")), data = .,
+                           random =  ~1|enrollment_site/participant_id))
+          } else{
+            fit <- try(lme(fixed = as.formula(paste0("value ~ event_date * ", endpoint)), data = .,
+                           random =  ~1|enrollment_site/participant_id))
+          }
+        } else if (modelType == "fixedKnots"){
+          if(age_sex){
+            fit <- try(lme(fixed = as.formula(paste0("value ~ splines::bs(event_date, 
+                             knots =c(",paste(knots, collapse = ',') ,")) * ", endpoint,
+                                                     "+sex+discretized_admit_age_quantile+event_location+Type")), 
+                           data = .,random =  ~1|enrollment_site/participant_id))
+          } else{
+            fit <- try(lme(fixed = as.formula(paste0("value ~ splines::bs(event_date, 
+                             knots =c(",paste(knots, collapse = ',') ,")) * ", endpoint)), 
+                           data = .,random =  ~1|enrollment_site/participant_id))
+          }
+          
+        }
+        if(class(fit)[1]!="try-error"){
+          result = (anova(fit)$"p-value")[3] #conv_cluster is position 3
+        }else{
+          result = NA
+        }
+      },
+      p.intercept.sex = {
+        if(age_sex){
+          if(modelType == "lme"){
+              fit <- try(lme(fixed = as.formula(paste0("value ~ event_date * ", endpoint,
+                                                       "+sex+discretized_admit_age_quantile+event_location+Type")), data = .,
+                             random =  ~1|enrollment_site/participant_id))
+          } else if (modelType == "fixedKnots"){
+              fit <- try(lme(fixed = as.formula(paste0("value ~ splines::bs(event_date, 
+                             knots =c(",paste(knots, collapse = ',') ,")) * ", endpoint,
+                                                       "+sex+discretized_admit_age_quantile+event_location+Type")), 
+                             data = .,random =  ~1|enrollment_site/participant_id))
+          }
+          if(class(fit)[1]!="try-error"){
+            result = (anova(fit)$"p-value")[4] ## sex is position 4
+          } else {
+            result = NA
+          }
+        }
+      },
+      p.intercept.age.quantile = {
+        if(age_sex){
+          if(modelType == "lme"){
+            fit <- try(lme(fixed = as.formula(paste0("value ~ event_date * ", endpoint,
+                                                     "+sex+discretized_admit_age_quantile+event_location+Type")), data = .,
+                           random =  ~1|enrollment_site/participant_id))
+          } else if (modelType == "fixedKnots"){
+            fit <- try(lme(fixed = as.formula(paste0("value ~ splines::bs(event_date, 
+                             knots =c(",paste(knots, collapse = ',') ,")) * ", endpoint,
+                                                     "+sex+discretized_admit_age_quantile+event_location+Type")), 
+                           data = .,random =  ~1|enrollment_site/participant_id))
+          }
+          if(class(fit)[1]!="try-error"){
+            result = (anova(fit)$"p-value")[5] ## discretized_admit_age_quantile is position 4
+          } else {
+            result = NA
+          }
+        }
+      }
+      ) %>% ungroup() %>%
+      mutate(p.slope = unlist(p.slope),
+             p.intercept  = unlist(p.intercept),
+             p.intercept.sex  = unlist(p.intercept.sex),
+             p.intercept.age.quantile  = unlist(p.intercept.age.quantile),
+      ) %>% as.data.frame()
+    lmDF$adjp.intercept=qvalue::qvalue(lmDF$p.intercept, fdr.level = 0.05, pi0 = 1)$qvalues
+    lmDF$adjp.slope=qvalue::qvalue(lmDF$p.slope, fdr.level = 0.05, pi0 = 1)$qvalues
+    lmDF$adjp.intercept.sex=qvalue::qvalue(lmDF$p.intercept.sex, fdr.level = 0.05, pi0 = 1)$qvalues
+    lmDF$adjp.intercept.age.quantile=qvalue::qvalue(lmDF$p.intercept.age.quantile, fdr.level = 0.05, pi0 = 1)$qvalues
+  }
+  
+  message("\n Initial calculation of p.slope and p.intercept complete. Beginning pairwise comparisons.")
+  #### Pairwise comparisons #### 
+  ## Loop the pairwise comparisons ##
+  for(i in seq_along(rownames(lmDF))){ 
+    if(age_sex){
+      tmp.out = matrix(NA,ncol = ncol(combn(unique(inputDF[[endpoint]]), 2)), nrow =4)
+    }else{tmp.out = matrix(NA,ncol = ncol(combn(unique(inputDF[[endpoint]]), 2)), nrow =2)}
+    
+    try(
+      if(modelType == "lme"){
+        tmp.out <- pairwise_lme_modeling(inputDF[inputDF$name == lmDF$name[i],],
+                                         variable = endpoint, fixedKnots = F)
+      } else if(modelType == "fixedKnots"){
+        tmp.out <- pairwise_lme_modeling(inputDF[inputDF$name == lmDF$name[i],],
+                                         variable = endpoint, fixedKnots = T, knots = knots)
+      } else if (modelType == "smoothSpline"){
+        tmp.out <- pairwise_mgcv_modeling(inputDF[inputDF$name == lmDF$name[i],],
+                                          variable = endpoint)
+      })
+    if(age_sex){
+      if(i==1){
+        values.out <- c(tmp.out[1,], tmp.out[2,], tmp.out[3,], tmp.out[4,])
+        names(values.out) <- c(paste0(rownames(tmp.out)[1],"_", colnames(tmp.out[,1:ncol(tmp.out), drop=FALSE])),
+                               paste0(rownames(tmp.out)[2],"_", colnames(tmp.out[,1:ncol(tmp.out), drop=FALSE])),
+                               paste0(rownames(tmp.out)[3],"_", colnames(tmp.out[,1:ncol(tmp.out), drop=FALSE])),
+                               paste0(rownames(tmp.out)[4],"_", colnames(tmp.out[,1:ncol(tmp.out), drop=FALSE])))
+      } else {
+        values.out <- rbind(values.out, c(tmp.out[1,], tmp.out[2,], tmp.out[3,], tmp.out[4,]))
+      }
+    }else{
+      if(i==1){
+        values.out <- c(tmp.out[1,], tmp.out[2,])
+        names(values.out) <- c(paste0(rownames(tmp.out)[1],"_", colnames(tmp.out[,1:ncol(tmp.out), drop=FALSE])),
+                               paste0(rownames(tmp.out)[2],"_", colnames(tmp.out[,1:ncol(tmp.out), drop=FALSE])))
+      } else {
+        values.out <- rbind(values.out, c(tmp.out[1,], tmp.out[2,]))
+      }
+    }
+    
+  }
+  ## Change to use qvalue like in tidyr loop
+  if(old_p_corrections){
+    p.slope.adj <- apply(values.out[,grepl("p.slope", colnames(values.out)), drop=FALSE], 2, function(x){
+      qvalue::qvalue(x, fdr.level = 0.05, pi0 = 1)$qvalues
+    })
+    
+    p.intercept.adj <- apply(values.out[,grepl("p.intercept", colnames(values.out)), drop=FALSE], 2, function(x){
+      qvalue::qvalue(x, fdr.level = 0.05, pi0 = 1)$qvalues
+    })
+  } else {
+    p.slope.adj <- as.data.frame(values.out[,grepl("p.slope", colnames(values.out)), drop=FALSE])
+    p.slope.adj <- qvalue::qvalue(p.slope.adj, fdr.level = 0.05, pi0 = 1)$qvalues
+    p.intercept.adj <- as.data.frame(values.out[,grepl("p.intercept", colnames(values.out)), drop=FALSE])
+    p.intercept.adj <- qvalue::qvalue(p.intercept.adj, fdr.level = 0.05, pi0 = 1)$qvalues
+  }
+  colnames(p.slope.adj) <- gsub("_", ".adj_", colnames(p.slope.adj))
+  colnames(p.intercept.adj) <- gsub("_", ".adj_", colnames(p.intercept.adj))
+  
+  lmDF_pairwise <- as.data.frame(cbind(lmDF, values.out, p.slope.adj, p.intercept.adj))
+  rownames(lmDF_pairwise) <- lmDF_pairwise$name
+  lmDF_pairwise <- lmDF_pairwise[,colnames(lmDF_pairwise) != "name"]
+  return(lmDF_pairwise)
+}
+clinical_df = clinical_data
+meta_data_raw <- plasma_metabolomics_global_metadata
+met_data <- merge(meta_data_raw, clinical_df, by = c("sample_id"))#,"phase"
+met_data = subset(met_data, met_data$"trajectory_group" %in% c(1,2,3,4,5))
+met_data <-  met_data[order(met_data$participant_id),]
+met_data$OUTCOME <-met_data$conv_cluster4
+
+met_data <- met_data %>% drop_na(OUTCOME)
+OUTCOME = met_data$OUTCOME
+table(OUTCOME)
+  
+plasma_metabolomics_global_counts_tmp <- Metabolomics_counts_conv[met_data$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_tmp),]
+colnames(plasma_metabolomics_global_counts_tmp) = plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+data_use <- plasma_metabolomics_global_counts_tmp %>%
+  rownames_to_column(var = "sample_id") %>%
+  merge(y  = dplyr::select(clinical_data, 
+                    sample_id, 
+                    event_date,
+                    trajectory_group,
+                    enrollment_site,
+                    discretized_admit_age_quantile,
+                    sex,
+                    bmi,
+                    participant_id,event_location,conv_cluster4,event_type,Type),
+        by = "sample_id") %>%
+  filter(!is.na(trajectory_group)) %>%
+  filter(duplicated(participant_id) | duplicated(participant_id, fromLast = TRUE)) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(trajectory_group = factor(trajectory_group)) %>%
+  pivot_longer(cols = -c("sample_id", "event_date", "participant_id",
+                         "enrollment_site", "trajectory_group",
+                         "discretized_admit_age_quantile", "sex", "bmi", "event_location","conv_cluster4","event_type","Type")) %>%
+  mutate(discretized_admit_age_quantile= factor(discretized_admit_age_quantile)) %>%
+  filter(!is.na(value))
+data_use$conv_cluster4 = as.factor(data_use$conv_cluster4)
+data_use$OUTCOME = data_use$conv_cluster4
+data_use_conv = data_use 
+## smooth spline takes a long time, demonstrating by cutting down to just ten factors
+smooth_spline_model_loop_conv <- model_loop(data_use_conv, 
+                                       modelType = "smoothSpline", 
+                                       endpoint  = "OUTCOME")
+
+sum(smooth_spline_model_loop_conv$adjp.slope <= 0.05)
+sum(smooth_spline_model_loop_conv$adjp.intercept <= 0.05)
+sum(smooth_spline_model_loop_conv$adjp.slope <= 0.05 & smooth_spline_model_loop_conv$adjp.intercept <= 0.05)
+a = subset(smooth_spline_model_loop_conv, smooth_spline_model_loop_conv$adjp.slope <= 0.05 & smooth_spline_model_loop_conv$adjp.intercept <= 0.05)
+
+#save(smooth_spline_model_loop_conv, file = #"/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/smooth_spline_model_loop_conv.Rdata")
+```
+
+```{r}
+load("/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/smooth_spline_model_loop_conv.Rdata")
+cc1_2 = subset(smooth_spline_model_loop_conv, smooth_spline_model_loop_conv$p.slope.adj_1v2 <= 0.05 & smooth_spline_model_loop_conv$p.intercept.adj_1v2 <= 0.05)
+cc1_5 = subset(smooth_spline_model_loop_conv, smooth_spline_model_loop_conv$p.slope.adj_1v5 <= 0.05 & smooth_spline_model_loop_conv$p.intercept.adj_1v5 <= 0.05)
+cc1_6 = subset(smooth_spline_model_loop_conv, smooth_spline_model_loop_conv$p.slope.adj_1v6 <= 0.05 & smooth_spline_model_loop_conv$p.intercept.adj_1v6 <= 0.05)
+```
+```{r}
+sum(smooth_spline_model_loop_conv$p.slope.adj_1v2 <= 0.05)
+sum(smooth_spline_model_loop_conv$p.intercept.adj_1v2 <= 0.05)
+sum(smooth_spline_model_loop_conv$p.slope.adj_1v2 <= 0.05 & smooth_spline_model_loop_conv$p.intercept.adj_1v2 <= 0.05)
+sum(smooth_spline_model_loop_conv$p.slope.adj_1v2 <= 0.05 |smooth_spline_model_loop_conv$p.intercept.adj_1v2 <= 0.05 )
+```
+```{r}
+sum(smooth_spline_model_loop_conv$p.slope.adj_1v5 <= 0.05)
+sum(smooth_spline_model_loop_conv$p.intercept.adj_1v5 <= 0.05)
+sum(smooth_spline_model_loop_conv$p.slope.adj_1v5 <= 0.05 & smooth_spline_model_loop_conv$p.intercept.adj_1v5 <= 0.05)
+sum(smooth_spline_model_loop_conv$p.slope.adj_1v5<= 0.05 |smooth_spline_model_loop_conv$p.intercept.adj_1v5 <= 0.05 )
+```
+```{r}
+sum(smooth_spline_model_loop_conv$p.slope.adj_1v6 <= 0.05)
+sum(smooth_spline_model_loop_conv$p.intercept.adj_1v6 <= 0.05)
+sum(smooth_spline_model_loop_conv$p.slope.adj_1v6 <= 0.05 & smooth_spline_model_loop_conv$p.intercept.adj_1v6 <= 0.05)
+sum(smooth_spline_model_loop_conv$p.slope.adj_1v6 <= 0.05 |smooth_spline_model_loop_conv$p.intercept.adj_1v6 <= 0.05 )
+```
+
+```{r}
+cc1_2_or = subset(smooth_spline_model_loop_conv, smooth_spline_model_loop_conv$p.slope.adj_1v2 <= 0.05 | smooth_spline_model_loop_conv$p.intercept.adj_1v2 <= 0.05)
+cc1_5_or = subset(smooth_spline_model_loop_conv, smooth_spline_model_loop_conv$p.slope.adj_1v5 <= 0.05 | smooth_spline_model_loop_conv$p.intercept.adj_1v5 <= 0.05)
+cc1_6_or = subset(smooth_spline_model_loop_conv, smooth_spline_model_loop_conv$p.slope.adj_1v6 <= 0.05 | smooth_spline_model_loop_conv$p.intercept.adj_1v6 <= 0.05)
+```
+```{r}
+Metabolomics_rowfeature$Compound_ID = rownames(Metabolomics_rowfeature)
+Metabolomics_rowfeature_sort =  Metabolomics_rowfeature %>%
+  arrange(SUPER_PATHWAY, SUB_PATHWAY)
+
+smooth_spline_model_loop_conv_sort = smooth_spline_model_loop_conv
+smooth_spline_model_loop_conv_sort$Name = rownames(smooth_spline_model_loop_conv_sort)
+smooth_spline_model_loop_conv_sort = smooth_spline_model_loop_conv_sort[
+  match(Metabolomics_rowfeature_sort$CHEMICAL_NAME,
+        smooth_spline_model_loop_conv_sort$Name),
+]
+smooth_spline_model_loop_conv_sort = smooth_spline_model_loop_conv_sort[,c("Name", "p.intercept_1v2","p.intercept.adj_1v2", "p.slope_1v2","p.slope.adj_1v2","p.intercept_1v5","p.intercept.adj_1v5", "p.slope_1v5","p.slope.adj_1v5","p.intercept_1v6","p.intercept.adj_1v6", "p.slope_1v6","p.slope.adj_1v6")]
+names(smooth_spline_model_loop_conv_sort) = c("Name", "P.intercept_PHYvsMIN","FDR.intercept_PHYvsMIN", "P.slope_PHYvsMIN","FDR.slope.adj_PHYvsMIN","P.intercept_COGvsMIN","FDR.intercept_COGvsMIN", "P.slope_COGvsMIN","FDR.slope_COGvsMIN","P.intercept_MLTvsMIN","FDR.intercept_MLTvsMIN", "P.slope_MLTvsMIN","FDR.slope._MLTvsMIN")
+#write_csv(smooth_spline_model_loop_conv_sort, file = "~/deep_dive_rowfeature_SS.csv")
+
+```
+
+```{ r}
+cc1_2_int = subset(smooth_spline_model_loop_conv,  smooth_spline_model_loop_conv$p.intercept.adj_1v2 <= 0.05)
+cc1_5_int = subset(smooth_spline_model_loop_conv,  smooth_spline_model_loop_conv$p.intercept.adj_1v5 <= 0.05)
+cc1_6_int = subset(smooth_spline_model_loop_conv,  smooth_spline_model_loop_conv$p.intercept.adj_1v6 <= 0.05)
+```
+
+```{ r}
+cc1_2n = subset(smooth_spline_model_loop_conv, smooth_spline_model_loop_conv$p.slope_1v2 <= 0.05 & smooth_spline_model_loop_conv$p.intercept_1v2 <= 0.05)
+cc1_5n = subset(smooth_spline_model_loop_conv, smooth_spline_model_loop_conv$p.slope_1v5 <= 0.05 & smooth_spline_model_loop_conv$p.intercept_1v5 <= 0.05)
+cc1_6n = subset(smooth_spline_model_loop_conv, smooth_spline_model_loop_conv$p.slope_1v6 <= 0.05 & smooth_spline_model_loop_conv$p.intercept_1v6 <= 0.05)
+```
+
+```{r}
+cc1_2_or$met = rownames(cc1_2_or)
+cc1_5_or$met = rownames(cc1_5_or)
+cc1_6_or$met = rownames(cc1_6_or)
+
+cc1_2_or =cc1_2_or[,c("met","p.intercept.adj_1v2")]
+cc1_2_or$p.intercept.adj_1v2 = -log10(cc1_2_or$p.intercept.adj_1v2)
+cc1_5_or =cc1_5_or[,c("met","p.intercept.adj_1v5")]
+cc1_5_or$p.intercept.adj_1v5 = -log10(cc1_5_or$p.intercept.adj_1v5)
+cc1_6_or =cc1_6_or[,c("met","p.intercept.adj_1v6")]
+cc1_6_or$p.intercept.adj_1v6 = -log10(cc1_6_or$p.intercept.adj_1v6)
+
+pathway_info = plasma_metabolomics_global_rowfeature[,c("SUPER_PATHWAY","SUB_PATHWAY","CHEMICAL_NAME")]
+
+
+cc1_2_or_path = merge(cc1_2_or, pathway_info, by.x = "met", by.y = "CHEMICAL_NAME")
+names(cc1_2_or_path)[2] = "pval"
+cc1_5_or_path = merge(cc1_5_or, pathway_info,  by.x = "met", by.y = "CHEMICAL_NAME")
+names(cc1_5_or_path)[2] = "pval"
+cc1_6_or_path = merge(cc1_6_or, pathway_info,  by.x = "met", by.y = "CHEMICAL_NAME")
+names(cc1_6_or_path)[2] = "pval"
+convert_pathway = function(df){
+  Sub_pathway <- c()
+  mean_neglog10FDR <- c()
+  Super_pathway <- c()
+  pw_list = unique(df$SUB_PATHWAY)
+  for(i in pw_list){
+    sub_table <- df %>% filter(SUB_PATHWAY == i)
+    
+    supp <- unique(sub_table$SUPER_PATHWAY)
+    Super_pathway <- c(Super_pathway, supp)
+    
+    sub <- unique(sub_table$SUB_PATHWAY)
+    Sub_pathway <- c(Sub_pathway, sub)
+    
+    mean_qval <- mean(sub_table$pval)
+    mean_neglog10FDR <- c(mean_neglog10FDR, mean_qval)
+    
+  }
+  out = data.table(Super_pathway,Sub_pathway, mean_neglog10FDR)
+  return(out)
+}
+
+cc1_2_or_path_conv = convert_pathway(cc1_2_or_path)
+cc1_5_or_path_conv = convert_pathway(cc1_5_or_path)
+cc1_6_or_path_conv = convert_pathway(cc1_6_or_path)
+```
+
+```{r}
+all_sig_pw =  c(cc1_2_or_path_conv$Sub_pathway, cc1_5_or_path_conv$Sub_pathway,cc1_6_or_path_conv$Sub_pathway)
+all_sig_pw = as.data.frame(all_sig_pw)
+all_sig_pw = unique(all_sig_pw)
+names(all_sig_pw)[1] = "Sub_pathway"
+cc1_2_all  = merge(all_sig_pw, cc1_2_or_path_conv, by = "Sub_pathway", all.x = "TRUE")
+cc1_5_all  = merge(all_sig_pw, cc1_5_or_path_conv, by = "Sub_pathway",all.x = "TRUE")
+cc1_6_all  = merge(all_sig_pw, cc1_6_or_path_conv, by = "Sub_pathway",all.x = "TRUE")
+
+names(cc1_2_all)[3]= "PHY_MIN"
+names(cc1_5_all)[3]= "COG_MIN"
+names(cc1_6_all)[3]= "MLT_MIN"
+
+sig_all <- cbind(cc1_2_all, cc1_5_all, cc1_6_all)
+sig_all = sig_all[,c("Sub_pathway","PHY_MIN","COG_MIN","MLT_MIN")]
+
+
+
+rownames(sig_all) = sig_all$Sub_pathway
+super = subset(plasma_metabolomics_global_rowfeature, plasma_metabolomics_global_rowfeature$SUB_PATHWAY %in% sig_all$Sub_pathway)
+super = unique(super[,c("SUB_PATHWAY","SUPER_PATHWAY")])
+super = super[order(super$SUPER_PATHWAY),]
+super$name = paste(super$SUPER_PATHWAY, super$SUB_PATHWAY, sep = "|")
+
+sig_all = sig_all[super$SUB_PATHWAY,]
+rownames(sig_all) = super$name
+sig_all$Sub_pathway = NULL
+sig_all[is.na(sig_all)] <- 0
+sig_all <- t(sig_all)
+sig_all <- as.matrix(sig_all) 
+```
+
+
+```{ r}
+cc1_2n$met = rownames(cc1_2n)
+cc1_5n$met = rownames(cc1_5n)
+cc1_6n$met = rownames(cc1_6n)
+
+cc1_2n =cc1_2n[,c("met","p.slope_1v2")]
+cc1_2n$p.slope_1v2 = -log10(cc1_2n$p.slope_1v2)
+cc1_5n =cc1_5n[,c("met","p.slope_1v5")]
+cc1_5n$p.slope_1v5 = -log10(cc1_5n$p.slope_1v5)
+cc1_6n =cc1_6n[,c("met","p.slope_1v6")]
+cc1_6n$p.slope_1v6[cc1_6n$p.slope_1v6 == 0] <- 0.0000000001
+cc1_6n$p.slope_1v6 = -log10(cc1_6n$p.slope_1v6)
+
+all_sig_met =  c(cc1_2n$met, cc1_5n$met,cc1_6n$met)
+all_sig_met = as.data.frame(all_sig_met)
+all_sig_met = unique(all_sig_met)
+names(all_sig_met)[1] = "met"
+cc1_2n_all  = merge(all_sig_met, cc1_2n, by = "met", all.x = "TRUE")
+cc1_5n_all  = merge(all_sig_met, cc1_5n, by = "met",all.x = "TRUE")
+cc1_6n_all  = merge(all_sig_met, cc1_6n, by = "met",all.x = "TRUE")
+
+sig_all <- cbind(cc1_2n_all, cc1_5n_all, cc1_6n_all)
+sig_all = sig_all[,c("met","p.slope_1v2","p.slope_1v5","p.slope_1v6")]
+rownames(sig_all) = sig_all$met
+sig_all$met = NULL
+sig_all[is.na(sig_all)] <- 0
+sig_all <- t(sig_all)
+sig_all <- as.matrix(sig_all) 
+```
+
+```{r}
+df = data.frame(from = rep(rownames(sig_all), times = ncol(sig_all)),
+    to = rep(colnames(sig_all), each = nrow(sig_all)),
+    value = as.vector(sig_all),
+    stringsAsFactors = FALSE)
+df
+```
+```{r}
+library(circlize)
+col_mat = rand_color(length(df), transparency = 0.5)
+col_mat[df =0] = "#00000000"
+grid.col = c(PHY_MIN = "#58B5EA", COG_MIN = "#EAAE2A", MLT_MIN = "#FF1820")
+col_list = c("black","black","black","#FF689F","#FF689F","#FF689F","#FF689F","#FF689F","#FF689F","#E76BF3","#E76BF3","#00A5FF","#00A5FF","#00A5FF","#00A5FF","#00B81F","#00B81F","#00B81F","#00B81F","#00B81F","#00B81F","#00B81F","#00B81F","#00B81F","#00B81F","#00B81F","#00B81F","#00B81F","#00B81F","#00B81F","#00B81F","#00B81F","#00B81F","#00B81F","#BB9D00","#BB9D00","#BB9D00","#BB9D00","#E08B00","firebrick2","firebrick2","firebrick2","firebrick2")
+#chordDiagram(df, col = col_mat) 
+circos.par("canvas.xlim" = c(-2, 2), "canvas.ylim" = c(-2.5, 1.5))
+circos.par(start.degree = 15, clock.wise = FALSE)
+chordDiagram(df,transparency = 0.5,annotationTrack = c("grid"),annotationTrackHeight = c(0.01, 0.01),grid.col = grid.col) 
+circos.track(track.index = 1, panel.fun = function(x, y) {
+  print(CELL_META$sector.numeric.index)
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1]+uy(3,"mm"), CELL_META$sector.index, 
+        facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.3),cex=0.8,col = col_list[CELL_META$sector.numeric.index]) 
+  
+  #circos.text(CELL_META$xcenter, CELL_META$ylim[1]+uy(3,"mm"),"Xenobiotics|Bacterial/Fungal" ,facing ="clockwise",niceFacing = TRUE,adj = c(0, 0.3),cex=0.8, col = "red") 
+})
+
+#tiff("~/circos.tiff", width = 15, height = 12, units = 'in', res = 500)
+circos.par("canvas.xlim" = c(-2, 2), "canvas.ylim" = c(-2.5, 1.5))
+circos.par(start.degree = 15, clock.wise = FALSE)
+chordDiagram(df,transparency = 0.5,annotationTrack = c("grid"),annotationTrackHeight = c(0.01, 0.01),grid.col = grid.col) 
+circos.track(track.index = 1, panel.fun = function(x, y) {
+  print(CELL_META$sector.numeric.index)
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1]+uy(3,"mm"), CELL_META$sector.index, 
+        facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.3),cex=0.8,col = col_list[CELL_META$sector.numeric.index]) 
+  
+  #circos.text(CELL_META$xcenter, CELL_META$ylim[1]+uy(3,"mm"),"Xenobiotics|Bacterial/Fungal" ,facing ="clockwise",niceFacing = TRUE,adj = c(0, 0.3),cex=0.8, col = "red") 
+})
+#dev.off()
+```
+```{r}
+clinical_df_ind = clinical_data[,c("participant_id", "conv_cluster4", "trajectory_group")]
+clinical_df_ind = unique(clinical_df_ind)
+
+clinical_df_ind[clinical_df_ind$conv_cluster4==1,]$conv_cluster4 = "MIN"
+clinical_df_ind[clinical_df_ind$conv_cluster4==2,]$conv_cluster4 = "PHY"
+clinical_df_ind[clinical_df_ind$conv_cluster4==5,]$conv_cluster4 = "COG"
+clinical_df_ind[clinical_df_ind$conv_cluster4==6,]$conv_cluster4 = "MLT"
+clinical_df_ind$conv_cluster4 = factor(clinical_df_ind$conv_cluster4, levels = c("MIN","PHY","COG","MLT" ))
+names(clinical_df_ind) = c("participant_id","Long COVID","trajectory_group")
+library(ggalluvial)
+clinical_df_ind$`Long COVID` = as.factor(clinical_df_ind$`Long COVID`)
+alluvium = ggplot(data = clinical_df_ind,
+       aes(axis1 = trajectory_group, axis2 = `Long COVID`
+           )) +
+  scale_x_discrete(limits = c("trajectory_group", "Long COVID"), expand = c(.2, .05)) +
+  xlab("Cluster") +
+  geom_alluvium(aes(fill = `Long COVID`)) +
+  scale_fill_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820")) +
+  geom_stratum() +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+  theme_minimal() 
+alluvium
+```
+
+```{r}
+inter_CC_met = intersect(cc1_2_or_path$met,intersect(cc1_5_or_path$met,cc1_6_or_path$met))
+inter_CC1215_met = intersect(cc1_2_or_path$met,cc1_5_or_path$met)
+inter_CC1216_met = intersect(cc1_2_or_path$met,cc1_6_or_path$met)
+inter_CC1516_met = intersect(cc1_5_or_path$met,cc1_6_or_path$met)
+
+inter_CC_pw = intersect(cc1_2_or_path$SUB_PATHWAY,intersect(cc1_5_or_path$SUB_PATHWAY,cc1_6_or_path$SUB_PATHWAY))
+```
+```{r}
+library(tidyr)
+library(tidyverse)
+clinical_df = clinical_data
+meta_data_raw <- plasma_metabolomics_global_metadata
+met_data <- merge(meta_data_raw, clinical_df, by = c("sample_id"))#,"phase"
+met_data = subset(met_data, met_data$"trajectory_group" %in% c(1,2,3,4,5))
+met_data <-  met_data[order(met_data$participant_id),]
+met_data$OUTCOME <-met_data$conv_cluster4
+
+met_data <- met_data %>% drop_na(OUTCOME)
+OUTCOME = met_data$OUTCOME
+table(OUTCOME)
+  
+plasma_metabolomics_global_counts_tmp <- Metabolomics_counts_conv[met_data$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_tmp),]
+colnames(plasma_metabolomics_global_counts_tmp) = plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+data_use <- plasma_metabolomics_global_counts_tmp %>%
+  rownames_to_column(var = "sample_id") %>%
+  merge(y  = dplyr::select(clinical_data, 
+                    sample_id, 
+                    event_date,
+                    trajectory_group,
+                    enrollment_site,
+                    discretized_admit_age_quantile,
+                    sex,
+                    bmi,
+                    participant_id,event_location,conv_cluster4,event_type,Type),
+        by = "sample_id") %>%
+  filter(!is.na(trajectory_group)) %>%
+  filter(duplicated(participant_id) | duplicated(participant_id, fromLast = TRUE)) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(trajectory_group = factor(trajectory_group)) %>%
+  pivot_longer(cols = -c("sample_id", "event_date", "participant_id",
+                         "enrollment_site", "trajectory_group",
+                         "discretized_admit_age_quantile", "sex", "bmi", "event_location","conv_cluster4","event_type","Type")) %>%
+  mutate(discretized_admit_age_quantile= factor(discretized_admit_age_quantile)) %>%
+  filter(!is.na(value))
+data_use$conv_cluster4 = as.factor(data_use$conv_cluster4)
+data_use$OUTCOME = data_use$conv_cluster4
+data_use_conv = data_use 
+```
+```{r}
+inter_CC_met_all = c(inter_CC1215_met, inter_CC1216_met, inter_CC1516_met)
+```
+
+```{r}
+source("/scratch/metabolomics/plasma-metabolomics-global/scripts/conv/codebase.R")
+library(ggeffects)
+plot_func = function(met_name,data_use_conv,smooth_spline_model_loop_conv){
+  exampleDF <- data_use_conv %>%
+  filter(name %in% c(met_name)) %>%
+  mutate(conv_cluster4 = ordered(as.factor(as.character(conv_cluster4)), 
+                                    levels = c("1", "2", "5", "6")))
+
+plotExample <- plot_model(exampleDF, 
+                          model_loop     = smooth_spline_model_loop_conv, 
+                          modelType      = "smoothSpline", 
+                          p_adjust       = NA, 
+                          endpoint       = "conv_cluster4", 
+                          signif_markers = FALSE,
+                          remove_NS      = TRUE, 
+                          bar_height     = 6.5)
+
+caproate <- plotExample$data %>%
+  mutate(conv_cluster4 = paste0(conv_cluster4)) %>%
+  ggplot(mapping = aes(x = event_date, y = value)) +
+  ggtitle(met_name) +
+    #geom_line(mapping = aes(group = participant_id, y = value), 
+    #          color   = 'gray',
+    #          alpha   = 0.4) +
+    #geom_line(mapping = aes(group = participant_id, y = yhat), 
+    #          size    = 0.6, 
+    #          alpha   = 0.5,
+    #          color   = "black") +
+    #geom_point(mapping = aes(color = conv_cluster4)) +
+    geom_line(data    = mutate(get("pred", plotExample$plot_env),
+                               conv_cluster4 = paste0(conv_cluster4)),
+              mapping = aes(colour = conv_cluster4, y = predicted),
+                           size = 1.5) +
+    #facet_wrap(facets = ~conv_cluster4, nrow = 1) +
+    labs(y = "Predicted",  x = "Days from admission") + #,  tag = "C"
+    scale_color_manual(values= c("1"  = "#639A21",
+                                 "2"  = "#39828C",
+                                 "5"  = "#9C3418",
+                                 "6"  = "#0072B2")) +
+  coord_cartesian(xlim = c(0, max(data_use_conv$event_date))) +
+  theme_bw() +
+  theme(legend.pos = "right",
+        panel.grid.minor = element_blank()) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 13)) + theme(axis.text = element_text(size = 15))
+
+
+print(caproate) #5.46 * 15.28
+return(caproate)
+}
+
+
+
+```
+```{r}
+unique(inter_CC_met_all)
+```
+```{r}
+p1 = plot_func("1H-indole-7-acetic acid",data_use_conv,smooth_spline_model_loop_conv)
+p2 = plot_func("caproate (6:0)" ,data_use_conv,smooth_spline_model_loop_conv)
+p3 = plot_func("ergothioneine",data_use_conv,smooth_spline_model_loop_conv)
+p4 = plot_func("1-(1-enyl-palmitoyl)-2-linoleoyl-GPC (P-16:0/18:2)*" ,data_use_conv,smooth_spline_model_loop_conv)
+p5 = plot_func("5alpha-androstan-3alpha,17beta-diol disulfate" ,data_use_conv,smooth_spline_model_loop_conv)
+p6 = plot_func("argininate*",data_use_conv,smooth_spline_model_loop_conv)
+p7 = plot_func("carotene diol (1)",data_use_conv,smooth_spline_model_loop_conv)
+p8 = plot_func("carotene diol (2)",data_use_conv,smooth_spline_model_loop_conv)
+p9 = plot_func("perfluorohexanesulfonate (PFHxS)",data_use_conv,smooth_spline_model_loop_conv)
+p10 = plot_func("3,5-dichloro-2,6-dihydroxybenzoic acid",data_use_conv,smooth_spline_model_loop_conv)
+library(ggpubr)
+long = ggarrange(p1,p5,p9,p10, ncol = 4, nrow = 1, common.legend = T)
+long
+```
+
+```{r}
+x <- list(
+  `MLT_MIN` =cc1_6_or$met,
+  `PHY_MIN` = cc1_2_or$met, 
+  `COG_MIN` =cc1_5_or$met
+  
+  )
+library(ggvenn)
+venn = ggvenn(
+  x, 
+  fill_color = c("#0000FF","#FF0000", "#a45ee9"),
+  stroke_size = 0.5, set_name_size = 4
+  )
+venn
+```
+```{ r}
+library(ggplotify)
+library(png)
+library(tiff)
+#img1 <- readPNG("Upset.png")
+img1<- readTIFF("~/circos.tiff")
+
+im_A <- ggplot() + 
+    background_image(img1)
+Figuret = ggarrange(alluvium,  im_A, nrow = 1, labels = c("A","B"), widths = c(0.8,1))
+Figuret
+```
+```{ r}
+Figurel = ggarrange(Figuret, long, nrow = 2, labels = c("","D"))
+Figurel 
+```
+```{ r}
+library(ggplotify)
+library(png)
+library(tiff)
+#img1 <- readPNG("Upset.png")
+img1<- readTIFF("~/circos.tiff")
+
+im_A <- ggplot() + 
+    background_image(img1)
+Figureall = ggarrange(Figurel, im_A, nrow = 1, labels = c("","D"))
+Figureall 
+```
+
+```{r}
+  clinical_data = clinical_data
+  Metabolomics_counts_conv = Metabolomics_counts_conv
+  plasma_metabolomics_global_rowfeature = plasma_metabolomics_global_rowfeature
+clinical_temp = subset(clinical_data, clinical_data$sample_id %in% rownames(Metabolomics_counts_conv))
+clinical_temp = subset(clinical_data, clinical_data$conv_cluster4 %in% c(1,2,5,6))
+clinical_temp_16_V = subset(clinical_temp, clinical_temp$event_type == "Visit 1")
+plasma_metabolomics_global_counts_temp = Metabolomics_counts_conv[clinical_temp_16_V$sample_id,]
+
+
+
+#X <- srbct$gene # use the gene expression data as the X matrix
+X = plasma_metabolomics_global_counts_temp
+plasma_metabolomics_global_rowfeature = plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_temp),]
+colnames(X) = plasma_metabolomics_global_rowfeature$CHEMICAL_NAME
+#Y <- srbct$class # use the class data as the Y matrix
+rownames(clinical_temp) = clinical_temp$sample_id
+
+clinical_temp_16_V =clinical_temp_16_V %>% mutate( `Long COVID` = 
+  case_when(
+    conv_cluster4 == 1 ~ "MIN",
+    conv_cluster4 == 2 ~ "PHY",
+    conv_cluster4 == 5 ~ "COG",
+    conv_cluster4 == 6 ~ "MLT"
+  )
+)
+clinical_temp_16_V$`Long COVID` = factor(clinical_temp_16_V$`Long COVID`, levels = c("MIN","PHY" ,"COG","MLT"))
+Y = clinical_temp_16_V$`Long COVID`
+
+splsda.result <- mixOmics::splsda(X, Y) # run the method #, keepX = c(50,30)
+
+library(mixOmics)
+background.mahal <-  background.predict(splsda.result,
+                                        comp.predicted = 2,
+                                        dist = 'mahalanobis.dist')
+
+# plot the sample plot
+figure = plotIndiv(splsda.result, group = Y,ellipse=TRUE, ind.names = FALSE,
+          legend = TRUE, legend.title = 'Long COVID',
+         
+          background = background.mahal,title = "Visit 1")
+tiff("~/loadings.tiff", width = 10, height = 5, units = 'in', res = 500)
+plotLoadings(splsda.result,
+       comp = 1,
+       ndisplay=20,
+       contrib = "max",
+       #legend.color = cols,
+       legend.title = "Long COVID",
+       legend = TRUE,
+       size.title = rel(1),
+       size.name = 0.8, title="Top 20 Metabolite Loadings", legend.color = c("#999999", "#58B5EA", "#EAAE2A", "#FF1820")
+       )
+mixomics_plot <- recordPlot()
+
+dev.off()
+```
+```{r}
+plotLoadings(splsda.result,
+       comp = 1,
+       ndisplay=12,
+       contrib = "max",
+       #legend.color = cols,
+       legend.title = "Long COVID",
+       legend = TRUE,
+       size.title = rel(1),
+       size.name = 0.8, title="Top 12 Metabolite Loadings", legend.color = c("#999999", "#58B5EA", "#EAAE2A", "#FF1820")
+       )
+```
+
+#box plot
+```{r}
+box_1_data = as.data.frame(cbind(X$`beta-hydroxyisovalerate`,clinical_temp_16_V$conv_cluster4))
+box_1_data = box_1_data %>% mutate(
+  Y = case_when(
+    V2 == 1 ~ "MIN",
+   V2 ==  2 ~ "PHY",
+   V2 ==  5 ~ "COG",
+    V2 == 6 ~ "MLT"
+  )
+)
+subtitle = subset(plasma_metabolomics_global_rowfeature,plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "beta-hydroxyisovalerate")$SUB_PATHWAY
+box_1_data$Y = factor(box_1_data$Y, levels = c("MIN","PHY","COG","MLT"))
+my_comparisons = list(c("MIN","PHY"), c("MIN","COG"), c("MIN","MLT"))
+box_1_figure = ggplot(box_1_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, color = Y)) + #
+        #geom_jitter(alpha = alpha, width = 0.3) +
+        labs(title = "beta-hydroxyisovalerate", x = "Long COVID", y = "Concentration", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_bw() +  theme(legend.position = "none") +theme(plot.title = element_text(size=7),plot.subtitle =  element_text(size=7)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820"))
+print(box_1_figure)
+
+box_1_figure = ggplot(box_1_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, fill = Y, color = Y),  alpha=0.2,outlier.shape = NA ) + #
+       geom_point(position = position_jitter(width = 0.2), size = 1, alpha = 0.5,aes(colour = Y)) +
+        labs(title = "beta-hydroxyisovalerate", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_classic() +  theme(legend.position = "none") +theme(plot.title = element_text(size=5),plot.subtitle =  element_text(size=5)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_fill_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))+ scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))
+print(box_1_figure)
+
+#myColors <- ifelse(levels(box_1_data$Y)=="MIN" , "#999999" , 
+#              ifelse(levels(box_1_data$Y)=="PHY", "#58B5EA",
+#                     ifelse(levels(box_1_data$Y)=="COG", "#EAAE2A",
+#              "#FF1820" ) ))
+#boxplot(box_1_data$V1 ~ box_1_data$Y , 
+ #   col=myColors , 
+#    ylab="disease" , xlab="- variety -")
+ 
+```
+
+
+```{r}
+box_2_data = as.data.frame(cbind(X$`5alpha-androstan-3alpha,17beta-diol disulfate`,clinical_temp_16_V$conv_cluster4))
+box_2_data = box_2_data %>% mutate(
+  Y = case_when(
+    V2 == 1 ~ "MIN",
+   V2 ==  2 ~ "PHY",
+   V2 ==  5 ~ "COG",
+    V2 == 6 ~ "MLT"
+  )
+)
+subtitle = subset(plasma_metabolomics_global_rowfeature,plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "5alpha-androstan-3alpha,17beta-diol disulfate")$SUB_PATHWAY
+
+box_2_data$Y = factor(box_2_data$Y, levels = c("MIN","PHY","COG","MLT"))
+my_comparisons = list(c("MIN","PHY"), c("MIN","COG"), c("MIN","MLT"))
+box_2_figure = ggplot(box_2_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, color = Y)) + #
+        #geom_jitter(alpha = alpha, width = 0.3) +
+        labs(title = "5alpha-androstan-3alpha,17beta-diol disulfate", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_bw() +  theme(legend.position = "none") +theme(plot.title = element_text(size=7),plot.subtitle =  element_text(size=7)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820"))
+print(box_2_figure)
+
+box_2_figure = ggplot(box_2_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, fill = Y, color = Y),  alpha=0.2,outlier.shape = NA ) + #
+       geom_point(position = position_jitter(width = 0.2), size = 1, alpha = 0.5,aes(colour = Y)) +
+        labs(title = "5alpha-androstan-3alpha,17beta-diol disulfate", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_classic() +  theme(legend.position = "none") +theme(plot.title = element_text(size=5),plot.subtitle =  element_text(size=5)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_fill_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))+ scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))
+print(box_2_figure)
+```
+
+```{r}
+box_3_data = as.data.frame(cbind(X$`cis-3,4-methyleneheptanoylglycine`,clinical_temp_16_V$conv_cluster4))
+box_3_data = box_3_data %>% mutate(
+  Y = case_when(
+    V2 == 1 ~ "MIN",
+   V2 ==  2 ~ "PHY",
+   V2 ==  5 ~ "COG",
+    V2 == 6 ~ "MLT"
+  )
+)
+subtitle = subset(plasma_metabolomics_global_rowfeature,plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "cis-3,4-methyleneheptanoylglycine")$SUB_PATHWAY
+
+box_3_data$Y = factor(box_3_data$Y, levels = c("MIN","PHY","COG","MLT"))
+my_comparisons = list(c("MIN","PHY"), c("PHY","COG"), c("PHY","MLT"))
+box_3_figure = ggplot(box_3_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, color = Y)) + #
+        #geom_jitter(alpha = alpha, width = 0.3) +
+        labs(title = "cis-3,4-methyleneheptanoylglycine", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_bw() +  theme(legend.position = "none") +theme(plot.title = element_text(size=7),plot.subtitle =  element_text(size=7)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820"))
+print(box_3_figure)
+
+box_3_figure = ggplot(box_3_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, fill = Y, color = Y),  alpha=0.2,outlier.shape = NA ) + #
+       geom_point(position = position_jitter(width = 0.2), size = 1, alpha = 0.5,aes(colour = Y)) +
+        labs(title = "cis-3,4-methyleneheptanoylglycine", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_classic() +  theme(legend.position = "none") +theme(plot.title = element_text(size=5),plot.subtitle =  element_text(size=5)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_fill_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))+ scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))
+print(box_3_figure)
+```
+
+
+```{r}
+box_4_data = as.data.frame(cbind(X$`2-hydroxy-3-methylvalerate`,clinical_temp_16_V$conv_cluster4))
+box_4_data = box_4_data %>% mutate(
+  Y = case_when(
+    V2 == 1 ~ "MIN",
+   V2 ==  2 ~ "PHY",
+   V2 ==  5 ~ "COG",
+    V2 == 6 ~ "MLT"
+  )
+)
+subtitle = subset(plasma_metabolomics_global_rowfeature,plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "2-hydroxy-3-methylvalerate")$SUB_PATHWAY
+
+box_4_data$Y = factor(box_4_data$Y, levels = c("MIN","PHY","COG","MLT"))
+my_comparisons = list(c("MIN","PHY"), c("MIN","COG"), c("MIN","MLT"))
+box_4_figure =ggplot(box_4_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, color = Y)) + #
+        #geom_jitter(alpha = alpha, width = 0.3) +
+        labs(title = "2-hydroxy-3-methylvalerate", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_bw() +  theme(legend.position = "none") +theme(plot.title = element_text(size=7),plot.subtitle =  element_text(size=7)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820"))
+print(box_4_figure)
+
+box_4_figure = ggplot(box_4_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, fill = Y, color = Y),  alpha=0.2,outlier.shape = NA ) + #
+       geom_point(position = position_jitter(width = 0.2), size = 1, alpha = 0.5,aes(colour = Y)) +
+        labs(title = "2-hydroxy-3-methylvalerate", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_classic() +  theme(legend.position = "none") +theme(plot.title = element_text(size=5),plot.subtitle =  element_text(size=5)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_fill_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))+ scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))
+print(box_4_figure)
+```
+
+```{r}
+box_5_data = as.data.frame(cbind(X$ergothioneine,clinical_temp_16_V$conv_cluster4))
+box_5_data = box_5_data %>% mutate(
+  Y = case_when(
+    V2 == 1 ~ "MIN",
+   V2 ==  2 ~ "PHY",
+   V2 ==  5 ~ "COG",
+    V2 == 6 ~ "MLT"
+  )
+)
+subtitle = subset(plasma_metabolomics_global_rowfeature,plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "ergothioneine")$SUB_PATHWAY
+
+box_5_data$Y = factor(box_5_data$Y, levels = c("MIN","PHY","COG","MLT"))
+my_comparisons = list(c("MIN","PHY"), c("MIN","COG"), c("MIN","MLT"))
+box_5_figure = ggplot(box_5_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, color = Y)) + #
+        #geom_jitter(alpha = alpha, width = 0.3) +
+        labs(title = "ergothioneine", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_bw() +  theme(legend.position = "none") +theme(plot.title = element_text(size=7),plot.subtitle =  element_text(size=7)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820"))
+print(box_5_figure)
+
+box_5_figure = ggplot(box_5_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, fill = Y, color = Y),  alpha=0.2,outlier.shape = NA ) + #
+       geom_point(position = position_jitter(width = 0.2), size = 1, alpha = 0.5,aes(colour = Y)) +
+        labs(title = "ergothioneine", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_classic() +  theme(legend.position = "none") +theme(plot.title = element_text(size=5),plot.subtitle =  element_text(size=5)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_fill_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))+ scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))
+print(box_5_figure)
+```
+
+```{r}
+box_6_data = as.data.frame(cbind(X$`5alpha-androstan-3beta,17alpha-diol disulfate`,clinical_temp_16_V$conv_cluster4))
+box_6_data = box_6_data %>% mutate(
+  Y = case_when(
+    V2 == 1 ~ "MIN",
+   V2 ==  2 ~ "PHY",
+   V2 ==  5 ~ "COG",
+    V2 == 6 ~ "MLT"
+  )
+)
+subtitle = subset(plasma_metabolomics_global_rowfeature,plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "5alpha-androstan-3beta,17alpha-diol disulfate")$SUB_PATHWAY
+
+box_6_data$Y = factor(box_6_data$Y, levels = c("MIN","PHY","COG","MLT"))
+my_comparisons = list(c("MIN","PHY"), c("MIN","COG"), c("MIN","MLT"))
+box_6_figure = ggplot(box_6_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, color = Y)) + #
+        #geom_jitter(alpha = alpha, width = 0.3) +
+        labs(title = "5alpha-androstan-3beta,17alpha-diol disulfat", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_bw() +  theme(legend.position = "none") +theme(plot.title = element_text(size=7),plot.subtitle =  element_text(size=7)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820"))
+print(box_6_figure)
+
+box_6_figure = ggplot(box_6_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, fill = Y, color = Y),  alpha=0.2,outlier.shape = NA ) + #
+       geom_point(position = position_jitter(width = 0.2), size = 1, alpha = 0.5,aes(colour = Y)) +
+        labs(title = "5alpha-androstan-3beta,17alpha-diol disulfate", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_classic() +  theme(legend.position = "none") +theme(plot.title = element_text(size=5),plot.subtitle =  element_text(size=5)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_fill_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))+ scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))
+print(box_6_figure)
+```
+```{r}
+box_7_data = as.data.frame(cbind(X$`lactosyl-N-palmitoyl-sphingosine (d18:1/16:0)`,clinical_temp_16_V$conv_cluster4))
+box_7_data = box_7_data %>% mutate(
+  Y = case_when(
+    V2 == 1 ~ "MIN",
+   V2 ==  2 ~ "PHY",
+   V2 ==  5 ~ "COG",
+    V2 == 6 ~ "MLT"
+  )
+)
+subtitle = subset(plasma_metabolomics_global_rowfeature,plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "lactosyl-N-palmitoyl-sphingosine (d18:1/16:0)")$SUB_PATHWAY
+
+box_7_data$Y = factor(box_7_data$Y, levels = c("MIN","PHY","COG","MLT"))
+my_comparisons = list(c("MIN","PHY"), c("MIN","COG"), c("MIN","MLT"))
+box_7_figure = ggplot(box_7_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, color = Y)) + #
+        #geom_jitter(alpha = alpha, width = 0.3) +
+        labs(title = "lactosyl-N-palmitoyl-sphingosine (d18:1/16:0)", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_bw() +  theme(legend.position = "none") +theme(plot.title = element_text(size=7),plot.subtitle =  element_text(size=7)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820"))
+print(box_7_figure)
+
+box_7_figure = ggplot(box_7_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, fill = Y, color = Y),  alpha=0.2,outlier.shape = NA ) + #
+       geom_point(position = position_jitter(width = 0.2), size = 1, alpha = 0.5,aes(colour = Y)) +
+        labs(title = "lactosyl-N-palmitoyl-sphingosine (d18:1/16:0)", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_classic() +  theme(legend.position = "none") +theme(plot.title = element_text(size=5),plot.subtitle =  element_text(size=5)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_fill_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))+ scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))
+print(box_7_figure)
+```
+```{r}
+box_8_data = as.data.frame(cbind(X$pyruvate,clinical_temp_16_V$conv_cluster4))
+box_8_data = box_8_data %>% mutate(
+  Y = case_when(
+    V2 == 1 ~ "MIN",
+   V2 ==  2 ~ "PHY",
+   V2 ==  5 ~ "COG",
+    V2 == 6 ~ "MLT"
+  )
+)
+subtitle = subset(plasma_metabolomics_global_rowfeature,plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "pyruvate")$SUB_PATHWAY
+
+box_8_data$Y = factor(box_8_data$Y, levels = c("MIN","PHY","COG","MLT"))
+my_comparisons = list(c("MIN","PHY"), c("MIN","COG"), c("MIN","MLT"))
+box_8_figure = ggplot(box_8_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, color = Y)) + #
+        #geom_jitter(alpha = alpha, width = 0.3) +
+        labs(title = "pyruvate", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_bw() +  theme(legend.position = "none") +theme(plot.title = element_text(size=7),plot.subtitle =  element_text(size=7)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820"))
+print(box_8_figure)
+
+box_8_figure = ggplot(box_8_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, fill = Y, color = Y),  alpha=0.2,outlier.shape = NA ) + #
+       geom_point(position = position_jitter(width = 0.2), size = 1, alpha = 0.5,aes(colour = Y)) +
+        labs(title = "pyruvate", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_classic() +  theme(legend.position = "none") +theme(plot.title = element_text(size=5),plot.subtitle =  element_text(size=5)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_fill_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))+ scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))
+print(box_8_figure)
+```
+
+```{r}
+box_9_data = as.data.frame(cbind(X$ursodeoxycholate,clinical_temp_16_V$conv_cluster4))
+box_9_data = box_9_data %>% mutate(
+  Y = case_when(
+    V2 == 1 ~ "MIN",
+   V2 ==  2 ~ "PHY",
+   V2 ==  5 ~ "COG",
+    V2 == 6 ~ "MLT"
+  )
+)
+subtitle = subset(plasma_metabolomics_global_rowfeature,plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "ursodeoxycholate")$SUB_PATHWAY
+
+box_9_data$Y = factor(box_9_data$Y, levels = c("MIN","PHY","COG","MLT"))
+my_comparisons = list(c("MIN","PHY"), c("PHY","COG"), c("PHY","MLT"))
+box_9_figure = ggplot(box_9_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, color = Y)) + #
+        #geom_jitter(alpha = alpha, width = 0.3) +
+        labs(title = "ursodeoxycholate", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_bw() +  theme(legend.position = "none") +theme(plot.title = element_text(size=7),plot.subtitle =  element_text(size=7)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820"))
+print(box_9_figure)
+
+box_9_figure = ggplot(box_9_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, fill = Y, color = Y),  alpha=0.2,outlier.shape = NA ) + #
+       geom_point(position = position_jitter(width = 0.2), size = 1, alpha = 0.5,aes(colour = Y)) +
+        labs(title = "ursodeoxycholate", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_classic() +  theme(legend.position = "none") +theme(plot.title = element_text(size=5),plot.subtitle =  element_text(size=5)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_fill_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))+ scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))
+print(box_9_figure)
+```
+
+```{r}
+box_10_data = as.data.frame(cbind(X$`androstenediol (3beta,17beta) disulfate (1)`,clinical_temp_16_V$conv_cluster4))
+box_10_data = box_10_data %>% mutate(
+  Y = case_when(
+    V2 == 1 ~ "MIN",
+   V2 ==  2 ~ "PHY",
+   V2 ==  5 ~ "COG",
+    V2 == 6 ~ "MLT"
+  )
+)
+subtitle = subset(plasma_metabolomics_global_rowfeature,plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "androstenediol (3beta,17beta) disulfate (1)")$SUB_PATHWAY
+
+box_10_data$Y = factor(box_10_data$Y, levels = c("MIN","PHY","COG","MLT"))
+my_comparisons = list(c("MIN","PHY"), c("MIN","COG"), c("MIN","MLT"))
+box_10_figure = ggplot(box_10_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, color = Y)) + #
+        #geom_jitter(alpha = alpha, width = 0.3) +
+        labs(title = "androstenediol (3beta,17beta) disulfate (1)", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_bw() +  theme(legend.position = "none") +theme(plot.title = element_text(size=7),plot.subtitle =  element_text(size=7)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820"))
+print(box_10_figure)
+
+box_10_figure = ggplot(box_10_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, fill = Y, color = Y),  alpha=0.2,outlier.shape = NA ) + #
+       geom_point(position = position_jitter(width = 0.2), size = 1, alpha = 0.5,aes(colour = Y)) +
+        labs(title = "androstenediol (3beta,17beta) disulfate (1)", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_classic() +  theme(legend.position = "none") +theme(plot.title = element_text(size=5),plot.subtitle =  element_text(size=5)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_fill_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))+ scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))
+print(box_10_figure)
+```
+
+```{r}
+box_11_data = as.data.frame(cbind(X$`isobutyrylcarnitine (C4)`,clinical_temp_16_V$conv_cluster4))
+box_11_data = box_11_data %>% mutate(
+  Y = case_when(
+    V2 == 1 ~ "MIN",
+   V2 ==  2 ~ "PHY",
+   V2 ==  5 ~ "COG",
+    V2 == 6 ~ "MLT"
+  )
+)
+subtitle = subset(plasma_metabolomics_global_rowfeature,plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "isobutyrylcarnitine (C4)")$SUB_PATHWAY
+
+box_11_data$Y = factor(box_11_data$Y, levels = c("MIN","PHY","COG","MLT"))
+my_comparisons = list(c("MIN","PHY"), c("MIN","COG"), c("MIN","MLT"))
+box_11_figure = ggplot(box_11_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, color = Y)) + #
+        #geom_jitter(alpha = alpha, width = 0.3) +
+        labs(title = "isobutyrylcarnitine (C4)", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_bw() +  theme(legend.position = "none") +theme(plot.title = element_text(size=7),plot.subtitle =  element_text(size=7)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820"))
+print(box_11_figure)
+
+box_11_figure = ggplot(box_11_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, fill = Y, color = Y),  alpha=0.2,outlier.shape = NA ) + #
+       geom_point(position = position_jitter(width = 0.2), size = 1, alpha = 0.5,aes(colour = Y)) +
+        labs(title = "isobutyrylcarnitine (C4)", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_classic() +  theme(legend.position = "none") +theme(plot.title = element_text(size=5),plot.subtitle =  element_text(size=5)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_fill_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))+ scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))
+print(box_11_figure)
+```
+
+```{r}
+box_12_data = as.data.frame(cbind(X$`3-ureidopropionate`,clinical_temp_16_V$conv_cluster4))
+box_12_data = box_12_data %>% mutate(
+  Y = case_when(
+    V2 == 1 ~ "MIN",
+   V2 ==  2 ~ "PHY",
+   V2 ==  5 ~ "COG",
+    V2 == 6 ~ "MLT"
+  )
+)
+subtitle = subset(plasma_metabolomics_global_rowfeature,plasma_metabolomics_global_rowfeature$CHEMICAL_NAME == "3-ureidopropionate")$SUB_PATHWAY
+
+box_12_data$Y = factor(box_12_data$Y, levels = c("MIN","PHY","COG","MLT"))
+my_comparisons = list(c("MIN","PHY"), c("MIN","COG"), c("MIN","MLT"))
+box_12_figure = ggplot(box_12_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, color = Y)) + #
+        #geom_jitter(alpha = alpha, width = 0.3) +
+        labs(title = "3-ureidopropionate", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_bw() +  theme(legend.position = "none") +theme(plot.title = element_text(size=7),plot.subtitle =  element_text(size=7)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820"))
+print(box_12_figure)
+
+box_12_figure = ggplot(box_12_data, aes(x = Y, y = V1)) +
+        geom_boxplot(aes(group = Y, fill = Y, color = Y),  alpha=0.2,outlier.shape = NA ) + #
+       geom_point(position = position_jitter(width = 0.2), size = 1, alpha = 0.5,aes(colour = Y)) +
+        labs(title = "3-ureidopropionate", x = "Long COVID", y = "scaled and normalized peak intensity", subtitle = subtitle)  +
+        ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 3)  +
+        theme_classic() +  theme(legend.position = "none") +theme(plot.title = element_text(size=5),plot.subtitle =  element_text(size=5)) +theme(axis.text=element_text(size=7),
+        axis.title=element_text(size=7)) + scale_fill_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))+ scale_color_manual(values=c("#999999", "#58B5EA", "#EAAE2A", "#FF1820" ))
+print(box_12_figure)
+```
+
+
+```{r}
+box_all = ggarrange(box_1_figure,box_2_figure,box_3_figure,box_4_figure,box_5_figure,box_6_figure, box_7_figure,box_8_figure,box_9_figure,box_10_figure,box_11_figure,box_12_figure,ncol = 2, nrow = 6)
+box_all
+```
+```{r}
+box_all_type2 = ggarrange(box_1_figure+theme(plot.title = element_text(size=10),plot.subtitle =  element_text(size=10)) +theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10)),
+        box_2_figure+theme(plot.title = element_text(size=10),plot.subtitle =  element_text(size=10)) +theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10)),
+        box_3_figure+theme(plot.title = element_text(size=10),plot.subtitle =  element_text(size=10)) +theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10)),
+        box_4_figure+theme(plot.title = element_text(size=10),plot.subtitle =  element_text(size=10)) +theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10)),
+        box_5_figure+theme(plot.title = element_text(size=10),plot.subtitle =  element_text(size=10)) +theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10)),
+        box_6_figure+theme(plot.title = element_text(size=10),plot.subtitle =  element_text(size=10)) +theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10)), 
+        box_7_figure+theme(plot.title = element_text(size=10),plot.subtitle =  element_text(size=10)) +theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10)),
+        box_8_figure+theme(plot.title = element_text(size=10),plot.subtitle =  element_text(size=10)) +theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10)),
+        box_9_figure+theme(plot.title = element_text(size=10),plot.subtitle =  element_text(size=10)) +theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10)),
+        box_10_figure+theme(plot.title = element_text(size=10),plot.subtitle =  element_text(size=10)) +theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10)),
+        box_11_figure+theme(plot.title = element_text(size=10),plot.subtitle =  element_text(size=10)) +theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10)),
+        box_12_figure+theme(plot.title = element_text(size=10),plot.subtitle =  element_text(size=10)) +theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10)),ncol = 4, nrow = 3)
+box_all_type2
+```
+
+
+```{r}
+library(tiff)
+img1<- readTIFF("~/loadings.tiff")
+
+im_1 <- ggplot() + 
+    background_image(img1)
+Figuret = ggarrange(alluvium,  im_1, ggarrange(box_1_figure,box_2_figure,box_3_figure, ncol = 1), nrow = 1, labels = c("A","B","C"), widths = c(0.8,1,0.8))
+
+```
+
+```{ r}
+Figure_top  = ggarrange(alluvium,  im_1,labels = c("A","B"))
+
+```
+
+
+```{ r}
+img2<- readTIFF("~/circos.tiff")
+
+im_2 <- ggplot() + 
+    background_image(img2)
+Figureall = ggarrange(Figuret,  im_2+ theme(plot.margin = unit(c(1,6,1,6), "cm")), labels = c("","C"), ncol = 1)
+```
+```{r}
+Figure_left_top =  ggarrange(alluvium,  im_1, nrow = 1, labels = c("A","B"))
+#Figure_left_all =  ggarrange(Figure_left_top,  im_2, ncol = 1, labels = c("","D"))
+Figure_all = ggarrange(Figure_left_top,  box_all, ncol = 2, labels = c("","C"), widths = c(1,0.7))
+Figure_all
+
+```
+
+```{r}
+#Figure_left_top =  ggarrange(alluvium,  im_1, nrow = 1, labels = c("A","B"))mixomics_plot
+ alluvium = alluvium + 
+  theme(plot.margin = margin(t = 10, r = 20, b = 10, l = 20, unit = "pt"))
+Figure_left_top =  ggarrange(alluvium,  mixomics_plot, nrow = 1, labels = c("A","B"), widths = c(1.5,1))
+#Figure_left_all =  ggarrange(Figure_left_top,  im_2, ncol = 1, labels = c("","D"))
+Figure_all = ggarrange(Figure_left_top,  box_all_type2, nrow = 2, labels = c("","C"),heights = c(0.5,1))
+Figure_all
+```
+
+```{ r}
+DDA_Zscored_WithEventType %>% 
+  group_by(Protein, event_type, module, EndpointDay14) %>%
+  summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
+  filter(event_type %in% c("Visit 1", "Visit 2", "Visit 3")) %>%
+  ggplot(aes(x = event_type, y = Zscore, group = Protein)) + 
+  geom_line(alpha = 0.25) +
+  theme_light() +
+  facet_wrap(~module + EndpointDay14)
+```
+```{r}
+clinical_df = clinical_data
+selected_pathway = c("Tryptophan Metabolism","Medium Chain Fatty Acid","Urea cycle; Arginine and Proline Metabolism","Plasmalogen","Androgenic Steroids","Long Chain Polyunsaturated Fatty Acid (n3 and n6)","Long Chain Monounsaturated Fatty Acid","Long Chain Saturated Fatty Acid","Fatty Acid, Dicarboxylate","Tyrosine Metabolism","Phosphatidylcholine (PC)","Fatty Acid Metabolism (Acyl Carnitine, Hydroxy)","Fatty Acid Metabolism (Acyl Carnitine, Medium Chain)","Fatty Acid Metabolism (Acyl Carnitine, Long Chain Saturated)", "Fatty Acid Metabolism (Acyl Carnitine, Monounsaturated)")
+Met_WithEventType <- inner_join((clinical_df %>% dplyr::select(sample_id, event_date, conv_cluster4)), #clinical
+           (Metabolomics_counts_conv %>% rownames_to_column()),
+           by = c("sample_id" = "rowname")
+           )
+
+Met_WithEventType <- Met_WithEventType %>% gather(colnames(Metabolomics_counts_conv),
+                                                                  key = "Metabolomics",
+                                                                  value = "values")
+Met_WithEventType$conv_cluster4 = as.factor(Met_WithEventType$conv_cluster4)
+
+plasma_metabolomics_global_rowfeature_tmp = subset(plasma_metabolomics_global_rowfeature, plasma_metabolomics_global_rowfeature$SUB_PATHWAY %in% selected_pathway)
+plasma_metabolomics_global_rowfeature_tmp$id = paste("X",plasma_metabolomics_global_rowfeature_tmp$CHEM_ID, sep ="")
+
+Met_WithEventType = subset(Met_WithEventType, Met_WithEventType$Metabolomics %in% plasma_metabolomics_global_rowfeature_tmp$id)
+plasma_metabolomics_global_rowfeature_tmp_subset = plasma_metabolomics_global_rowfeature_tmp[,c("id","SUB_PATHWAY")]
+
+Met_WithEventType_subset = merge(Met_WithEventType, plasma_metabolomics_global_rowfeature_tmp_subset, by.x = "Metabolomics", by.y = "id")
+Met_WithEventType_subset %>% 
+  group_by(Metabolomics, event_date, SUB_PATHWAY) %>%
+  dplyr::summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
+  
+  #GGPLOT
+  ggplot(aes(x = event_date, y = values, group = Metabolomics)) + 
+  geom_line(alpha = 0.25) +
+  theme_light() +
+  facet_wrap(~SUB_PATHWAY)
+Met_WithEventType_subset = Met_WithEventType_subset %>% mutate(Conv = 
+  case_when(
+    conv_cluster4 == 1 ~ "MIN",
+   conv_cluster4 ==  2 ~ "PHY",
+   conv_cluster4 ==  5 ~ "COG",
+    conv_cluster4 == 6 ~ "MLT"
+  )
+  )
+Met_WithEventType_subset$conv_cluster4 = NULL
+Met_WithEventType_subset$Conv = factor(Met_WithEventType_subset$Conv, levels = c("MIN","PHY","COG","MLT"))
+Met_WithEventType_subset %>% 
+  group_by(Metabolomics, event_date, SUB_PATHWAY, Conv) %>%
+  dplyr::summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
+
+  ggplot(aes(x = event_date, y = values, group = Metabolomics)) + 
+  geom_point(alpha = 0.1, size = 0.1) +  geom_smooth (method="loess", se=TRUE, aes(group=Conv,color=Conv), show.legend  = TRUE)+
+  theme_light() +
+  facet_wrap(~SUB_PATHWAY)
+#Met_WithEventType_subset_no_food = subset(Met_WithEventType_subset, Met_WithEventType_subset$SUB_PATHWAY != "Food Component/Plant")
+Met_WithEventType_subset = subset(Met_WithEventType_subset, Met_WithEventType_subset$event_date <= 442)
+a = Met_WithEventType_subset %>% 
+  group_by(Metabolomics, event_date, SUB_PATHWAY, Conv) %>% dplyr::summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
+  ggplot(aes(x = event_date, y =values))  + 
+    geom_smooth (method="loess", aes(group=Conv,color=Conv), show.legend  = TRUE, se=TRUE,alpha = 0.2)+facet_wrap(~SUB_PATHWAY, scales = "free", ncol = 5,labeller = label_wrap_gen(width = 20))+ scale_color_manual(name = "Long COVID",values=c("MIN" = "#999999", "PHY" = "#58B5EA","COG" = "#EAAE2A","MLT"= "#FF1820"))+
+     labs(x = "Day of admissions", y = "Values") + theme_classic() 
+
+#Met_WithEventType_subset_food= subset(Met_WithEventType_subset, Met_WithEventType_subset$SUB_PATHWAY == "Food Component/Plant")
+#b = Met_WithEventType_subset_food %>% 
+#  group_by(Metabolomics, event_date, SUB_PATHWAY, Conv) %>% dplyr::summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
+#  ggplot(aes(x = event_date, y =values))  + 
+#    geom_smooth (method="loess", aes(group=Conv,color=Conv), show.legend  = TRUE)+facet_wrap(~SUB_PATHWAY, scales = "free", ncol = 3)+ scale_color_manual(values=c("MIN" = "#999999", "PHY" = "#58B5EA","COG" = "#EAAE2A","MLT"= "#FF1820"))+
+#     labs(x = "Day of admissions", y = "Values") + theme_classic() 
+a
+```
+
+Androgenic Steroids
+```{r}
+clinical_df = clinical_data
+selected_pathway = c("Androgenic Steroids","Long Chain Polyunsaturated Fatty Acid (n3 and n6)","Long Chain Monounsaturated Fatty Acid","Long Chain Saturated Fatty Acid","Fatty Acid, Dicarboxylate","Tyrosine Metabolism","Phosphatidylcholine (PC)")
+Met_WithEventType <- inner_join((clinical_df %>% dplyr::select(sample_id, event_date, conv_cluster4)), #clinical
+           (Metabolomics_counts_conv %>% rownames_to_column()),
+           by = c("sample_id" = "rowname")
+           )
+
+Met_WithEventType <- Met_WithEventType %>% gather(colnames(Metabolomics_counts_conv),
+                                                                  key = "Metabolomics",
+                                                                  value = "values")
+Met_WithEventType$conv_cluster4 = as.factor(Met_WithEventType$conv_cluster4)
+
+plasma_metabolomics_global_rowfeature_tmp = subset(plasma_metabolomics_global_rowfeature, plasma_metabolomics_global_rowfeature$SUB_PATHWAY %in% selected_pathway)
+plasma_metabolomics_global_rowfeature_tmp$id = paste("X",plasma_metabolomics_global_rowfeature_tmp$CHEM_ID, sep ="")
+
+Met_WithEventType = subset(Met_WithEventType, Met_WithEventType$Metabolomics %in% plasma_metabolomics_global_rowfeature_tmp$id)
+plasma_metabolomics_global_rowfeature_tmp_subset = plasma_metabolomics_global_rowfeature_tmp[,c("id","SUB_PATHWAY")]
+
+Met_WithEventType_subset = merge(Met_WithEventType, plasma_metabolomics_global_rowfeature_tmp_subset, by.x = "Metabolomics", by.y = "id")
+Met_WithEventType_subset %>% 
+  group_by(Metabolomics, event_date, SUB_PATHWAY) %>%
+  dplyr::summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
+  
+  #GGPLOT
+  ggplot(aes(x = event_date, y = values, group = Metabolomics)) + 
+  geom_line(alpha = 0.25) +
+  theme_light() +
+  facet_wrap(~SUB_PATHWAY)
+Met_WithEventType_subset = Met_WithEventType_subset %>% mutate(Conv = 
+  case_when(
+    conv_cluster4 == 1 ~ "MIN",
+   conv_cluster4 ==  2 ~ "PHY",
+   conv_cluster4 ==  5 ~ "COG",
+    conv_cluster4 == 6 ~ "MLT"
+  )
+  )
+Met_WithEventType_subset$conv_cluster4 = NULL
+Met_WithEventType_subset$Conv = factor(Met_WithEventType_subset$Conv, levels = c("MIN","PHY","COG","MLT"))
+Met_WithEventType_subset %>% 
+  group_by(Metabolomics, event_date, SUB_PATHWAY, Conv) %>%
+  dplyr::summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
+
+  ggplot(aes(x = event_date, y = values, group = Metabolomics)) + 
+  geom_point(alpha = 0.1, size = 0.1) +  geom_smooth (method="loess", se=TRUE, aes(group=Conv,color=Conv), show.legend  = TRUE)+
+  theme_light() +
+  facet_wrap(~SUB_PATHWAY)
+#Met_WithEventType_subset_no_food = subset(Met_WithEventType_subset, Met_WithEventType_subset$SUB_PATHWAY != "Food Component/Plant")
+Met_WithEventType_subset = subset(Met_WithEventType_subset, Met_WithEventType_subset$event_date <= 442)
+a = Met_WithEventType_subset %>% 
+  group_by(Metabolomics, event_date, SUB_PATHWAY, Conv) %>% dplyr::summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
+  ggplot(aes(x = event_date, y =values))  + 
+    geom_smooth (method="loess", aes(group=Conv,color=Conv), show.legend  = TRUE, se=TRUE,alpha = 0.2)+facet_wrap(~SUB_PATHWAY, scales = "free", ncol = 3)+ scale_color_manual(values=c("MIN" = "#999999", "PHY" = "#58B5EA","COG" = "#EAAE2A","MLT"= "#FF1820"))+
+     labs(x = "Day of admissions", y = "Values") + theme_classic() 
+
+#Met_WithEventType_subset_food= subset(Met_WithEventType_subset, Met_WithEventType_subset$SUB_PATHWAY == "Food Component/Plant")
+#b = Met_WithEventType_subset_food %>% 
+#  group_by(Metabolomics, event_date, SUB_PATHWAY, Conv) %>% dplyr::summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
+#  ggplot(aes(x = event_date, y =values))  + 
+#    geom_smooth (method="loess", aes(group=Conv,color=Conv), show.legend  = TRUE)+facet_wrap(~SUB_PATHWAY, scales = "free", ncol = 3)+ scale_color_manual(values=c("MIN" = "#999999", "PHY" = "#58B5EA","COG" = "#EAAE2A","MLT"= "#FF1820"))+
+#     labs(x = "Day of admissions", y = "Values") + theme_classic() 
+```
+
+```{ r}
+selected_pathway = c("Tryptophan Metabolism","Medium Chain Fatty Acid")
+clinical_df = clinical_data
+meta_data_raw <- plasma_metabolomics_global_metadata
+met_data <- merge(meta_data_raw, clinical_df, by = c("sample_id"))#,"phase"
+met_data = subset(met_data, met_data$"trajectory_group" %in% c(1,2,3,4,5))
+met_data <-  met_data[order(met_data$participant_id),]
+met_data$OUTCOME <-met_data$conv_cluster4
+
+met_data <- met_data %>% drop_na(OUTCOME)
+OUTCOME = met_data$OUTCOME
+table(OUTCOME)
+  
+plasma_metabolomics_global_counts_tmp <- Metabolomics_counts_conv[met_data$sample_id,]
+
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_tmp),]
+plasma_metabolomics_global_rowfeature_tmp_subset = subset(plasma_metabolomics_global_rowfeature_tmp, plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY %in% selected_pathway)
+plasma_metabolomics_global_counts_tmp_subset = 
+colnames(plasma_metabolomics_global_counts_tmp) = plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+data_use <- plasma_metabolomics_global_counts_tmp %>%
+  rownames_to_column(var = "sample_id") %>%
+  merge(y  = dplyr::select(clinical_data, 
+                    sample_id, 
+                    event_date,
+                    trajectory_group,
+                    enrollment_site,
+                    discretized_admit_age_quantile,
+                    sex,
+                    bmi,
+                    participant_id,event_location,conv_cluster4,event_type,Type),
+        by = "sample_id") %>%
+  filter(!is.na(trajectory_group)) %>%
+  filter(duplicated(participant_id) | duplicated(participant_id, fromLast = TRUE)) %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(trajectory_group = factor(trajectory_group)) %>%
+  pivot_longer(cols = -c("sample_id", "event_date", "participant_id",
+                         "enrollment_site", "trajectory_group",
+                         "discretized_admit_age_quantile", "sex", "bmi", "event_location","conv_cluster4","event_type","Type")) %>%
+  mutate(discretized_admit_age_quantile= factor(discretized_admit_age_quantile)) %>%
+  filter(!is.na(value))
+data_use$conv_cluster4 = as.factor(data_use$conv_cluster4)
+data_use$OUTCOME = data_use$conv_cluster4
+data_use_conv = data_use 
+```
+
+
+
+```{ r}
+
+exampleDF <- data_use_conv %>%
+  filter(name %in% "1-(1-enyl-palmitoyl)-2-linoleoyl-GPC (P-16:0/18:2)*") %>%
+  mutate(conv_cluster4 = ordered(as.factor(as.character(conv_cluster4)), 
+                                    levels = c("1", "2", "5", "6")))
+
+plotExample <- plot_model(exampleDF, 
+                          model_loop     = smooth_spline_model_loop_conv, 
+                          modelType      = "smoothSpline", 
+                          p_adjust       = NA, 
+                          endpoint       = "conv_cluster4", 
+                          signif_markers = FALSE,
+                          remove_NS      = TRUE, 
+                          bar_height     = 6.5)
+
+linoleoxyl <- plotExample$data %>%
+  mutate(conv_cluster4 = paste0(conv_cluster4)) %>%
+  ggplot(mapping = aes(x = event_date, y = value)) +
+  ggtitle("1-(1-enyl-palmitoyl)-2-linoleoyl-GPC (P-16:0/18:2)*") +
+    #geom_line(mapping = aes(group = participant_id, y = value), 
+    #          color   = 'gray',
+    #          alpha   = 0.4) +
+    #geom_line(mapping = aes(group = participant_id, y = yhat), 
+    #          size    = 0.6, 
+    #          alpha   = 0.5,
+    #          color   = "black") +
+    #geom_point(mapping = aes(color = conv_cluster4)) +
+    geom_line(data    = mutate(get("pred", plotExample$plot_env),
+                               conv_cluster4 = paste0(conv_cluster4)),
+              mapping = aes(colour = conv_cluster4, y = predicted),
+                           size = 1.5) +
+    #facet_wrap(facets = ~conv_cluster4, nrow = 1) +
+    labs(y = "Predicted",  x = "Days from admission") + #,  tag = "C"
+    scale_color_manual(values= c("1"  = "#639A21",
+                                 "2"  = "#39828C",
+                                 "5"  = "#9C3418",
+                                 "6"  = "#0072B2")) +
+  coord_cartesian(xlim = c(0, max(data_use_conv$event_date))) +
+  theme_bw() +
+  theme(legend.pos = "right",
+        panel.grid.minor = element_blank()) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 13)) + theme(axis.text = element_text(size = 15))
+
+
+print(linoleoxyl) #5.46 * 15.28
+```
+#caproate (6:0)
+```{ r}
+exampleDF <- data_use_conv %>%
+  filter(name %in% "caproate (6:0)") %>%
+  mutate(conv_cluster4 = ordered(as.factor(as.character(conv_cluster4)), 
+                                    levels = c("1", "2", "5", "6")))
+
+plotExample <- plot_model(exampleDF, 
+                          model_loop     = smooth_spline_model_loop_conv, 
+                          modelType      = "smoothSpline", 
+                          p_adjust       = NA, 
+                          endpoint       = "conv_cluster4", 
+                          signif_markers = FALSE,
+                          remove_NS      = TRUE, 
+                          bar_height     = 6.5)
+
+caproate <- plotExample$data %>%
+  mutate(conv_cluster4 = paste0(conv_cluster4)) %>%
+  ggplot(mapping = aes(x = event_date, y = value)) +
+  ggtitle("caproate (6:0)") +
+    #geom_line(mapping = aes(group = participant_id, y = value), 
+    #          color   = 'gray',
+    #          alpha   = 0.4) +
+    #geom_line(mapping = aes(group = participant_id, y = yhat), 
+    #          size    = 0.6, 
+    #          alpha   = 0.5,
+    #          color   = "black") +
+    #geom_point(mapping = aes(color = conv_cluster4)) +
+    geom_line(data    = mutate(get("pred", plotExample$plot_env),
+                               conv_cluster4 = paste0(conv_cluster4)),
+              mapping = aes(colour = conv_cluster4, y = predicted),
+                           size = 1.5) +
+    #facet_wrap(facets = ~conv_cluster4, nrow = 1) +
+    labs(y = "Predicted",  x = "Days from admission") + #,  tag = "C"
+    scale_color_manual(values= c("1"  = "#639A21",
+                                 "2"  = "#39828C",
+                                 "5"  = "#9C3418",
+                                 "6"  = "#0072B2")) +
+  coord_cartesian(xlim = c(0, max(data_use_conv$event_date))) +
+  theme_bw() +
+  theme(legend.pos = "right",
+        panel.grid.minor = element_blank()) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 13)) + theme(axis.text = element_text(size = 15))
+
+
+print(caproate) #5.46 * 15.28
+```
+#3,5-dichloro-2,6-dihydroxybenzoic acid
+```{ r}
+exampleDF <- data_use_conv %>%
+  filter(name %in% "3,5-dichloro-2,6-dihydroxybenzoic acid") %>%
+  mutate(conv_cluster4 = ordered(as.factor(as.character(conv_cluster4)), 
+                                    levels = c("1", "2", "5", "6")))
+
+plotExample <- plot_model(exampleDF, 
+                          model_loop     = smooth_spline_model_loop_conv, 
+                          modelType      = "smoothSpline", 
+                          p_adjust       = NA, 
+                          endpoint       = "conv_cluster4", 
+                          signif_markers = FALSE,
+                          remove_NS      = TRUE, 
+                          bar_height     = 6.5)
+
+dihydroxybenzoic <- plotExample$data %>%
+  mutate(conv_cluster4 = paste0(conv_cluster4)) %>%
+  ggplot(mapping = aes(x = event_date, y = value)) +
+  ggtitle("3,5-dichloro-2,6-dihydroxybenzoic acid") +
+    #geom_line(mapping = aes(group = participant_id, y = value), 
+    #          color   = 'gray',
+    #          alpha   = 0.4) +
+    #geom_line(mapping = aes(group = participant_id, y = yhat), 
+    ##          size    = 0.6, 
+     #         alpha   = 0.5,
+     #         color   = "black") +
+    #geom_point(mapping = aes(color = conv_cluster4)) +
+    geom_line(data    = mutate(get("pred", plotExample$plot_env),
+                               conv_cluster4 = paste0(conv_cluster4)),
+              mapping = aes(colour = conv_cluster4, y = predicted),
+                           size = 1.5) +
+    #facet_wrap(facets = ~conv_cluster4, nrow = 1) +
+    labs(y = "Predicted",  x = "Days from admission") + #,  tag = "C"
+    scale_color_manual(values= c("1"  = "#639A21",
+                                 "2"  = "#39828C",
+                                 "5"  = "#9C3418",
+                                 "6"  = "#0072B2")) +
+  coord_cartesian(xlim = c(0, max(data_use_conv$event_date))) +
+  theme_bw() +
+  theme(legend.pos = "right",
+        panel.grid.minor = element_blank()) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 13)) + theme(axis.text = element_text(size = 15))
+
+
+print(dihydroxybenzoic) #5.46 * 15.28
+```
+```{ r}
+ggarrange(linoleoxyl,caproate,dihydroxybenzoic, ncol = 1, common.legend=T, legend = "right")
+```
+

@@ -1,0 +1,2704 @@
+---
+title: "IMPACC_deep_dive_supplementary_TG"
+output: html_document
+date: "2023-12-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r define dataset version, echo = FALSE}
+##### Authors: Ravi K. Patel, Jeremy Gygi;
+
+# Indicate the version of the data to use ("current" or a date in "YYYY-MM-DD" format)
+# If "current", the data files in "current" directories are used, otherwise, the data files in "legacy" directories that were current on the specified date are used.
+DATA_VERSION <- "current"
+
+# Indicate the phases that you want to include.
+# NOTE: PHASES = 4 refers to 4a
+#.      PHASES = 5 refers to 4b
+#.      PHASES = 9 refers to phase 9 (leftover samples)
+#.      PHASES = NA refers to phase NA
+PHASES <- c(1,2,3,4,5,9, NA)
+
+# Allowed QC? Defaults to pass (including questionable)
+ALLOWED_SMPL_STATUS <- c("IMPACC sample assayed and passed QC", 
+                         "IMPACC sample assayed with questionable QC")
+#ALLOWED_SMPL_STATUS = "ALL"
+# Keep only COVID-19 Positive individuals. Defaults to TRUE
+# (TRUE will remove all COVID-19 Negative individuals)
+KEEP_COVID19_POS <- TRUE
+# Keep Escalation visits (Escalation 1, Escalation 2)? Defaults to FALSE
+KEEP_ESCALATIONS = FALSE
+# Keep Emory Controls? Defaults to FALSE
+KEEP_EMORY_CONTROLS = FALSE
+
+# Upper limit for event_date.
+# Using higher values (e.g. 999) will include all visits (see KEEP_ESCALATIONS
+#   for inclusion of Escalation visits).
+EVENT_DATE_UPPER = 999
+
+# Upper limit for event_type. For example, 6 would use up to 'Visit 6'.
+# Using higher values (e.g. 999) will include all visits (see KEEP_ESCALATIONS
+#   for inclusion of Escalation visits).
+VISIT_LOWER = 1
+VISIT_UPPER = 999
+
+# Use 01/01/2023 locked data in "/data/clinical/current"?
+USE_LOCKED_CLINICAL <- TRUE
+
+# Filtering by manuscript cohorts:
+# Currently supports core assay / integration manuscript cohort filtering.
+FILTER_BY_CORE_ASSAY_COHORT = FALSE
+FILTER_BY_INTEGRATION_COHORT = FALSE
+
+# Provide vector of participant IDs to restrict loading the data to those participants only.
+SELECT_PARTICIPANT_ID = NULL
+
+# Provide vector of samples to exclude from the analysis
+EXCLUDE_SAMPLES = NULL
+```
+
+<!-- ################################################################################################### -->
+<!--           No need to edit any of the code below this point until end of Mandatory Code chunk        -->
+<!-- ################################################################################################### -->
+
+```{r Prepare environment, echo=FALSE}
+##### Authors: Ravi K. Patel, Jeremy Gygi.
+# Set options
+options(encoding = "UTF-8") # instead of ANSI
+options(scipen = 999) # non-scientific output
+```
+
+### ------------------------------------
+#### **Study:** IMPACC
+#### **Analysis title:** IMPACC Convalescent Data Loading
+#### **Analysis description:** Loading combined data from all phases for analyses.
+#### **License:** 
+#### **Author(s):** Ravi K. Patel (ravi.patel2@ucsf.edu), Jeremy Gygi (jeremy.gygi@yale.edu), Steven Kleinstein (steven.kleinstein@yale.edu), Leying Guan (leying.guan@yale.edu)
+#### **Date Created:** `r paste(format(Sys.time(), "%Y-%d-%m %X"), "UTC")`
+
+#### **Source file:** `r knitr::current_input()`
+#### **Dataset version:** `r ifelse(DATA_VERSION == "current", paste0("current (date: ", format(Sys.time(),"%Y-%m-%d"), ")"), paste0("legacy (date: ", DATA_VERSION, ")") )` `r paste0("(phases: ", paste0(PHASES, collapse=","), ")") `
+#### **R version:** `r paste(R.Version()$version.string)`
+#### **Platform:** `r paste(R.Version()$platform)`
+#### **Running under**: `r paste(sessionInfo()$running)`
+
+#### **Notes:** The observations for which the clinical data is unavailable or have failed QC are removed.
+### ------------------------------------
+
+```{r load header template codebase, echo=FALSE}
+# Source the codebase file:
+source("~/Bitbucket/impacc-full-cohort/Analysis/IMPACC_data_analysis_codebase.R")
+```
+
+```{r load datasets, message=FALSE, echo=FALSE}
+# Load all available IMPACC datasets associated with DATA_VERSION.
+data_env <- load_IMPACC_datasets(# Data version:
+                                 DATA_VERSION = DATA_VERSION,
+                                 # QC Sample Filtering:
+                                 ALLOWED_SMPL_STATUS = ALLOWED_SMPL_STATUS,
+                                 # COVID-19 Positive
+                                 KEEP_COVID19_POS = KEEP_COVID19_POS,
+                                 # Emory controls:
+                                 KEEP_EMORY_CONTROLS = KEEP_EMORY_CONTROLS,
+                                 # Escalations:
+                                 KEEP_ESCALATIONS = KEEP_ESCALATIONS,
+                                 # Use the locked clinical data (01/01/2023)
+                                 USE_LOCKED_CLINICAL = USE_LOCKED_CLINICAL,
+                                 
+                                 # Don't restrict filtering by manuscript:
+                                 FILTER_BY_CORE_ASSAY_COHORT = FILTER_BY_CORE_ASSAY_COHORT,
+                                 FILTER_BY_INTEGRATION_COHORT = FILTER_BY_INTEGRATION_COHORT,
+                                 
+                                 # Select participant ID
+                                 SELECT_PARTICIPANT_ID = SELECT_PARTICIPANT_ID,
+                                 
+                                 # Exclude samples
+                                 EXCLUDE_SAMPLES = EXCLUDE_SAMPLES,
+                                 
+                                 # event_type / visit upper limits
+                                 EVENT_DATE_UPPER = EVENT_DATE_UPPER,
+                                 VISIT_LOWER = VISIT_LOWER,
+                                 VISIT_UPPER = VISIT_UPPER,
+                                 
+                                 # Phases
+                                 PHASES = PHASES)
+
+# Load and assign the data objects into the environment
+# User can call upon any assay via the name e.g. serum_olink_counts
+for( n in names(data_env) ) {
+  assign( n, data_env[[n]] )
+}
+
+```
+## Metabolomics concentration
+
+```{r}
+# Concentration
+Metabolomics_counts <- plasma_metabolomics_global_counts
+
+# Row data
+Metabolomics_rowfeature <- plasma_metabolomics_global_rowfeature
+print(all(colnames(Metabolomics_counts) == rownames(Metabolomics_rowfeature)))
+
+Metabolomics_rowfeature = subset(Metabolomics_rowfeature, Metabolomics_rowfeature$TYPE == "NAMED")
+Metabolomics_counts = Metabolomics_counts[,rownames(Metabolomics_rowfeature)]
+
+print(all(colnames(Metabolomics_counts) == rownames(Metabolomics_rowfeature)))
+# metadata
+Metabolomics_metadata <- plasma_metabolomics_global_metadata
+Metabolomics_metadata$sample_id = rownames(Metabolomics_metadata)
+print(all(rownames(Metabolomics_counts) == rownames(Metabolomics_metadata)))
+```
+
+```{r}
+clinical_all = clinical_data
+Metabolomics_metadata = subset(Metabolomics_metadata, Metabolomics_metadata$sample_id %in% clinical_all$sample_id)
+
+clinical_df <- clinical_all
+clinical_df = subset(clinical_df, ! is.na(clinical_df$trajectory_group))
+metadata = subset(Metabolomics_metadata, Metabolomics_metadata$sample_id %in% clinical_df$sample_id)
+clinical_df_met = subset(clinical_df, clinical_df$sample_id %in% metadata$sample_id)
+participants = as.data.frame(unique(clinical_df_met$participant_id))
+plasma_metabolomics_global_counts = Metabolomics_counts[metadata$sample_id,]
+plasma_metabolomics_global_metadata = metadata
+rownames(plasma_metabolomics_global_metadata) = plasma_metabolomics_global_metadata$sample_id
+```
+
+
+```{r}
+clinical_data = clinical_df_met[!(clinical_df_met$sample_id %in% "0865-0017MC00-004"),]
+
+clinical_data$adm_date_cat <- ifelse(clinical_data$event_date >= 0 & clinical_data$event_date <= 2, "Admission",
+              ifelse(clinical_data$event_date >2 & clinical_data$event_date <= 8, "WK1",
+              ifelse(clinical_data$event_date >8 & clinical_data$event_date <= 23, "WK2_3",
+              ifelse(clinical_data$event_date >23 & clinical_data$event_date <= 35, "WK4",
+              ifelse(clinical_data$event_date >35 & clinical_data$event_date <= 90, "3MO",
+              ifelse(clinical_data$event_date >90 & clinical_data$event_date <= 200, "6MO",
+              ifelse(clinical_data$event_date >200 & clinical_data$event_date <= 300, "9MO",
+              ifelse(clinical_data$event_date >300 , "12MO", "Out"))))))))
+
+table(clinical_data$adm_date_cat)
+length(unique(clinical_data$participant_id))
+
+```
+```{r}
+clinical_data = clinical_data[!(clinical_data$sample_id %in% c("0865-0017MC00-004","0865-00CW0A00-004","0865-00DZYB00-004","0865-00956A00-005")),]
+visit1 = subset(clinical_data, clinical_data$event_type == "Visit 1")
+range(visit1$event_date)
+length(unique(visit1$sample_id))
+visit1_in = subset(visit1, visit1$event_date >= 0 & visit1$event_date <= 3)
+length(unique(visit1_in$sample_id))
+
+visit2 = subset(clinical_data, clinical_data$event_type == "Visit 2")
+range(visit2$event_date)
+length(unique(visit2$sample_id))
+visit2_in = subset(visit2, visit2$event_date > 3 & visit2$event_date <= 5)
+length(unique(visit2_in$sample_id))
+
+visit3 = subset(clinical_data, clinical_data$event_type == "Visit 3")
+range(visit3$event_date)
+length(unique(visit3$sample_id))
+visit3_in = subset(visit3, visit3$event_date >= 6 & visit3$event_date <= 8)
+length(unique(visit3_in$sample_id))
+
+
+visit4 = subset(clinical_data, clinical_data$event_type == "Visit 4")
+range(visit4$event_date)
+length(unique(visit4$sample_id))
+visit4_in = subset(visit4, visit4$event_date >= 12 & visit4$event_date <= 16)
+length(unique(visit4_in$sample_id))
+
+visit5 = subset(clinical_data, clinical_data$event_type == "Visit 5")
+range(visit5$event_date)
+length(unique(visit5$sample_id))
+visit5_in = subset(visit5, visit5$event_date >= 19 & visit5$event_date <= 23)
+length(unique(visit5_in$sample_id))
+
+
+visit6 = subset(clinical_data, clinical_data$event_type == "Visit 6")
+range(visit6$event_date)
+length(unique(visit6$sample_id))
+visit6_in = subset(visit6, visit6$event_date >= 26 & visit6$event_date <= 35)
+length(unique(visit6_in$sample_id))
+
+visit7 = subset(clinical_data, clinical_data$event_type == "Visit 7")
+range(visit7$event_date)
+
+length(unique(visit7$sample_id))
+visit7_in = subset(visit7, visit7$event_date >= 76 & visit7$event_date <= 104)
+length(unique(visit7_in$sample_id))
+
+
+visit8 = subset(clinical_data, clinical_data$event_type == "Visit 8")
+range(visit8$event_date)
+length(unique(visit8$sample_id))
+visit8_in = subset(visit8, visit8$event_date >= 166 & visit8$event_date <= 194)
+length(unique(visit8_in$sample_id))
+
+visit9 = subset(clinical_data, clinical_data$event_type == "Visit 9")
+range(visit9$event_date)
+length(unique(visit9$sample_id))
+visit9_in = subset(visit9, visit9$event_date >= 256 & visit9$event_date <= 284)
+length(unique(visit9_in$sample_id))
+
+visit10 = subset(clinical_data, clinical_data$event_type == "Visit 10")
+range(visit10$event_date)
+length(unique(visit10$sample_id))
+visit10_in = subset(visit10, visit10$event_date >= 346 & visit10$event_date <= 374)
+length(unique(visit10_in$sample_id))
+
+visit_all_in = rbind(visit1_in,visit2_in,visit3_in,visit4_in,visit5_in,visit6_in,visit7_in,visit8_in,visit9_in,visit10_in)
+
+table(clinical_data$event_type)
+```
+```{r}
+clinical_data$event_type = factor(clinical_data$event_type, levels = c("Visit 1","Visit 2","Visit 3","Visit 4","Visit 5","Visit 6","Visit 7","Visit 8","Visit 9","Visit 10"))
+clinical_data = clinical_data %>% mutate(Type = case_when(
+  sample_id %in% visit_all_in$sample_id ~ "Within",
+  !sample_id %in% visit_all_in$sample_id ~ "Outlier",
+))
+bar_figure = ggplot(clinical_data, aes(event_type,fill = Type)) + geom_bar() + theme_bw() + ggtitle("Number of Samples") +scale_fill_discrete(drop = F) #+ geom_text(aes(Var1,Freq,label = Freq,fill = NULL), data = totals_H, vjust=-0.1)
+print(bar_figure)
+```
+#PCA
+```{r}
+#all samples
+pca_data<-plasma_metabolomics_global_counts
+pca_data = as.data.frame(pca_data)
+#pca_data$sample_id = str_replace_all(pca_data$sample_id, "-", "_")
+
+pca_data[,] <- sapply(pca_data[, ], as.numeric)
+pca_met<-prcomp (na.omit(pca_data, center = TRUE, scale = TRUE))
+fit<-summary(pca_met)
+pca<-as.data.frame(fit$x)
+pca<-as.data.frame(pca[c(1:10)])
+library(tidyverse)
+pca <- pca %>% as.data.frame() %>% rownames_to_column("sample_id")
+
+pca_table <- inner_join(clinical_data, pca,  by="sample_id")
+ 
+  pca_p <- pca_table %>%
+      ggplot(aes(PC1, PC2, colour = sex)) +
+
+      geom_point(size = 3) +
+      theme(legend.position="bottom") + theme_bw() +
+      labs(x     = paste0("1st dimension (",
+                          round((pca_met$sdev^2/sum(pca_met$sdev^2))[1] * 100),
+                          "%)"),
+           y     = paste0("2nd dimension (",
+                          round((pca_met$sdev^2/sum(pca_met$sdev^2))[2] * 100),
+                          "%)")) 
+  pca_p
+```
+```{r}
+#V1 samples
+clinical_data_V1 = subset(clinical_data, clinical_data$event_type == "Visit 1")
+pca_data<-plasma_metabolomics_global_counts[clinical_data_V1$sample_id,]
+pca_data = as.data.frame(pca_data)
+#pca_data$sample_id = str_replace_all(pca_data$sample_id, "-", "_")
+
+pca_data[,] <- sapply(pca_data[, ], as.numeric)
+pca_met<-prcomp (na.omit(pca_data, center = TRUE, scale = TRUE))
+fit<-summary(pca_met)
+pca<-as.data.frame(fit$x)
+pca<-as.data.frame(pca[c(1:10)])
+library(tidyverse)
+pca <- pca %>% as.data.frame() %>% rownames_to_column("sample_id")
+
+pca_table <- inner_join(clinical_data_V1, pca,  by="sample_id")
+ 
+  pca_p_V1 <- pca_table %>%
+      ggplot(aes(PC1, PC2, colour = sex)) +
+
+      geom_point(size = 3) +
+      theme(legend.position="bottom") + theme_bw() +
+      labs(x     = paste0("1st dimension (",
+                          round((pca_met$sdev^2/sum(pca_met$sdev^2))[1] * 100),
+                          "%)"),
+           y     = paste0("2nd dimension (",
+                          round((pca_met$sdev^2/sum(pca_met$sdev^2))[2] * 100),
+                          "%)")) 
+  pca_p_V1
+```
+#SPLSDA
+```{r}
+
+library(mixOmics) # import the mixOmics library
+run_SPLSDA = function(clinical_data,Metabolomics_counts_conv,plasma_metabolomics_global_rowfeature,visit_type){
+  clinical_data = clinical_data
+  Metabolomics_counts_conv = Metabolomics_counts_conv
+  plasma_metabolomics_global_rowfeature = plasma_metabolomics_global_rowfeature
+clinical_temp = subset(clinical_data, clinical_data$sample_id %in% rownames(Metabolomics_counts_conv))
+clinical_temp_16_V = subset(clinical_temp, clinical_temp$event_type == visit_type)
+plasma_metabolomics_global_counts_temp = Metabolomics_counts_conv[clinical_temp_16_V$sample_id,]
+
+
+
+#X <- srbct$gene # use the gene expression data as the X matrix
+X = plasma_metabolomics_global_counts_temp
+plasma_metabolomics_global_rowfeature = plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_temp),]
+colnames(X) = plasma_metabolomics_global_rowfeature$CHEMICAL_NAME
+#Y <- srbct$class # use the class data as the Y matrix
+rownames(clinical_temp) = clinical_temp$sample_id
+
+Y = clinical_temp_16_V$sex
+
+splsda.result <- splsda(X, Y) # run the method #, keepX = c(50,30)
+
+
+background.mahal <-  background.predict(splsda.result,
+                                        comp.predicted = 2,
+                                        dist = 'mahalanobis.dist')
+
+# plot the sample plot
+figure = plotIndiv(splsda.result, group = Y,ellipse=TRUE, ind.names = FALSE,
+          legend = TRUE, legend.title = 'Sex',
+         
+          background = background.mahal,title = visit_type)
+a <- plotLoadings(splsda.result,
+       comp = 1,
+       ndisplay=50,
+       contrib = "max",
+       #legend.color = cols,
+       legend.title = "Convalescent groups",
+       legend = TRUE,
+       size.title = rel(1),
+       size.name = 0.7, title="Top 50 Metabolite Loadings"
+       )
+return(list(p1=figure,p2=a))
+}
+
+
+```
+
+```{ r}
+SPLSDA_V1 = run_SPLSDA(clinical_data,plasma_metabolomics_global_counts,plasma_metabolomics_global_rowfeature,"Visit 1")
+SPLSDA_V2 = run_SPLSDA(clinical_data,plasma_metabolomics_global_counts,plasma_metabolomics_global_rowfeature,"Visit 2")
+SPLSDA_V3 = run_SPLSDA(clinical_data,plasma_metabolomics_global_counts,plasma_metabolomics_global_rowfeature,"Visit 3")
+SPLSDA_V4 = run_SPLSDA(clinical_data,plasma_metabolomics_global_counts,plasma_metabolomics_global_rowfeature,"Visit 4")
+SPLSDA_V5 = run_SPLSDA(clinical_data,plasma_metabolomics_global_counts,plasma_metabolomics_global_rowfeature,"Visit 5")
+SPLSDA_V6 = run_SPLSDA(clinical_data,plasma_metabolomics_global_counts,plasma_metabolomics_global_rowfeature,"Visit 6")
+SPLSDA_V7 = run_SPLSDA(clinical_data,plasma_metabolomics_global_counts,plasma_metabolomics_global_rowfeature,"Visit 7")
+SPLSDA_V8 = run_SPLSDA(clinical_data,plasma_metabolomics_global_counts,plasma_metabolomics_global_rowfeature,"Visit 8")
+SPLSDA_V9 = run_SPLSDA(clinical_data,plasma_metabolomics_global_counts,plasma_metabolomics_global_rowfeature,"Visit 9")
+SPLSDA_V10 = run_SPLSDA(clinical_data,plasma_metabolomics_global_counts,plasma_metabolomics_global_rowfeature,"Visit 10")
+
+```
+
+```{ r}
+#all samples
+  clinical_data = clinical_data
+  Metabolomics_counts_conv = plasma_metabolomics_global_counts
+  plasma_metabolomics_global_rowfeature = plasma_metabolomics_global_rowfeature
+clinical_temp = subset(clinical_data, clinical_data$sample_id %in% rownames(Metabolomics_counts_conv))
+clinical_temp_16_V = clinical_temp
+plasma_metabolomics_global_counts_temp = Metabolomics_counts_conv[clinical_temp_16_V$sample_id,]
+
+
+
+#X <- srbct$gene # use the gene expression data as the X matrix
+X = plasma_metabolomics_global_counts_temp
+plasma_metabolomics_global_rowfeature = plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_temp),]
+colnames(X) = plasma_metabolomics_global_rowfeature$CHEMICAL_NAME
+#Y <- srbct$class # use the class data as the Y matrix
+rownames(clinical_temp) = clinical_temp$sample_id
+
+Y = clinical_temp_16_V$sex
+
+splsda.result <- splsda(X, Y) # run the method #, keepX = c(50,30)
+
+
+background.mahal <-  background.predict(splsda.result,
+                                        comp.predicted = 2,
+                                        dist = 'mahalanobis.dist')
+
+# plot the sample plot
+figure = plotIndiv(splsda.result, group = Y,ellipse=TRUE, ind.names = FALSE,
+          legend = TRUE, legend.title = 'Sex',
+         
+          background = background.mahal,title = "All")
+a <- plotLoadings(splsda.result,
+       comp = 1,
+       ndisplay=50,
+       contrib = "max",
+       #legend.color = cols,
+       legend.title = "Convalescent groups",
+       legend = TRUE,
+       size.title = rel(1),
+       size.name = 0.7, title="Top 50 Metabolite Loadings"
+       )
+```
+
+# Logistic regression baseline 1-4 vs. 5
+```{r}
+library("geepack")
+library("data.table")
+clinical_df = clinical_data
+meta_data_raw <- plasma_metabolomics_global_metadata
+meta_data_raw$sample_id = rownames(meta_data_raw)
+met_data <- merge(meta_data_raw, clinical_df, by = c("sample_id"))#,"phase"
+met_data = subset(met_data, met_data$"trajectory_group" %in% c(1,2,3,4,5))
+met_data_baseline = subset(met_data, met_data$event_type == "Visit 1")
+met_data_baseline <-  met_data_baseline[order(met_data_baseline$participant_id),]
+met_data_baseline <- met_data_baseline %>%  mutate(OUTCOME = case_when(
+    trajectory_group %in% c(1,2,3,4) ~ 0,
+    trajectory_group == 5  ~ 1
+    ))
+
+met_data_baseline <- met_data_baseline %>% drop_na(OUTCOME)
+OUTCOME = met_data_baseline$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data_baseline$sex)
+y <- as.numeric (OUTCOME)
+age <- as.numeric(met_data_baseline$admit_age)
+bmi <- as.numeric(met_data_baseline$bmi) #numerical
+race <- as.factor(met_data_baseline$race)
+ethnicity <- as.factor(met_data_baseline$ethnicity)
+location <- as.factor(met_data_baseline$event_location)
+participant <- as.factor(met_data_baseline$participant_id)
+age_quantile <- as.factor(met_data_baseline$discretized_admit_age_quantile)
+phase <- as.factor(met_data_baseline$phase.x)
+plate <- as.factor(met_data_baseline$plate)
+type = as.factor(met_data_baseline$Type)
+#y <- as.factor (y)
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data_baseline$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met,age, sex, participant, bmi, location,age_quantile,phase, plate,type)
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile","phase","plate","type") #"location",
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    #lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+     lr<- glm (fmla, data=df, family=binomial) 
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  
+  
+  lr_output$coef <- coef
+  lr_output$std <- std
+ 
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_AD_baseline <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_AD_baseline$qval <= 0.05)
+  
+  output_all_AD = output_all
+```
+# Logistic regression baseline 4 vs. 5
+```{ r}
+library("geepack")
+clinical_df = clinical_data
+meta_data_raw <- plasma_metabolomics_global_metadata
+meta_data_raw$sample_id = rownames(meta_data_raw)
+met_data <- merge(meta_data_raw, clinical_df, by = c("sample_id"))#,"phase"
+met_data = subset(met_data, met_data$"trajectory_group" %in% c(4,5))
+met_data_baseline = subset(met_data, met_data$event_type == "Visit 1")
+met_data_baseline <-  met_data_baseline[order(met_data_baseline$participant_id),]
+met_data_baseline <- met_data_baseline %>%  mutate(OUTCOME = case_when(
+    trajectory_group == 4 ~ 0,
+    trajectory_group == 5  ~ 1
+    ))
+
+
+met_data_baseline <- met_data_baseline %>% drop_na(OUTCOME)
+OUTCOME = met_data_baseline$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data_baseline$sex)
+y <- as.numeric (OUTCOME)
+age <- as.numeric(met_data_baseline$admit_age)
+bmi <- as.numeric(met_data_baseline$bmi) #numerical
+race <- as.factor(met_data_baseline$race)
+ethnicity <- as.factor(met_data_baseline$ethnicity)
+location <- as.factor(met_data_baseline$event_location)
+participant <- as.factor(met_data_baseline$participant_id)
+age_quantile <- as.factor(met_data_baseline$discretized_admit_age_quantile)
+phase <- as.factor(met_data_baseline$phase.x)
+plate <- as.factor(met_data_baseline$plate)
+type = as.factor(met_data_baseline$Type)
+#y <- as.factor (y)
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data_baseline$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met,age, sex, participant, bmi, location,age_quantile,phase, plate,type)
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile","phase","plate","type") #"location",
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+    
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  
+  
+  lr_output$coef <- coef
+  lr_output$std <- std
+ 
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+ lr_output_45_baseline <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_45_baseline$qval <= 0.05)
+  output_all_45 = output_all
+```
+
+# Logistic regression baseline 1-3 vs. 4
+```{ r}
+library("geepack")
+clinical_df = clinical_data
+meta_data_raw <- plasma_metabolomics_global_metadata
+meta_data_raw$sample_id = rownames(meta_data_raw)
+met_data <- merge(meta_data_raw, clinical_df, by = c("sample_id"))#,"phase"
+met_data = subset(met_data, met_data$"trajectory_group" %in% c(1,2,3,4))
+met_data_baseline = subset(met_data, met_data$event_type == "Visit 1")
+met_data_baseline <-  met_data_baseline[order(met_data_baseline$participant_id),]
+met_data_baseline <- met_data_baseline %>%  mutate(OUTCOME = case_when(
+    trajectory_group %in% c(1,2,3) ~ 0,
+    trajectory_group == 4  ~ 1
+    ))
+
+met_data_baseline <- met_data_baseline %>% drop_na(OUTCOME)
+OUTCOME = met_data_baseline$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data_baseline$sex)
+y <- as.numeric (OUTCOME)
+age <- as.numeric(met_data_baseline$admit_age)
+bmi <- as.numeric(met_data_baseline$bmi) #numerical
+race <- as.factor(met_data_baseline$race)
+ethnicity <- as.factor(met_data_baseline$ethnicity)
+location <- as.factor(met_data_baseline$event_location)
+participant <- as.factor(met_data_baseline$participant_id)
+age_quantile <- as.factor(met_data_baseline$discretized_admit_age_quantile)
+phase <- as.factor(met_data_baseline$phase.x)
+plate <- as.factor(met_data_baseline$plate)
+type = as.factor(met_data_baseline$Type)
+#y <- as.factor (y)
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data_baseline$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met,age, sex, participant, bmi, location,age_quantile,phase, plate,type)
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile","phase","plate","type") #"location",
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+    
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  
+  
+  lr_output$coef <- coef
+  lr_output$std <- std
+ 
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_AS_baseline <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_AS_baseline$qval <= 0.05)
+  output_all_AS = output_all
+```
+# Logistic regression baseline 1-3 vs. 4,5
+```{r}
+library("geepack")
+clinical_df = clinical_data
+meta_data_raw <- plasma_metabolomics_global_metadata
+meta_data_raw$sample_id = rownames(meta_data_raw)
+met_data <- merge(meta_data_raw, clinical_df, by = c("sample_id"))#,"phase"
+met_data = subset(met_data, met_data$"trajectory_group" %in% c(1,2,3,4,5))
+met_data_baseline = subset(met_data, met_data$event_type == "Visit 1")
+met_data_baseline <-  met_data_baseline[order(met_data_baseline$participant_id),]
+met_data_baseline <- met_data_baseline %>%  mutate(OUTCOME = case_when(
+    trajectory_group %in% c(1,2,3) ~ 0,
+    trajectory_group %in% c(4,5)  ~ 1
+    ))
+
+met_data_baseline <- met_data_baseline %>% drop_na(OUTCOME)
+OUTCOME = met_data_baseline$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data_baseline$sex)
+y <- as.numeric (OUTCOME)
+age <- as.numeric(met_data_baseline$admit_age)
+bmi <- as.numeric(met_data_baseline$bmi) #numerical
+race <- as.factor(met_data_baseline$race)
+ethnicity <- as.factor(met_data_baseline$ethnicity)
+location <- as.factor(met_data_baseline$event_location)
+participant <- as.factor(met_data_baseline$participant_id)
+age_quantile <- as.factor(met_data_baseline$discretized_admit_age_quantile)
+phase <- as.factor(met_data_baseline$phase.x)
+plate <- as.factor(met_data_baseline$plate)
+type = as.factor(met_data_baseline$Type)
+#y <- as.factor (y)
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data_baseline$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met,age, sex, participant, bmi, location,age_quantile,phase, plate,type)
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile","phase","plate","type") #"location",
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    #lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+     lr<- glm (fmla, data=df,family=binomial) #
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  
+  
+  lr_output$coef <- coef
+  lr_output$std <- std
+ 
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_123_baseline <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_123_baseline$qval <= 0.05)
+  output_all_123 = output_all
+```
+# Logistic regression baseline 1-3 vs. 4
+```{r}
+library("geepack")
+MHTFR = read_csv(file = "/scratch/metabolomics/plasma-metabolomics-targeted/MTHFR/MTHFR.csv") %>% mutate_if(is.character, str_trim)
+MHTFR$allele = paste(MHTFR$`allele 1`, MHTFR$`allele 2`)
+AA = subset(MHTFR, MHTFR$allele == "A A")
+clinical_df = clinical_data
+meta_data_raw <- plasma_metabolomics_global_metadata
+meta_data_raw$sample_id = rownames(meta_data_raw)
+met_data <- merge(meta_data_raw, clinical_df, by = c("sample_id"))#,"phase"
+met_data = subset(met_data, met_data$"trajectory_group" %in% c(4,5))
+met_data_baseline = subset(met_data, met_data$event_type == "Visit 1")
+met_data_baseline <-  met_data_baseline[order(met_data_baseline$participant_id),]
+met_data_baseline <- met_data_baseline %>%  mutate(OUTCOME = case_when(
+    !met_data_baseline$participant_id %in% AA$participant_id ~ 0,
+    met_data_baseline$participant_id %in% AA$participant_id ~ 1
+    ))
+
+met_data_baseline <- met_data_baseline %>% drop_na(OUTCOME)
+OUTCOME = met_data_baseline$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data_baseline$sex)
+y <- as.numeric (OUTCOME)
+age <- as.numeric(met_data_baseline$admit_age)
+bmi <- as.numeric(met_data_baseline$bmi) #numerical
+race <- as.factor(met_data_baseline$race)
+ethnicity <- as.factor(met_data_baseline$ethnicity)
+location <- as.factor(met_data_baseline$event_location)
+participant <- as.factor(met_data_baseline$participant_id)
+age_quantile <- as.factor(met_data_baseline$discretized_admit_age_quantile)
+phase <- as.factor(met_data_baseline$phase.x)
+plate <- as.factor(met_data_baseline$plate)
+type = as.factor(met_data_baseline$Type)
+#y <- as.factor (y)
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data_baseline$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met,age, sex, participant, bmi, location,age_quantile,phase, plate,type)
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile","phase","plate","type") #"location",
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+    
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  
+  
+  lr_output$coef <- coef
+  lr_output$std <- std
+ 
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_AA_baseline <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_AA_baseline$qval <= 0.05)
+  output_all_AA = output_all
+```
+# Logistic regression baseline 45 dead vs. no dead
+```{r}
+library("geepack")
+clinical_df = clinical_data
+meta_data_raw <- plasma_metabolomics_global_metadata
+meta_data_raw$sample_id = rownames(meta_data_raw)
+met_data <- merge(meta_data_raw, clinical_df, by = c("sample_id"))#,"phase"
+met_data = subset(met_data, met_data$"trajectory_group" %in% c(4,5))
+met_data_baseline = subset(met_data, met_data$event_type == "Visit 1")
+met_data_baseline <-  met_data_baseline[order(met_data_baseline$participant_id),]
+met_data_baseline <- met_data_baseline %>%  mutate(OUTCOME = case_when(
+    diedever == 0 ~ 0,
+    diedever == 1 ~ 1
+    ))
+
+met_data_baseline <- met_data_baseline %>% drop_na(OUTCOME)
+OUTCOME = met_data_baseline$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data_baseline$sex)
+y <- as.numeric (OUTCOME)
+age <- as.numeric(met_data_baseline$admit_age)
+bmi <- as.numeric(met_data_baseline$bmi) #numerical
+race <- as.factor(met_data_baseline$race)
+ethnicity <- as.factor(met_data_baseline$ethnicity)
+location <- as.factor(met_data_baseline$event_location)
+participant <- as.factor(met_data_baseline$participant_id)
+age_quantile <- as.factor(met_data_baseline$discretized_admit_age_quantile)
+phase <- as.factor(met_data_baseline$phase.x)
+plate <- as.factor(met_data_baseline$plate)
+type = as.factor(met_data_baseline$Type)
+#y <- as.factor (y)
+plasma_metabolomics_global_counts_baseline <- plasma_metabolomics_global_counts[met_data_baseline$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- plasma_metabolomics_global_rowfeature[colnames(plasma_metabolomics_global_counts_baseline),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_baseline)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met,age, sex, participant, bmi, location,age_quantile,phase, plate,type)
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile","phase","plate","type") #"location",
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    #lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) #
+    lr<- glm (fmla, data=df, family=binomial) 
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  
+  
+  lr_output$coef <- coef
+  lr_output$std <- std
+ 
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_diedever_baseline <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_diedever_baseline$qval <= 0.05)
+  output_all_diedever = output_all
+```
+```{r}
+save(lr_output_diedever_baseline,lr_output_AD_baseline,lr_output_123_baseline, file = "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/deep_dive_TG.Rdata")
+```
+```{ r}
+load("/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/deep_dive_TG.Rdata")
+```
+
+```{r}
+library(ggrepel)
+volPlots2 <- function(df, titleArg = "Volcano Plot for omics features"){
+  
+  df <- df %>% as.data.frame() %>% dplyr::mutate(Direction = case_when(coef < 0 & qval < 0.05 ~ "Down", coef > 0 & qval < 0.05 ~ "Up", qval > 0.05 ~ "NotSig")) %>% dplyr::mutate(Direction = as.factor(Direction)) %>% dplyr::mutate(Direction = factor(Direction, levels = c("NotSig", "Down", "Up")))
+   label_data <- df %>% dplyr::filter(qval < 0.05)
+   my_subtitle <- glue::glue(
+      #"{nrow(filter(df, Direction != 'NotSig'))} DE metabolites: ",
+      "{nrow(filter(df, Direction == 'Up'))} Up, ",
+      "{nrow(filter(df, Direction == 'Down'))} Down")
+    ggplot(data = df)  +
+    geom_point(aes(x = coef, y = -log10(pval), color = Direction), size = 3, pch = 16, alpha = 1) +
+    #geom_label_repel(aes(x = coef, y = -log10(pval), label = Name), max.overlaps = 20, label.size = 0.05, label.padding = 0) +
+    theme_classic() +
+    scale_color_manual(values = c("NotSig" = "#C0C0C0", "Down"="darkblue","Up"="darkred" )) +
+   #ylim(0, 16) +
+    #xlim(-1.5, 1.5) + 
+    geom_hline(yintercept = 1.30, linetype = "dashed", alpha = 0.8) +
+    labs(title = titleArg,subtitle = my_subtitle, x = "log2FC", y = "-log10(Pvalue)") +
+      theme(text = element_text(face = "bold"))
+}
+lr_output_123_baseline = lr_output_123_baseline[order(lr_output_123_baseline$qval),]
+lr_output_123_baseline$name2 = ''
+lr_output_123_baseline$name2[1:3] = lr_output_123_baseline$Name[1:3]
+Volcano_metabolomics_123 <- volPlots2(lr_output_123_baseline, titleArg = "Severe(TG4_5) vs. Non-severe(TG1_3)") #+geom_label_repel(aes(x = coef, y = -log10(pval)), max.overlaps = 20, label.size = 0.05, label.padding = 0.1) + ylim
+
+lr_output_diedever_baseline = lr_output_diedever_baseline[order(lr_output_diedever_baseline$qval),]
+lr_output_diedever_baseline$name2 = ''
+lr_output_diedever_baseline$name2[1:3] = lr_output_diedever_baseline$Name[1:3]
+Volcano_metabolomics_diedever <- volPlots2(lr_output_diedever_baseline, titleArg = "Non-survivors(TG4 deaths + TG5) vs. Survivors(TG4 recovered)") #+geom_label_repel(aes(x = coef, y = -log10(pval)), max.overlaps = 20, label.size = 0.05, label.padding = 0.1)
+
+lr_output_AD_baseline = lr_output_AD_baseline[order(lr_output_AD_baseline$qval),]
+lr_output_AD_baseline$name2 = ''
+lr_output_AD_baseline$name2[1:3] = lr_output_AD_baseline$Name[1:3]
+Volcano_metabolomics_AD <- volPlots2(lr_output_AD_baseline, titleArg = "Fatal(TG5) vs. Non-fatal(TG1_4)") #+geom_label_repel(aes(x = coef, y = -log10(pval)), max.overlaps = 20, label.size = 0.05, label.padding = 0.1)
+
+a = ggarrange(Volcano_metabolomics_AD,Volcano_metabolomics_123, Volcano_metabolomics_diedever, ncol = 1, common.legend = T, legend.position = "bottom")
+a
+
+```
+
+```{ r}
+
+x <- list(
+  `Severe vs. Non-severe` = lr_output_AS_baseline[lr_output_AS_baseline$qval<= 0.05,]$Name, 
+  `Fatal vs. Severe` =lr_output_45_baseline[lr_output_45_baseline$qval<= 0.05,]$Name, 
+  `Fatal vs. Non-fatal` =lr_output_AD_baseline[lr_output_AD_baseline$qval<= 0.05,]$Name
+  )
+library(ggvenn)
+ggvenn(
+  x, 
+  fill_color = c("#0000FF","#FF0000", "#a45ee9"),
+  stroke_size = 0.5, set_name_size = 4
+  )
+```
+```{ r}
+library(data.table)
+plasma_metabolomics_global_rowfeature$Compound_ID = rownames(plasma_metabolomics_global_rowfeature)
+lr_output_cat1_all_glm_simple_sig = subset(lr_output_AD_baseline,lr_output_AD_baseline$qval <= 0.05)
+lr_output_cat1_all_glm_simple_sig = lr_output_cat1_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat1_all_glm_simple_sig_sub = plasma_metabolomics_global_rowfeature[lr_output_cat1_all_glm_simple_sig$Compound_ID,]
+lr_output_cat1_all_glm_simple= lr_output_AD_baseline[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat2_all_glm_simple_sig = subset(lr_output_AS_baseline,lr_output_AS_baseline$qval <= 0.05)
+lr_output_cat2_all_glm_simple_sig = lr_output_cat2_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat2_all_glm_simple= lr_output_AS_baseline[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat3_all_glm_simple_sig = subset(lr_output_45_baseline,lr_output_45_baseline$qval <= 0.05)
+lr_output_cat3_all_glm_simple_sig = lr_output_cat3_all_glm_simple_sig[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat3_all_glm_simple= lr_output_45_baseline[,c("Compound_ID","coef","std","pval","qval")]
+lr_output_cat1_all_glm_simple_sig_sub = subset(plasma_metabolomics_global_rowfeature,plasma_metabolomics_global_rowfeature$Compound_ID %in% lr_output_cat1_all_glm_simple_sig$Compound_ID)
+lr_output_cat2_all_glm_simple_sig_sub = subset(plasma_metabolomics_global_rowfeature,plasma_metabolomics_global_rowfeature$Compound_ID %in% lr_output_cat2_all_glm_simple_sig$Compound_ID)
+lr_output_cat3_all_glm_simple_sig_sub = subset(plasma_metabolomics_global_rowfeature,plasma_metabolomics_global_rowfeature$Compound_ID %in% lr_output_cat3_all_glm_simple_sig$Compound_ID)
+
+Sub_pathway_table2 = intersect(lr_output_cat1_all_glm_simple_sig_sub$SUB_PATHWAY,intersect(lr_output_cat2_all_glm_simple_sig_sub$SUB_PATHWAY, lr_output_cat3_all_glm_simple_sig_sub$SUB_PATHWAY))
+Sub_pathway_table2 = unique(Sub_pathway_table2)
+
+plasma_metabolomics_global_rowfeature_temp = subset(plasma_metabolomics_global_rowfeature, plasma_metabolomics_global_rowfeature$SUB_PATHWAY %in% Sub_pathway_table2)
+figure_table = function(lr_table,plasma_metabolomics_global_rowfeature_temp){
+  tmp <- lr_table
+tmp = merge(tmp, plasma_metabolomics_global_rowfeature_temp, by = "Compound_ID", all.y = T)
+tmp <- tmp[!is.na(tmp$SUPER_PATHWAY),]
+tmp2 <- tmp[tmp$pval < 0.05, ]
+tmp3 <- tmp[tmp$qval < 0.05, ]
+dim(tmp3)
+tmp3 <- tmp[tmp$pval < 0.05 / 578, ]
+dim(tmp3)
+
+pathways <- unique(tmp$SUB_PATHWAY)
+
+# get a count of the total mets in each pathway 
+df <- data.table(pathways) # list of pathways
+df$total_pos <- 0 # create empty rows
+df$total_neg <- 0 # create empty rows
+for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp)){
+    if(df$pathways[i] == tmp$SUB_PATHWAY[j]){
+      if(tmp$coef[j] > 0){
+        df$total_pos[i] <- df$total_pos[i] + 1 
+      }
+      else{
+         df$total_neg[i] <- df$total_neg[i] - 1
+      }
+     
+    }
+  }
+}
+# get a count of sig mets in each pathway at P<0.05
+df$sig_neg <- 0
+df$sig_pos <- 0
+if(dim(tmp2)[1] > 0){
+for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp2)){
+    if(df$pathways[i] == tmp2$SUB_PATHWAY[j]){
+      ifelse(tmp2$coef[j] < 0, 
+             df$sig_neg[i] <- df$sig_neg[i] - 1,
+             df$sig_pos[i] <- df$sig_pos[i] + 1)
+    }
+  }
+}
+}
+# get a count of sig mets in each pathway at FDR<0.05
+df$sig_neg_fdr <- 0
+df$sig_pos_fdr <- 0
+if(dim(tmp3)[1] > 0){
+  for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp3)){
+    if(df$pathways[i] == tmp3$SUB_PATHWAY[j]){
+      ifelse(tmp3$coef[j] < 0, 
+             df$sig_neg_fdr[i] <- df$sig_neg_fdr[i] - 1,
+             df$sig_pos_fdr[i] <- df$sig_pos_fdr[i] + 1)
+    }
+  }
+}
+}
+
+
+# add in super pathways for coloring
+mets_info_all = plasma_metabolomics_global_rowfeature_temp
+mets_info_tmp <- mets_info_all[, c("SUPER_PATHWAY", "SUB_PATHWAY")]
+colnames(mets_info_tmp) <- c("SUPER_PATHWAY", "SUB_PATHWAY")
+df <- merge(mets_info_tmp, df, by.x = "SUB_PATHWAY", by.y = "pathways", all.y = T)
+
+# sort column and give idx
+df <- df[order(df$SUPER_PATHWAY, df$SUB_PATHWAY),] 
+
+df$idx <- as.factor(1:nrow(df))
+
+# create long df for plotting
+long <- melt(setDT(df), id.vars = c("SUB_PATHWAY","SUPER_PATHWAY", "idx"), variable.name = "key")
+long$SUB_PATHWAY <- as.factor(long$SUB_PATHWAY)
+long$color <- ifelse(long$SUPER_PATHWAY == "Amino Acid", "#FF689F",
+              ifelse(long$SUPER_PATHWAY == "Carbohydrate", "#E76BF3",
+              ifelse(long$SUPER_PATHWAY == "Cofactors and Vitamins", "#00A5FF",
+              ifelse(long$SUPER_PATHWAY == "Lipid", "#00B81F",
+              ifelse(long$SUPER_PATHWAY == "Nucleotide", "#BB9D00",
+              ifelse(long$SUPER_PATHWAY == "Peptide", "#F8766D",
+              ifelse(long$SUPER_PATHWAY == "Partially Characterized Molecules", "#E08B00",
+              ifelse(long$SUPER_PATHWAY == "Xenobiotics", "firebrick2",
+              ifelse(long$SUPER_PATHWAY == "Energy", "chocolate2", "pink")))))))))
+
+long$name <- paste0(long$SUPER_PATHWAY, " | ", long$SUB_PATHWAY)
+
+long2 <- long
+long2 <- long[!duplicated(long$name), ]
+rev_names =  rev(unique(long$name))
+long$name = factor(long$name, levels = rev_names)
+return(list(a = long, b= long2))
+}
+Callcat1 = figure_table(lr_output_cat1_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat2 = figure_table(lr_output_cat2_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+Callcat3 = figure_table(lr_output_cat3_all_glm_simple,plasma_metabolomics_global_rowfeature_temp)
+
+
+
+p_cat1 = ggplot(Callcat1$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Fatal vs. Non-fatal') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat1$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat2 = ggplot(Callcat2$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Severe vs. Non-severe') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat2$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_cat3 = ggplot(Callcat3$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Fatal vs. Severe') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_fdr" = "deepskyblue4",
+                               "sig_pos_fdr" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Callcat3$b$color)
+                                   )) +geom_vline(xintercept = 0)
+
+
+remove_y <- theme(
+  axis.text.y = element_blank(),
+  axis.ticks.y = element_blank(),
+  axis.title.y = element_blank()
+  
+)
+p <- list(
+  p_cat1 + 
+  theme(legend.position="none")+ xlim(-30,30),# + remove_y
+  p_cat2 + remove_y + xlim(-30,20)+
+  theme(legend.position="none"),
+  p_cat3+ remove_y + xlim(-30,30)+
+      theme(legend.position="none")
+ 
+ 
+)
+library(patchwork)
+p_TGcatall <- wrap_plots(p, nrow = 1) + plot_layout(guides = "collect")& theme(legend.position = 'bottom')
+p_TGcatall
+
+save(lr_output_cat1_all_glm_simple_sig, lr_output_cat2_all_glm_simple_sig, lr_output_cat3_all_glm_simple_sig, file = "Figure1_data.Rdata")
+```
+```{r}
+bubble_plot <- function(significant_table, metabolomics_rf, alpha, begin, end){
+  #
+  #significant_table <- linear_geeglm_results_sig
+  #metabolomics_rf <- plasma_metabolomics_global_rowfeature
+  #alpha = 1
+ # begin = 0
+  #end = 1
+  #
+  Sub_size <- c()
+  Sub_pathway <- c()
+  if(is.factor(metabolomics_rf$SUB_PATHWAY)){
+    metabolomics_rf$SUB_PATHWAY <- unfactor(metabolomics_rf$SUB_PATHWAY)
+  }
+  subpath_list <- unique(metabolomics_rf$SUB_PATHWAY)
+  
+  for(i in subpath_list){
+    if (!is.na(i)){
+      sub_table <- metabolomics_rf %>% filter(SUB_PATHWAY == i)
+      
+      sub <- unique(sub_table$SUB_PATHWAY)
+      Sub_pathway <- c(Sub_pathway, sub)
+      
+      size_sub <- length(sub_table$SUB_PATHWAY)
+      Sub_size <- c(Sub_size, size_sub)
+    }
+    
+    
+    
+  }
+  Sub_pathway_table <- data.table(Sub_pathway, Sub_size)
+  results_sig <- significant_table
+  results_sig_more <- merge(results_sig, Sub_pathway_table, by.x= "SUB_PATHWAY", by.y ="Sub_pathway")
+  results_sig_more$SUPER_PATHWAY <- as.character(results_sig_more$SUPER_PATHWAY)
+  pathwayfile <- results_sig_more
+  pathwayfile$qval[pathwayfile$qval == 0] <- 0.00000000000000000001
+  pathwayfile$`-log10FDR` <- -log10(pathwayfile$qval)
+  subpath_list <- unique(pathwayfile$SUB_PATHWAY)
+  
+  Super_pathway <- c()
+  Sub_pathway <- c()
+  mean_neglog10FDR <- c()
+  Size <- c()
+  Impact_ratio <- c()
+  Increase_ratio <- c()
+  Size_all <- c()
+  ###### impact ratio: # of significant / # of total in the subpathway 0-1
+  for(i in subpath_list){
+    sub_table <- pathwayfile %>% filter(SUB_PATHWAY == i)
+    
+    supp <- unique(sub_table$SUPER_PATHWAY)
+    Super_pathway <- c(Super_pathway, supp)
+    
+    sub <- unique(sub_table$SUB_PATHWAY)
+    Sub_pathway <- c(Sub_pathway, sub)
+    
+    mean_qval <- mean(sub_table$`-log10FDR`)
+    mean_neglog10FDR <- c(mean_neglog10FDR, mean_qval)
+    
+    size_sub <- length(sub_table$SUB_PATHWAY)
+    Size <- c(Size, size_sub)
+    size_all <- unique(sub_table$Sub_size)
+    Size_all <- c(Size_all, size_all)
+    im_ratio <- size_sub/size_all
+    Impact_ratio <- c(Impact_ratio, im_ratio)
+    
+    increased_table <- sub_table %>% filter(coef >= 0) 
+    increased_num <- length(increased_table$Name) / size_sub
+    Increase_ratio <- c(Increase_ratio, increased_num)
+    
+  }
+  path_output <- data.table(Super_pathway, Sub_pathway, mean_neglog10FDR, Impact_ratio,Size , Increase_ratio,Size_all)#
+  path_output$Super_pathway <- factor(path_output$Super_pathway, levels = c("Amino Acid" ,"Carbohydrate", "Cofactors and Vitamins", "Energy", "Lipid", "Nucleotide", "Partially Characterized Molecules", "Peptide","Xenobiotics"))
+  #path_output <- path_output[order(Super_pathway, desc(mean_p)),]
+  path_output <- path_output[order(Super_pathway),]
+  
+  path_output$Super_pathway2 <- path_output$Super_pathway
+  path_output$Super_pathway2 <- factor(path_output$Super_pathway, levels = c("Amino Acid" ,"Carbohydrate", "Cofactors and Vitamins", "Energy", "Lipid", "Nucleotide", "Partially Characterized Molecules", "Peptide","Xenobiotics"), ordered = TRUE)
+  #path_output$Super_pathway = unfactor(path_output$Super_pathway)
+  p <- path_output %>%
+    arrange(dplyr::desc(Super_pathway),mean_neglog10FDR) %>% mutate(Sub_pathway=factor(Sub_pathway, levels=Sub_pathway)) %>%
+    ggplot(aes(x= Sub_pathway, y =mean_neglog10FDR)) +
+    scale_colour_viridis_c( alpha = alpha,
+                            begin = begin,
+                            end = end,
+                            direction = 1)+
+    geom_tile(aes(fill = Super_pathway2), height = Inf, alpha =0.7) +
+    geom_point(aes(size = Impact_ratio, colour = Increase_ratio)) + #Size
+    geom_point(aes(size = Impact_ratio),shape = 1,colour = "black") +  #Size
+    scale_fill_manual(values = c("Amino Acid" = "#fed0ed",
+                                 "Carbohydrate" = "#f4d5fe",
+                                 "Cofactors and Vitamins" = "#d0e1ff",
+                                 "Energy" = "#b3eaf6",
+                                   "Lipid" = "#b3ece2", 
+                                 "Nucleotide" = "#b3eac3",
+                                 "Partially Characterized Molecules" = "#dee5b3",
+                                   "Peptide" = "#f2deb3", "Xenobiotics" = "#Fdd6d3"))+
+    theme_light() +xlab("Sub_pathway")+
+    coord_flip() #+ scale_x_reverse()
+path_output = path_output %>%
+    arrange(dplyr::desc(Super_pathway),mean_neglog10FDR) %>% mutate(Sub_pathway=factor(Sub_pathway, levels=Sub_pathway))
+  path_output<- path_output[seq(dim(path_output)[1],1),]
+  return(list(figure = p, table = path_output)) 
+}
+```
+
+# bubble plot
+```{r}
+plasma_metabolomics_global_rowfeature_tmp = plasma_metabolomics_global_rowfeature
+lr_output_123_baseline_sig = subset(lr_output_123_baseline, lr_output_123_baseline$qval <= 0.05)
+bubble_plot_123_baseline_figure = bubble_plot(lr_output_123_baseline_sig, plasma_metabolomics_global_rowfeature_tmp,alpha= 1, begin = 0, end = 1)$figure
+bubble_plot_123_baseline_table = bubble_plot(lr_output_123_baseline_sig, plasma_metabolomics_global_rowfeature_tmp,alpha= 1, begin = 0, end = 1)$table
+
+
+lr_output_diedever_baseline_sig = subset(lr_output_diedever_baseline, lr_output_diedever_baseline$qval <= 0.05)
+bubble_plot_diedever_baseline_figure = bubble_plot(lr_output_diedever_baseline_sig, plasma_metabolomics_global_rowfeature_tmp,alpha= 1, begin = 0, end = 1)$figure
+bubble_plot_diedever_baseline_table = bubble_plot(lr_output_diedever_baseline_sig, plasma_metabolomics_global_rowfeature_tmp,alpha= 1, begin = 0, end = 1)$table
+
+lr_output_AD_baseline_sig = subset(lr_output_AD_baseline, lr_output_AD_baseline$qval <= 0.05)
+bubble_plot_AD_baseline_figure = bubble_plot(lr_output_AD_baseline_sig, plasma_metabolomics_global_rowfeature_tmp,alpha= 1, begin = 0, end = 1)$figure
+bubble_plot_AD_baseline_table = bubble_plot(lr_output_AD_baseline_sig, plasma_metabolomics_global_rowfeature_tmp,alpha= 1, begin = 0, end = 1)$table
+
+```
+
+```{r}
+all_pathways =  rbind(bubble_plot_diedever_baseline_table[,1:2], bubble_plot_AD_baseline_table[,1:2], bubble_plot_123_baseline_table[,1:2])
+all_pathways <- unique(all_pathways)
+bubble_plot_diedever_baseline_table_all = merge(all_pathways, bubble_plot_diedever_baseline_table, all.x = TRUE, by=c("Super_pathway","Sub_pathway"))
+bubble_plot_AD_baseline_table_all = merge(all_pathways, bubble_plot_AD_baseline_table, all.x = TRUE, by=c("Super_pathway","Sub_pathway"))
+bubble_plot_123_baseline_table_all = merge(all_pathways, bubble_plot_123_baseline_table, all.x = TRUE, by=c("Super_pathway","Sub_pathway"))
+bubble_plot_diedever_baseline_table_less = bubble_plot_diedever_baseline_table_all[,c("Sub_pathway","Impact_ratio")]
+bubble_plot_AD_baseline_table_less = bubble_plot_AD_baseline_table_all[,c("Sub_pathway","Impact_ratio")]
+bubble_plot_123_baseline_table_less = bubble_plot_123_baseline_table_all[,c("Sub_pathway","Impact_ratio")]
+names(bubble_plot_diedever_baseline_table_less)[2] = "Non-SurvivorsvsSurvivors"
+names(bubble_plot_AD_baseline_table_less)[2] = "TG1_4vsTG5"
+names(bubble_plot_123_baseline_table_less)[2] = "TG1_3vsTG4_5"
+enrich_all <- cbind(bubble_plot_diedever_baseline_table_less, bubble_plot_AD_baseline_table_less, bubble_plot_123_baseline_table_less)
+enrich_all <- as.data.frame(enrich_all[,c( "Sub_pathway","Non-SurvivorsvsSurvivors","TG1_4vsTG5","TG1_3vsTG4_5")])
+enrich_all = enrich_all %>% mutate(Sub_pathway2 = ifelse(!is.na(`Non-SurvivorsvsSurvivors`) & !is.na(TG1_4vsTG5) & !is.na(TG1_3vsTG4_5), paste0(Sub_pathway,"*"), paste0(Sub_pathway)))
+rownames(enrich_all) <- enrich_all$Sub_pathway2
+enrich_all$Sub_pathway <- NULL
+enrich_all$Sub_pathway2 <- NULL
+enrich_all[is.na(enrich_all)] <- 0
+enrich_all <- t(enrich_all)
+enrich_all <- as.matrix(enrich_all) 
+```
+
+```{r}
+
+path_output1 = bubble_plot_AD_baseline_table
+path_output2 = bubble_plot_123_baseline_table
+path_output3 = bubble_plot_diedever_baseline_table
+
+all_pathway = merge(path_output1, path_output2, by = c("Super_pathway","Sub_pathway"))
+all_pathway = merge(all_pathway, path_output3, by = c("Super_pathway","Sub_pathway"))
+
+path_output1_all =subset(path_output1, path_output1$Sub_pathway %in% all_pathway$Sub_pathway)
+path_output2_all =subset(path_output2, path_output2$Sub_pathway %in% all_pathway$Sub_pathway)
+path_output3_all =subset(path_output3, path_output3$Sub_pathway %in% all_pathway$Sub_pathway)
+
+path_output1_all$type = "Fatal vs. Non-fatal"
+path_output2_all$type = "Severe vs. Non-severe"
+path_output3_all$type = "Non-servivors vs. Servivors"
+
+path_output = rbind(path_output1_all, path_output2_all, path_output3_all)
+path_output = path_output %>%
+    arrange(dplyr::desc(Super_pathway), Sub_pathway)
+#p <- path_output %>%
+ #   arrange(desc(Super_pathway)) %>% mutate(Sub_pathway=factor(Sub_pathway)) %>%
+path_output$type = factor(path_output$type, levels = c("Fatal vs. Non-fatal", "Severe vs. Non-severe", "Non-servivors vs. Servivors"))
+ p_bubble = ggplot(path_output, aes(x= factor(Sub_pathway), y =type)) +
+    scale_colour_viridis_c( alpha = 1,
+                            begin = 0,
+                            end = 1,
+                            direction = 1)+
+    geom_tile(aes(fill = Super_pathway2), height = Inf, alpha =0.7) +
+    geom_point(aes(size = Impact_ratio, colour = Increase_ratio)) + #Size
+    geom_point(aes(size = Impact_ratio),shape = 1,colour = "black") +  #Size
+    scale_fill_manual(values = c("Amino Acid" = "#fed0ed",
+                                 "Carbohydrate" = "#f4d5fe",
+                                 "Cofactors and Vitamins" = "#d0e1ff",
+                                 "Energy" = "#b3eaf6",
+                                   "Lipid" = "#b3ece2", 
+                                 "Nucleotide" = "#b3eac3",
+                                 "Partially Characterized Molecules" = "#dee5b3",
+                                   "Peptide" = "#f2deb3", "Xenobiotics" = "#Fdd6d3"))+
+    theme_light() +xlab("Sub_pathway")+ theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size =10),axis.text.y = element_text(size =10)) +
+    coord_flip() #+ scale_x_reverse()
+ p_bubble
+```
+```{r}
+summary_metab_data = path_output
+summary_metab_data$Sub_pathway = as.character(summary_metab_data$Sub_pathway)
+summary_metab_data$Super_pathway = as.character(summary_metab_data$Super_pathway)
+summary_metab_data$type = factor(summary_metab_data$type, levels = c("Non-servivors vs. Servivors", "Severe vs. Non-severe", "Fatal vs. Non-fatal"))
+gg1 <- summary_metab_data %>%
+  arrange(Super_pathway, Sub_pathway) %>%
+  filter(!is.na(Super_pathway)) %>%
+  ggplot(aes(y=type, x=fct_reorder(Sub_pathway, Super_pathway))) +
+  geom_point(aes(size = Impact_ratio, color = mean_neglog10FDR)) +
+  ylab("Comparisons") +
+  theme_light() +
+  theme(axis.text.y = element_text(color = "black", size = 10),
+        axis.text.x = element_blank(),
+        panel.border = element_rect(color="black", size = 1),
+        axis.ticks = element_line(color = "black"),
+        axis.title.x = element_blank(),axis.title.y = element_blank(),legend.position = "bottom") +
+   scale_colour_gradientn(colours = rev(c("darkred", "red", "orange")), name = "-log10 Transformed\nAdjusted p-values")
+
+gg1
+tmp.data <- summary_metab_data %>%
+  distinct(Sub_pathway, Super_pathway) %>%
+  arrange(Super_pathway, Sub_pathway) %>%
+  mutate(Sub_pathway = as.factor(Sub_pathway)) 
+Sub_pathway_levels = tmp.data$Sub_pathway
+tmp.data$Sub_pathway <-factor(tmp.data$Sub_pathway, levels = Sub_pathway_levels)
+
+gg2 <- tmp.data %>%
+  ggplot(aes(y=1, x= Sub_pathway)) +#fct_reorder(SUB_PATHWAY, SUPER_PATHWAY)
+  geom_tile(aes(fill = Super_pathway)) +
+  theme_classic() +
+  theme(axis.text.y = element_blank(),
+       axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, color = "black", size = 10),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),axis.title.x = element_blank(),legend.position = "bottom") +
+      scale_fill_manual(values = c("Amino Acid" = "#fed0ed",
+                                 "Carbohydrate" = "#f4d5fe",
+                                 "Cofactors and Vitamins" = "#d0e1ff",
+                                "Energy" = "#b3eaf6",
+                                   "Lipid" = "#b3ece2", 
+                                 "Nucleotide" = "#b3eac3",
+                                 "Partially Characterized Molecules" = "#dee5b3",
+                                   "Peptide" = "#f2deb3", "Xenobiotics" = "#Fdd6d3"))
+gg2 
+#scale_fill_manual(values = c("Amino Acid" = "#972367",
+#                                 "Carbohydrate" = "#ba1d27",
+#                                 "Cofactors and Vitamins" = "orange",#58801d
+#                                 "Energy" = "#ffd932",
+#                                   "Lipid" = "#58801d", 
+#                                 "Nucleotide" = "#b6e0f5",
+#                                 "Partially Characterized Molecules" = "#76a4f8",
+ #                                  "Peptide" = "purple", "Xenobiotics" = "#36332f"))
+#
+ 
+
+library(aplot)
+Figure_B_1 = gg2 %>% insert_top(gg1, height = 4) 
+Figure_B_1 = print(Figure_B_1) & theme(legend.position='bottom')
+```
+```{r}
+Figure_B_1_1 = gg2 %>% insert_top(gg1, height = 4) 
+Figure_B_1_1 = print(Figure_B_1_1) & theme(legend.position='bottom')
+
+Figure_B_1_2 = gg2 %>% insert_top(gg1, height = 8) 
+Figure_B_1_2 = print(Figure_B_1_2) & theme(legend.position='bottom')
+```
+
+```{r}
+summary_metab_data = path_output
+summary_metab_data$Sub_pathway = as.character(summary_metab_data$Sub_pathway)
+summary_metab_data$Super_pathway = as.character(summary_metab_data$Super_pathway)
+gg1 <- summary_metab_data %>%
+  arrange(Super_pathway, Sub_pathway) %>%
+  filter(!is.na(Super_pathway)) %>%
+  ggplot(aes(x=type, y=fct_reorder(Sub_pathway, Super_pathway))) +
+  geom_point(aes(size = Impact_ratio, color = mean_neglog10FDR)) +
+  xlab("Comparisons") +
+  theme_light() +
+  theme(axis.text.x = element_text(vjust = 1, hjust=1,color = "black",angle = 45),
+        axis.text.y = element_blank(),
+        panel.border = element_rect(color="black", size = 1),
+        axis.ticks = element_line(color = "black"),
+        axis.title.y = element_blank()) +
+   scale_colour_gradientn(colours = rev(c("darkred", "red", "orange")), name = "-log10 Transformed\nAdjusted p-values")
+
+
+tmp.data <- summary_metab_data %>%
+  distinct(Sub_pathway, Super_pathway) %>%
+  arrange(Super_pathway, Sub_pathway) %>%
+  mutate(Sub_pathway = as.factor(Sub_pathway)) 
+Sub_pathway_levels = tmp.data$Sub_pathway
+tmp.data$Sub_pathway <-factor(tmp.data$Sub_pathway, levels = Sub_pathway_levels)
+
+gg2 <- tmp.data %>%
+  ggplot(aes(x=1, y= Sub_pathway)) +#fct_reorder(SUB_PATHWAY, SUPER_PATHWAY)
+  geom_tile(aes(fill = Super_pathway)) +
+  theme_classic() +
+  theme(axis.text.x = element_blank(),
+       axis.text.y = element_text(vjust = 1, hjust=1, color = "black"),
+        axis.ticks.x = element_blank(),
+        axis.title.x = element_blank()) +
+      scale_fill_manual(values = c("Amino Acid" = "#fed0ed",
+                                 "Carbohydrate" = "#f4d5fe",
+                                 "Cofactors and Vitamins" = "#d0e1ff",
+                                "Energy" = "#b3eaf6",
+                                   "Lipid" = "#b3ece2", 
+                                 "Nucleotide" = "#b3eac3",
+                                 "Partially Characterized Molecules" = "#dee5b3",
+                                   "Peptide" = "#f2deb3", "Xenobiotics" = "#Fdd6d3"))
+gg2 
+#scale_fill_manual(values = c("Amino Acid" = "#972367",
+#                                 "Carbohydrate" = "#ba1d27",
+#                                 "Cofactors and Vitamins" = "orange",#58801d
+#                                 "Energy" = "#ffd932",
+#                                   "Lipid" = "#58801d", 
+#                                 "Nucleotide" = "#b6e0f5",
+#                                 "Partially Characterized Molecules" = "#76a4f8",
+ #                                  "Peptide" = "purple", "Xenobiotics" = "#36332f"))
+#
+ 
+
+library(aplot)
+figure_B = gg2 %>% insert_right(gg1, width = 4)
+```
+
+
+```{r}
+
+path_output1 = bubble_plot_AD_baseline_table
+path_output2 = bubble_plot_123_baseline_table
+path_output3 = bubble_plot_diedever_baseline_table
+
+all_pathways =  rbind(bubble_plot_diedever_baseline_table[,1:2], bubble_plot_AD_baseline_table[,1:2], bubble_plot_123_baseline_table[,1:2])
+all_pathways <- unique(all_pathways)
+
+path_output1_all = merge(path_output1, all_pathways, by = c("Super_pathway" , "Sub_pathway"), all.y = TRUE)
+path_output2_all = merge(path_output2, all_pathways, by = c("Super_pathway" , "Sub_pathway"), all.y = TRUE)
+path_output3_all = merge(path_output3, all_pathways, by = c("Super_pathway" , "Sub_pathway"), all.y = TRUE)
+
+path_output1_all$type = "Fatal vs. Non-fatal"
+path_output2_all$type = "Severe vs. Non-severe"
+path_output3_all$type = "Non-servivors vs. Servivors"
+
+path_output = rbind(path_output1_all, path_output2_all, path_output3_all)
+path_output = path_output %>%
+    arrange(dplyr::desc(Super_pathway), Sub_pathway)
+#p <- path_output %>%
+ #   arrange(desc(Super_pathway)) %>% mutate(Sub_pathway=factor(Sub_pathway)) %>%
+path_output$type = factor(path_output$type, levels = c("Fatal vs. Non-fatal", "Severe vs. Non-severe", "Non-servivors vs. Servivors"))
+ 
+```
+```{r}
+summary_metab_data = path_output
+summary_metab_data$Sub_pathway = as.character(summary_metab_data$Sub_pathway)
+summary_metab_data$Super_pathway = as.character(summary_metab_data$Super_pathway)
+summary_metab_data$type = factor(summary_metab_data$type, levels = c("Non-servivors vs. Servivors", "Severe vs. Non-severe", "Fatal vs. Non-fatal"))
+gg1 <- summary_metab_data %>%
+  arrange(Super_pathway, Sub_pathway) %>%
+  filter(!is.na(Super_pathway)) %>%
+  ggplot(aes(y=type, x=fct_reorder(Sub_pathway, Super_pathway))) +
+  geom_point(aes(size = Impact_ratio, color = mean_neglog10FDR)) +
+  ylab("Comparisons") +
+  theme_light() +
+  theme(axis.text.y = element_text(color = "black", size = 10),
+        axis.text.x = element_blank(),
+        panel.border = element_rect(color="black", size = 1),
+        axis.ticks = element_line(color = "black"),
+        axis.title.x = element_blank(),axis.title.y = element_blank(),legend.position = "bottom") +
+   scale_colour_gradientn(colours = rev(c("darkred", "red", "orange")), name = "-log10 Transformed\nAdjusted p-values")
+
+
+tmp.data <- summary_metab_data %>%
+  distinct(Sub_pathway, Super_pathway) %>%
+  arrange(Super_pathway, Sub_pathway) %>%
+  mutate(Sub_pathway = as.factor(Sub_pathway)) 
+Sub_pathway_levels = tmp.data$Sub_pathway
+tmp.data$Sub_pathway <-factor(tmp.data$Sub_pathway, levels = Sub_pathway_levels)
+
+gg2 <- tmp.data %>%
+  ggplot(aes(y=1, x= Sub_pathway)) +#fct_reorder(SUB_PATHWAY, SUPER_PATHWAY)
+  geom_tile(aes(fill = Super_pathway)) +
+  theme_classic() +
+  theme(axis.text.y = element_blank(),
+       axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, color = "black", size = 10),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),axis.title.x = element_blank(),legend.position = "bottom") +
+      scale_fill_manual(values = c("Amino Acid" = "#fed0ed",
+                                 "Carbohydrate" = "#f4d5fe",
+                                 "Cofactors and Vitamins" = "#d0e1ff",
+                                "Energy" = "#b3eaf6",
+                                   "Lipid" = "#b3ece2", 
+                                 "Nucleotide" = "#b3eac3",
+                                 "Partially Characterized Molecules" = "#dee5b3",
+                                   "Peptide" = "#f2deb3", "Xenobiotics" = "#Fdd6d3"))
+gg2 
+#scale_fill_manual(values = c("Amino Acid" = "#972367",
+#                                 "Carbohydrate" = "#ba1d27",
+#                                 "Cofactors and Vitamins" = "orange",#58801d
+#                                 "Energy" = "#ffd932",
+#                                   "Lipid" = "#58801d", 
+#                                 "Nucleotide" = "#b6e0f5",
+#                                 "Partially Characterized Molecules" = "#76a4f8",
+ #                                  "Peptide" = "purple", "Xenobiotics" = "#36332f"))
+#
+ 
+
+library(aplot)
+Figure_B_1 = gg2 %>% insert_top(gg1, height = 4) 
+Figure_B_1 = print(Figure_B_1) & theme(legend.position='bottom')
+```
+
+
+```{ r}
+x_data_frame = lr_output_AD_baseline[,c("Compound_ID","coef","qval")]
+y_data_frame = lr_output_123_baseline[,c("Compound_ID","coef","qval")]
+
+names(x_data_frame)[2] = "Fatal"
+names(x_data_frame)[3] = "qval_Fatal"
+names(y_data_frame)[2] = "Severe"
+names(y_data_frame)[3] = "qval_Severe"
+
+data_all = merge(x_data_frame, y_data_frame, by = "Compound_ID")
+data_all = subset(data_all, data_all$Compound_ID!= "X1442")
+
+data_all <- data_all %>% as.data.frame() %>% dplyr::mutate(Direction = case_when(
+  qval_Fatal <= 0.05 & qval_Severe <= 0.05 & Fatal > 0 &  Severe>0 ~ "Up sig both fatal and severe", 
+  qval_Fatal <= 0.05 & qval_Severe <= 0.05 & Fatal < 0 &  Severe<0 ~ "Down sig both fatal and severe", 
+  (qval_Fatal <= 0.05 | qval_Severe <= 0.05) & Fatal > 0 &  Severe>0 ~ "Up sig fatal or severe", 
+  (qval_Fatal <= 0.05 | qval_Severe <= 0.05) & Fatal < 0 &  Severe<0 ~ "Down sig fatal or severe", 
+  (qval_Fatal <= 0.05 & qval_Severe <= 0.05) & Fatal < 0 &  Severe>0 ~ "Sig opposite fatal and severe", 
+  (qval_Fatal <= 0.05 & qval_Severe <= 0.05) & Fatal > 0 &  Severe<0 ~ "Sig opposite fatal and severe", 
+  TRUE ~ "NotSig")) 
+
+
+ggplot(data = data_all)  +
+    geom_point(aes(x = Fatal, y =Severe,fill = Direction), size = 3, pch = 21, alpha = 0.5) +
+    theme_classic()+ geom_hline(yintercept =0, linetype = "dashed", alpha = 0.8) + geom_vline(xintercept =0, linetype = "dashed", alpha = 0.8) +
+    scale_fill_manual(values = c("NotSig" = "#C0C0C0", "Down sig both fatal and severe"="darkblue","Up sig both fatal and severe"="darkred", "Down sig fatal or severe"="lightblue", "Up sig fatal or severe"="pink", "Sig opposite fatal and severe"="yellow")) 
+```
+
+
+# Bubble by pathways_up and down 12
+```{ r}
+bubble_plot <- function(significant_table, metabolomics_rf, rowfeature_all){
+  #lr_output_V1_12_glm_simple_up, plasma_metabolomics_global_rowfeature_temp,rowfeature_all
+  significant_table <- significant_table
+  metabolomics_rf <- metabolomics_rf
+  rowfeature_all <- rowfeature_all
+  alpha = 1
+  begin = 0
+  end = 1
+  #
+  Sub_size <- c()
+  Sub_pathway <- c()
+  if(is.factor(rowfeature_all$SUB_PATHWAY)){
+    rowfeature_all$SUB_PATHWAY <- unfactor(rowfeature_all$SUB_PATHWAY)
+  }
+  subpath_list <- unique(rowfeature_all$SUB_PATHWAY)
+  
+  for(i in subpath_list){
+    if (!is.na(i)){
+      sub_table <- rowfeature_all %>% filter(SUB_PATHWAY == i)
+      
+      sub <- unique(sub_table$SUB_PATHWAY)
+      Sub_pathway <- c(Sub_pathway, sub)
+      
+      size_sub <- length(sub_table$SUB_PATHWAY)
+      Sub_size <- c(Sub_size, size_sub)
+    }
+    
+    
+    
+  }
+  Sub_pathway_table <- data.table(Sub_pathway, Sub_size)
+  results_sig <- significant_table
+  results_sig_more <- merge(results_sig, Sub_pathway_table, by.x ="SUB_PATHWAY.y", by.y = "Sub_pathway")
+  results_sig_more$SUPER_PATHWAY <- as.character(results_sig_more$SUPER_PATHWAY.y)
+  pathwayfile <- results_sig_more
+ 
+  pathwayfile$`-log10FDR` <- -log10(pathwayfile$qval)
+  subpath_list <- unique(pathwayfile$SUB_PATHWAY.y)
+  
+  Super_pathway <- c()
+  Sub_pathway <- c()
+  mean_neglog10FDR <- c()
+  Size <- c()
+  Impact_ratio <- c()
+  Increase_ratio <- c()
+  Size_all <- c()
+  ###### impact ratio: # of significant / # of total in the subpathway 0-1
+  for(i in subpath_list){
+    sub_table <- pathwayfile %>% filter(SUB_PATHWAY.y == i)
+    
+    supp <- unique(sub_table$SUPER_PATHWAY)
+    Super_pathway <- c(Super_pathway, supp)
+    
+    sub <- unique(sub_table$SUB_PATHWAY.y)
+    Sub_pathway <- c(Sub_pathway, sub)
+    
+    mean_qval <- mean(sub_table$`-log10FDR`)
+    mean_neglog10FDR <- c(mean_neglog10FDR, mean_qval)
+    
+    size_sub <- length(sub_table$SUB_PATHWAY.y)
+    Size <- c(Size, size_sub)
+    size_all <- unique(sub_table$Sub_size)
+    Size_all <- c(Size_all, size_all)
+    im_ratio <- size_sub/size_all
+    Impact_ratio <- c(Impact_ratio, im_ratio)
+    
+    increased_table <- sub_table %>% filter(coef >= 0) 
+    increased_num <- length(increased_table$mets_list) / size_sub
+    Increase_ratio <- c(Increase_ratio, increased_num)
+    
+  }
+  path_output <- data.table(Super_pathway, Sub_pathway, mean_neglog10FDR, Impact_ratio,Size , Increase_ratio,Size_all)#
+  path_output$Super_pathway <- factor(path_output$Super_pathway, levels = c("Amino Acid" ,"Carbohydrate", "Cofactors and Vitamins", "Energy", "Lipid", "Nucleotide", "Partially Characterized Molecules", "Peptide","Xenobiotics"))
+  #path_output <- path_output[order(Super_pathway, desc(mean_p)),]
+  path_output <- path_output[order(Super_pathway),]
+  
+  path_output$Super_pathway2 <- path_output$Super_pathway
+  path_output$Super_pathway2 <- factor(path_output$Super_pathway, levels = c("Amino Acid" ,"Carbohydrate", "Cofactors and Vitamins", "Energy", "Lipid", "Nucleotide", "Partially Characterized Molecules", "Peptide","Xenobiotics"), ordered = TRUE)
+ 
+path_output = path_output %>%
+    arrange(desc(Super_pathway),mean_neglog10FDR) %>% mutate(Sub_pathway=factor(Sub_pathway, levels=Sub_pathway))
+  #path_output<- path_output[seq(dim(path_output)[1],1),]
+return(path_output)
+}
+```
+```{ r}
+
+plasma_metabolomics_global_rowfeature_temp$Compound_ID = rownames(plasma_metabolomics_global_rowfeature_temp)
+rowfeature_all = subset(plasma_metabolomics_global_rowfeature_temp, plasma_metabolomics_global_rowfeature_temp$SUB_PATHWAY %in% Sub_pathway_table2)[,c("Compound_ID","SUPER_PATHWAY","SUB_PATHWAY")]
+lr_output_V1_12_glm_simple_sig = merge(lr_output_AD_baseline, plasma_metabolomics_global_rowfeature_temp, by = "Compound_ID")
+lr_output_V1_12_glm_simple_sig = subset(lr_output_V1_12_glm_simple_sig,lr_output_V1_12_glm_simple_sig$qval <= 0.05)
+lr_output_V1_12_glm_simple_up = subset(lr_output_V1_12_glm_simple_sig, lr_output_V1_12_glm_simple_sig$coef >= 0)
+lr_output_V1_12_glm_simple_down = subset(lr_output_V1_12_glm_simple_sig, lr_output_V1_12_glm_simple_sig$coef < 0)
+  
+path_output_V1_21_up = bubble_plot(lr_output_V1_12_glm_simple_up, plasma_metabolomics_global_rowfeature_temp,rowfeature_all)
+path_output_V1_21_down = bubble_plot(lr_output_V1_12_glm_simple_down, plasma_metabolomics_global_rowfeature_temp,rowfeature_all)
+####V2
+lr_output_V2_12_glm_simple_sig = merge(lr_output_AS_baseline, plasma_metabolomics_global_rowfeature_temp, by = "Compound_ID")
+lr_output_V2_12_glm_simple_sig = subset(lr_output_V2_12_glm_simple_sig,lr_output_V2_12_glm_simple_sig$qval <= 0.05)
+lr_output_V2_12_glm_simple_up = subset(lr_output_V2_12_glm_simple_sig, lr_output_V2_12_glm_simple_sig$coef >= 0)
+lr_output_V2_12_glm_simple_down = subset(lr_output_V2_12_glm_simple_sig, lr_output_V2_12_glm_simple_sig$coef < 0)
+  
+path_output_V2_21_up = bubble_plot(lr_output_V2_12_glm_simple_up, plasma_metabolomics_global_rowfeature_temp,rowfeature_all)
+path_output_V2_21_down = bubble_plot(lr_output_V2_12_glm_simple_down, plasma_metabolomics_global_rowfeature_temp,rowfeature_all)
+
+####V3
+lr_output_V3_12_glm_simple_sig = merge(lr_output_45_baseline, plasma_metabolomics_global_rowfeature_temp, by = "Compound_ID")
+lr_output_V3_12_glm_simple_sig = subset(lr_output_V3_12_glm_simple_sig,lr_output_V3_12_glm_simple_sig$qval <= 0.05)
+lr_output_V3_12_glm_simple_up = subset(lr_output_V3_12_glm_simple_sig, lr_output_V3_12_glm_simple_sig$coef >= 0)
+lr_output_V3_12_glm_simple_down = subset(lr_output_V3_12_glm_simple_sig, lr_output_V3_12_glm_simple_sig$coef < 0)
+  
+path_output_V3_21_up = bubble_plot(lr_output_V3_12_glm_simple_up, plasma_metabolomics_global_rowfeature_temp,rowfeature_all)
+path_output_V3_21_down = bubble_plot(lr_output_V3_12_glm_simple_down, plasma_metabolomics_global_rowfeature_temp,rowfeature_all)
+
+
+```
+
+
+```{ r}
+Sub_pathway_table2 = unique(rowfeature_all[,c("SUPER_PATHWAY","SUB_PATHWAY")])
+names(Sub_pathway_table2) = c("Super_pathway","Sub_pathway")
+path_output_V1_21_more_up <- merge(Sub_pathway_table2, path_output_V1_21_up, by = c("Super_pathway","Sub_pathway"), all.x = TRUE)
+path_output_V1_21_more_up$Super_pathway2 <- path_output_V1_21_more_up$Super_pathway
+path_output_V1_21_more_down <- merge(Sub_pathway_table2, path_output_V1_21_down, by = c("Super_pathway","Sub_pathway"), all.x = TRUE)
+path_output_V1_21_more_down$Super_pathway2 <- path_output_V1_21_more_down$Super_pathway
+
+path_output_V2_21_more_up <- merge(Sub_pathway_table2, path_output_V2_21_up, by = c("Super_pathway","Sub_pathway"), all.x = TRUE)
+path_output_V2_21_more_up$Super_pathway2 <- path_output_V2_21_more_up$Super_pathway
+path_output_V2_21_more_down <- merge(Sub_pathway_table2, path_output_V2_21_down, by = c("Super_pathway","Sub_pathway"), all.x = TRUE)
+path_output_V2_21_more_down$Super_pathway2 <- path_output_V2_21_more_down$Super_pathway
+
+path_output_V3_21_more_up <- merge(Sub_pathway_table2, path_output_V3_21_up, by = c("Super_pathway","Sub_pathway"), all.x = TRUE)
+path_output_V3_21_more_up$Super_pathway2 <- path_output_V3_21_more_up$Super_pathway
+path_output_V3_21_more_down <- merge(Sub_pathway_table2, path_output_V3_21_down, by = c("Super_pathway","Sub_pathway"), all.x = TRUE)
+path_output_V3_21_more_down$Super_pathway2 <- path_output_V3_21_more_down$Super_pathway
+
+
+```
+
+```{ r}
+Super_pathway = path_output_V3_21_more_up$Super_pathway
+########################V1
+path_output_V1_21_more_up$type = "Up"
+path_output_V1_21_more_down$type = "Down"
+
+path_output_V1_21_more_all = rbind(path_output_V1_21_more_up, path_output_V1_21_more_down)
+ path_output_V1_21_more_all$Super_pathway <- factor(path_output_V1_21_more_all$Super_pathway, levels = c("Amino Acid" ,"Carbohydrate", "Cofactors and Vitamins", "Energy", "Lipid", "Nucleotide", "Partially Characterized Molecules", "Peptide","Xenobiotics"))
+ 
+  path_output_V1_21_more_all <- path_output_V1_21_more_all[order(path_output_V1_21_more_all$Super_pathway),]
+  
+  path_output_V1_21_more_all$Super_pathway2 <- path_output_V1_21_more_all$Super_pathway
+  path_output_V1_21_more_all$Super_pathway2 <- factor(path_output_V1_21_more_all$Super_pathway, levels = c("Amino Acid" ,"Carbohydrate", "Cofactors and Vitamins", "Energy", "Lipid", "Nucleotide", "Partially Characterized Molecules", "Peptide","Xenobiotics"), ordered = TRUE)
+   alpha = 1
+  begin = 0
+  end = 1
+   Sub_pathway2 = rev(path_output_V1_21_more_up$Sub_pathway)
+pV1 <-  path_output_V1_21_more_all %>%
+    arrange(desc(Super_pathway)) %>% mutate(Sub_pathway=factor(Sub_pathway, levels=Sub_pathway2)) %>%
+    ggplot(aes(x= Sub_pathway, y =mean_neglog10FDR)) +
+    scale_colour_viridis_c( alpha = alpha,
+                            begin = begin,
+                            end = end,
+                            direction = 1)+
+    geom_tile(aes(fill = Super_pathway2), height = Inf, alpha =0.7) +
+    geom_point(aes(size = Impact_ratio, shape = type)) + #Size
+    #geom_point(aes(size = Impact_ratio),shape = 1,colour = "black") +  #Size
+    scale_fill_manual(values = c("Amino Acid" = "#fed0ed",
+                                 "Carbohydrate" = "#f4d5fe",
+                                 "Cofactors and Vitamins" = "#d0e1ff",
+                                 "Energy" = "#b3eaf6",
+                                   "Lipid" = "#b3ece2", 
+                                 "Nucleotide" = "#b3eac3",
+                                 "Partially Characterized Molecules" = "#dee5b3",
+                                   "Peptide" = "#f2deb3", "Xenobiotics" = "#Fdd6d3"))+scale_shape_manual(values=c("Up" = 2, 
+                                                                                                                  "Down" = 6))+
+    theme_light() +xlab("Sub_pathway")+labs(title = "Fatal vs. Non-fatal")+
+    coord_flip() #+ scale_x_reverse()
+pV1
+
+########################V2
+path_output_V2_21_more_up$type = "Up"
+path_output_V2_21_more_down$type = "Down"
+
+path_output_V2_21_more_all = rbind(path_output_V2_21_more_up, path_output_V2_21_more_down)
+ path_output_V2_21_more_all$Super_pathway <- factor(path_output_V2_21_more_all$Super_pathway, levels = c("Amino Acid" ,"Carbohydrate", "Cofactors and Vitamins", "Energy", "Lipid", "Nucleotide", "Partially Characterized Molecules", "Peptide","Xenobiotics"))
+ 
+  path_output_V2_21_more_all <- path_output_V2_21_more_all[order(path_output_V2_21_more_all$Super_pathway),]
+  
+  path_output_V2_21_more_all$Super_pathway2 <- path_output_V2_21_more_all$Super_pathway
+  path_output_V2_21_more_all$Super_pathway2 <- factor(path_output_V2_21_more_all$Super_pathway, levels = c("Amino Acid" ,"Carbohydrate", "Cofactors and Vitamins", "Energy", "Lipid", "Nucleotide", "Partially Characterized Molecules", "Peptide","Xenobiotics"), ordered = TRUE)
+   alpha = 1
+  begin = 0
+  end = 1
+  
+pV2 <-  path_output_V2_21_more_all %>%
+    arrange(desc(Super_pathway)) %>% mutate(Sub_pathway=factor(Sub_pathway, levels=Sub_pathway2)) %>%
+    ggplot(aes(x= Sub_pathway, y =mean_neglog10FDR)) +
+    scale_colour_viridis_c( alpha = alpha,
+                            begin = begin,
+                            end = end,
+                            direction = 1)+
+    geom_tile(aes(fill = Super_pathway2), height = Inf, alpha =0.7) +
+    geom_point(aes(size = Impact_ratio, shape = type)) + #Size
+    #geom_point(aes(size = Impact_ratio),shape = 1,colour = "black") +  #Size
+    scale_fill_manual(values = c("Amino Acid" = "#fed0ed",
+                                 "Carbohydrate" = "#f4d5fe",
+                                 "Cofactors and Vitamins" = "#d0e1ff",
+                                 "Energy" = "#b3eaf6",
+                                   "Lipid" = "#b3ece2", 
+                                 "Nucleotide" = "#b3eac3",
+                                 "Partially Characterized Molecules" = "#dee5b3",
+                                   "Peptide" = "#f2deb3", "Xenobiotics" = "#Fdd6d3"))+scale_shape_manual(values=c("Up" = 2, 
+                                                                                                                  "Down" = 6))+
+    theme_light() +xlab("Sub_pathway")+labs(title = "Severe vs. Non-severe")+
+    coord_flip() #+ scale_x_reverse()
+pV2
+
+########################V3
+path_output_V3_21_more_up$type = "Up"
+path_output_V3_21_more_down$type = "Down"
+
+path_output_V3_21_more_all = rbind(path_output_V3_21_more_up)
+ path_output_V3_21_more_all$Super_pathway <- factor(path_output_V3_21_more_all$Super_pathway, levels = c("Amino Acid" ,"Carbohydrate", "Cofactors and Vitamins", "Energy", "Lipid", "Nucleotide", "Partially Characterized Molecules", "Peptide","Xenobiotics"))
+ 
+  path_output_V3_21_more_all <- path_output_V3_21_more_all[order(path_output_V3_21_more_all$Super_pathway),]
+  
+  path_output_V3_21_more_all$Super_pathway2 <- path_output_V3_21_more_all$Super_pathway
+  path_output_V3_21_more_all$Super_pathway2 <- factor(path_output_V3_21_more_all$Super_pathway, levels = c("Amino Acid" ,"Carbohydrate", "Cofactors and Vitamins", "Energy", "Lipid", "Nucleotide", "Partially Characterized Molecules", "Peptide","Xenobiotics"), ordered = TRUE)
+   alpha = 1
+  begin = 0
+  end = 1
+  
+pV3 <-  path_output_V3_21_more_all %>%
+    arrange(desc(Super_pathway)) %>% mutate(Sub_pathway=factor(Sub_pathway, levels=Sub_pathway2)) %>%
+    ggplot(aes(x= Sub_pathway, y =mean_neglog10FDR)) +
+    scale_colour_viridis_c( alpha = alpha,
+                            begin = begin,
+                            end = end,
+                            direction = 1)+
+    geom_tile(aes(fill = Super_pathway2), height = Inf, alpha =0.7) +
+    geom_point(aes(size = Impact_ratio, shape = type)) + #Size
+    #geom_point(aes(size = Impact_ratio),shape = 1,colour = "black") +  #Size
+    scale_fill_manual(values = c("Amino Acid" = "#fed0ed",
+                                 "Carbohydrate" = "#f4d5fe",
+                                 "Cofactors and Vitamins" = "#d0e1ff",
+                                 "Energy" = "#b3eaf6",
+                                   "Lipid" = "#b3ece2", 
+                                 "Nucleotide" = "#b3eac3",
+                                 "Partially Characterized Molecules" = "#dee5b3",
+                                   "Peptide" = "#f2deb3", "Xenobiotics" = "#Fdd6d3"))+scale_shape_manual(values=c("Up" = 2, 
+                                                                                                                  "Down" = 6))+
+    theme_light() +xlab("Sub_pathway")+labs(title = "Fatal vs. Severe")+
+    coord_flip() #+ scale_x_reverse()
+pV3
+
+
+
+
+remove_y <- theme(
+  axis.text.y = element_blank(),
+  axis.ticks.y = element_blank(),
+  axis.title.y = element_blank()
+  
+)
+p <- list(
+  pV1 + 
+  theme(legend.position="none") +ylim(1, 13),# + remove_y
+  pV2 + remove_y + ylim(1,13)+
+  theme(legend.position="none"),
+  pV3 + remove_y +ylim(1,13)+
+      theme(legend.position="none")
+  
+)
+library(patchwork)
+p_co <- wrap_plots(p, nrow = 1) + plot_layout(guides = "collect")
+p_co
+```
+
+```{r}
+lr_output_diedever_baseline_all = merge(lr_output_diedever_baseline, output_all_diedever, by.x = "Compound_ID",by.y = "outc")
+lr_output_diedever_baseline_all$type = "Non-survivors vs. Survivors"
+lr_output_diedever_baseline_all = lr_output_diedever_baseline_all %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05  ~ "Not significant"
+    ))
+
+lr_output_AD_baseline_all = merge(lr_output_AD_baseline, output_all_AD, by.x = "Compound_ID",by.y = "outc")
+lr_output_AD_baseline_all$type = "Fatal vs. Non-fatal"
+lr_output_AD_baseline_all = lr_output_AD_baseline_all %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05 ~ "Not significant"
+    ))
+lr_output_123_baseline_all = merge(lr_output_123_baseline, output_all_123, by.x = "Compound_ID",by.y = "outc")
+lr_output_123_baseline_all$type = "Severe vs. Non-severe"
+lr_output_123_baseline_all = lr_output_123_baseline_all %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05 ~ "Not significant"
+    ))
+
+all_results_sig = rbind(lr_output_AD_baseline_all, lr_output_123_baseline_all, lr_output_diedever_baseline_all)
+all_results_sig$type = factor(all_results_sig$type, levels = c("Non-survivors vs. Survivors", "Severe vs. Non-severe", "Fatal vs. Non-fatal"))
+
+  b <-all_results_sig[SUB_PATHWAY %in% c("Tryptophan Metabolism")] 
+  if(dim(b)[1] ==0){
+    return("No metabolites found!")
+  }else{
+    b$data <- "Tryptophan Metabolism"
+    if(dim(b)[1]>100){
+      b <- b[order(qval)]
+      b <- b[1:100,]
+    }
+  }
+    p <- b%>%
+     ggplot( aes(x =Name, y = coef)) +
+      facet_grid(. ~ data) +
+      geom_errorbar(aes(ymin = lowerCI, ymax = upperCI, color = type), width = 0.5, size = 1) +
+      geom_pointrange(aes(ymin = lowerCI, ymax = upperCI, color = type, shape = sig), size = 1) +#shape = 15, 
+      
+      geom_hline(yintercept = 0, linetype = 2) +
+      labs(title = "Tryptophan Metabolism", x = "Metabolites", y = "coefficient (95% confidence interval)") +
+      
+      theme(title = element_text(size = 2),
+            axis.title = element_text(size = 2),
+            axis.text = element_text(size = 2),
+            strip.text.x = element_text(size = 2),
+            legend.position = "right",
+            legend.title = element_text(size = 2),
+            legend.text = element_text(size = 2)) +
+      theme_bw() +
+      coord_flip()
+ 
+  names(b)[2] = "name"
+library(ggforestplot)
+p_1= forestplot(
+  df = b,
+  estimate = coef,
+  logodds = FALSE,
+  colour = type,
+  shape = sig,
+  title = "Tryptophan Metabolism",
+  xlab = "coefficient",pvalue = qval, psignif = 0.05
+) +scale_shape_manual(values=c(17,19)) +
+   theme(plot.title = element_text(size=12))
+p_1
+```
+
+```{r}
+lr_output_AD_baseline_all_heat = lr_output_AD_baseline_all[,c("Name","SUB_PATHWAY","coef","qval")]
+names(lr_output_AD_baseline_all_heat)[3] = "Fatal vs. Non-fatal"
+names(lr_output_AD_baseline_all_heat)[4] = "qval_AD"
+lr_output_123_baseline_all_heat = lr_output_123_baseline_all[,c("Name","SUB_PATHWAY","coef","qval")]
+names(lr_output_123_baseline_all_heat)[3] = "Severe vs. Non-severe"
+names(lr_output_123_baseline_all_heat)[4] = "qval_123"
+lr_output_diedever_baseline_all_heat = lr_output_diedever_baseline_all[,c("Name","SUB_PATHWAY","coef","qval")]
+
+names(lr_output_diedever_baseline_all_heat)[3] = "Non-survivors vs. Survivors"
+names(lr_output_diedever_baseline_all_heat)[4] = "qval_su"
+
+lr_output_baseline_all_heat = merge(lr_output_AD_baseline_all_heat,lr_output_123_baseline_all_heat, by = c("Name","SUB_PATHWAY"))
+lr_output_baseline_all_heat = merge(lr_output_baseline_all_heat, lr_output_diedever_baseline_all_heat, by = c("Name","SUB_PATHWAY"))
+```
+```{r}
+lr_output_baseline_all_heat_Tryptophan = as.data.frame(subset(lr_output_baseline_all_heat, lr_output_baseline_all_heat$SUB_PATHWAY == "Tryptophan Metabolism"))
+rownames(lr_output_baseline_all_heat_Tryptophan) = lr_output_baseline_all_heat_Tryptophan$Name
+p_data_Tryptophan = lr_output_baseline_all_heat_Tryptophan[,c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors")]
+sig_data_Tryptophan = lr_output_baseline_all_heat_Tryptophan[,c("qval_AD","qval_123","qval_su")]
+Heatmap_Trypton = Heatmap(p_data_Tryptophan,column_title = "Tryptophan Metabolism"
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(sig_data_Tryptophan[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_Trypton, heatmap_legend_side = "bottom")
+Heatmap_Trypton
+```
+```{r}
+lr_output_baseline_all_heat_Leucine = as.data.frame(subset(lr_output_baseline_all_heat, lr_output_baseline_all_heat$SUB_PATHWAY == "Leucine, Isoleucine and Valine Metabolism"))
+rownames(lr_output_baseline_all_heat_Leucine) = lr_output_baseline_all_heat_Leucine$Name
+p_data_Leucine = lr_output_baseline_all_heat_Leucine[,c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors")]
+sig_data_Leucine = lr_output_baseline_all_heat_Leucine[,c("qval_AD","qval_123","qval_su")]
+
+col_fun <- colorRamp2(
+  c(min(p_data_Leucine), 0, max(p_data_Leucine)),
+  c("blue", "white", "red")
+)
+Heatmap_Leucine = Heatmap(p_data_Leucine,column_title = "Leucine, Isoleucine and Valine Metabolism"
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",col = col_fun,
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(sig_data_Leucine[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_Leucine, heatmap_legend_side = "bottom")
+Heatmap_Leucine
+```
+
+```{r}
+lr_output_baseline_all_heat_Dicarboxylate = as.data.frame(subset(lr_output_baseline_all_heat, lr_output_baseline_all_heat$SUB_PATHWAY == "Fatty Acid, Dicarboxylate"))
+rownames(lr_output_baseline_all_heat_Dicarboxylate) = lr_output_baseline_all_heat_Dicarboxylate$Name
+p_data_Dicarboxylate = lr_output_baseline_all_heat_Dicarboxylate[,c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors")]
+sig_data_Dicarboxylate = lr_output_baseline_all_heat_Dicarboxylate[,c("qval_AD","qval_123","qval_su")]
+Heatmap_Dicarboxylate = Heatmap(p_data_Dicarboxylate,column_title = "Fatty Acid, Dicarboxylate"
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),col = col_fun,
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(sig_data_Dicarboxylate[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_Dicarboxylate, heatmap_legend_side = "bottom")
+Heatmap_Dicarboxylate
+```
+
+```{ r}
+lr_output_baseline_all_heat_POM = as.data.frame(subset(lr_output_baseline_all_heat, lr_output_baseline_all_heat$SUB_PATHWAY == "Polyamine Metabolism"))
+rownames(lr_output_baseline_all_heat_POM) = lr_output_baseline_all_heat_POM$Name
+p_data_Leucine = lr_output_baseline_all_heat_POM[,c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors")]
+sig_data_Leucine = lr_output_baseline_all_heat_POM[,c("qval_AD","qval_123","qval_su")]
+Heatmap_POM = Heatmap(p_data_Leucine,column_title = "Polyamine Metabolism"
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(sig_data_Leucine[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_POM, heatmap_legend_side = "bottom")
+Heatmap_POM
+```
+
+```{r}
+lr_output_baseline_all_heat_POM = as.data.frame(subset(lr_output_baseline_all_heat, lr_output_baseline_all_heat$SUB_PATHWAY == "Polyamine Metabolism"))
+rownames(lr_output_baseline_all_heat_POM) = lr_output_baseline_all_heat_POM$Name
+p_data_Leucine = lr_output_baseline_all_heat_POM[,c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors")]
+sig_data_Leucine = lr_output_baseline_all_heat_POM[,c("qval_AD","qval_123","qval_su")]
+Heatmap_POM = Heatmap(p_data_Leucine,column_title = "Polyamine Metabolism"
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),col = col_fun,
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(sig_data_Leucine[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_POM, heatmap_legend_side = "bottom")
+Heatmap_POM
+```
+Sphingosines
+```{r}
+lr_output_baseline_all_heat_sph = as.data.frame(subset(lr_output_baseline_all_heat, lr_output_baseline_all_heat$SUB_PATHWAY == "Sphingosines"))
+rownames(lr_output_baseline_all_heat_sph) = lr_output_baseline_all_heat_sph$Name
+p_data_Leucine = lr_output_baseline_all_heat_sph[,c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors")]
+sig_data_Leucine = lr_output_baseline_all_heat_sph[,c("qval_AD","qval_123","qval_su")]
+Heatmap_sph = Heatmap(p_data_Leucine,column_title = "Sphingosines"
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),col = col_fun,
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(sig_data_Leucine[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_sph, heatmap_legend_side = "bottom")
+Heatmap_sph
+```
+
+Urea cycle; Arginine and Proline Metabolism
+```{r}
+lr_output_baseline_all_heat_uc = as.data.frame(subset(lr_output_baseline_all_heat, lr_output_baseline_all_heat$SUB_PATHWAY == "Urea cycle; Arginine and Proline Metabolism"))
+rownames(lr_output_baseline_all_heat_uc) = lr_output_baseline_all_heat_uc$Name
+p_data_Leucine = lr_output_baseline_all_heat_uc[,c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors")]
+sig_data_Leucine = lr_output_baseline_all_heat_uc[,c("qval_AD","qval_123","qval_su")]
+Heatmap_uc = Heatmap(p_data_Leucine,column_title = "Urea cycle; Arginine and Proline Metabolism"
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),col = col_fun,
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(sig_data_Leucine[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_uc, heatmap_legend_side = "bottom")
+Heatmap_uc
+```
+Aminosugar Metabolism"
+```{r}
+lr_output_baseline_all_heat_uc = as.data.frame(subset(lr_output_baseline_all_heat, lr_output_baseline_all_heat$SUB_PATHWAY == "Aminosugar Metabolism"))
+rownames(lr_output_baseline_all_heat_uc) = lr_output_baseline_all_heat_uc$Name
+p_data_Leucine = lr_output_baseline_all_heat_uc[,c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors")]
+sig_data_Leucine = lr_output_baseline_all_heat_uc[,c("qval_AD","qval_123","qval_su")]
+Heatmap_as = Heatmap(p_data_Leucine,column_title = "Aminosugar Metabolism"
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),col = col_fun,
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(sig_data_Leucine[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_as, heatmap_legend_side = "bottom")
+Heatmap_as
+```
+
+Aminosugar Metabolism"
+```{r}
+lr_output_baseline_all_heat_uc = as.data.frame(subset(lr_output_baseline_all_heat, lr_output_baseline_all_heat$SUB_PATHWAY == "Pentose Metabolism"))
+rownames(lr_output_baseline_all_heat_uc) = lr_output_baseline_all_heat_uc$Name
+p_data_Leucine = lr_output_baseline_all_heat_uc[,c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors")]
+sig_data_Leucine = lr_output_baseline_all_heat_uc[,c("qval_AD","qval_123","qval_su")]
+Heatmap_pm = Heatmap(p_data_Leucine,column_title = "Pentose Metabolism"
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),col = col_fun,
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(sig_data_Leucine[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_pm, heatmap_legend_side = "bottom")
+Heatmap_pm
+```
+
+
+```{r}
+lr_output_baseline_all_heat_uc = as.data.frame(subset(lr_output_baseline_all_heat, lr_output_baseline_all_heat$SUB_PATHWAY == "Pyrimidine Metabolism, Orotate containing"))
+rownames(lr_output_baseline_all_heat_uc) = lr_output_baseline_all_heat_uc$Name
+p_data_Leucine = lr_output_baseline_all_heat_uc[,c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors")]
+sig_data_Leucine = lr_output_baseline_all_heat_uc[,c("qval_AD","qval_123","qval_su")]
+Heatmap_po = Heatmap(p_data_Leucine,column_title = "Pyrimidine Metabolism, Orotate containing"
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),col = col_fun,
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(sig_data_Leucine[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_po, heatmap_legend_side = "bottom")
+Heatmap_po
+```
+
+```{r}
+lr_output_baseline_all_heat_uc = as.data.frame(subset(lr_output_baseline_all_heat, lr_output_baseline_all_heat$SUB_PATHWAY == "Pentose Metabolism"))
+rownames(lr_output_baseline_all_heat_uc) = lr_output_baseline_all_heat_uc$Name
+p_data_Leucine = lr_output_baseline_all_heat_uc[,c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors")]
+sig_data_Leucine = lr_output_baseline_all_heat_uc[,c("qval_AD","qval_123","qval_su")]
+Heatmap_pm = Heatmap(p_data_Leucine,column_title = "Pentose Metabolism"
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),col = col_fun,
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(sig_data_Leucine[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_pm, heatmap_legend_side = "bottom")
+Heatmap_pm
+```
+```{r}
+ggarrange(grid.grabExpr(ComplexHeatmap::draw(Heatmap_Trypton, heatmap_legend_side = "bottom")),
+          grid.grabExpr(ComplexHeatmap::draw(Heatmap_Leucine, heatmap_legend_side = "bottom")),
+          grid.grabExpr(ComplexHeatmap::draw(Heatmap_Dicarboxylate, heatmap_legend_side = "bottom"))  , nrow = 1)
+```
+
+```{ r}
+Fig5E = ComplexHeatmap::Heatmap(coef_table[,ii], #column_title = "Interaction with viral load",
+             column_title_gp = gpar(fontsize = 25), column_title=gt_render("Interaction with viral load"),
+             row_names_gp = gpar(fontsize = 15), column_names_gp = gpar(fontsize = 15), 
+             heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "leftcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),
+             col = circlize::colorRamp2(c(-max(abs(coef_table[,ii])), 0, max(abs(coef_table[,ii]))), c("#284AA0", "white", "#BC4A4A")), na_col = "grey90", column_split = test_types, column_gap = unit(2, "mm"),
+             cluster_columns = F, cluster_rows = F, cell_fun = function(j, i, x, y, w, h, fill) {
+  if(pval_table_adj[i, j] < 0.0001) {
+    grid.text("***", x, y, gp = gpar(cex=2), vjust=0.7)
+  }else if(pval_table_adj[i, j] < 0.001) {
+    grid.text("**", x, y, gp = gpar(cex=2), vjust=0.7)
+  }else if(pval_table_adj[i, j] < 0.05) {
+    grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+  }
+})
+
+ComplexHeatmap::draw(Fig5E, heatmap_legend_side = "bottom")
+```
+
+```{ r}
+ b_Leucine <-all_results_sig[SUB_PATHWAY %in% c("Leucine, Isoleucine and Valine Metabolism")] 
+  if(dim(b_Leucine)[1] ==0){
+    return("No metabolites found!")
+  }else{
+    b_Leucine$data <- "Leucine, Isoleucine and Valine Metabolism"
+    if(dim(b_Leucine)[1]>100){
+      b_Leucine <- b_Leucine[order(qval)]
+      b_Leucine <- b_Leucine[1:100,]
+    }
+  }
+    p_Leucine <- b_Leucine%>%
+     ggplot( aes(x =Name, y = coef)) +
+      facet_grid(. ~ data) +
+      geom_errorbar(aes(ymin = lowerCI, ymax = upperCI, color = type), width = 0.5, size = 1) +
+      geom_pointrange(aes(ymin = lowerCI, ymax = upperCI, color = type, shape = sig), size = 1) +#shape = 15, 
+      
+      geom_hline(yintercept = 0, linetype = 2) +
+      labs(title = "Leucine, Isoleucine and Valine Metabolism", x = "Metabolites", y = "coefficient (95% confidence interval)") +
+      
+      theme(title = element_text(size = 2),
+            axis.title = element_text(size = 2),
+            axis.text = element_text(size = 2),
+            strip.text.x = element_text(size = 2),
+            legend.position = "right",
+            legend.title = element_text(size = 2),
+            legend.text = element_text(size = 2)) +
+      theme_bw() +
+      coord_flip()
+    
+    names(b_Leucine)[2] = "name"
+ p_2= forestplot(
+  df = b_Leucine,
+  estimate = coef,
+  logodds = FALSE,
+  colour = type,
+  shape = sig,
+  title = "Leucine, Isoleucine and Valine Metabolism",
+  xlab = "coefficient",pvalue = qval, psignif = 0.05
+) +scale_shape_manual(values=c(17,19)) +
+   theme(plot.title = element_text(size=12))
+p_2
+```
+
+#Fatty Acid, Dicarboxylate
+```{ r}
+b_Dicarboxylate <-all_results_sig[SUB_PATHWAY %in% c("Fatty Acid, Dicarboxylate")] 
+  if(dim(b_Dicarboxylate)[1] ==0){
+    return("No metabolites found!")
+  }else{
+    b_Dicarboxylate$data <- "Fatty Acid, Dicarboxylate"
+    if(dim(b_Dicarboxylate)[1]>100){
+      b_Dicarboxylate <- b_Dicarboxylate[order(qval)]
+      b_Dicarboxylate <- b_Dicarboxylate[1:100,]
+    }
+  }
+    p_Dicarboxylate <- b_Dicarboxylate%>%
+     ggplot( aes(x =Name, y = coef)) +
+      facet_grid(. ~ data) +
+      geom_errorbar(aes(ymin = lowerCI, ymax = upperCI, color = type), width = 0.5, size = 1) +
+      geom_pointrange(aes(ymin = lowerCI, ymax = upperCI, color = type, shape = sig), size = 1) +#shape = 15, 
+      
+      geom_hline(yintercept = 0, linetype = 2) +
+      labs(title = "Fatty Acid, Dicarboxylate", x = "Metabolites", y = "coefficient (95% confidence interval)") +
+      
+      theme(title = element_text(size = 2),
+            axis.title = element_text(size = 2),
+            axis.text = element_text(size = 2),
+            strip.text.x = element_text(size = 2),
+            legend.position = "right",
+            legend.title = element_text(size = 2),
+            legend.text = element_text(size = 2)) +
+      theme_bw() +
+      coord_flip()
+    names(b_Dicarboxylate)[2] = "name"
+ p_3= forestplot(
+  df = b_Dicarboxylate,
+  estimate = coef,
+  logodds = FALSE,
+  colour = type,
+  shape = sig,
+  title = "Fatty Acid, Dicarboxylate",
+  xlab = "coefficient",pvalue = qval, psignif = 0.05
+) +scale_shape_manual(values=c(17,19)) +
+   theme(plot.title = element_text(size=12))
+p_3
+```
+```{r}
+library(ggplotify)
+part_2 =  ggarrange(grid.grabExpr(ComplexHeatmap::draw(Heatmap_pm, heatmap_legend_side = "bottom",padding = unit(c(20, 15, 15, 15), "mm"))),
+          grid.grabExpr(ComplexHeatmap::draw(Heatmap_Leucine, heatmap_legend_side = "bottom",padding = unit(c(15, 15, 15, 15), "mm"))),
+          grid.grabExpr(ComplexHeatmap::draw(Heatmap_Dicarboxylate, heatmap_legend_side = "bottom",padding = unit(c(15, 15, 15, 15), "mm")))  , nrow = 1,  labels = c("C"))
+part_1 = ggarrange(a,as.ggplot(Figure_B_1)+ theme(plot.margin = unit(c(5,1,5,1), "cm")), ncol = 2, labels = c("A", "B"),widths = c(0.35, 1))
+ggarrange(part_1, part_2, ncol = 1)
+```
+```{r}
+part_2 =  ggarrange(grid.grabExpr(ComplexHeatmap::draw(Heatmap_pm, heatmap_legend_side = "bottom",padding = unit(c(20, 20, 15, 15), "mm"))),
+          grid.grabExpr(ComplexHeatmap::draw(Heatmap_Leucine, heatmap_legend_side = "bottom",padding = unit(c(15, 15, 15, 15), "mm"))),
+          grid.grabExpr(ComplexHeatmap::draw(Heatmap_Dicarboxylate, heatmap_legend_side = "bottom",padding = unit(c(15, 15, 15, 15), "mm")))  , nrow = 1,  labels = c("C"))
+part_2
+#part_1 = ggarrange(a,as.ggplot(Figure_B_1)+ theme(plot.margin = unit(c(5,1,5,1), "cm")), ncol = 2, labels = c("A", "B"),widths = c(0.35, 1))
+b = ggarrange(Volcano_metabolomics_AD,Volcano_metabolomics_123, Volcano_metabolomics_diedever, ncol = 3, common.legend = T, legend="bottom")
+b
+as.ggplot(Figure_B_1_2)
+ggarrange(b,as.ggplot(Figure_B_1_2), part_2, ncol = 1,labels = c("A", "B",""), heights = c(1,0.7,1)) #+ theme(plot.margin = unit(c(3,1,3,1), "cm")
+```
+
+```{r}
+part_2 =  ggarrange(grid.grabExpr(ComplexHeatmap::draw(Heatmap_pm, heatmap_legend_side = "bottom",padding = unit(c(20, 20, 15, 15), "mm"))),
+          grid.grabExpr(ComplexHeatmap::draw(Heatmap_Leucine, heatmap_legend_side = "bottom",padding = unit(c(15, 15, 15, 15), "mm"))),
+          grid.grabExpr(ComplexHeatmap::draw(Heatmap_Dicarboxylate, heatmap_legend_side = "bottom",padding = unit(c(15, 15, 15, 15), "mm")))  , nrow = 1,  labels = c("C"))
+part_1 = ggarrange(a,as.ggplot(figure_B) + theme(plot.margin = unit(c(3,1,1,3), "cm")), ncol = 2, labels = c("A", "B"),widths = c(0.35, 1))
+ggarrange(part_1, part_2, ncol = 1)
+```
+
+```{r}
+save(lr_output_baseline_all_heat,file ="/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/TG_data_use_heatmap.Rdata")
+lr_output_baseline_all_heat_Sphingomyelins = as.data.frame(subset(lr_output_baseline_all_heat, lr_output_baseline_all_heat$SUB_PATHWAY == "Sphingomyelins"))
+rownames(lr_output_baseline_all_heat_Sphingomyelins) = lr_output_baseline_all_heat_Sphingomyelins$Name
+p_data_Sphingomyelins = lr_output_baseline_all_heat_Sphingomyelins[,c("Fatal vs. Non-fatal","Severe vs. Non-severe","Non-survivors vs. Survivors")]
+sig_data_Sphingomyelins = lr_output_baseline_all_heat_Sphingomyelins[,c("qval_AD","qval_123","qval_su")]
+Heatmap_Sphingomyelins = Heatmap(p_data_Sphingomyelins,column_title = "Sphingomyelins"
+                          , cluster_rows = FALSE, cluster_columns = FALSE, column_names_rot = 45,
+                          heatmap_legend_param = list(title = "Coefficient    ",
+             direction = "horizontal", title_position = "topcenter",
+             title_gp = gpar(fontsize = 15), labels_gp = gpar(fontsize = 15)),
+                          cell_fun = function(j, i, x, y, w, h, fill) {
+                            if(sig_data_Sphingomyelins[i, j] < 0.05) {
+                              grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+                                }
+                          }
+                          )
+ComplexHeatmap::draw(Heatmap_Sphingomyelins, heatmap_legend_side = "bottom")
+Heatmap_Sphingomyelins
+```
+```{r}
+Metabolomics_rowfeature$Compound_ID = rownames(Metabolomics_rowfeature)
+Metabolomics_rowfeature_sort =  Metabolomics_rowfeature %>%
+  arrange(SUPER_PATHWAY, SUB_PATHWAY)
+write_csv(Metabolomics_rowfeature_sort, file = "~/deep_dive_rowfeature.csv")
+
+lr_output_123_baseline_sorted = lr_output_123_baseline[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_123_baseline$Compound_ID),
+]
+lr_output_123_baseline_sorted$FDR = p.adjust(lr_output_123_baseline_sorted$pval, method = 'BH')
+lr_output_123_baseline_sorted = lr_output_123_baseline_sorted[,c("Name","coef","pval","qval","FDR")]
+names(lr_output_123_baseline_sorted) = c("Name","coef","P","Adjusted Bonferroni","Adjusted FDR")
+write_csv(lr_output_123_baseline_sorted, file = "~/deep_dive_rowfeature_TGSe.csv")
+
+
+```
+```{r}
+lr_output_AD_baseline_sorted = lr_output_AD_baseline[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_AD_baseline$Compound_ID),
+]
+lr_output_AD_baseline_sorted$FDR = p.adjust(lr_output_AD_baseline_sorted$pval, method = 'BH')
+lr_output_AD_baseline_sorted = lr_output_AD_baseline_sorted[,c("Name","coef","pval","qval","FDR")]
+names(lr_output_AD_baseline_sorted) = c("Name","coef","P","Adjusted Bonferroni","Adjusted FDR")
+write_csv(lr_output_AD_baseline_sorted, file = "~/deep_dive_rowfeature_TGF.csv")
+
+```
+```{r}
+lr_output_diedever_baseline_sorted = lr_output_diedever_baseline[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_diedever_baseline$Compound_ID),
+]
+lr_output_diedever_baseline_sorted$FDR = p.adjust(lr_output_diedever_baseline_sorted$pval, method = 'BH')
+lr_output_diedever_baseline_sorted = lr_output_diedever_baseline_sorted[,c("Name","coef","pval","qval","FDR")]
+names(lr_output_diedever_baseline_sorted) = c("Name","coef","P","Adjusted Bonferroni","Adjusted FDR")
+write_csv(lr_output_diedever_baseline_sorted, file = "~/deep_dive_rowfeature_TGSu.csv")
+
+```
+
+#Methionine, Cysteine, SAM and Taurine Metabolism
+```{r}
+b_Methionine <-all_results_sig[SUB_PATHWAY %in% c("Methionine, Cysteine, SAM and Taurine Metabolism")] 
+  if(dim(b_Methionine)[1] ==0){
+    return("No metabolites found!")
+  }else{
+    b_Methionine$data <- "Methionine, Cysteine, SAM and Taurine Metabolism"
+    if(dim(b_Methionine)[1]>100){
+      b_Methionine <- b_Methionine[order(qval)]
+      b_Methionine <- b_Methionine[1:100,]
+    }
+  }
+    p_Methionine <- b_Methionine%>%
+     ggplot( aes(x =Name, y = coef)) +
+      facet_grid(. ~ data) +
+      geom_errorbar(aes(ymin = lowerCI, ymax = upperCI, color = type), width = 0.5, size = 1) +
+      geom_pointrange(aes(ymin = lowerCI, ymax = upperCI, color = type, shape = sig), size = 1) +#shape = 15, 
+      
+      geom_hline(yintercept = 0, linetype = 2) +
+      labs(title = "Methionine, Cysteine, SAM and Taurine Metabolism", x = "Metabolites", y = "coefficient (95% confidence interval)") +
+      
+      theme(title = element_text(size = 2),
+            axis.title = element_text(size = 2),
+            axis.text = element_text(size = 2),
+            strip.text.x = element_text(size = 2),
+            legend.position = "right",
+            legend.title = element_text(size = 2),
+            legend.text = element_text(size = 2)) +
+      theme_bw() +
+      coord_flip()
+    names(b_Methionine)[2] = "name"
+ p_3= forestplot(
+  df = b_Methionine,
+  estimate = coef,
+  logodds = FALSE,
+  colour = type,
+  shape = sig,
+  title = "Methionine, Cysteine, SAM and Taurine Metabolism",
+  xlab = "coefficient",pvalue = qval, psignif = 0.05
+) +scale_shape_manual(values=c(17,19))
+p_3
+```
+
+#Glycine, Serine and Threonine Metabolism
+```{r}
+b_Glycine <-all_results_sig[SUB_PATHWAY %in% c("Glycine, Serine and Threonine Metabolism")] 
+  if(dim(b_Glycine)[1] ==0){
+    return("No metabolites found!")
+  }else{
+    b_Glycine$data <- "Glycine, Serine and Threonine Metabolism"
+    if(dim(b_Glycine)[1]>100){
+      b_Glycine <- b_Glycine[order(qval)]
+      b_Glycine <- b_Glycine[1:100,]
+    }
+  }
+    p_Glycine <- b_Glycine%>%
+     ggplot( aes(x =Name, y = coef)) +
+      facet_grid(. ~ data) +
+      geom_errorbar(aes(ymin = lowerCI, ymax = upperCI, color = type), width = 0.5, size = 1) +
+      geom_pointrange(aes(ymin = lowerCI, ymax = upperCI, color = type, shape = sig), size = 1) +#shape = 15, 
+      
+      geom_hline(yintercept = 0, linetype = 2) +
+      labs(title = "Methionine, Cysteine, SAM and Taurine Metabolism", x = "Metabolites", y = "coefficient (95% confidence interval)") +
+      
+      theme(title = element_text(size = 2),
+            axis.title = element_text(size = 2),
+            axis.text = element_text(size = 2),
+            strip.text.x = element_text(size = 2),
+            legend.position = "right",
+            legend.title = element_text(size = 2),
+            legend.text = element_text(size = 2)) +
+      theme_bw() +
+      coord_flip()
+    names(b_Glycine)[2] = "name"
+ p_3= forestplot(
+  df = b_Glycine,
+  estimate = coef,
+  logodds = FALSE,
+  colour = type,
+  shape = sig,
+  title = "Glycine, Serine and Threonine Metabolism",
+  xlab = "coefficient",pvalue = qval, psignif = 0.05
+) +scale_shape_manual(values=c(17,19))
+p_3
+```
+
+#Methionine, Cysteine, SAM and Taurine Metabolism for 34 vs. 123
+```{r}
+lr_output_123_baseline_all = merge(lr_output_123_baseline, output_all_123, by.x = "Compound_ID",by.y = "outc")
+lr_output_123_baseline_all$type = "TG4_5 vs. TG1_3"
+lr_output_123_baseline_all = lr_output_123_baseline_all %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05 ~ "Not significant"
+    ))
+b_Methionine <-lr_output_123_baseline_all[SUB_PATHWAY %in% c("Methionine, Cysteine, SAM and Taurine Metabolism")] 
+  if(dim(b_Methionine)[1] ==0){
+    return("No metabolites found!")
+  }else{
+    b_Methionine$data <- "Methionine, Cysteine, SAM and Taurine Metabolism"
+    if(dim(b_Methionine)[1]>100){
+      b_Methionine <- b_Methionine[order(qval)]
+      b_Methionine <- b_Methionine[1:100,]
+    }
+  }
+    p_Methionine <- b_Methionine%>%
+     ggplot( aes(x =Name, y = coef)) +
+      facet_grid(. ~ data) +
+      geom_errorbar(aes(ymin = lowerCI, ymax = upperCI, color = type), width = 0.5, size = 1) +
+      geom_pointrange(aes(ymin = lowerCI, ymax = upperCI, color = type, shape = sig), size = 1) +#shape = 15, 
+      
+      geom_hline(yintercept = 0, linetype = 2) +
+      labs(title = "Methionine, Cysteine, SAM and Taurine Metabolism", x = "Metabolites", y = "coefficient (95% confidence interval)") +
+      
+      theme(title = element_text(size = 2),
+            axis.title = element_text(size = 2),
+            axis.text = element_text(size = 2),
+            strip.text.x = element_text(size = 2),
+            legend.position = "right",
+            legend.title = element_text(size = 2),
+            legend.text = element_text(size = 2)) +
+      theme_bw() +
+      coord_flip()
+    names(b_Methionine)[2] = "name"
+ p_3= forestplot(
+  df = b_Methionine,
+  estimate = coef,
+  logodds = FALSE,
+  colour = type,
+  shape = sig,
+  title = "Methionine, Cysteine, SAM and Taurine Metabolism",
+  xlab = "coefficient",pvalue = qval, psignif = 0.05
+) +scale_shape_manual(values=c(17,19))
+p_3
+```
+
+#TG4_5, AA vs. Others(AG,GG)
+```{r}
+lr_output_AA_baseline_all = merge(lr_output_AA_baseline, output_all_AA, by.x = "Compound_ID",by.y = "outc")
+lr_output_AA_baseline_all$type = "AA vs. Others"
+lr_output_AA_baseline_all = lr_output_AA_baseline_all %>%  mutate(sig = case_when(
+    qval <= 0.05 ~ "significant",
+    qval > 0.05 ~ "Not significant"
+    ))
+b_Methionine <-lr_output_AA_baseline_all[SUB_PATHWAY %in% c("Methionine, Cysteine, SAM and Taurine Metabolism")] 
+  if(dim(b_Methionine)[1] ==0){
+    return("No metabolites found!")
+  }else{
+    b_Methionine$data <- "Methionine, Cysteine, SAM and Taurine Metabolism"
+    if(dim(b_Methionine)[1]>100){
+      b_Methionine <- b_Methionine[order(qval)]
+      b_Methionine <- b_Methionine[1:100,]
+    }
+  }
+    p_Methionine <- b_Methionine%>%
+     ggplot( aes(x =Name, y = coef)) +
+      facet_grid(. ~ data) +
+      geom_errorbar(aes(ymin = lowerCI, ymax = upperCI, color = type), width = 0.5, size = 1) +
+      geom_pointrange(aes(ymin = lowerCI, ymax = upperCI, color = type, shape = sig), size = 1) +#shape = 15, 
+      
+      geom_hline(yintercept = 0, linetype = 2) +
+      labs(title = "Methionine, Cysteine, SAM and Taurine Metabolism", x = "Metabolites", y = "coefficient (95% confidence interval)") +
+      
+      theme(title = element_text(size = 2),
+            axis.title = element_text(size = 2),
+            axis.text = element_text(size = 2),
+            strip.text.x = element_text(size = 2),
+            legend.position = "right",
+            legend.title = element_text(size = 2),
+            legend.text = element_text(size = 2)) +
+      theme_bw() +
+      coord_flip()
+    names(b_Methionine)[2] = "name"
+ p_3= forestplot(
+  df = b_Methionine,
+  estimate = coef,
+  logodds = FALSE,
+  colour = type,
+  shape = sig,
+  title = "Methionine, Cysteine, SAM and Taurine Metabolism",
+  xlab = "coefficient",pvalue = qval, psignif = 0.05
+) +scale_shape_manual(values=c(17,19))
+p_3
+```

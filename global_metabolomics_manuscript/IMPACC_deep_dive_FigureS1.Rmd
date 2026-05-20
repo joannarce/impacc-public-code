@@ -1,0 +1,652 @@
+---
+title: "IMPACC_deep_dive_figure2"
+output: html_document
+date: "2023-12-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(data.table)
+library(DT)
+library(e1071)
+library(openxlsx)
+library(stringr)
+library(dplyr)
+library(plyr)
+source("~/Bitbucket/impacc-full-cohort/Analysis/IMPACC_data_analysis_codebase.R")
+load("/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/deep_dive_data.Rdata")
+
+PVCA <- function(counts, meta, threshold, inter){
+  #counts = tmet
+  #            meta = pdata
+  #            inter = FALSE
+  #            threshold = 0.6
+  counts.center <- t(apply(counts, 1, scale, center=TRUE, scale=FALSE))
+  cor.counts <- cor(counts.center)
+  dim(cor.counts)
+  eigen.counts <- eigen(cor.counts)
+  eigen.mat <- eigen.counts$vectors
+  eigen.val <- eigen.counts$values
+  n.eigen <- length(eigen.val)
+  eigen.val.sum <- sum(eigen.val)
+  percents.pcs <- eigen.val/eigen.val.sum
+  meta <- as.data.frame(meta)
+  
+  all <- 0
+  npc.in <- 0
+  for(i in 1:n.eigen){
+    all <- all + percents.pcs[i]
+    npc.in <- npc.in + 1
+    if(all > threshold){break}
+  }
+  if (npc.in < 3) {npc <- 3}
+  
+  pred.list <- colnames(meta)
+  meta <- droplevels(meta)
+  
+  n.preds <- ncol(meta) + 1
+  if(inter) {n.preds <- n.preds + choose(ncol(meta),2)}
+  
+  ran.pred.list <- c()
+  for(i in 1:ncol(meta)){
+    ran.pred.list <- c(ran.pred.list, paste0("(1|", pred.list[i],")"))
+  }
+  ##interactions
+  if(inter){
+    for(i in 1:(ncol(meta)-1)){
+      for(j in (i+1):ncol(meta)){
+        ran.pred.list <- c(ran.pred.list, paste0("(1|", pred.list[i], ":", pred.list[j], ")"))
+        pred.list <- c(pred.list, paste0(pred.list[i], ":", pred.list[j]))
+      }
+    }
+  }
+  formula <- paste(ran.pred.list, collapse = " + ")
+  formula <- paste("pc", formula, sep=" ~ ")
+  ran.var.mat <- NULL
+  for(i in 1:npc.in){
+    dat <- cbind(eigen.mat[,i],meta)
+    colnames(dat) <- c("pc",colnames(meta))
+    Rm1ML <- lme4::lmer(formula, dat, REML = TRUE, verbose = FALSE, na.action = na.omit)
+    var.vec <- unlist(VarCorr(Rm1ML))
+    ran.var.mat <- rbind(ran.var.mat, c(var.vec[pred.list], resid = sigma(Rm1ML)^2))
+  }
+  ran.var.mat.std <- ran.var.mat/rowSums(ran.var.mat)
+  wgt.vec <- eigen.val/eigen.val.sum
+  prop.var <- colSums(ran.var.mat.std*wgt.vec[1:npc.in])
+  std.prop.var <- prop.var/sum(prop.var)
+  std.prop.var
+}
+```
+
+```{r}
+Metabolomics_counts_conv = Metabolomics_counts_conv[clinical_data$sample_id,]
+```
+
+#PCA before and after
+## QC script to generate supplimentary pannel A-C
+
+```{r}
+path <- "/scratch/metabolomics/plasma-metabolomics-global/rawfiles/phase4b/"
+mets <- readxl::read_excel(paste0(path, "CHHB-0210-20DSML+_P1-P4B MERGED DATA TABLES_COMMON_2.XLSX"), sheet = "QC-norm Data Common")
+mets_info <-  readxl::read_excel(paste0(path, "CHHB-0210-20DSML+_P1-P4B MERGED DATA TABLES_COMMON_1.XLSX"), sheet = "Chemical Annotation Common QC")
+sam <- readxl::read_excel(paste0(path, "CHHB-0210-20DSML+_P1-P4B MERGED DATA TABLES_ALL_1.XLSX"), sheet = "Sample Meta Data")
+```
+
+```{r}
+path2 <- "/scratch/metabolomics/plasma-metabolomics-global/rawfiles/phase3_merged/"
+mets_info_2 <- read.csv(paste0(path2, "CHHB-0207-20DSML+_Chemical Annotations_updated 03Jan2022 with RT.csv"))
+CHEM_ID <- mets_info_2$CHEM_ID
+RT <- mets_info_2$RT
+#mets_info_2 <- data.table(CHEM_ID, RT)
+
+mets_info <- merge(mets_info, mets_info_2, by = "CHEM_ID")
+```
+
+```{r}
+batch_layout <- read.csv(file =
+"/scratch/metabolomics/plasma-metabolomics-global/rawfiles/phase1_2_merged/STEEN_Phase1and2_5_6_2021.csv")
+
+batch_layout_2 <- read.csv(file =
+"/scratch/metabolomics/plasma-metabolomics-global/rawfiles/phase3_merged/STEEN_LAB_Phase3_12_2_2021.csv")
+
+batch_layout_2 <- read.csv(file =
+"/impacc-study/qa/scripts/batchlayout_csv/Phase4a/STEEN_LAB_Samples_Lab_01_19_2022.csv")
+
+batch_layout <- rbind.fill(batch_layout, batch_layout_2)
+```
+
+
+```{r}
+batch_layout <- read.csv(file =
+"/scratch/metabolomics/plasma-metabolomics-global/rawfiles/phase1_2_merged/STEEN_Phase1and2_5_6_2021.csv")
+
+batch_layout_2 <- read.csv(file =
+"/scratch/metabolomics/plasma-metabolomics-global/rawfiles/phase3_merged/STEEN_LAB_Phase3_12_2_2021.csv")
+batch_layout_2$phase <- 3
+
+batch_layout_3 <- read.csv(file =
+"/impacc-study/qa/scripts/batchlayout_csv/Phase4a/STEEN_LAB_Samples_Lab_01_19_2022.csv")
+batch_layout_3$phase <- 4
+
+batch_layout <- rbind.fill(batch_layout, batch_layout_2)
+batch_layout <- rbind.fill(batch_layout, batch_layout_3)
+```
+
+```{r}
+batch_layout <- batch_layout[!duplicated(batch_layout$guspec),]
+```
+
+# 3. Convert to Data Table
+
+```{r}
+mets <- data.table(mets)
+mets_info <- data.table(mets_info)
+sam <- data.table(sam)
+```
+
+```{r}
+check <- data.table(colnames(mets)[2:ncol(mets)], mets_info$CHEM_ID)
+```
+
+# 4. Drop Columns with no client identified
+
+```{r}
+check <- data.table(mets$PARENT_SAMPLE_NAME, sam$PARENT_SAMPLE_NAME)
+```
+
+# 5. Add to CORRECTED_SAMPLEID
+
+```{r}
+for (i in 1:nrow(sam)){
+  if(is.na(sam$CLIENT_SAMPLE_ID[i])){
+    sam$CLIENT_SAMPLE_ID[i] <- sam$CORRECTED_SAMPLEID[i]  
+  }
+}
+```
+
+```{r}
+sam$CORRECTED_SAMPLEID <- sam$CLIENT_SAMPLE_ID
+```
+
+```{r}
+#sam$CORRECTED_SAMPLEID <- sam$PARTICIPANT_ID
+```
+
+```{r}
+sam_2 <-  read.csv("/scratch/metabolomics/plasma-metabolomics-global/scripts/kevin/Metabolon_SampleManifest_IMPACC-Phase2_04_06_2021.csv")
+sam_2 <- sam_2[!is.na(sam_2$Unique.Tube.Label.ID.),]
+sam_2 <- sam_2[!is.na(sam_2$Client.Sample.ID.),]
+sam_2$CLIENT_IDENTIFIER <- str_sub(sam_2$Unique.Tube.Label.ID., 2, 20)
+sam <- sam[!is.na(sam$CLIENT_IDENTIFIER),]
+
+for(i in 1:nrow(sam)){
+  for(j in 1:nrow(sam_2)){
+    if(sam$CLIENT_IDENTIFIER[i] == sam_2$CLIENT_IDENTIFIER[j]){
+      sam$CORRECTED_SAMPLEID[i] <- sam_2$Client.Sample.ID.[j]
+      sam$CLIENT_MATRIX[i] <- sam_2$Client.Matrix.[j]
+    }
+  }
+}
+
+table(sam$CLIENT_MATRIX)
+```
+
+
+# 5. If URS include _ value
+
+```{r}
+for (i in 1:nrow(sam)){
+  if (grepl("URS", sam$CORRECTED_SAMPLEID[i], fixed = TRUE) == TRUE){
+    sam$CORRECTED_SAMPLEID[i] <- paste0(sam$CORRECTED_SAMPLEID[i], "_", sam$CLIENT_IDENTIFIER[i])
+  }
+}
+```
+
+
+# 4. Change sample_id to CORRECTED_SAMPLEID
+
+```{r}
+check <- data.table(mets$PARENT_SAMPLE_NAME, sam$PARENT_SAMPLE_NAME)
+all(mets$PARENT_SAMPLE_NAME == sam$PARENT_SAMPLE_NAME)
+```
+
+```{r}
+sample_id <- sam$CORRECTED_SAMPLEID
+mets[, "PARENT_SAMPLE_NAME":=NULL] 
+
+mets <- data.table(sample_id, mets)
+colnames(mets) <- paste0("X", colnames(mets))
+```
+
+```{r}
+colnames(mets)[1] <- "sample_id"
+```
+
+```{r}
+mets <- mets[!is.na(mets$sample_id),]
+sam <- sam[!is.na(sam$CORRECTED_SAMPLEID),]
+```
+
+# 5. Create Name Column
+
+```{r}
+# Name column matches metabolite IDs in mets
+MET_ID <- paste0("X", mets_info$CHEM_ID)
+mets_info <- data.table(MET_ID, mets_info)
+```
+
+# Remove duplicates
+
+```{r}
+mets <- mets[!duplicated(mets$sample_id),]
+sam <- sam[!duplicated(sam$CORRECTED_SAMPLEID),]
+#0865-005HTH00-005 -> row 906 and row 2183
+```
+
+# 6. Create Percentage Missing Column (by Metabolite)
+
+```{r}
+mets_list <- mets_info$MET_ID
+x <- mets[, ..mets_list]
+perc_missing <- colSums(is.na(x)) / nrow(x) * 100
+mets_info$perc_missing <- perc_missing 
+
+plot(hist(mets_info$perc_missing))
+summary(mets_info$perc_missing)
+```
+
+# 7. Impute Missing Values (Half-Min Approach)
+
+```{r}
+impute_halfmin <- function(x) {replace(x, is.na(x), (min(x, na.rm = T)/2))}
+mets_list <- mets_info$MET_ID
+
+mets[, (mets_list) := lapply(.SD, impute_halfmin), .SDcols = mets_list] 
+```
+#F2_panel_A
+```{r}
+mets_list <- mets_info$MET_ID
+
+# Create PCA
+pca_pre <- prcomp(mets[, ..mets_list], scale. = F)
+fit_pre <-summary(pca_pre)
+pca_pre_scores <- as.data.frame(fit_pre$x)
+
+# Plot PCA
+F2_panel_A <- ggplot(data = pca_pre_scores,
+       mapping = aes(x = PC1, y = PC2))+
+  geom_point(size = 3, alpha = 0.7) +  ggtitle("PCA-PreQC")+
+  labs(x     = paste0("1st dimension (",
+                      round((pca_pre$sdev^2/sum(pca_pre$sdev^2))[1] * 100),
+                      "%)"),
+       y     = paste0("2nd dimension (",
+                      round((pca_pre$sdev^2/sum(pca_pre$sdev^2))[2] * 100),
+                      "%)")#,
+       )+ #tag   = "A"
+  theme_classic() +
+  theme(legend.text     = element_text(size = 6),
+        legend.key.size = unit(0.01, units = "npc"))+ theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 13)) + theme(axis.text = element_text(size = 15), legend.text = element_text(size=15)) 
+
+```
+# 8. Check IQR
+
+```{r}
+mets_list <- mets_info$MET_ID
+
+iqr<-apply(mets[,..mets_list], 2, IQR, na.rm=T)
+iqr<-as.data.frame(iqr)
+summary(iqr)
+
+mets_info$iqr_pre <- iqr
+
+length(iqr[iqr == 0])
+
+# 212 Metabolites with an IQR = 0, but 62 are not Xenobiotics
+```
+
+# 9. Drop Metabolites with IQR = 0 (for non-xenobiotics)
+
+```{r}
+mets_list_rm <- mets_info$MET_ID[mets_info$iqr == 0 & mets_info$SUPER_PATHWAY != "Xenobiotics"]
+mets_list_rm <- mets_list_rm[complete.cases(mets_list_rm)]
+
+mets[, c(mets_list_rm):=NULL] 
+mets_info <- mets_info[!(mets_info$MET_ID %in% mets_list_rm), ]
+
+# Check mets_info rows = 1358, and mets columns = 1358 + 1
+dim(mets)
+dim(mets_info)
+```
+
+# 10. Check Skewness
+
+```{r}
+mets_list <- mets_info$MET_ID
+
+skew <-apply(mets[,..mets_list], 2, skewness, na.rm=T)
+summary(skew)
+
+skew_2<-subset(skew, skew>=2|skew<=-2)
+length(skew_2)
+length(mets_list)
+
+mets_info$skew_pre <- skew
+
+## 519 out of 658 Metabolites are skewed. Need to log10 transform.
+```
+
+# 11. Log10 Transformation & Pareto-Scale
+
+```{r}
+mets_list <- mets_info$MET_ID
+
+# Log10 Transformation
+mets[, (mets_list) := log10(.SD), .SDcols = mets_list] 
+
+# Pareto-Scale
+pareto_scaling <- function(x) {(x - mean(x, na.rm = T))/sqrt(sd(x, na.rm = T))}
+mets[, (mets_list) := lapply(.SD, pareto_scaling) %>% as.data.table(), .SDcols = mets_list]
+```
+
+# 12. Re-Check IQR
+
+```{r}
+mets_list <- mets_info$MET_ID
+
+iqr<-apply(mets[,..mets_list], 2, IQR, na.rm=T)
+iqr<-as.data.frame(iqr)
+summary(iqr)
+
+mets_info$iqr_post <- iqr 
+
+# No IQR = 0, except Xenobiotics
+```
+
+# 13. Re-Check Skewness
+
+```{r}
+mets_list <- mets_info$MET_ID
+
+skew <-apply(mets[,..mets_list], 2, skewness, na.rm=T)
+summary(skew)
+
+skew_2<-subset(skew, skew>=2|skew<=-2)
+length(skew_2)
+length(mets_list)
+
+mets_info$skew_post <- skew
+
+## 34 out of 658 Metabolites are still skewed. 
+```
+
+
+#F2_panel_B
+```{r}
+mets_list <- mets_info$MET_ID
+
+# Create PCA
+pca_post <- prcomp(mets[, ..mets_list], scale. = F)
+fit_post <-summary(pca_post)
+pca_post_scores <- as.data.frame(fit_post$x)
+
+# Plot PCA
+F2_panel_B <- ggplot(data = pca_post_scores,
+       mapping = aes(x = PC1, y = PC2))+ 
+  geom_point(size = 3, alpha = 0.7) +  ggtitle("PCA-PostQC")+
+  labs(x     = paste0("1st dimension (",
+                      round((pca_post$sdev^2/sum(pca_post$sdev^2))[1] * 100),
+                      "%)"),
+       y     = paste0("2nd dimension (",
+                      round((pca_post$sdev^2/sum(pca_post$sdev^2))[2] * 100),
+                      "%)")#,
+       )+ #tag   = "A"
+  theme_classic() +
+  theme(legend.text     = element_text(size = 6),
+        legend.key.size = unit(0.01, units = "npc"))+ theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 13)) + theme(axis.text = element_text(size = 15), legend.text = element_text(size=15)) 
+### No outliers identified?
+```
+
+#figure 2: panel C-D
+```{r pvca, warning=FALSE}
+##### Authors: Slim Fourati, Jingjing Qi, Brian Lee
+
+# step 1: load required packages
+library(package = "pvca") # devtools::install_github("dleelab/pvca")
+VarCorr <- lme4::VarCorr
+
+
+# step 2: specify which assay is going to be used as input
+pvca_input_matrix <- t(Metabolomics_counts_conv)
+if (sum(is.na(pvca_input_matrix)) > 0) {
+  stop("pvca input matrix should not have missing values")
+}
+pvca_input_raw <- t(Metabolomics_counts_conv)
+plasma_metabolomics_global_metadata = plasma_metabolomics_global_metadata[rownames(Metabolomics_counts_conv),]
+pvca_input_metadata <- plasma_metabolomics_global_metadata
+#clinical_data1 = subset(clinical_data, clinical_data$event_type == "Visit 1")
+
+# step3: select variable to be included in PVCA
+#   event_data_week: day from admission to to the hospital coded as week (categorical variable)
+#   sympt_date_week: day from onset of symptoms coded as week (categorical variable)
+#   age_decate: age at admission coded as decade (admit_age modulo 10)
+pvca_input_phenodata <- clinical_data %>% #clinical_data1
+  mutate(#event_date_week = findInterval(event_date, 
+          #                              vec        = c(0, 7, 14, 21, 28), 
+         #                               all.inside = TRUE),
+         day_from_sympt  = event_date - symptom_date,
+         sympt_date_week = findInterval(day_from_sympt, 
+                                        vec        = c(0, 7, 14, 21, 28, Inf),
+                                        all.inside = TRUE)) %>%
+    dplyr::select(sample_id, adm_date_cat, event_type,
+           sex, sympt_date_week, event_location, participant_id, 
+           discretized_admit_age_quantile, ethnicity, race,  trajectory_group, enrollment_site, bmi, conv_cluster4,Type)
+# step 4 append meta data to pvca phenodata
+#   core site: where are the sample processed (this chunk of code need to be modified for each core assay)
+#   plate = interaction term of phase and plate
+pvca_input_phenodata <- pvca_input_metadata %>%
+  #rownames_to_column(var = "sample_id") %>%
+  mutate(         plate     = interaction(phase, plate, drop = TRUE)) %>%
+  dplyr::select(sample_id, plate, phase) %>%
+  merge(x     = pvca_input_phenodata,
+        by    = "sample_id",
+        all.x = TRUE)
+
+# append rownames
+pvca_input_phenodata <- pvca_input_phenodata %>%
+  column_to_rownames(var = "sample_id")
+pvca_input_phenodata <- pvca_input_phenodata[colnames(pvca_input_matrix), , drop = FALSE]
+
+# add percent missing values (if processeed matrix required imputation otherwise comment line below)
+#pvca_input_phenodata$percent_missing <- factor(colMeans(is.na(pvca_input_raw[, rownames(pvca_input_phenodata)])))
+
+# step 5: run PVCA
+fit <- PVCA(counts    = pvca_input_matrix,
+            meta      = pvca_input_phenodata,
+            inter     = FALSE,
+            threshold = 0.6)
+
+# step 6: plot barplot with PVCA results
+pvca_barplot_data <- data.frame(explained = as.vector(fit),
+                                effect    = names(fit)) %>%
+  arrange(explained) %>%
+  mutate(effect = factor(effect, levels = effect))
+
+F2_panel_C<- ggplot(data    = pvca_barplot_data,
+       mapping = aes(x = effect, y = explained)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = signif(explained, digits = 3)),
+            nudge_y   = 0.02,
+            size      = 3) +
+  labs(x = NULL, y = "Proportion of the variance explained") + 
+  theme_bw() + coord_flip () +
+  theme(axis.text.x = element_text(angle = 45,
+                                   vjust = 1,
+                                   hjust = 1)) + theme(axis.title=element_text(size=10), legend.title= element_text (size=10))+theme(strip.text.x = element_text(size = 10)) + theme(axis.text = element_text(size = 10), legend.text = element_text(size=10))
+
+```
+## PVCA analysis with technical+biological variables
+# to use: modify step2 variable to your assay of interest
+```{r pvca, warning=FALSE}
+##### Authors: Slim Fourati, Jingjing Qi, Brian Lee
+
+# step 1: load required packages
+library(package = "pvca") # devtools::install_github("dleelab/pvca")
+VarCorr <- lme4::VarCorr
+
+# step 2: specify which assay is going to be used as input
+pvca_input_matrix <- t(Metabolomics_counts_conv)
+if (sum(is.na(pvca_input_matrix)) > 0) {
+  stop("pvca input matrix should not have missing values")
+}
+pvca_input_raw <- t(Metabolomics_counts_conv)
+pvca_input_metadata <- plasma_metabolomics_global_metadata
+
+# step3: select variable to be included in PVCA
+#   event_data_week: day from admission to to the hospital coded as week (categorical variable)
+#   sympt_date_week: day from onset of symptoms coded as week (categorical variable)
+#   discretized_admit_age_quantile: age at admission coded as quintiles 
+clinical_data1 = subset(clinical_data, clinical_data$event_type == "Visit 1")
+pvca_input_phenodata <- clinical_data1 %>%
+  mutate(#event_date_week = findInterval(event_date, 
+         #                               vec        = c(0, 7, 14, 21, 28), 
+         #                               all.inside = TRUE),
+         day_from_sympt  = event_date - symptom_date,
+         sympt_date_week = findInterval(day_from_sympt, 
+                                        vec        = c(0, 7, 14, 21, 28, Inf),
+                                        all.inside = TRUE)) %>%
+    dplyr::select(sample_id, adm_date_cat, respiratory_status,
+           sex, sympt_date_week, 
+           discretized_admit_age_quantile, ethnicity, race, admit_month,
+           trajectory_group, enrollment_site, bmi, conv_cluster4,Type)
+
+# step 4 append meta data to pvca phenodata
+#   core site: where are the sample processed (this chunk of code need to be modified for each core assay)
+#   plate = interaction term of phase and plate
+pvca_input_phenodata <- pvca_input_metadata %>%
+  #rownames_to_column(var = "sample_id") %>%
+  mutate(         plate     = interaction(phase, plate, drop = TRUE)) %>%
+  dplyr::select(sample_id, plate, phase) %>%
+  merge(x     = pvca_input_phenodata,
+        by    = "sample_id",
+        all.x = TRUE)
+
+# append rownames
+pvca_input_phenodata <- pvca_input_phenodata %>%
+  column_to_rownames(var = "sample_id")
+pvca_input_matrix = pvca_input_matrix[,rownames(pvca_input_phenodata)]
+pvca_input_phenodata <- pvca_input_phenodata[colnames(pvca_input_matrix), , drop = FALSE]
+
+# add percent missing values (if processeed matrix required imputation otherwise comment line below)
+#pvca_input_phenodata$percent_missing <- factor(colMeans(is.na(pvca_input_raw[, rownames(pvca_input_phenodata)])))
+
+# step 5: run PVCA
+fit <- PVCA(counts    = pvca_input_matrix,
+            meta      = pvca_input_phenodata,
+            inter     = FALSE,
+            threshold = 0.6)
+
+# step 6: plot barplot with PVCA results
+pvca_barplot_data <- data.frame(explained = as.vector(fit),
+                                effect    = names(fit)) %>%
+  arrange(explained) %>%
+  mutate(effect = factor(effect, levels = effect))
+
+F2_panel_F <- ggplot(data    = pvca_barplot_data,
+       mapping = aes(x = effect, y = explained)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = signif(explained, digits = 3)),
+            nudge_y   = 0.02,
+            size      = 3) +
+  labs(x = NULL, y = "Proportion of the variance explained") + 
+  theme_bw() + coord_flip () +
+  theme(axis.text.x = element_text(angle = 45,
+                                   vjust = 1,
+                                   hjust = 1)) + theme(axis.title=element_text(size=10), legend.title= element_text (size=10))+theme(strip.text.x = element_text(size = 10)) + theme(axis.text = element_text(size = 10), legend.text = element_text(size=10))
+
+```
+## PVCA analysis with technical+biological variables
+# to use: modify step2 variable to your assay of interest
+```{r pvca, warning=FALSE}
+##### Authors: Slim Fourati, Jingjing Qi, Brian Lee
+
+# step 1: load required packages
+library(package = "pvca") # devtools::install_github("dleelab/pvca")
+VarCorr <- lme4::VarCorr
+
+# step 2: specify which assay is going to be used as input
+pvca_input_matrix <- t(Metabolomics_counts_conv)
+if (sum(is.na(pvca_input_matrix)) > 0) {
+  stop("pvca input matrix should not have missing values")
+}
+pvca_input_raw <- t(Metabolomics_counts_conv)
+pvca_input_metadata <- plasma_metabolomics_global_metadata
+
+# step3: select variable to be included in PVCA
+#   event_data_week: day from admission to to the hospital coded as week (categorical variable)
+#   sympt_date_week: day from onset of symptoms coded as week (categorical variable)
+#   discretized_admit_age_quantile: age at admission coded as quintiles 
+
+pvca_input_phenodata <- clinical_data %>%
+  mutate(#event_date_week = findInterval(event_date, 
+         #                               vec        = c(0, 7, 14, 21, 28), 
+         #                               all.inside = TRUE),
+         day_from_sympt  = event_date - symptom_date,
+         sympt_date_week = findInterval(day_from_sympt, 
+                                        vec        = c(0, 7, 14, 21, 28, Inf),
+                                        all.inside = TRUE)) %>%
+    dplyr::select(sample_id, adm_date_cat, event_type, respiratory_status,
+           sex, sympt_date_week, event_location,
+           discretized_admit_age_quantile, ethnicity, race, admit_month,
+           trajectory_group, enrollment_site, bmi, conv_cluster4,Type)
+
+# step 4 append meta data to pvca phenodata
+#   core site: where are the sample processed (this chunk of code need to be modified for each core assay)
+#   plate = interaction term of phase and plate
+pvca_input_phenodata <- pvca_input_metadata %>%
+  #rownames_to_column(var = "sample_id") %>%
+  mutate(         plate     = interaction(phase, plate, drop = TRUE)) %>%
+  dplyr::select(sample_id, plate, phase) %>%
+  merge(x     = pvca_input_phenodata,
+        by    = "sample_id",
+        all.x = TRUE)
+
+# append rownames
+pvca_input_phenodata <- pvca_input_phenodata %>%
+  column_to_rownames(var = "sample_id")
+pvca_input_phenodata <- pvca_input_phenodata[colnames(pvca_input_matrix), , drop = FALSE]
+
+# add percent missing values (if processeed matrix required imputation otherwise comment line below)
+#pvca_input_phenodata$percent_missing <- factor(colMeans(is.na(pvca_input_raw[, rownames(pvca_input_phenodata)])))
+
+# step 5: run PVCA
+fit <- PVCA(counts    = pvca_input_matrix,
+            meta      = pvca_input_phenodata,
+            inter     = FALSE,
+            threshold = 0.6)
+
+# step 6: plot barplot with PVCA results
+pvca_barplot_data <- data.frame(explained = as.vector(fit),
+                                effect    = names(fit)) %>%
+  arrange(explained) %>%
+  mutate(effect = factor(effect, levels = effect))
+
+F2_panel_D <- ggplot(data    = pvca_barplot_data,
+       mapping = aes(x = effect, y = explained)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = signif(explained, digits = 3)),
+            nudge_y   = 0.02,
+            size      = 3) +
+  labs(x = NULL, y = "Proportion of the variance explained") + 
+  theme_bw() + coord_flip () +
+  theme(axis.text.x = element_text(angle = 45,
+                                   vjust = 1,
+                                   hjust = 1)) + theme(axis.title=element_text(size=10), legend.title= element_text (size=10))+theme(strip.text.x = element_text(size = 10)) + theme(axis.text = element_text(size = 10), legend.text = element_text(size=10))
+
+```
+```{r}
+ggarrange(F2_panel_A,F2_panel_B, F2_panel_C,F2_panel_F, ncol = 2 ,nrow = 2,labels = c("A","B","C","D"))
+```
+

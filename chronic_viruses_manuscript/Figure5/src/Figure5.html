@@ -1110,7 +1110,7 @@ argument is not numeric or logical: returning NA</code></pre>
 <span id="cb48-28"><a href="#cb48-28" aria-hidden="true" tabindex="-1"></a>  </span>
 <span id="cb48-29"><a href="#cb48-29" aria-hidden="true" tabindex="-1"></a>  gg2 <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(results_obj[[<span class="dv">3</span>]][[feature]]) <span class="sc">%&gt;%</span></span>
 <span id="cb48-30"><a href="#cb48-30" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"residuals"</span> <span class="ot">=</span> <span class="dv">16</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb48-31"><a href="#cb48-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="dv">17</span><span class="sc">:</span><span class="dv">22</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb48-31"><a href="#cb48-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="dv">17</span><span class="sc">:</span><span class="dv">24</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb48-32"><a href="#cb48-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
 <span id="cb48-33"><a href="#cb48-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(participant_id, name, value) <span class="sc">%&gt;%</span></span>
 <span id="cb48-34"><a href="#cb48-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>(participant_id, name, value, residuals) <span class="sc">%&gt;%</span></span>
@@ -1164,7 +1164,7 @@ argument is not numeric or logical: returning NA</code></pre>
 <span id="cb48-82"><a href="#cb48-82" aria-hidden="true" tabindex="-1"></a>  </span>
 <span id="cb48-83"><a href="#cb48-83" aria-hidden="true" tabindex="-1"></a>  source_data_dfa <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(results_obj[[<span class="dv">3</span>]][[feature]]) <span class="sc">%&gt;%</span></span>
 <span id="cb48-84"><a href="#cb48-84" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"residuals"</span> <span class="ot">=</span> <span class="dv">16</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb48-85"><a href="#cb48-85" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="dv">17</span><span class="sc">:</span><span class="dv">22</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb48-85"><a href="#cb48-85" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="dv">17</span><span class="sc">:</span><span class="dv">24</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb48-86"><a href="#cb48-86" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">value =</span> <span class="fu">ifelse</span>(value <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span></span>
 <span id="cb48-87"><a href="#cb48-87" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(participant_id, name, value) <span class="sc">%&gt;%</span></span>
 <span id="cb48-88"><a href="#cb48-88" aria-hidden="true" tabindex="-1"></a>    <span class="fu">distinct</span>(participant_id, name, value, residuals) <span class="sc">%&gt;%</span></span>
@@ -1207,7 +1207,7 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure5C.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure5C.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>) </span>
 <span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>ggc_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"urea"</span>],</span>
 <span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Urea"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
@@ -1251,7 +1251,7 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 <span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb55-11"><a href="#cb55-11" aria-hidden="true" tabindex="-1"></a><span class="do">## Protectors against Oxidative Stress</span></span>
 <span id="cb55-12"><a href="#cb55-12" aria-hidden="true" tabindex="-1"></a>gge <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"6-bromotryptophan"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">6-bromotryptophan"</span>, <span class="at">base_size =</span> <span class="dv">12</span>,</span>
-<span id="cb55-13"><a href="#cb55-13" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>,</span>
+<span id="cb55-13"><a href="#cb55-13" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Human gammaherpesvirus 4 (EBV).nasal"</span>,</span>
 <span id="cb55-14"><a href="#cb55-14" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 1 (HSV1).nasal"</span>, <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
@@ -1282,7 +1282,7 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 <div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"Figure5E.pdf"</span>), <span class="at">width =</span> <span class="fl">14.16</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>gge_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"6-bromotryptophan"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">6-bromotryptophan"</span>, <span class="at">base_size =</span> <span class="dv">12</span>,</span>
-<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>,</span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Human gammaherpesvirus 4 (EBV).nasal"</span>,</span>
 <span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 1 (HSV1).nasal"</span>, <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span>
 <span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(gge_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
 <span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>            <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
@@ -1290,10 +1290,8 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 <span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(gge_data[[<span class="dv">2</span>]], <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_Figure5E_part2.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="supplementary-figure-9" class="level2">
-<h2 class="anchored" data-anchor-id="supplementary-figure-9">Supplementary Figure 9</h2>
-<section id="figure-s9a" class="level3">
-<h3 class="anchored" data-anchor-id="figure-s9a">Figure S9A</h3>
+<section id="supplementary-figure-8" class="level2">
+<h2 class="anchored" data-anchor-id="supplementary-figure-8">Supplementary Figure 8</h2>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ComplexHeatmap)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
@@ -1371,7 +1369,7 @@ This message can be suppressed by:
 <span id="cb66-12"><a href="#cb66-12" aria-hidden="true" tabindex="-1"></a>heat_df3[<span class="fu">is.na</span>(heat_df3)] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
 <span id="cb66-13"><a href="#cb66-13" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(heat_df3) <span class="ot">&lt;-</span> data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME[<span class="fu">match</span>(<span class="fu">rownames</span>(heat_df3), <span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature))]</span>
 <span id="cb66-14"><a href="#cb66-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-15"><a href="#cb66-15" aria-hidden="true" tabindex="-1"></a><span class="fu">pdf</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9A.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="dv">26</span>)</span>
+<span id="cb66-15"><a href="#cb66-15" aria-hidden="true" tabindex="-1"></a><span class="fu">pdf</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS8.pdf"</span>), <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="dv">26</span>)</span>
 <span id="cb66-16"><a href="#cb66-16" aria-hidden="true" tabindex="-1"></a><span class="fu">Heatmap</span>(heat_df3, <span class="at">border =</span> <span class="cn">TRUE</span>, <span class="at">row_split =</span> data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>SUPER_PATHWAY[<span class="fu">match</span>(<span class="fu">rownames</span>(heat_df3), data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME)],</span>
 <span id="cb66-17"><a href="#cb66-17" aria-hidden="true" tabindex="-1"></a>        <span class="at">col =</span> col_fun, <span class="at">show_row_dend =</span> F, <span class="at">show_column_dend =</span> F,<span class="at">column_title =</span> <span class="st">"Virus"</span>,</span>
 <span id="cb66-18"><a href="#cb66-18" aria-hidden="true" tabindex="-1"></a>        <span class="at">column_split =</span> <span class="fu">gsub</span>(<span class="st">"_.*"</span>, <span class="st">""</span>, <span class="fu">colnames</span>(heat_df3)), <span class="at">cluster_rows =</span> T,</span>
@@ -1385,7 +1383,7 @@ This message can be suppressed by:
 <pre><code>png 
   2 </code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(heat_df3, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9A.csv"</span>))</span>
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(heat_df3, <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS8.csv"</span>))</span>
 <span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(pmg <span class="sc">%&gt;%</span> <span class="fu">left_join</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature <span class="sc">%&gt;%</span> <span class="fu">rownames_to_column</span>(<span class="st">"feature"</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>              <span class="fu">select</span>(feature, CHEMICAL_NAME)), <span class="fu">paste0</span>(out_dir, <span class="st">"Supplemental_Data_part1_named_compounds.csv"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1394,18 +1392,21 @@ This message can be suppressed by:
 </div>
 </div>
 </section>
-<section id="figure-s9b-f" class="level3">
-<h3 class="anchored" data-anchor-id="figure-s9b-f">Figure S9B-F</h3>
+<section id="supplementary-figure-9" class="level2">
+<h2 class="anchored" data-anchor-id="supplementary-figure-9">Supplementary Figure 9</h2>
+<section id="figure-s9a-e" class="level3">
+<h3 class="anchored" data-anchor-id="figure-s9a-e">Figure S9A-E</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a>ggb <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"N,N,N-trimethyl-alanylproline betaine (TMAP)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">TMAP"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
-<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="do">### A</span></span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>gga <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"N,N,N-trimethyl-alanylproline betaine (TMAP)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">TMAP"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
 Adding another scale for colour, which will replace the existing scale.
 Scale for fill is already present.
 Adding another scale for fill, which will replace the existing scale.</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a>ggb</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a>gga</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -1413,19 +1414,19 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9B.pdf"</span>), <span class="at">width =</span> <span class="fl">4.92</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9A.pdf"</span>), <span class="at">width =</span> <span class="fl">4.92</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb75-4"><a href="#cb75-4" aria-hidden="true" tabindex="-1"></a>ggb_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"N,N,N-trimethyl-alanylproline betaine (TMAP)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">TMAP"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb75-4"><a href="#cb75-4" aria-hidden="true" tabindex="-1"></a>gga_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"N,N,N-trimethyl-alanylproline betaine (TMAP)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">TMAP"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb75-5"><a href="#cb75-5" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>), modeling_results, viral_colors)</span>
-<span id="cb75-6"><a href="#cb75-6" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file =</span> <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9B_part1.csv"</span>), <span class="at">x =</span> ggb_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
+<span id="cb75-6"><a href="#cb75-6" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file =</span> <span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9A_part1.csv"</span>), <span class="at">x =</span> gga_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
 <span id="cb75-7"><a href="#cb75-7" aria-hidden="true" tabindex="-1"></a>            <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb75-8"><a href="#cb75-8" aria-hidden="true" tabindex="-1"></a>            <span class="fu">select</span>(<span class="sc">-</span>participant_id))</span>
-<span id="cb75-9"><a href="#cb75-9" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9B_part2.csv"</span>), <span class="at">x=</span>ggb_data[[<span class="dv">2</span>]])</span>
+<span id="cb75-9"><a href="#cb75-9" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9A_part2.csv"</span>), <span class="at">x=</span>gga_data[[<span class="dv">2</span>]])</span>
 <span id="cb75-10"><a href="#cb75-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb75-11"><a href="#cb75-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb75-12"><a href="#cb75-12" aria-hidden="true" tabindex="-1"></a><span class="do">### C</span></span>
-<span id="cb75-13"><a href="#cb75-13" aria-hidden="true" tabindex="-1"></a>ggc <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"arachidate (20:0)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Arachidate (20:0)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb75-12"><a href="#cb75-12" aria-hidden="true" tabindex="-1"></a><span class="do">### B</span></span>
+<span id="cb75-13"><a href="#cb75-13" aria-hidden="true" tabindex="-1"></a>ggb <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"arachidate (20:0)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Arachidate (20:0)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb75-14"><a href="#cb75-14" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
@@ -1437,7 +1438,7 @@ Adding another scale for colour, which will replace the existing scale.
 Scale for fill is already present.
 Adding another scale for fill, which will replace the existing scale.</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>ggc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>ggb</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -1445,9 +1446,11 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a>ggc_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"arachidate (20:0)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Arachidate (20:0)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
-<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span>
-<span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a>ggc_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9B.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a>ggb_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"arachidate (20:0)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Arachidate (20:0)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb78-4"><a href="#cb78-4" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span>
+<span id="cb78-5"><a href="#cb78-5" aria-hidden="true" tabindex="-1"></a>ggb_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[[1]]
     participant_id               name value     residuals
@@ -2446,13 +2449,13 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 151            Control  40
 152            Control  40</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9C_part1.csv"</span>), <span class="at">x=</span>ggc_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9B_part1.csv"</span>), <span class="at">x=</span>ggb_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
 <span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>            <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a>            <span class="fu">select</span>(<span class="sc">-</span>participant_id))</span>
-<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9C_part2.csv"</span>), <span class="at">x=</span>ggc_data[[<span class="dv">2</span>]])</span>
+<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9B_part2.csv"</span>), <span class="at">x=</span>ggb_data[[<span class="dv">2</span>]])</span>
 <span id="cb80-5"><a href="#cb80-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb80-6"><a href="#cb80-6" aria-hidden="true" tabindex="-1"></a><span class="do">### D</span></span>
-<span id="cb80-7"><a href="#cb80-7" aria-hidden="true" tabindex="-1"></a>ggd <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"docosadienoate (22:2n6)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Docosadienoate (22:2n6)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb80-6"><a href="#cb80-6" aria-hidden="true" tabindex="-1"></a><span class="do">### C</span></span>
+<span id="cb80-7"><a href="#cb80-7" aria-hidden="true" tabindex="-1"></a>ggc <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"docosadienoate (22:2n6)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Docosadienoate (22:2n6)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb80-8"><a href="#cb80-8" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
@@ -2464,7 +2467,7 @@ Adding another scale for colour, which will replace the existing scale.
 Scale for fill is already present.
 Adding another scale for fill, which will replace the existing scale.</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a>ggd</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a>ggc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -2472,11 +2475,11 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9D.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9C.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a>ggd_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"docosadienoate (22:2n6)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Docosadienoate (22:2n6)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a>ggc_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"docosadienoate (22:2n6)"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Docosadienoate (22:2n6)"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb83-4"><a href="#cb83-4" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span>
-<span id="cb83-5"><a href="#cb83-5" aria-hidden="true" tabindex="-1"></a>ggd_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb83-5"><a href="#cb83-5" aria-hidden="true" tabindex="-1"></a>ggc_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[[1]]
     participant_id               name value    residuals
@@ -3475,14 +3478,14 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 151            Control  40
 152            Control  40</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9D_part1.csv"</span>), <span class="at">x=</span>ggd_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
+<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9C_part1.csv"</span>), <span class="at">x=</span>ggc_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
 <span id="cb85-2"><a href="#cb85-2" aria-hidden="true" tabindex="-1"></a>            <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb85-3"><a href="#cb85-3" aria-hidden="true" tabindex="-1"></a>            <span class="fu">select</span>(<span class="sc">-</span>participant_id))</span>
-<span id="cb85-4"><a href="#cb85-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9D_part2.csv"</span>), <span class="at">x=</span>ggd_data[[<span class="dv">2</span>]])</span>
+<span id="cb85-4"><a href="#cb85-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9C_part2.csv"</span>), <span class="at">x=</span>ggc_data[[<span class="dv">2</span>]])</span>
 <span id="cb85-5"><a href="#cb85-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb85-6"><a href="#cb85-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb85-7"><a href="#cb85-7" aria-hidden="true" tabindex="-1"></a><span class="do">## E</span></span>
-<span id="cb85-8"><a href="#cb85-8" aria-hidden="true" tabindex="-1"></a>gge <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"X100001810"</span>, <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Dimethylarginine"</span>, <span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb85-7"><a href="#cb85-7" aria-hidden="true" tabindex="-1"></a><span class="do">## D</span></span>
+<span id="cb85-8"><a href="#cb85-8" aria-hidden="true" tabindex="-1"></a>ggd <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="st">"X100001810"</span>, <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Dimethylarginine"</span>, <span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb85-9"><a href="#cb85-9" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>, <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Scale for colour is already present.
@@ -3494,7 +3497,7 @@ Adding another scale for colour, which will replace the existing scale.
 Scale for fill is already present.
 Adding another scale for fill, which will replace the existing scale.</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>gge</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>ggd</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -3502,12 +3505,12 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9E.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9D.pdf"</span>), <span class="at">width =</span> <span class="dv">8</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb88-3"><a href="#cb88-3" aria-hidden="true" tabindex="-1"></a>gge_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="st">"X100001810"</span>, <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Dimethylarginine"</span>,</span>
+<span id="cb88-3"><a href="#cb88-3" aria-hidden="true" tabindex="-1"></a>ggd_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="st">"X100001810"</span>, <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">Dimethylarginine"</span>,</span>
 <span id="cb88-4"><a href="#cb88-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb88-5"><a href="#cb88-5" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>, <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span>
-<span id="cb88-6"><a href="#cb88-6" aria-hidden="true" tabindex="-1"></a>gge_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb88-6"><a href="#cb88-6" aria-hidden="true" tabindex="-1"></a>ggd_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[[1]]
     participant_id               name value     residuals
@@ -4506,13 +4509,13 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 151            Control  40
 152            Control  40</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9E_part1.csv"</span>), <span class="at">x=</span>gge_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
+<div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9D_part1.csv"</span>), <span class="at">x=</span>ggd_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
 <span id="cb90-2"><a href="#cb90-2" aria-hidden="true" tabindex="-1"></a>            <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb90-3"><a href="#cb90-3" aria-hidden="true" tabindex="-1"></a>            <span class="fu">select</span>(<span class="sc">-</span>participant_id))</span>
-<span id="cb90-4"><a href="#cb90-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9E_part2.csv"</span>), <span class="at">x=</span>gge_data[[<span class="dv">2</span>]])</span>
+<span id="cb90-4"><a href="#cb90-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9D_part2.csv"</span>), <span class="at">x=</span>ggd_data[[<span class="dv">2</span>]])</span>
 <span id="cb90-5"><a href="#cb90-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb90-6"><a href="#cb90-6" aria-hidden="true" tabindex="-1"></a><span class="do">### F</span></span>
-<span id="cb90-7"><a href="#cb90-7" aria-hidden="true" tabindex="-1"></a>ggf <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"S-methylcysteine sulfoxide"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">S-methylcysteine sulfoxide"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb90-6"><a href="#cb90-6" aria-hidden="true" tabindex="-1"></a><span class="do">### E</span></span>
+<span id="cb90-7"><a href="#cb90-7" aria-hidden="true" tabindex="-1"></a>gge <span class="ot">&lt;-</span> <span class="fu">traj_plot</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"S-methylcysteine sulfoxide"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">S-methylcysteine sulfoxide"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb90-8"><a href="#cb90-8" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>,</span>
 <span id="cb90-9"><a href="#cb90-9" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 1 (HSV1).nasal"</span>, <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
@@ -4533,7 +4536,7 @@ Adding another scale for colour, which will replace the existing scale.
 Scale for fill is already present.
 Adding another scale for fill, which will replace the existing scale.</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a>ggf</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a>gge</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -4541,800 +4544,1058 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb93"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9F.pdf"</span>), <span class="at">width =</span> <span class="fl">14.16</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
+<div class="sourceCode cell-code" id="cb93"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="fu">paste0</span>(out_dir, <span class="st">"FigureS9E.pdf"</span>), <span class="at">width =</span> <span class="fl">14.16</span>, <span class="at">height =</span> <span class="dv">3</span>)</span>
 <span id="cb93-2"><a href="#cb93-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb93-3"><a href="#cb93-3" aria-hidden="true" tabindex="-1"></a>ggf_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"S-methylcysteine sulfoxide"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">S-methylcysteine sulfoxide"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
+<span id="cb93-3"><a href="#cb93-3" aria-hidden="true" tabindex="-1"></a>gge_data <span class="ot">&lt;-</span> <span class="fu">source_data</span>(<span class="fu">rownames</span>(data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature)[data_env<span class="sc">$</span>plasma_metabolomics_global_rowfeature<span class="sc">$</span>CHEMICAL_NAME <span class="sc">==</span> <span class="st">"S-methylcysteine sulfoxide"</span>], <span class="at">better_name =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">S-methylcysteine sulfoxide"</span>,<span class="at">base_size =</span> <span class="dv">12</span>,</span>
 <span id="cb93-4"><a href="#cb93-4" aria-hidden="true" tabindex="-1"></a>          <span class="fu">c</span>(<span class="st">"Human betaherpesvirus 5 (CMV).pbmc"</span>,<span class="st">"Human gammaherpesvirus 4 (EBV).pbmc"</span>,</span>
 <span id="cb93-5"><a href="#cb93-5" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"Human alphaherpesvirus 1 (HSV1).nasal"</span>, <span class="st">"Anelloviridae.pbmc"</span>), modeling_results, viral_colors)</span>
-<span id="cb93-6"><a href="#cb93-6" aria-hidden="true" tabindex="-1"></a>ggf_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb93-6"><a href="#cb93-6" aria-hidden="true" tabindex="-1"></a>gge_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[[1]]
-    participant_id               name value    residuals
-1         001-0002 Anelloviridae.pbmc     1 -0.186219820
-2         001-0003 Anelloviridae.pbmc     1 -0.055214733
-3         001-0004            Control     0 -0.747979249
-4         001-0005            Control     0  0.279953345
-5         001-0006            Control     0  0.510300130
-6         001-0007            Control     0 -0.574919370
-7         001-0008            Control     0 -0.461479138
-8         001-0009            Control     0  0.737502535
-9         001-0012            Control     0 -0.026244152
-10        001-0014            Control     0  0.420182325
-11        001-0021            Control     0 -0.563326794
-12        001-0023            Control     0  0.262627939
-13        001-0024            Control     0  0.186131750
-14        001-0026            Control     0 -0.396629534
-15        001-0029         HSV1.nasal     1  0.375057599
-16        001-0030         HSV1.nasal     1  0.368040883
-17        001-0034            Control     0 -0.353195239
-18        001-0035            Control     0 -0.028619936
-19        001-0036            Control     0  0.518820450
-20        001-0038            Control     0 -0.337656217
-21        001-0039            Control     0  0.025144049
-22        001-0042            Control     0  0.881138120
-23        001-0044            Control     0  0.288308974
-24        001-0045 Anelloviridae.pbmc     1  0.496517831
-25        001-0046            Control     0 -0.140153810
-26        001-0047            Control     0  0.007361542
-27        001-0049            Control     0  0.498626377
-28        001-0051            Control     0 -0.409623477
-29        001-0052            Control     0  0.129832876
-30        001-0054         HSV1.nasal     1  0.083414123
-31        001-0067            Control     0 -0.070365984
-32        001-0068            Control     0 -0.122970698
-33        001-0071            Control     0 -0.077285961
-34        001-0074            Control     0  0.110959583
-35        001-0075            Control     0 -0.222232040
-36        001-0076            Control     0 -0.173675493
-37        001-0079            Control     0 -0.127364711
-38        001-0081            Control     0  0.177566669
-39        002-0001            Control     0 -0.388619162
-40        002-0002 Anelloviridae.pbmc     1  0.389287964
-41        002-0004 Anelloviridae.pbmc     1 -0.554761331
-42        002-0005            Control     0 -0.118581853
-43        002-0009            Control     0 -0.255790265
-44        002-0016            Control     0 -0.310385499
-45        002-0017            Control     0  0.952834311
-46        002-0019            Control     0  0.207442283
-47        002-0021 Anelloviridae.pbmc     1 -0.387073860
-48        002-0022            Control     0  0.009209690
-49        002-0023            Control     0 -0.118155663
-50        002-0024            Control     0  0.601708690
-51        002-0025 Anelloviridae.pbmc     1 -0.385117475
-52        002-0025         HSV1.nasal     1 -0.385117475
-53        002-0032            Control     0  0.051583965
-54        002-0033            Control     0  0.230208946
-55        002-0036 Anelloviridae.pbmc     1 -0.172663484
-56        002-0041            Control     0 -0.710465614
-57        002-0042            Control     0 -0.144000480
-58        002-0043            Control     0  0.506768905
-59        002-0044            Control     0  0.354882801
-60        002-0045            Control     0  0.035081950
-61        002-0046            Control     0  0.087627105
-62        002-0048            Control     0  0.073184598
-63        002-0050            Control     0  0.117028205
-64        002-0051            Control     0 -0.139988837
-65        002-0053            Control     0  0.552986087
-66        002-0054            Control     0 -0.062051893
-67        002-0055 Anelloviridae.pbmc     1 -0.399500597
-68        002-0057            Control     0 -0.613082928
-69        002-0059         HSV1.nasal     1  0.243535871
-70        002-0060            Control     0 -0.231305692
-71        002-0061            Control     0  0.313178691
-72        003-0002 Anelloviridae.pbmc     1  0.708123133
-73        003-0004            Control     0  0.835725604
-74        003-0007 Anelloviridae.pbmc     1 -0.525018965
-75        003-0007         HSV1.nasal     1 -0.525018965
-76        003-0008 Anelloviridae.pbmc     1  0.274779980
-77        003-0010            Control     0  0.183172072
-78        003-0014         HSV1.nasal     1  0.162671741
-79        003-0016            Control     0  0.121816815
-80        003-0019            Control     0  0.657220999
-81        003-0020         HSV1.nasal     1 -0.314164242
-82        003-0021            Control     0 -0.573342749
-83        003-0024            Control     0  0.372618725
-84        003-0025            Control     0  0.699239715
-85        003-0026            Control     0  0.870371147
-86        003-0030            Control     0 -0.084554395
-87        003-0031 Anelloviridae.pbmc     1  0.501235598
-88        003-0032            Control     0 -0.266486204
-89        003-0034 Anelloviridae.pbmc     1 -0.167392087
-90        003-0035         HSV1.nasal     1 -0.433442013
-91        003-0036            Control     0  0.145332621
-92        003-0038 Anelloviridae.pbmc     1 -0.573342173
-93        003-0039            Control     0 -0.594066251
-94        003-0040            Control     0 -0.266254752
-95        003-0041            Control     0 -0.398104242
-96        003-0042         HSV1.nasal     1 -0.360433034
-97        003-0043         HSV1.nasal     1  0.306247981
-98        003-0048            Control     0  0.425356860
-99        003-0049            Control     0 -0.724683219
-100       003-0050            Control     0  0.829143500
-101       003-0051            Control     0  0.333047597
-102       003-0053            Control     0  0.560295300
-103       003-0054            Control     0  0.695457156
-104       003-0055            Control     0 -0.169027609
-105       003-0056            Control     0 -0.874494687
-106       003-0060            Control     0  0.971037237
-107       003-0061            Control     0 -0.079323438
-108       003-0062            Control     0  0.732427169
-109       003-0063            Control     0 -0.242881460
-110       003-0065            Control     0  0.372867262
-111       003-0066            Control     0 -0.700821612
-112       003-0068 Anelloviridae.pbmc     1 -0.233572320
-113       003-0069            Control     0 -0.320423774
-114       003-0072         HSV1.nasal     1  0.141332279
-115       003-0073            Control     0  0.601184677
-116       003-0074            Control     0  0.160112537
-117       003-0075            Control     0 -0.344010151
-118       003-0076 Anelloviridae.pbmc     1  0.172436165
-119       003-0077            Control     0  0.430060245
-120       003-0078 Anelloviridae.pbmc     1 -0.212660606
-121       003-0079 Anelloviridae.pbmc     1  0.220012374
-122       003-0080         HSV1.nasal     1 -0.361445415
-123       003-0081         HSV1.nasal     1  0.119257839
-124       003-0082            Control     0  0.148041917
-125       003-0083            Control     0 -0.168684650
-126       003-0086            Control     0  0.109871081
-127       003-0087            Control     0  1.082087990
-128       003-0089         HSV1.nasal     1  0.939184406
-129       003-0091            Control     0  0.033884011
-130       003-1001            Control     0  0.285567046
-131       003-1004            Control     0  0.445794466
-132       003-1005            Control     0 -0.257239992
-133       003-2001            Control     0  0.200591081
-134       003-2002            Control     0  0.422384604
-135       003-2003            Control     0  0.295927999
-136       003-2004            Control     0 -0.382635936
-137       003-2006            Control     0 -0.217641558
-138       003-2007            Control     0  0.777285451
-139       003-2008            Control     0 -0.329108362
-140       003-2010            Control     0  0.595579619
-141       004-0001            Control     0 -0.016749844
-142       004-0002            Control     0 -0.145880347
-143       004-0003 Anelloviridae.pbmc     1  0.444080938
-144       004-0004            Control     0  0.169913029
-145       004-0005 Anelloviridae.pbmc     1 -0.366444868
-146       004-0006            Control     0  0.339635007
-147       004-0007            Control     0  0.372100668
-148       004-0008            Control     0 -0.136388137
-149       004-0009         HSV1.nasal     1  0.142962910
-150       004-0010 Anelloviridae.pbmc     1 -0.413814716
-151       004-0011 Anelloviridae.pbmc     1 -0.203192490
-152       004-0012 Anelloviridae.pbmc     1  0.238988964
-153       004-0013            Control     0 -0.706053773
-154       004-0014 Anelloviridae.pbmc     1  0.392240085
-155       004-0016            Control     0 -0.104208927
-156       004-0017            Control     0 -0.412135891
-157       004-0018            Control     0  0.432922507
-158       004-0020         HSV1.nasal     1 -0.237994463
-159       004-0021         HSV1.nasal     1 -0.535620755
-160       004-0022            Control     0  0.498089247
-161       004-0024            Control     0  0.647436364
-162       004-0026            Control     0  0.794366047
-163       004-0030         HSV1.nasal     1 -0.331415792
-164       004-0033            Control     0  0.021469268
-165       004-0034         HSV1.nasal     1 -0.333238048
-166       004-0036            Control     0 -0.520550228
-167       004-0037 Anelloviridae.pbmc     1 -0.076743027
-168       004-0039            Control     0  0.537174200
-169       004-0040 Anelloviridae.pbmc     1  0.270064194
-170       004-0042            Control     0  0.165411648
-171       004-0043 Anelloviridae.pbmc     1  1.141414417
-172       004-0044 Anelloviridae.pbmc     1 -0.305634258
-173       004-0046            Control     0  0.287633622
-174       004-0048            Control     0 -0.261428280
-175       004-0051 Anelloviridae.pbmc     1 -0.732852138
-176       004-0052            Control     0 -0.047995415
-177       004-0053         HSV1.nasal     1  0.672358354
-178       004-0053           CMV.pbmc     1  0.672358354
-179       004-0054 Anelloviridae.pbmc     1  0.539399416
-180       004-0055            Control     0 -0.133681334
-181       004-0056            Control     0 -0.087887770
-182       004-0057 Anelloviridae.pbmc     1  0.486968368
-183       004-0057           CMV.pbmc     1  0.486968368
-184       004-0059 Anelloviridae.pbmc     1 -0.677211233
-185       004-0061            Control     0 -0.342946807
-186       004-0063            Control     0  0.285509315
-187       004-0064            Control     0  0.856163390
-188       004-0065            Control     0 -0.064998051
-189       004-1001            Control     0 -0.045751828
-190       004-1002            Control     0  0.251631922
-191       004-1004 Anelloviridae.pbmc     1 -0.321949455
-192       004-1004         HSV1.nasal     1 -0.321949455
-193       004-1005            Control     0 -0.423462362
-194       004-1006            Control     0 -0.236473490
-195       004-1009 Anelloviridae.pbmc     1 -0.195786753
-196       004-1011            Control     0 -0.016586941
-197       004-1013 Anelloviridae.pbmc     1 -0.243923588
-198       004-1015 Anelloviridae.pbmc     1  0.109065731
-199       004-1016            Control     0  0.471732239
-200       004-1017            Control     0 -0.345304182
-201       004-1019         HSV1.nasal     1  0.664954838
-202       004-1020 Anelloviridae.pbmc     1 -1.068722181
-203       004-1021 Anelloviridae.pbmc     1 -0.015635173
-204       004-1023 Anelloviridae.pbmc     1  0.265637967
-205       004-1025            Control     0  0.083843124
-206       004-1026            Control     0 -0.736577118
-207       004-1027            Control     0  0.265340382
-208       004-1028         HSV1.nasal     1  1.073489537
-209       004-1028           CMV.pbmc     1  1.073489537
-210       004-1029            Control     0 -0.206329513
-211       004-1030            Control     0 -0.018972929
-212       004-1031         HSV1.nasal     1 -0.473626660
-213       004-1032            Control     0  0.377368461
-214       004-1033            Control     0  0.005313278
-215       004-1034            Control     0 -0.247436677
-216       004-1035            Control     0  0.270456737
-217       004-1036 Anelloviridae.pbmc     1 -0.398388265
-218       004-1037 Anelloviridae.pbmc     1  0.422474992
-219       004-1037         HSV1.nasal     1  0.422474992
-220       004-1040 Anelloviridae.pbmc     1  0.381079079
-221       004-1041            Control     0 -0.195836775
-222       004-1042            Control     0  0.511931272
-223       004-1045            Control     0  0.512841151
-224       004-1046            Control     0 -0.275464293
-225       004-1047            Control     0 -0.084000005
-226       004-1048         HSV1.nasal     1 -0.440116151
-227       004-1049 Anelloviridae.pbmc     1 -0.218709529
-228       004-1052            Control     0 -0.137196972
-229       004-1055            Control     0 -0.312022237
-230       004-1056            Control     0  0.195495618
-231       004-1057            Control     0  0.168257672
-232       004-1058            Control     0  0.592249942
-233       005-0001            Control     0  0.382038508
-234       005-0002            Control     0  0.222970942
-235       005-0004            Control     0 -0.181536673
-236       005-0006            Control     0 -0.525347805
-237       005-0008 Anelloviridae.pbmc     1 -0.028094470
-238       005-0009            Control     0 -0.088467995
-239       005-0011            Control     0  0.851367494
-240       005-0012 Anelloviridae.pbmc     1 -0.169984944
-241       005-0013 Anelloviridae.pbmc     1 -0.324252011
-242       005-0014            Control     0 -0.274016926
-243       005-0015            Control     0 -0.301580403
-244       005-0016            Control     0  0.222618233
-245       005-0017            Control     0  0.099911676
-246       005-0020 Anelloviridae.pbmc     1 -0.396742218
-247       005-0020         HSV1.nasal     1 -0.396742218
-248       005-0020           CMV.pbmc     1 -0.396742218
-249       005-0021            Control     0  0.496933664
-250       005-0022            Control     0  0.867067173
-251       005-0024            Control     0 -0.103283518
-252       005-0029            Control     0  0.182808552
-253       005-0031            Control     0 -0.332844410
-254       005-0032 Anelloviridae.pbmc     1 -0.281016335
-255       005-0032           CMV.pbmc     1 -0.281016335
-256       005-0036            Control     0 -0.368752745
-257       005-0037            Control     0  0.405896218
-258       005-0042            Control     0  0.233918305
-259       005-0044            Control     0  0.170579499
-260       005-0046            Control     0 -0.322072800
-261       005-1001         HSV1.nasal     1  0.831708510
-262       005-1004            Control     0 -0.307269577
-263       006-0003           CMV.pbmc     1 -0.351455930
-264       006-0004           CMV.pbmc     1  0.162278909
-265       006-0006            Control     0  0.348971908
-266       006-0008         HSV1.nasal     1  0.351062518
-267       006-0009            Control     0 -0.460990033
-268       006-0010 Anelloviridae.pbmc     1 -0.269088871
-269       006-0011         HSV1.nasal     1 -0.293528957
-270       006-0015         HSV1.nasal     1 -0.132193463
-271       006-0016         HSV1.nasal     1 -0.687806605
-272       006-0017 Anelloviridae.pbmc     1  0.384491458
-273       006-0018            Control     0 -0.189522610
-274       006-0019            Control     0  0.613782820
-275       006-0020           CMV.pbmc     1  0.250280646
-276       006-0023 Anelloviridae.pbmc     1 -0.445787102
-277       006-0024            Control     0 -0.267380023
-278       006-0025            Control     0 -0.334959053
-279       006-0026 Anelloviridae.pbmc     1  0.750832552
-280       006-0027 Anelloviridae.pbmc     1  0.155005284
-281       006-0029            Control     0 -0.272047763
-282       006-0030            Control     0 -0.317224253
-283       006-1001            Control     0 -0.168544685
-284       006-1004            Control     0  0.475531778
-285       007-0005 Anelloviridae.pbmc     1 -0.205078921
-286       007-0009            Control     0 -0.999748765
-287       007-0013            Control     0  0.893592289
-288       007-0018 Anelloviridae.pbmc     1  0.244732981
-289       007-0019            Control     0 -0.550514280
-290       007-0024            Control     0  0.239026206
-291       007-0025            Control     0 -0.207385350
-292       007-0027            Control     0 -0.569405305
-293       007-0029            Control     0 -0.134473256
-294       007-0030            Control     0  0.083803442
-295       007-0031            Control     0  0.789983656
-296       007-0032            Control     0  0.276736946
-297       007-0033            Control     0  0.505596070
-298       007-0034            Control     0 -0.338301298
-299       007-0037            Control     0 -0.147900108
-300       007-0038         HSV1.nasal     1  0.297627019
-301       007-0040            Control     0  0.328681615
-302       007-0043            Control     0 -0.233250288
-303       007-0044 Anelloviridae.pbmc     1 -0.235373517
-304       007-0045 Anelloviridae.pbmc     1 -0.197400301
-305       007-0046 Anelloviridae.pbmc     1  0.083875210
-306       007-0048 Anelloviridae.pbmc     1  0.565640105
-307       007-0051            Control     0  0.100670043
-308       007-0053            Control     0  0.009624929
-309       007-0054            Control     0  0.065473473
-310       007-0059 Anelloviridae.pbmc     1  0.582204626
-311       007-0062         HSV1.nasal     1 -0.048333544
-312       007-0065            Control     0  0.373386496
-313       007-0069            Control     0 -0.184692167
-314       007-0071 Anelloviridae.pbmc     1 -0.109384018
-315       007-0071         HSV1.nasal     1 -0.109384018
-316       007-0073            Control     0  0.081826856
-317       007-0074            Control     0  0.488323437
-318       007-0075            Control     0 -0.272179954
-319       007-0076            Control     0 -0.178280034
-320       007-0077            Control     0  0.592912194
-321       007-0078 Anelloviridae.pbmc     1  0.124627810
-322       007-0079            Control     0 -0.018192648
-323       007-0080 Anelloviridae.pbmc     1 -0.435091392
-324       007-0080         HSV1.nasal     1 -0.435091392
-325       007-0081            Control     0 -0.069098257
-326       007-0082            Control     0  0.563067214
-327       007-0084            Control     0 -0.474860044
-328       007-0086            Control     0  0.269754042
-329       007-0087            Control     0 -0.195520607
-330       007-0091            Control     0 -0.128489519
-331       007-0092            Control     0  0.124462887
-332       007-0093            Control     0 -0.234538123
-333       007-0094           CMV.pbmc     1 -0.012837980
-334       007-0095            Control     0 -0.131364152
-335       007-0096           CMV.pbmc     1  0.179814954
-336       007-0097            Control     0  0.288306843
-337       007-0098            Control     0 -0.257518505
-338       007-0099 Anelloviridae.pbmc     1  0.542516119
-339       008-0002 Anelloviridae.pbmc     1 -1.176379319
-340       008-0004            Control     0  0.256658772
-341       008-0005            Control     0  0.384703996
-342       008-0007           CMV.pbmc     1 -0.696122440
-343       008-0008 Anelloviridae.pbmc     1  0.455472408
-344       008-0010            Control     0 -0.476489313
-345       008-0011            Control     0 -0.274770697
-346       008-0013 Anelloviridae.pbmc     1  0.556605935
-347       008-0015 Anelloviridae.pbmc     1 -0.385371259
-348       008-0019            Control     0  0.794778460
-349       008-0020            Control     0  0.500826218
-350       008-0021            Control     0 -0.277202198
-351       008-0024            Control     0  0.048155037
-352       008-0025            Control     0  0.605357584
-353       008-0027            Control     0  0.700087840
-354       008-0028            Control     0 -0.272359783
-355       008-0029 Anelloviridae.pbmc     1  0.628609340
-356       008-0031 Anelloviridae.pbmc     1 -1.366820562
-357       008-0032            Control     0 -0.185686578
-358       008-0033            Control     0  0.240323251
-359       008-0035            Control     0 -0.341442655
-360       008-0036            Control     0  0.412524869
-361       008-0038            Control     0  0.130763104
-362       008-0039 Anelloviridae.pbmc     1 -1.997326603
-363       008-0039         HSV1.nasal     1 -1.997326603
-364       008-0039           CMV.pbmc     1 -1.997326603
-365       008-0040 Anelloviridae.pbmc     1  0.333351242
-366       008-0041         HSV1.nasal     1 -0.330071943
-367       008-0042 Anelloviridae.pbmc     1  0.386753457
-368       008-0043 Anelloviridae.pbmc     1  0.272999104
-369       008-0044            Control     0 -0.314153848
-370       008-0046 Anelloviridae.pbmc     1  0.366203081
-371       008-0047 Anelloviridae.pbmc     1 -0.414396186
-372       008-0048 Anelloviridae.pbmc     1  0.270894730
-373       008-0057            Control     0 -0.248803855
-374       008-0058            Control     0  0.055415653
-375       008-0061         HSV1.nasal     1 -1.339729348
-376       008-0061           CMV.pbmc     1 -1.339729348
-377       008-0062 Anelloviridae.pbmc     1 -0.577509267
-378       008-0064 Anelloviridae.pbmc     1 -0.206733390
-379       008-0065 Anelloviridae.pbmc     1 -1.413128581
-380       008-0066            Control     0 -1.169416833
-381       008-0069 Anelloviridae.pbmc     1 -0.318965135
-382       008-0069         HSV1.nasal     1 -0.318965135
-383       008-0070            Control     0 -0.137111864
-384       008-0071 Anelloviridae.pbmc     1  0.428714681
-385       008-0072            Control     0 -0.215401995
-386       008-0073            Control     0  0.145026830
-387       008-0074            Control     0  0.208645593
-388       008-0076            Control     0  0.433184125
-389       008-0077 Anelloviridae.pbmc     1  0.592379902
-390       008-0077         HSV1.nasal     1  0.592379902
-391       008-0078            Control     0  0.575906713
-392       008-0079 Anelloviridae.pbmc     1 -0.098209671
-393       008-0080            Control     0  0.225704099
-394       008-0081            Control     0 -0.270679598
-395       008-0082            Control     0  0.183270324
-396       008-0083            Control     0 -0.185853748
-397       008-0084 Anelloviridae.pbmc     1  0.802533402
-398       008-0085 Anelloviridae.pbmc     1 -0.743915276
-399       008-0087            Control     0 -0.540522911
-400       008-0088 Anelloviridae.pbmc     1 -0.446341616
-401       008-0088         HSV1.nasal     1 -0.446341616
-402       008-0090 Anelloviridae.pbmc     1  0.857093669
-403       008-0091            Control     0  0.065863000
-404       008-0092           CMV.pbmc     1 -0.273215738
-405       008-0093            Control     0 -0.391052867
-406       008-0094            Control     0  0.490935594
-407       008-0097            Control     0  0.173360105
-408       008-0098            Control     0 -0.069450826
-409       008-0099            Control     0 -0.178452423
-410       008-0100            Control     0  0.725633748
-411       008-0102            Control     0 -0.192704482
-412       008-0103         HSV1.nasal     1  0.470475074
-413       008-1003 Anelloviridae.pbmc     1 -0.283930427
-414       008-1004 Anelloviridae.pbmc     1  0.322886589
-415       008-1005            Control     0  0.326997672
-416       008-1007            Control     0 -0.464446172
-417       008-1008            Control     0 -0.299897697
-418       008-1009 Anelloviridae.pbmc     1  0.630965573
-419       008-1010            Control     0 -0.253912879
-420       008-1011         HSV1.nasal     1 -0.188182916
-421       008-1014 Anelloviridae.pbmc     1  0.432866525
-422       008-1018            Control     0 -0.335003109
-423       008-1019            Control     0  0.296437795
-424       008-1020            Control     0  0.659390955
-425       008-1021            Control     0 -0.255266654
-426       008-1022 Anelloviridae.pbmc     1  0.216932453
-427       008-1023            Control     0  0.693680265
-428       008-1024            Control     0 -0.191141074
-429       009-3023            Control     0  0.292698000
-430       009-3026 Anelloviridae.pbmc     1 -0.050272418
-431       009-3027         HSV1.nasal     1 -0.532750006
-432       009-3028         HSV1.nasal     1 -0.855993599
-433       009-3032 Anelloviridae.pbmc     1  0.846194432
-434       009-3033            Control     0 -0.629200367
-435       009-3034            Control     0 -0.158045846
-436       009-3035 Anelloviridae.pbmc     1 -0.173505456
-437       009-3037 Anelloviridae.pbmc     1 -0.467854072
-438       009-3038 Anelloviridae.pbmc     1 -0.653525783
-439       009-3040            Control     0 -0.167746709
-440       009-3041            Control     0  0.473601150
-441       009-3042 Anelloviridae.pbmc     1 -0.797813575
-442       009-3042           CMV.pbmc     1 -0.797813575
-443       009-3045 Anelloviridae.pbmc     1 -0.254229229
-444       009-3045         HSV1.nasal     1 -0.254229229
-445       009-3048 Anelloviridae.pbmc     1 -1.498572541
-446       009-3048         HSV1.nasal     1 -1.498572541
-447       009-3048           CMV.pbmc     1 -1.498572541
-448       009-3049            Control     0 -0.072936418
-449       009-3051         HSV1.nasal     1  0.631093930
-450       009-3052 Anelloviridae.pbmc     1 -0.996786583
-451       009-3052         HSV1.nasal     1 -0.996786583
-452       009-3053 Anelloviridae.pbmc     1 -0.589478908
-453       009-3054            Control     0 -0.190786089
-454       009-3056            Control     0 -0.074417680
-455       009-3058            Control     0 -0.098742366
-456       009-3059            Control     0  0.209132120
-457       009-3068 Anelloviridae.pbmc     1 -0.293842456
-458       009-3071            Control     0  0.405111418
-459       009-3072            Control     0  0.358896923
-460       009-3073 Anelloviridae.pbmc     1 -0.335386214
-461       009-3075 Anelloviridae.pbmc     1 -0.182321505
-462       009-3078            Control     0 -0.270827905
-463       009-3081 Anelloviridae.pbmc     1 -0.583792710
-464       009-3081         HSV1.nasal     1 -0.583792710
-465       009-3081           CMV.pbmc     1 -0.583792710
-466       009-3083         HSV1.nasal     1 -0.128667338
-467       009-4009            Control     0 -0.419853963
-468       009-4015 Anelloviridae.pbmc     1 -0.825763631
-469       009-4022            Control     0  0.248782844
-470       009-4023            Control     0  0.718451320
-471       009-4024            Control     0 -0.094899900
-472       009-4025            Control     0 -0.018213871
-473       009-4026            Control     0 -0.181808805
-474       009-4029 Anelloviridae.pbmc     1  0.390198791
-475       009-4029           CMV.pbmc     1  0.390198791
-476       009-4041            Control     0  0.401188667
-477       009-4042         HSV1.nasal     1  0.122500644
-478       009-4043 Anelloviridae.pbmc     1 -0.489692739
-479       009-4043         HSV1.nasal     1 -0.489692739
-480       009-4044            Control     0  0.745820739
-481       009-4046            Control     0  0.390602639
-482       009-4048            Control     0 -0.171946028
-483       009-4049            Control     0  0.479362652
-484       009-4050 Anelloviridae.pbmc     1  0.620261929
-485       009-4050         HSV1.nasal     1  0.620261929
-486       009-4051         HSV1.nasal     1 -0.374600154
-487       009-4051           CMV.pbmc     1 -0.374600154
-488       009-4060            Control     0 -0.481148142
-489       009-4061 Anelloviridae.pbmc     1  0.201868925
-490       009-4061         HSV1.nasal     1  0.201868925
-491       009-4066 Anelloviridae.pbmc     1  0.185135408
-492       009-4066         HSV1.nasal     1  0.185135408
-493       009-4067         HSV1.nasal     1  0.953210317
-494       009-4068         HSV1.nasal     1  0.033293965
-495       009-4069            Control     0  0.519765191
-496       009-4077            Control     0 -0.147005217
-497       009-4080            Control     0 -0.018377200
-498       009-4087 Anelloviridae.pbmc     1 -0.489889626
-499       009-4090            Control     0 -0.188724241
-500       009-4093         HSV1.nasal     1 -0.536563284
-501       010-0002 Anelloviridae.pbmc     1  0.135425414
-502       010-0004 Anelloviridae.pbmc     1  0.086437903
-503       010-0005            Control     0 -0.114990395
-504       010-0008            Control     0  0.004633234
-505       010-0013            Control     0 -0.131093772
-506       010-0020 Anelloviridae.pbmc     1 -0.132453535
-507       010-0021            Control     0 -0.557701498
-508       010-0024 Anelloviridae.pbmc     1  0.298101900
-509       010-0024         HSV1.nasal     1  0.298101900
-510       010-0024           CMV.pbmc     1  0.298101900
-511       010-0028            Control     0  0.317310774
-512       010-0033            Control     0 -0.139096269
-513       010-0034 Anelloviridae.pbmc     1 -0.156054819
-514       010-0035            Control     0  0.256788825
-515       010-0037         HSV1.nasal     1  0.193011342
-516       010-0037           CMV.pbmc     1  0.193011342
-517       010-0039            Control     0  0.131876130
-518       010-0040            Control     0  0.038919952
-519       010-0041 Anelloviridae.pbmc     1  0.435403673
-520       010-0043            Control     0 -0.029763895
-521       010-0044            Control     0  0.144766562
-522       010-0045            Control     0 -0.253716736
-523       010-0046            Control     0  0.415329376
-524       010-0047 Anelloviridae.pbmc     1  0.155548007
-525       010-0048 Anelloviridae.pbmc     1  0.010901185
-526       010-0052 Anelloviridae.pbmc     1 -0.052721030
-527       010-0055            Control     0  0.111267478
-528       010-0057           CMV.pbmc     1 -0.757895548
-529       010-0059 Anelloviridae.pbmc     1  0.612358753
-530       010-0060            Control     0 -0.238555323
-531       010-0061            Control     0 -0.051009172
-532       010-0062            Control     0  0.128745441
-533       010-0066            Control     0  0.586912333
-534       010-0067            Control     0  0.407403845
-535       010-0068            Control     0 -0.526660352
-536       010-0069            Control     0  0.414572869
-537       010-0070            Control     0 -0.275617176
-538       010-0073            Control     0  0.105424390
-539       010-0074            Control     0  0.296524826
-540       010-0075            Control     0  0.063438004
-541       010-0076         HSV1.nasal     1  0.446034177
-542       010-0079            Control     0 -0.006056722
-543       010-0080 Anelloviridae.pbmc     1  0.244281378
-544       010-0080           CMV.pbmc     1  0.244281378
-545       010-0082            Control     0 -0.242362439
-546       010-0083            Control     0  0.055780051
-547       010-0086         HSV1.nasal     1 -1.131339000
-548       010-0087            Control     0 -0.014782385
-549       010-0091            Control     0 -0.120763779
-550       010-0093            Control     0 -0.306121832
-551       010-0094           CMV.pbmc     1  0.726937742
-552       010-0099            Control     0  0.379535849
-553       010-0100            Control     0 -0.177498218
-554       010-0102 Anelloviridae.pbmc     1  0.172626960
-555       010-0106            Control     0  0.209516614
-556       010-0107            Control     0 -0.097206471
-557       010-0109            Control     0  0.505597535
-558       010-0110            Control     0  0.074580501
-559       010-0111            Control     0  0.078122484
-560       010-0112            Control     0 -0.190884725
-561       010-0113            Control     0 -0.388289120
-562       010-0114            Control     0  0.248955842
-563       010-0115            Control     0 -0.295735646
-564       010-0119            Control     0  0.013116429
-565       010-0120 Anelloviridae.pbmc     1  0.316361089
-566       010-0121            Control     0 -0.042121002
-567       010-0128            Control     0  0.241096010
-568       010-0130            Control     0 -0.074899308
-569       010-0131            Control     0  0.272002697
-570       010-0135 Anelloviridae.pbmc     1  0.198835136
-571       010-0135         HSV1.nasal     1  0.198835136
-572       011-0001            Control     0 -0.627078907
-573       011-0002            Control     0  0.009097424
-574       011-0003         HSV1.nasal     1  0.617699974
-575       011-0004            Control     0 -0.467523049
-576       011-0006            Control     0 -0.138254763
-577       011-0007            Control     0 -0.208624436
-578       011-0008 Anelloviridae.pbmc     1 -0.490459658
-579       011-0012            Control     0 -0.393093087
-580       011-0013            Control     0  0.320871891
-581       011-0014            Control     0 -0.234373451
-582       011-0015         HSV1.nasal     1  0.036963367
-583       011-0016 Anelloviridae.pbmc     1  0.267518929
-584       011-0018            Control     0  0.002204864
-585       011-0019            Control     0  0.181065338
-586       011-0020            Control     0  0.068625154
-587       011-0021            Control     0  0.438867091
-588       011-0024 Anelloviridae.pbmc     1  0.856255147
-589       011-0024         HSV1.nasal     1  0.856255147
-590       011-0025 Anelloviridae.pbmc     1  0.509531581
-591       011-0026           CMV.pbmc     1 -0.104417181
-592       011-0027            Control     0  0.445854607
-593       011-0028            Control     0  0.254040101
-594       011-0029         HSV1.nasal     1  0.170744413
-595       011-0030            Control     0  0.186252751
-596       011-0031 Anelloviridae.pbmc     1  0.232089454
-597       011-0036            Control     0 -0.011041461
-598       011-0037 Anelloviridae.pbmc     1 -0.634559909
-599       011-0038            Control     0  0.335312931
-600       011-0039 Anelloviridae.pbmc     1 -0.010471792
-601       011-0041            Control     0 -0.497453932
-602       011-0045            Control     0 -0.505186930
-603       011-0046 Anelloviridae.pbmc     1  0.305378964
-604       011-0048            Control     0  0.096877912
-605       011-0049            Control     0  0.096814300
-606       011-0050            Control     0 -0.267276262
-607       012-0001         HSV1.nasal     1 -0.330541976
-608       012-0002         HSV1.nasal     1 -0.390909212
-609       012-0004            Control     0 -0.089618951
-610       012-0005 Anelloviridae.pbmc     1  0.398756910
-611       012-0006            Control     0  0.437074511
-612       012-0007            Control     0 -0.289341178
-613       012-0008            Control     0 -0.357435269
-614       012-0009            Control     0 -0.244773097
-615       012-0011            Control     0  0.639825602
-616       012-0014            Control     0 -0.251253016
-617       012-0015 Anelloviridae.pbmc     1 -0.245955484
-618       012-0015         HSV1.nasal     1 -0.245955484
-619       012-0016            Control     0  0.310102942
-620       012-0017 Anelloviridae.pbmc     1 -0.289587900
-621       012-0018            Control     0  0.185077556
-622       012-0020            Control     0  0.629933936
-623       012-0021         HSV1.nasal     1 -0.089342030
-624       012-0025            Control     0 -0.354692340
-625       012-0026            Control     0 -0.296122632
-626       012-0027            Control     0  0.212520528
-627       012-0029 Anelloviridae.pbmc     1  0.291668930
-628       012-0029         HSV1.nasal     1  0.291668930
-629       012-0031 Anelloviridae.pbmc     1  0.412097767
-630       012-0031         HSV1.nasal     1  0.412097767
-631       012-0031           CMV.pbmc     1  0.412097767
-632       012-0032            Control     0  0.184054470
-633       012-0033 Anelloviridae.pbmc     1 -0.054897426
-634       012-0033         HSV1.nasal     1 -0.054897426
-635       012-0034            Control     0  0.310858732
-636       012-0035 Anelloviridae.pbmc     1 -0.107746630
-637       012-0035         HSV1.nasal     1 -0.107746630
-638       012-0035           CMV.pbmc     1 -0.107746630
-639       012-0036            Control     0  0.323632644
-640       012-0038           CMV.pbmc     1 -0.322657186
-641       012-0039 Anelloviridae.pbmc     1  0.056626771
-642       012-0042            Control     0  0.704878825
-643       013-0001            Control     0 -0.703998425
-644       013-0003            Control     0 -0.704320701
-645       013-0004            Control     0  0.366793650
-646       013-0005            Control     0  0.355629960
-647       013-0006            Control     0  0.090747073
-648       013-0007         HSV1.nasal     1 -0.476233181
-649       013-0007           CMV.pbmc     1 -0.476233181
-650       013-0010 Anelloviridae.pbmc     1  0.494180523
-651       013-0012            Control     0  0.822703617
-652       013-0013            Control     0 -0.077362017
-653       013-0014            Control     0 -0.292978515
-654       013-0015            Control     0 -0.255173595
-655       013-0018 Anelloviridae.pbmc     1  0.260575500
-656       013-0018         HSV1.nasal     1  0.260575500
-657       013-0019            Control     0 -0.139539756
-658       013-0020 Anelloviridae.pbmc     1 -0.180818877
-659       013-0020         HSV1.nasal     1 -0.180818877
-660       013-0021            Control     0 -0.201903022
-661       013-0022            Control     0  0.456847427
-662       013-0023 Anelloviridae.pbmc     1 -0.583201100
-663       013-0023         HSV1.nasal     1 -0.583201100
-664       013-0024            Control     0  0.794173259
-665       013-0027            Control     0 -0.448666562
-666       013-0030            Control     0 -0.588003653
-667       013-0031            Control     0 -0.364892240
-668       013-0032            Control     0 -0.124773333
-669       013-0035            Control     0  0.278314502
-670       013-0036         HSV1.nasal     1  0.427704332
-671       013-0037            Control     0  0.500750253
-672       013-0038 Anelloviridae.pbmc     1 -0.300225503
-673       013-0039            Control     0 -0.237426514
-674       013-0040            Control     0 -0.149922879
-675       013-0043            Control     0 -0.278202130
-676       013-0044            Control     0 -0.229900099
-677       013-0046            Control     0  0.238645573
-678       013-0049            Control     0  0.093201607
-679       013-0052            Control     0 -0.345589443
-680       013-0054         HSV1.nasal     1 -0.851889417
-681       013-0056            Control     0 -0.372015492
-682       013-1003            Control     0  0.624889679
-683       013-1005 Anelloviridae.pbmc     1  0.501886129
-684       013-1007            Control     0  0.777855393
-685       014-0001            Control     0 -0.392666830
-686       014-0003 Anelloviridae.pbmc     1  0.477114174
-687       014-0004            Control     0 -0.273753260
-688       014-0005         HSV1.nasal     1  0.305321002
-689       014-0005           CMV.pbmc     1  0.305321002
-690       014-0007            Control     0  0.344836281
-691       014-0008         HSV1.nasal     1  0.291110770
-692       014-0010            Control     0  0.352872113
-693       014-0013            Control     0 -0.450783267
-694       014-0015            Control     0  1.088916268
-695       014-0018 Anelloviridae.pbmc     1  0.487156517
-696       014-0018         HSV1.nasal     1  0.487156517
-697       014-0019            Control     0  0.265998164
-698       014-0022         HSV1.nasal     1  0.798153386
-699       014-0023            Control     0 -0.198627405
-700       014-0025            Control     0 -0.210871222
-701       014-0026            Control     0 -0.227219472
-702       014-0027            Control     0  0.626118326
-703       014-0029            Control     0  0.409812635
-704       014-0030         HSV1.nasal     1 -0.460494259
-705       014-0030           CMV.pbmc     1 -0.460494259
-706       014-0031            Control     0 -0.097976303
-707       014-1005 Anelloviridae.pbmc     1 -0.247064402
-708       014-1006            Control     0  0.132584436
-709       014-1007            Control     0  0.443179539
-710       014-1009         HSV1.nasal     1  0.061812862
-711       014-1010            Control     0  0.207519529
-712       014-1011            Control     0  0.558198491
-713       014-1013            Control     0  0.546216640
-714       014-1014            Control     0  0.012146439
-715       014-1015            Control     0  0.276207821
-716       014-1016            Control     0  0.604131975
-717       014-1018            Control     0  0.121440534
-718       014-1019            Control     0 -0.191916252
-719       014-1023            Control     0 -0.167448605
-720       014-2002            Control     0 -0.247815049
-721       014-2004            Control     0 -0.309522007
-722       014-2006            Control     0  0.110439828
-723       014-2007 Anelloviridae.pbmc     1  0.271873878
-724       014-2008            Control     0  0.029068414
-725       014-2009            Control     0 -0.432562925
-726       014-2010            Control     0  0.201885773
-727       014-2011            Control     0  0.246309185
-728       014-2012            Control     0  0.219362677
-729       014-2015 Anelloviridae.pbmc     1 -0.143417832
-730       014-2018            Control     0  0.054772571
-731       014-2020           CMV.pbmc     1 -0.381689365
-732       014-2021 Anelloviridae.pbmc     1 -0.176989004
-733       014-2022            Control     0 -0.681746673
-734       014-2023         HSV1.nasal     1  0.576955105
-735       014-2024            Control     0 -0.050785371
-736       014-2025 Anelloviridae.pbmc     1 -0.169053206
-737       014-2025           CMV.pbmc     1 -0.169053206
-738       014-2027            Control     0  0.075214422
-739       014-2028 Anelloviridae.pbmc     1  0.403619788
-740       014-2028         HSV1.nasal     1  0.403619788
-741       014-2029         HSV1.nasal     1  0.374696639
-742       014-2030            Control     0 -0.147588179
-743       014-2033            Control     0  0.448876716
-744       014-2036            Control     0 -0.278036527
-745       014-2037            Control     0  0.558648116
-746       014-2039 Anelloviridae.pbmc     1  0.066414964
-747       014-2041            Control     0 -0.361424503
-748       014-2045 Anelloviridae.pbmc     1 -0.439378778
-749       014-2046 Anelloviridae.pbmc     1  1.038968249
-750       014-2048           CMV.pbmc     1  0.441394777
-751       014-2049            Control     0 -0.092096925
-752       015-0002            Control     0 -0.238657910
-753       015-0004           CMV.pbmc     1 -0.124979031
-754       015-0005            Control     0 -0.421859119
-755       015-0008            Control     0 -0.156461293
-756       015-0009            Control     0 -0.486888005
-757       015-0010            Control     0  0.377988601
-758       015-0015            Control     0 -0.434842770
-759       015-0016            Control     0  0.398371094
-760       015-0017            Control     0  0.750989618
-761       015-0018         HSV1.nasal     1  0.830389158
-762       015-0019            Control     0  0.439194759
-763       015-0021         HSV1.nasal     1  0.237648197
-764       015-0022            Control     0  0.513022763
-765       015-0023            Control     0  0.172673273
-766       015-0025            Control     0 -0.310663142
-767       015-0026            Control     0  0.244543598
-768       015-0027            Control     0  0.547270789
-769       015-0029            Control     0  0.329639429
-770       015-0030            Control     0 -0.652805048
-771       015-0031            Control     0 -0.499990758
-772       015-0033            Control     0  1.107185851
-773       015-0035         HSV1.nasal     1 -0.408917094
-774       015-0036         HSV1.nasal     1 -0.174531517
-775       015-0038            Control     0  0.576045474
-776       015-0041            Control     0 -0.199922611
-777       015-0042            Control     0 -0.379528012
-778       015-0043 Anelloviridae.pbmc     1 -0.158347313
-779       015-0045            Control     0  0.465649149
-780       015-0047            Control     0  0.573915055
-781       015-0048            Control     0  0.373983009
-782       015-0049            Control     0  0.253085542
-783       015-0050         HSV1.nasal     1  0.764940706
-784       015-0051            Control     0 -0.095774501
-785       015-0053            Control     0 -0.217665391
+     participant_id               name value     residuals
+1          001-0002 Anelloviridae.pbmc     1 -0.1862198204
+2          001-0003 Anelloviridae.pbmc     1 -0.0552147325
+3          001-0004            Control     0 -0.7479792488
+4          001-0005            Control     0  0.2799533448
+5          001-0006            Control     0  0.5103001303
+6          001-0007            Control     0 -0.5749193695
+7          001-0008            Control     0 -0.4614791376
+8          001-0009            Control     0  0.7375025350
+9          001-0012            Control     0 -0.0262441518
+10         001-0014            Control     0  0.4201823249
+11         001-0021            Control     0 -0.5633267937
+12         001-0023            Control     0  0.2626279386
+13         001-0024            Control     0  0.1861317505
+14         001-0026            Control     0 -0.3966295339
+15         001-0029         HSV1.nasal     1  0.3750575991
+16         001-0029           EBV.pbmc     1  0.3750575991
+17         001-0030         HSV1.nasal     1  0.3680408835
+18         001-0034            Control     0 -0.3531952389
+19         001-0035            Control     0 -0.0286199357
+20         001-0036            Control     0  0.5188204500
+21         001-0038            Control     0 -0.3376562171
+22         001-0039            Control     0  0.0251440492
+23         001-0041           EBV.pbmc     1 -0.1345943572
+24         001-0042            Control     0  0.8811381200
+25         001-0044            Control     0  0.2883089742
+26         001-0045 Anelloviridae.pbmc     1  0.4965178311
+27         001-0046            Control     0 -0.1401538101
+28         001-0047            Control     0  0.0073615423
+29         001-0049            Control     0  0.4986263772
+30         001-0051            Control     0 -0.4096234773
+31         001-0052            Control     0  0.1298328760
+32         001-0053           EBV.pbmc     1 -0.1606823531
+33         001-0054         HSV1.nasal     1  0.0834141228
+34         001-0060           EBV.pbmc     1  0.0660937250
+35         001-0067            Control     0 -0.0703659844
+36         001-0068            Control     0 -0.1229706983
+37         001-0071            Control     0 -0.0772859615
+38         001-0074            Control     0  0.1109595833
+39         001-0075            Control     0 -0.2222320397
+40         001-0076            Control     0 -0.1736754933
+41         001-0077           EBV.pbmc     1  0.3975569137
+42         001-0079            Control     0 -0.1273647114
+43         001-0081            Control     0  0.1775666694
+44         002-0001            Control     0 -0.3886191622
+45         002-0002 Anelloviridae.pbmc     1  0.3892879639
+46         002-0003           EBV.pbmc     1 -0.1896135454
+47         002-0004 Anelloviridae.pbmc     1 -0.5547613308
+48         002-0005            Control     0 -0.1185818526
+49         002-0008           EBV.pbmc     1 -0.2556275087
+50         002-0009            Control     0 -0.2557902654
+51         002-0011           EBV.pbmc     1 -0.1937421653
+52         002-0015           EBV.pbmc     1 -0.2669221867
+53         002-0016            Control     0 -0.3103854994
+54         002-0017            Control     0  0.9528343105
+55         002-0018           EBV.pbmc     1  0.0407602977
+56         002-0019            Control     0  0.2074422830
+57         002-0020           EBV.pbmc     1  0.0961159155
+58         002-0021 Anelloviridae.pbmc     1 -0.3870738595
+59         002-0022            Control     0  0.0092096895
+60         002-0023            Control     0 -0.1181556631
+61         002-0024            Control     0  0.6017086905
+62         002-0025 Anelloviridae.pbmc     1 -0.3851174751
+63         002-0025         HSV1.nasal     1 -0.3851174751
+64         002-0032            Control     0  0.0515839650
+65         002-0033            Control     0  0.2302089458
+66         002-0034           EBV.pbmc     1 -0.3523802690
+67         002-0035           EBV.pbmc     1 -0.3447282000
+68         002-0036 Anelloviridae.pbmc     1 -0.1726634837
+69         002-0036           EBV.pbmc     1 -0.1726634837
+70         002-0038           EBV.pbmc     1  0.3593445384
+71         002-0039           EBV.pbmc     1 -0.1526660609
+72         002-0041            Control     0 -0.7104656136
+73         002-0042            Control     0 -0.1440004798
+74         002-0043            Control     0  0.5067689055
+75         002-0044            Control     0  0.3548828011
+76         002-0045            Control     0  0.0350819502
+77         002-0046            Control     0  0.0876271049
+78         002-0047           EBV.pbmc     1  0.0005914689
+79         002-0048            Control     0  0.0731845977
+80         002-0050            Control     0  0.1170282051
+81         002-0051            Control     0 -0.1399888375
+82         002-0053            Control     0  0.5529860868
+83         002-0054            Control     0 -0.0620518932
+84         002-0055 Anelloviridae.pbmc     1 -0.3995005974
+85         002-0055           EBV.pbmc     1 -0.3995005974
+86         002-0057            Control     0 -0.6130829282
+87         002-0059         HSV1.nasal     1  0.2435358712
+88         002-0060            Control     0 -0.2313056918
+89         002-0061            Control     0  0.3131786908
+90         003-0001           EBV.pbmc     1  0.4321560718
+91         003-0002 Anelloviridae.pbmc     1  0.7081231331
+92         003-0004            Control     0  0.8357256040
+93         003-0007 Anelloviridae.pbmc     1 -0.5250189646
+94         003-0007         HSV1.nasal     1 -0.5250189646
+95         003-0008 Anelloviridae.pbmc     1  0.2747799802
+96         003-0008           EBV.pbmc     1  0.2747799802
+97         003-0010            Control     0  0.1831720716
+98         003-0014         HSV1.nasal     1  0.1626717409
+99         003-0014           EBV.pbmc     1  0.1626717409
+100        003-0016            Control     0  0.1218168147
+101        003-0019            Control     0  0.6572209991
+102        003-0020         HSV1.nasal     1 -0.3141642415
+103        003-0020           EBV.pbmc     1 -0.3141642415
+104        003-0021            Control     0 -0.5733427488
+105        003-0024            Control     0  0.3726187252
+106        003-0025            Control     0  0.6992397150
+107        003-0026            Control     0  0.8703711474
+108        003-0028           EBV.pbmc     1 -0.2912197947
+109        003-0029           EBV.pbmc     1 -0.2949906402
+110        003-0030            Control     0 -0.0845543948
+111        003-0031 Anelloviridae.pbmc     1  0.5012355978
+112        003-0032            Control     0 -0.2664862039
+113        003-0033           EBV.pbmc     1 -0.1685474932
+114        003-0034 Anelloviridae.pbmc     1 -0.1673920867
+115        003-0035         HSV1.nasal     1 -0.4334420133
+116        003-0036            Control     0  0.1453326207
+117        003-0038 Anelloviridae.pbmc     1 -0.5733421731
+118        003-0038           EBV.pbmc     1 -0.5733421731
+119        003-0039            Control     0 -0.5940662507
+120        003-0040            Control     0 -0.2662547517
+121        003-0041            Control     0 -0.3981042419
+122        003-0042         HSV1.nasal     1 -0.3604330345
+123        003-0043         HSV1.nasal     1  0.3062479807
+124        003-0044           EBV.pbmc     1  0.0618818696
+125        003-0045           EBV.pbmc     1 -0.3826215565
+126        003-0046           EBV.pbmc     1  0.2703071598
+127        003-0047           EBV.pbmc     1 -0.7497754630
+128        003-0048            Control     0  0.4253568597
+129        003-0049            Control     0 -0.7246832188
+130        003-0050            Control     0  0.8291435000
+131        003-0051            Control     0  0.3330475965
+132        003-0053            Control     0  0.5602952995
+133        003-0054            Control     0  0.6954571563
+134        003-0055            Control     0 -0.1690276090
+135        003-0056            Control     0 -0.8744946873
+136        003-0057           EBV.pbmc     1 -0.4339534248
+137        003-0058           EBV.pbmc     1  0.2180291994
+138        003-0059           EBV.pbmc     1  0.5481770283
+139        003-0060            Control     0  0.9710372367
+140        003-0061            Control     0 -0.0793234382
+141        003-0062            Control     0  0.7324271689
+142        003-0063            Control     0 -0.2428814597
+143        003-0065            Control     0  0.3728672618
+144        003-0066            Control     0 -0.7008216118
+145        003-0067           EBV.pbmc     1 -0.0912285169
+146        003-0068 Anelloviridae.pbmc     1 -0.2335723204
+147        003-0069            Control     0 -0.3204237736
+148        003-0070           EBV.pbmc     1 -0.3253549495
+149        003-0071           EBV.pbmc     1  0.7150378182
+150        003-0072         HSV1.nasal     1  0.1413322792
+151        003-0073            Control     0  0.6011846775
+152        003-0074            Control     0  0.1601125366
+153        003-0075            Control     0 -0.3440101515
+154        003-0076 Anelloviridae.pbmc     1  0.1724361647
+155        003-0077            Control     0  0.4300602446
+156        003-0078 Anelloviridae.pbmc     1 -0.2126606063
+157        003-0078           EBV.pbmc     1 -0.2126606063
+158        003-0079 Anelloviridae.pbmc     1  0.2200123737
+159        003-0080         HSV1.nasal     1 -0.3614454153
+160        003-0081         HSV1.nasal     1  0.1192578391
+161        003-0081           EBV.pbmc     1  0.1192578391
+162        003-0082            Control     0  0.1480419175
+163        003-0083            Control     0 -0.1686846504
+164        003-0084           EBV.pbmc     1  0.5400617101
+165        003-0085           EBV.pbmc     1 -0.0509254014
+166        003-0086            Control     0  0.1098710814
+167        003-0087            Control     0  1.0820879901
+168        003-0088           EBV.pbmc     1 -0.0926283628
+169        003-0089         HSV1.nasal     1  0.9391844064
+170        003-0089           EBV.pbmc     1  0.9391844064
+171        003-0090           EBV.pbmc     1  0.0611849086
+172        003-0091            Control     0  0.0338840112
+173        003-1001            Control     0  0.2855670463
+174        003-1003           EBV.pbmc     1 -0.1690522083
+175        003-1004            Control     0  0.4457944663
+176        003-1005            Control     0 -0.2572399925
+177        003-2001            Control     0  0.2005910814
+178        003-2002            Control     0  0.4223846038
+179        003-2003            Control     0  0.2959279991
+180        003-2004            Control     0 -0.3826359363
+181        003-2006            Control     0 -0.2176415583
+182        003-2007            Control     0  0.7772854509
+183        003-2008            Control     0 -0.3291083622
+184        003-2009           EBV.pbmc     1 -0.5853863878
+185        003-2010            Control     0  0.5955796187
+186        004-0001            Control     0 -0.0167498439
+187        004-0002            Control     0 -0.1458803470
+188        004-0003 Anelloviridae.pbmc     1  0.4440809376
+189        004-0004            Control     0  0.1699130290
+190        004-0005 Anelloviridae.pbmc     1 -0.3664448679
+191        004-0005           EBV.pbmc     1 -0.3664448679
+192        004-0006            Control     0  0.3396350069
+193        004-0007            Control     0  0.3721006677
+194        004-0008            Control     0 -0.1363881370
+195        004-0009         HSV1.nasal     1  0.1429629102
+196        004-0010 Anelloviridae.pbmc     1 -0.4138147161
+197        004-0011 Anelloviridae.pbmc     1 -0.2031924898
+198        004-0012 Anelloviridae.pbmc     1  0.2389889635
+199        004-0013            Control     0 -0.7060537725
+200        004-0014 Anelloviridae.pbmc     1  0.3922400851
+201        004-0015           EBV.pbmc     1  0.3416562361
+202        004-0016            Control     0 -0.1042089271
+203        004-0017            Control     0 -0.4121358909
+204        004-0018            Control     0  0.4329225067
+205        004-0020         HSV1.nasal     1 -0.2379944629
+206        004-0020           EBV.pbmc     1 -0.2379944629
+207        004-0021         HSV1.nasal     1 -0.5356207551
+208        004-0022            Control     0  0.4980892471
+209        004-0024            Control     0  0.6474363644
+210        004-0025           EBV.pbmc     1 -0.1588159698
+211        004-0026            Control     0  0.7943660466
+212        004-0027           EBV.pbmc     1 -0.1540818416
+213        004-0028           EBV.pbmc     1  0.2043057058
+214        004-0029           EBV.pbmc     1  0.3763490582
+215        004-0030         HSV1.nasal     1 -0.3314157922
+216        004-0030           EBV.pbmc     1 -0.3314157922
+217        004-0033            Control     0  0.0214692676
+218        004-0034         HSV1.nasal     1 -0.3332380481
+219        004-0036            Control     0 -0.5205502281
+220        004-0037 Anelloviridae.pbmc     1 -0.0767430273
+221        004-0038           EBV.pbmc     1  0.5082386926
+222        004-0039            Control     0  0.5371742001
+223        004-0040 Anelloviridae.pbmc     1  0.2700641936
+224        004-0042            Control     0  0.1654116477
+225        004-0043 Anelloviridae.pbmc     1  1.1414144171
+226        004-0043           EBV.pbmc     1  1.1414144171
+227        004-0044 Anelloviridae.pbmc     1 -0.3056342583
+228        004-0044           EBV.pbmc     1 -0.3056342583
+229        004-0045           EBV.pbmc     1  0.1492439497
+230        004-0046            Control     0  0.2876336218
+231        004-0047           EBV.pbmc     1  0.6691425490
+232        004-0048            Control     0 -0.2614282805
+233        004-0050           EBV.pbmc     1  0.2574274040
+234        004-0051 Anelloviridae.pbmc     1 -0.7328521378
+235        004-0052            Control     0 -0.0479954152
+236        004-0053         HSV1.nasal     1  0.6723583539
+237        004-0053           CMV.pbmc     1  0.6723583539
+238        004-0053           EBV.pbmc     1  0.6723583539
+239        004-0054 Anelloviridae.pbmc     1  0.5393994162
+240        004-0055            Control     0 -0.1336813344
+241        004-0056            Control     0 -0.0878877704
+242        004-0057 Anelloviridae.pbmc     1  0.4869683677
+243        004-0057           CMV.pbmc     1  0.4869683677
+244        004-0057           EBV.pbmc     1  0.4869683677
+245        004-0058           EBV.pbmc     1  0.1649229516
+246        004-0059 Anelloviridae.pbmc     1 -0.6772112327
+247        004-0059           EBV.pbmc     1 -0.6772112327
+248        004-0060           EBV.pbmc     1 -0.1535092524
+249        004-0061            Control     0 -0.3429468067
+250        004-0062           EBV.pbmc     1 -0.3496362594
+251        004-0063            Control     0  0.2855093152
+252        004-0064            Control     0  0.8561633900
+253        004-0065            Control     0 -0.0649980512
+254        004-1001            Control     0 -0.0457518276
+255        004-1002            Control     0  0.2516319217
+256        004-1003           EBV.pbmc     1  0.9078445945
+257        004-1004 Anelloviridae.pbmc     1 -0.3219494548
+258        004-1004         HSV1.nasal     1 -0.3219494548
+259        004-1005            Control     0 -0.4234623623
+260        004-1006            Control     0 -0.2364734904
+261        004-1007           EBV.pbmc     1 -0.4314250986
+262        004-1008           EBV.pbmc     1 -0.4180442841
+263        004-1009 Anelloviridae.pbmc     1 -0.1957867526
+264        004-1011            Control     0 -0.0165869408
+265        004-1012           EBV.pbmc     1 -0.2822145358
+266        004-1013 Anelloviridae.pbmc     1 -0.2439235883
+267        004-1014           EBV.pbmc     1 -0.1082477635
+268        004-1015 Anelloviridae.pbmc     1  0.1090657306
+269        004-1016            Control     0  0.4717322394
+270        004-1017            Control     0 -0.3453041817
+271        004-1018           EBV.pbmc     1 -0.5840385215
+272        004-1019         HSV1.nasal     1  0.6649548384
+273        004-1020 Anelloviridae.pbmc     1 -1.0687221811
+274        004-1020           EBV.pbmc     1 -1.0687221811
+275        004-1021 Anelloviridae.pbmc     1 -0.0156351735
+276        004-1022           EBV.pbmc     1 -0.2848450103
+277        004-1023 Anelloviridae.pbmc     1  0.2656379668
+278        004-1023           EBV.pbmc     1  0.2656379668
+279        004-1024           EBV.pbmc     1 -0.2991495543
+280        004-1025            Control     0  0.0838431240
+281        004-1026            Control     0 -0.7365771184
+282        004-1027            Control     0  0.2653403818
+283        004-1028         HSV1.nasal     1  1.0734895373
+284        004-1028           CMV.pbmc     1  1.0734895373
+285        004-1028           EBV.pbmc     1  1.0734895373
+286        004-1029            Control     0 -0.2063295132
+287        004-1030            Control     0 -0.0189729293
+288        004-1031         HSV1.nasal     1 -0.4736266601
+289        004-1031           EBV.pbmc     1 -0.4736266601
+290        004-1032            Control     0  0.3773684612
+291        004-1033            Control     0  0.0053132780
+292        004-1034            Control     0 -0.2474366774
+293        004-1035            Control     0  0.2704567369
+294        004-1036 Anelloviridae.pbmc     1 -0.3983882648
+295        004-1037 Anelloviridae.pbmc     1  0.4224749918
+296        004-1037         HSV1.nasal     1  0.4224749918
+297        004-1037           EBV.pbmc     1  0.4224749918
+298        004-1040 Anelloviridae.pbmc     1  0.3810790790
+299        004-1041            Control     0 -0.1958367755
+300        004-1042            Control     0  0.5119312718
+301        004-1045            Control     0  0.5128411513
+302        004-1046            Control     0 -0.2754642931
+303        004-1047            Control     0 -0.0840000049
+304        004-1048         HSV1.nasal     1 -0.4401161515
+305        004-1049 Anelloviridae.pbmc     1 -0.2187095293
+306        004-1050           EBV.pbmc     1  0.0864311208
+307        004-1052            Control     0 -0.1371969724
+308        004-1055            Control     0 -0.3120222371
+309        004-1056            Control     0  0.1954956182
+310        004-1057            Control     0  0.1682576723
+311        004-1058            Control     0  0.5922499422
+312        004-1060           EBV.pbmc     1  0.2196754878
+313        005-0001            Control     0  0.3820385079
+314        005-0002            Control     0  0.2229709415
+315        005-0004            Control     0 -0.1815366727
+316        005-0006            Control     0 -0.5253478047
+317        005-0007           EBV.pbmc     1 -0.3456929742
+318        005-0008 Anelloviridae.pbmc     1 -0.0280944701
+319        005-0009            Control     0 -0.0884679946
+320        005-0010           EBV.pbmc     1  0.3503149593
+321        005-0011            Control     0  0.8513674936
+322        005-0012 Anelloviridae.pbmc     1 -0.1699849437
+323        005-0013 Anelloviridae.pbmc     1 -0.3242520114
+324        005-0014            Control     0 -0.2740169264
+325        005-0015            Control     0 -0.3015804031
+326        005-0016            Control     0  0.2226182327
+327        005-0017            Control     0  0.0999116765
+328        005-0020 Anelloviridae.pbmc     1 -0.3967422177
+329        005-0020         HSV1.nasal     1 -0.3967422177
+330        005-0020           CMV.pbmc     1 -0.3967422177
+331        005-0020           EBV.pbmc     1 -0.3967422177
+332        005-0021            Control     0  0.4969336642
+333        005-0022            Control     0  0.8670671729
+334        005-0024            Control     0 -0.1032835177
+335        005-0026           EBV.pbmc     1 -0.0762617444
+336        005-0028           EBV.pbmc     1 -0.1862882779
+337        005-0029            Control     0  0.1828085524
+338        005-0030           EBV.pbmc     1  0.8332534118
+339        005-0031            Control     0 -0.3328444097
+340        005-0032 Anelloviridae.pbmc     1 -0.2810163352
+341        005-0032           CMV.pbmc     1 -0.2810163352
+342        005-0032           EBV.pbmc     1 -0.2810163352
+343        005-0036            Control     0 -0.3687527446
+344        005-0037            Control     0  0.4058962182
+345        005-0038           EBV.pbmc     1  0.6221446040
+346        005-0042            Control     0  0.2339183051
+347        005-0043           EBV.pbmc     1 -0.2117711863
+348        005-0044            Control     0  0.1705794988
+349        005-0046            Control     0 -0.3220728003
+350        005-1001         HSV1.nasal     1  0.8317085100
+351        005-1002           EBV.pbmc     1 -0.6052069710
+352        005-1004            Control     0 -0.3072695772
+353        005-1005           EBV.pbmc     1 -0.6761052982
+354        006-0001           EBV.pbmc     1  0.2372842263
+355        006-0002           EBV.pbmc     1  1.0019014901
+356        006-0003           CMV.pbmc     1 -0.3514559301
+357        006-0004           CMV.pbmc     1  0.1622789090
+358        006-0005           EBV.pbmc     1 -0.1093204132
+359        006-0006            Control     0  0.3489719076
+360        006-0007           EBV.pbmc     1 -0.4660479462
+361        006-0008         HSV1.nasal     1  0.3510625176
+362        006-0009            Control     0 -0.4609900331
+363        006-0010 Anelloviridae.pbmc     1 -0.2690888710
+364        006-0011         HSV1.nasal     1 -0.2935289569
+365        006-0012           EBV.pbmc     1 -0.3135148638
+366        006-0015         HSV1.nasal     1 -0.1321934629
+367        006-0016         HSV1.nasal     1 -0.6878066046
+368        006-0017 Anelloviridae.pbmc     1  0.3844914578
+369        006-0017           EBV.pbmc     1  0.3844914578
+370        006-0018            Control     0 -0.1895226101
+371        006-0019            Control     0  0.6137828199
+372        006-0020           CMV.pbmc     1  0.2502806462
+373        006-0023 Anelloviridae.pbmc     1 -0.4457871024
+374        006-0024            Control     0 -0.2673800231
+375        006-0025            Control     0 -0.3349590525
+376        006-0026 Anelloviridae.pbmc     1  0.7508325523
+377        006-0027 Anelloviridae.pbmc     1  0.1550052839
+378        006-0028           EBV.pbmc     1  0.1448691558
+379        006-0029            Control     0 -0.2720477633
+380        006-0030            Control     0 -0.3172242526
+381        006-1001            Control     0 -0.1685446853
+382        006-1002           EBV.pbmc     1 -0.1724229305
+383        006-1004            Control     0  0.4755317784
+384        007-0005 Anelloviridae.pbmc     1 -0.2050789211
+385        007-0009            Control     0 -0.9997487652
+386        007-0011           EBV.pbmc     1 -0.1947096239
+387        007-0013            Control     0  0.8935922889
+388        007-0018 Anelloviridae.pbmc     1  0.2447329810
+389        007-0019            Control     0 -0.5505142802
+390        007-0024            Control     0  0.2390262056
+391        007-0025            Control     0 -0.2073853503
+392        007-0027            Control     0 -0.5694053050
+393        007-0028           EBV.pbmc     1 -0.0380701081
+394        007-0029            Control     0 -0.1344732556
+395        007-0030            Control     0  0.0838034422
+396        007-0031            Control     0  0.7899836559
+397        007-0032            Control     0  0.2767369458
+398        007-0033            Control     0  0.5055960703
+399        007-0034            Control     0 -0.3383012985
+400        007-0037            Control     0 -0.1479001078
+401        007-0038         HSV1.nasal     1  0.2976270187
+402        007-0039           EBV.pbmc     1 -0.5016601439
+403        007-0040            Control     0  0.3286816150
+404        007-0042           EBV.pbmc     1 -0.0633547653
+405        007-0043            Control     0 -0.2332502880
+406        007-0044 Anelloviridae.pbmc     1 -0.2353735169
+407        007-0045 Anelloviridae.pbmc     1 -0.1974003009
+408        007-0045           EBV.pbmc     1 -0.1974003009
+409        007-0046 Anelloviridae.pbmc     1  0.0838752098
+410        007-0048 Anelloviridae.pbmc     1  0.5656401051
+411        007-0050           EBV.pbmc     1 -1.2911199732
+412        007-0051            Control     0  0.1006700428
+413        007-0052           EBV.pbmc     1  0.2279703214
+414        007-0053            Control     0  0.0096249289
+415        007-0054            Control     0  0.0654734730
+416        007-0055           EBV.pbmc     1 -0.4345568725
+417        007-0058           EBV.pbmc     1 -0.4013025510
+418        007-0059 Anelloviridae.pbmc     1  0.5822046256
+419        007-0059           EBV.pbmc     1  0.5822046256
+420        007-0061           EBV.pbmc     1 -0.0020492942
+421        007-0062         HSV1.nasal     1 -0.0483335443
+422        007-0065            Control     0  0.3733864958
+423        007-0067           EBV.pbmc     1 -0.3699910928
+424        007-0068           EBV.pbmc     1  0.1156758033
+425        007-0069            Control     0 -0.1846921669
+426        007-0070           EBV.pbmc     1 -0.1916538656
+427        007-0071 Anelloviridae.pbmc     1 -0.1093840184
+428        007-0071         HSV1.nasal     1 -0.1093840184
+429        007-0072           EBV.pbmc     1 -0.4364727642
+430        007-0073            Control     0  0.0818268563
+431        007-0074            Control     0  0.4883234367
+432        007-0075            Control     0 -0.2721799544
+433        007-0076            Control     0 -0.1782800339
+434        007-0077            Control     0  0.5929121937
+435        007-0078 Anelloviridae.pbmc     1  0.1246278099
+436        007-0079            Control     0 -0.0181926484
+437        007-0080 Anelloviridae.pbmc     1 -0.4350913918
+438        007-0080         HSV1.nasal     1 -0.4350913918
+439        007-0081            Control     0 -0.0690982574
+440        007-0082            Control     0  0.5630672144
+441        007-0083           EBV.pbmc     1 -0.1700751542
+442        007-0084            Control     0 -0.4748600438
+443        007-0086            Control     0  0.2697540419
+444        007-0087            Control     0 -0.1955206074
+445        007-0088           EBV.pbmc     1  0.4229012422
+446        007-0091            Control     0 -0.1284895187
+447        007-0092            Control     0  0.1244628874
+448        007-0093            Control     0 -0.2345381227
+449        007-0094           CMV.pbmc     1 -0.0128379796
+450        007-0094           EBV.pbmc     1 -0.0128379796
+451        007-0095            Control     0 -0.1313641521
+452        007-0096           CMV.pbmc     1  0.1798149541
+453        007-0097            Control     0  0.2883068427
+454        007-0098            Control     0 -0.2575185045
+455        007-0099 Anelloviridae.pbmc     1  0.5425161187
+456        008-0001           EBV.pbmc     1  0.3422376441
+457        008-0002 Anelloviridae.pbmc     1 -1.1763793193
+458        008-0002           EBV.pbmc     1 -1.1763793193
+459        008-0004            Control     0  0.2566587720
+460        008-0005            Control     0  0.3847039959
+461        008-0006           EBV.pbmc     1  0.4156827071
+462        008-0007           CMV.pbmc     1 -0.6961224397
+463        008-0008 Anelloviridae.pbmc     1  0.4554724083
+464        008-0010            Control     0 -0.4764893130
+465        008-0011            Control     0 -0.2747706965
+466        008-0013 Anelloviridae.pbmc     1  0.5566059347
+467        008-0015 Anelloviridae.pbmc     1 -0.3853712595
+468        008-0018           EBV.pbmc     1 -0.2616345864
+469        008-0019            Control     0  0.7947784603
+470        008-0020            Control     0  0.5008262184
+471        008-0021            Control     0 -0.2772021978
+472        008-0022           EBV.pbmc     1  0.5647173423
+473        008-0024            Control     0  0.0481550374
+474        008-0025            Control     0  0.6053575844
+475        008-0026           EBV.pbmc     1 -0.3951495190
+476        008-0027            Control     0  0.7000878398
+477        008-0028            Control     0 -0.2723597833
+478        008-0029 Anelloviridae.pbmc     1  0.6286093398
+479        008-0030           EBV.pbmc     1  0.3725320337
+480        008-0031 Anelloviridae.pbmc     1 -1.3668205624
+481        008-0032            Control     0 -0.1856865778
+482        008-0033            Control     0  0.2403232509
+483        008-0035            Control     0 -0.3414426552
+484        008-0036            Control     0  0.4125248689
+485        008-0038            Control     0  0.1307631037
+486        008-0039 Anelloviridae.pbmc     1 -1.9973266025
+487        008-0039         HSV1.nasal     1 -1.9973266025
+488        008-0039           CMV.pbmc     1 -1.9973266025
+489        008-0039           EBV.pbmc     1 -1.9973266025
+490        008-0040 Anelloviridae.pbmc     1  0.3333512418
+491        008-0041         HSV1.nasal     1 -0.3300719433
+492        008-0042 Anelloviridae.pbmc     1  0.3867534574
+493        008-0043 Anelloviridae.pbmc     1  0.2729991042
+494        008-0044            Control     0 -0.3141538476
+495        008-0046 Anelloviridae.pbmc     1  0.3662030813
+496        008-0047 Anelloviridae.pbmc     1 -0.4143961857
+497        008-0048 Anelloviridae.pbmc     1  0.2708947298
+498        008-0048           EBV.pbmc     1  0.2708947298
+499        008-0049           EBV.pbmc     1  0.4109014869
+500        008-0056           EBV.pbmc     1  0.0219255107
+501        008-0057            Control     0 -0.2488038549
+502        008-0058            Control     0  0.0554156531
+503        008-0061         HSV1.nasal     1 -1.3397293480
+504        008-0061           CMV.pbmc     1 -1.3397293480
+505        008-0061           EBV.pbmc     1 -1.3397293480
+506        008-0062 Anelloviridae.pbmc     1 -0.5775092669
+507        008-0064 Anelloviridae.pbmc     1 -0.2067333895
+508        008-0065 Anelloviridae.pbmc     1 -1.4131285806
+509        008-0065           EBV.pbmc     1 -1.4131285806
+510        008-0066            Control     0 -1.1694168332
+511        008-0067           EBV.pbmc     1 -0.9957444642
+512        008-0068           EBV.pbmc     1 -0.1627451238
+513        008-0069 Anelloviridae.pbmc     1 -0.3189651348
+514        008-0069         HSV1.nasal     1 -0.3189651348
+515        008-0070            Control     0 -0.1371118640
+516        008-0071 Anelloviridae.pbmc     1  0.4287146815
+517        008-0072            Control     0 -0.2154019948
+518        008-0073            Control     0  0.1450268297
+519        008-0074            Control     0  0.2086455935
+520        008-0075           EBV.pbmc     1  0.4227215438
+521        008-0076            Control     0  0.4331841250
+522        008-0077 Anelloviridae.pbmc     1  0.5923799019
+523        008-0077         HSV1.nasal     1  0.5923799019
+524        008-0078            Control     0  0.5759067133
+525        008-0079 Anelloviridae.pbmc     1 -0.0982096707
+526        008-0079           EBV.pbmc     1 -0.0982096707
+527        008-0080            Control     0  0.2257040994
+528        008-0081            Control     0 -0.2706795982
+529        008-0082            Control     0  0.1832703239
+530        008-0083            Control     0 -0.1858537480
+531        008-0084 Anelloviridae.pbmc     1  0.8025334018
+532        008-0085 Anelloviridae.pbmc     1 -0.7439152758
+533        008-0085           EBV.pbmc     1 -0.7439152758
+534        008-0086           EBV.pbmc     1 -0.1512730469
+535        008-0087            Control     0 -0.5405229115
+536        008-0088 Anelloviridae.pbmc     1 -0.4463416158
+537        008-0088         HSV1.nasal     1 -0.4463416158
+538        008-0088           EBV.pbmc     1 -0.4463416158
+539        008-0089           EBV.pbmc     1  0.3062447835
+540        008-0090 Anelloviridae.pbmc     1  0.8570936691
+541        008-0091            Control     0  0.0658630004
+542        008-0092           CMV.pbmc     1 -0.2732157384
+543        008-0092           EBV.pbmc     1 -0.2732157384
+544        008-0093            Control     0 -0.3910528673
+545        008-0094            Control     0  0.4909355943
+546        008-0095           EBV.pbmc     1  0.2177421942
+547        008-0096           EBV.pbmc     1  0.0621003910
+548        008-0097            Control     0  0.1733601047
+549        008-0098            Control     0 -0.0694508260
+550        008-0099            Control     0 -0.1784524231
+551        008-0100            Control     0  0.7256337483
+552        008-0102            Control     0 -0.1927044818
+553        008-0103         HSV1.nasal     1  0.4704750744
+554        008-0104           EBV.pbmc     1 -0.0872782920
+555        008-1003 Anelloviridae.pbmc     1 -0.2839304271
+556        008-1003           EBV.pbmc     1 -0.2839304271
+557        008-1004 Anelloviridae.pbmc     1  0.3228865892
+558        008-1005            Control     0  0.3269976715
+559        008-1007            Control     0 -0.4644461722
+560        008-1008            Control     0 -0.2998976972
+561        008-1009 Anelloviridae.pbmc     1  0.6309655733
+562        008-1010            Control     0 -0.2539128790
+563        008-1011         HSV1.nasal     1 -0.1881829157
+564        008-1011           EBV.pbmc     1 -0.1881829157
+565        008-1014 Anelloviridae.pbmc     1  0.4328665248
+566        008-1018            Control     0 -0.3350031092
+567        008-1019            Control     0  0.2964377954
+568        008-1020            Control     0  0.6593909546
+569        008-1021            Control     0 -0.2552666543
+570        008-1022 Anelloviridae.pbmc     1  0.2169324532
+571        008-1023            Control     0  0.6936802655
+572        008-1024            Control     0 -0.1911410737
+573        009-3023            Control     0  0.2926979997
+574        009-3025           EBV.pbmc     1  0.5104990231
+575        009-3026 Anelloviridae.pbmc     1 -0.0502724175
+576        009-3026           EBV.pbmc     1 -0.0502724175
+577        009-3027         HSV1.nasal     1 -0.5327500064
+578        009-3028         HSV1.nasal     1 -0.8559935990
+579        009-3028           EBV.pbmc     1 -0.8559935990
+580        009-3032 Anelloviridae.pbmc     1  0.8461944316
+581        009-3032           EBV.pbmc     1  0.8461944316
+582        009-3033            Control     0 -0.6292003668
+583        009-3034            Control     0 -0.1580458455
+584        009-3035 Anelloviridae.pbmc     1 -0.1735054564
+585        009-3037 Anelloviridae.pbmc     1 -0.4678540716
+586        009-3038 Anelloviridae.pbmc     1 -0.6535257831
+587        009-3040            Control     0 -0.1677467093
+588        009-3041            Control     0  0.4736011499
+589        009-3042 Anelloviridae.pbmc     1 -0.7978135746
+590        009-3042           CMV.pbmc     1 -0.7978135746
+591        009-3042           EBV.pbmc     1 -0.7978135746
+592        009-3045 Anelloviridae.pbmc     1 -0.2542292291
+593        009-3045         HSV1.nasal     1 -0.2542292291
+594        009-3047           EBV.pbmc     1  0.0888226560
+595        009-3048 Anelloviridae.pbmc     1 -1.4985725411
+596        009-3048         HSV1.nasal     1 -1.4985725411
+597        009-3048           CMV.pbmc     1 -1.4985725411
+598        009-3049            Control     0 -0.0729364180
+599        009-3051         HSV1.nasal     1  0.6310939297
+600        009-3052 Anelloviridae.pbmc     1 -0.9967865832
+601        009-3052         HSV1.nasal     1 -0.9967865832
+602        009-3052           EBV.pbmc     1 -0.9967865832
+603        009-3053 Anelloviridae.pbmc     1 -0.5894789083
+604        009-3053           EBV.pbmc     1 -0.5894789083
+605        009-3054            Control     0 -0.1907860893
+606        009-3056            Control     0 -0.0744176798
+607        009-3058            Control     0 -0.0987423657
+608        009-3059            Control     0  0.2091321196
+609        009-3061           EBV.pbmc     1  0.3693313511
+610        009-3068 Anelloviridae.pbmc     1 -0.2938424562
+611        009-3071            Control     0  0.4051114179
+612        009-3072            Control     0  0.3588969230
+613        009-3073 Anelloviridae.pbmc     1 -0.3353862143
+614        009-3075 Anelloviridae.pbmc     1 -0.1823215048
+615        009-3078            Control     0 -0.2708279053
+616        009-3081 Anelloviridae.pbmc     1 -0.5837927102
+617        009-3081         HSV1.nasal     1 -0.5837927102
+618        009-3081           CMV.pbmc     1 -0.5837927102
+619        009-3081           EBV.pbmc     1 -0.5837927102
+620        009-3083         HSV1.nasal     1 -0.1286673380
+621        009-3085           EBV.pbmc     1  0.1754102945
+622        009-4009            Control     0 -0.4198539635
+623        009-4015 Anelloviridae.pbmc     1 -0.8257636308
+624        009-4016           EBV.pbmc     1  0.2716329739
+625        009-4021           EBV.pbmc     1 -0.3643622945
+626        009-4022            Control     0  0.2487828436
+627        009-4023            Control     0  0.7184513203
+628        009-4024            Control     0 -0.0948999002
+629        009-4025            Control     0 -0.0182138709
+630        009-4026            Control     0 -0.1818088055
+631        009-4029 Anelloviridae.pbmc     1  0.3901987911
+632        009-4029           CMV.pbmc     1  0.3901987911
+633        009-4036           EBV.pbmc     1 -0.3886152702
+634        009-4041            Control     0  0.4011886674
+635        009-4042         HSV1.nasal     1  0.1225006437
+636        009-4043 Anelloviridae.pbmc     1 -0.4896927391
+637        009-4043         HSV1.nasal     1 -0.4896927391
+638        009-4043           EBV.pbmc     1 -0.4896927391
+639        009-4044            Control     0  0.7458207391
+640        009-4046            Control     0  0.3906026389
+641        009-4048            Control     0 -0.1719460281
+642        009-4049            Control     0  0.4793626524
+643        009-4050 Anelloviridae.pbmc     1  0.6202619289
+644        009-4050         HSV1.nasal     1  0.6202619289
+645        009-4050           EBV.pbmc     1  0.6202619289
+646        009-4051         HSV1.nasal     1 -0.3746001537
+647        009-4051           CMV.pbmc     1 -0.3746001537
+648        009-4060            Control     0 -0.4811481420
+649        009-4061 Anelloviridae.pbmc     1  0.2018689246
+650        009-4061         HSV1.nasal     1  0.2018689246
+651        009-4061           EBV.pbmc     1  0.2018689246
+652        009-4066 Anelloviridae.pbmc     1  0.1851354078
+653        009-4066         HSV1.nasal     1  0.1851354078
+654        009-4066           EBV.pbmc     1  0.1851354078
+655        009-4067         HSV1.nasal     1  0.9532103165
+656        009-4068         HSV1.nasal     1  0.0332939646
+657        009-4069            Control     0  0.5197651910
+658        009-4070           EBV.pbmc     1 -0.2019325733
+659        009-4077            Control     0 -0.1470052171
+660        009-4078           EBV.pbmc     1 -0.1021269481
+661        009-4079           EBV.pbmc     1  0.2900919986
+662        009-4080            Control     0 -0.0183771998
+663        009-4087 Anelloviridae.pbmc     1 -0.4898896263
+664        009-4087           EBV.pbmc     1 -0.4898896263
+665        009-4090            Control     0 -0.1887242406
+666        009-4093         HSV1.nasal     1 -0.5365632837
+667        009-4093           EBV.pbmc     1 -0.5365632837
+668        010-0002 Anelloviridae.pbmc     1  0.1354254145
+669        010-0004 Anelloviridae.pbmc     1  0.0864379026
+670        010-0004           EBV.pbmc     1  0.0864379026
+671        010-0005            Control     0 -0.1149903949
+672        010-0006           EBV.pbmc     1 -0.3775164202
+673        010-0008            Control     0  0.0046332341
+674        010-0013            Control     0 -0.1310937718
+675        010-0016           EBV.pbmc     1 -0.0633338322
+676        010-0020 Anelloviridae.pbmc     1 -0.1324535345
+677        010-0021            Control     0 -0.5577014983
+678        010-0024 Anelloviridae.pbmc     1  0.2981018995
+679        010-0024         HSV1.nasal     1  0.2981018995
+680        010-0024           CMV.pbmc     1  0.2981018995
+681        010-0024           EBV.pbmc     1  0.2981018995
+682        010-0028            Control     0  0.3173107744
+683        010-0033            Control     0 -0.1390962690
+684        010-0034 Anelloviridae.pbmc     1 -0.1560548189
+685        010-0035            Control     0  0.2567888252
+686        010-0037         HSV1.nasal     1  0.1930113415
+687        010-0037           CMV.pbmc     1  0.1930113415
+688        010-0039            Control     0  0.1318761304
+689        010-0040            Control     0  0.0389199521
+690        010-0041 Anelloviridae.pbmc     1  0.4354036731
+691        010-0043            Control     0 -0.0297638952
+692        010-0044            Control     0  0.1447665616
+693        010-0045            Control     0 -0.2537167365
+694        010-0046            Control     0  0.4153293758
+695        010-0047 Anelloviridae.pbmc     1  0.1555480069
+696        010-0048 Anelloviridae.pbmc     1  0.0109011854
+697        010-0049           EBV.pbmc     1 -0.1249313657
+698        010-0050           EBV.pbmc     1 -0.2797169807
+699        010-0052 Anelloviridae.pbmc     1 -0.0527210298
+700        010-0055            Control     0  0.1112674776
+701        010-0057           CMV.pbmc     1 -0.7578955479
+702        010-0059 Anelloviridae.pbmc     1  0.6123587526
+703        010-0060            Control     0 -0.2385553228
+704        010-0061            Control     0 -0.0510091723
+705        010-0062            Control     0  0.1287454409
+706        010-0066            Control     0  0.5869123331
+707        010-0067            Control     0  0.4074038455
+708        010-0068            Control     0 -0.5266603524
+709        010-0069            Control     0  0.4145728687
+710        010-0070            Control     0 -0.2756171757
+711        010-0071           EBV.pbmc     1 -0.3692633660
+712        010-0073            Control     0  0.1054243900
+713        010-0074            Control     0  0.2965248255
+714        010-0075            Control     0  0.0634380042
+715        010-0076         HSV1.nasal     1  0.4460341765
+716        010-0079            Control     0 -0.0060567216
+717        010-0080 Anelloviridae.pbmc     1  0.2442813778
+718        010-0080           CMV.pbmc     1  0.2442813778
+719        010-0082            Control     0 -0.2423624394
+720        010-0083            Control     0  0.0557800508
+721        010-0085           EBV.pbmc     1  0.2008098852
+722        010-0086         HSV1.nasal     1 -1.1313390002
+723        010-0087            Control     0 -0.0147823848
+724        010-0091            Control     0 -0.1207637787
+725        010-0093            Control     0 -0.3061218318
+726        010-0094           CMV.pbmc     1  0.7269377424
+727        010-0094           EBV.pbmc     1  0.7269377424
+728        010-0099            Control     0  0.3795358485
+729        010-0100            Control     0 -0.1774982177
+730        010-0102 Anelloviridae.pbmc     1  0.1726269597
+731        010-0106            Control     0  0.2095166136
+732        010-0107            Control     0 -0.0972064709
+733        010-0108           EBV.pbmc     1  0.2855701400
+734        010-0109            Control     0  0.5055975347
+735        010-0110            Control     0  0.0745805007
+736        010-0111            Control     0  0.0781224845
+737        010-0112            Control     0 -0.1908847252
+738        010-0113            Control     0 -0.3882891197
+739        010-0114            Control     0  0.2489558420
+740        010-0115            Control     0 -0.2957356461
+741        010-0119            Control     0  0.0131164291
+742        010-0120 Anelloviridae.pbmc     1  0.3163610885
+743        010-0120           EBV.pbmc     1  0.3163610885
+744        010-0121            Control     0 -0.0421210016
+745        010-0126           EBV.pbmc     1  0.5876082981
+746        010-0127           EBV.pbmc     1 -0.4500519010
+747        010-0128            Control     0  0.2410960104
+748        010-0130            Control     0 -0.0748993080
+749        010-0131            Control     0  0.2720026974
+750        010-0135 Anelloviridae.pbmc     1  0.1988351363
+751        010-0135         HSV1.nasal     1  0.1988351363
+752        011-0001            Control     0 -0.6270789066
+753        011-0002            Control     0  0.0090974238
+754        011-0003         HSV1.nasal     1  0.6176999738
+755        011-0003           EBV.pbmc     1  0.6176999738
+756        011-0004            Control     0 -0.4675230488
+757        011-0006            Control     0 -0.1382547627
+758        011-0007            Control     0 -0.2086244356
+759        011-0008 Anelloviridae.pbmc     1 -0.4904596582
+760        011-0008           EBV.pbmc     1 -0.4904596582
+761        011-0010           EBV.pbmc     1 -0.4899217728
+762        011-0012            Control     0 -0.3930930875
+763        011-0013            Control     0  0.3208718907
+764        011-0014            Control     0 -0.2343734505
+765        011-0015         HSV1.nasal     1  0.0369633672
+766        011-0015           EBV.pbmc     1  0.0369633672
+767        011-0016 Anelloviridae.pbmc     1  0.2675189295
+768        011-0018            Control     0  0.0022048644
+769        011-0019            Control     0  0.1810653376
+770        011-0020            Control     0  0.0686251535
+771        011-0021            Control     0  0.4388670914
+772        011-0023           EBV.pbmc     1 -0.7280454836
+773        011-0024 Anelloviridae.pbmc     1  0.8562551466
+774        011-0024         HSV1.nasal     1  0.8562551466
+775        011-0024           EBV.pbmc     1  0.8562551466
+776        011-0025 Anelloviridae.pbmc     1  0.5095315810
+777        011-0026           CMV.pbmc     1 -0.1044171809
+778        011-0027            Control     0  0.4458546072
+779        011-0028            Control     0  0.2540401011
+780        011-0029         HSV1.nasal     1  0.1707444126
+781        011-0029           EBV.pbmc     1  0.1707444126
+782        011-0030            Control     0  0.1862527512
+783        011-0031 Anelloviridae.pbmc     1  0.2320894545
+784        011-0033           EBV.pbmc     1  0.1586539047
+785        011-0035           EBV.pbmc     1  0.3509277356
+786        011-0036            Control     0 -0.0110414609
+787        011-0037 Anelloviridae.pbmc     1 -0.6345599085
+788        011-0038            Control     0  0.3353129314
+789        011-0039 Anelloviridae.pbmc     1 -0.0104717920
+790        011-0041            Control     0 -0.4974539321
+791        011-0042           EBV.pbmc     1 -0.3679997198
+792        011-0045            Control     0 -0.5051869304
+793        011-0046 Anelloviridae.pbmc     1  0.3053789639
+794        011-0046           EBV.pbmc     1  0.3053789639
+795        011-0047           EBV.pbmc     1 -0.4803829432
+796        011-0048            Control     0  0.0968779117
+797        011-0049            Control     0  0.0968142998
+798        011-0050            Control     0 -0.2672762625
+799        012-0001         HSV1.nasal     1 -0.3305419758
+800        012-0002         HSV1.nasal     1 -0.3909092122
+801        012-0003           EBV.pbmc     1  0.3519516266
+802        012-0004            Control     0 -0.0896189507
+803        012-0005 Anelloviridae.pbmc     1  0.3987569097
+804        012-0005           EBV.pbmc     1  0.3987569097
+805        012-0006            Control     0  0.4370745114
+806        012-0007            Control     0 -0.2893411783
+807        012-0008            Control     0 -0.3574352694
+808        012-0009            Control     0 -0.2447730970
+809        012-0011            Control     0  0.6398256022
+810        012-0012           EBV.pbmc     1 -0.5455372850
+811        012-0013           EBV.pbmc     1 -0.2130032628
+812        012-0014            Control     0 -0.2512530158
+813        012-0015 Anelloviridae.pbmc     1 -0.2459554842
+814        012-0015         HSV1.nasal     1 -0.2459554842
+815        012-0016            Control     0  0.3101029421
+816        012-0017 Anelloviridae.pbmc     1 -0.2895878998
+817        012-0018            Control     0  0.1850775558
+818        012-0019           EBV.pbmc     1 -0.3200966947
+819        012-0020            Control     0  0.6299339360
+820        012-0021         HSV1.nasal     1 -0.0893420298
+821        012-0022           EBV.pbmc     1  0.3716626865
+822        012-0024           EBV.pbmc     1  0.1409674547
+823        012-0025            Control     0 -0.3546923401
+824        012-0026            Control     0 -0.2961226319
+825        012-0027            Control     0  0.2125205283
+826        012-0028           EBV.pbmc     1 -0.0554863016
+827        012-0029 Anelloviridae.pbmc     1  0.2916689295
+828        012-0029         HSV1.nasal     1  0.2916689295
+829        012-0031 Anelloviridae.pbmc     1  0.4120977667
+830        012-0031         HSV1.nasal     1  0.4120977667
+831        012-0031           CMV.pbmc     1  0.4120977667
+832        012-0031           EBV.pbmc     1  0.4120977667
+833        012-0032            Control     0  0.1840544702
+834        012-0033 Anelloviridae.pbmc     1 -0.0548974255
+835        012-0033         HSV1.nasal     1 -0.0548974255
+836        012-0034            Control     0  0.3108587322
+837        012-0035 Anelloviridae.pbmc     1 -0.1077466301
+838        012-0035         HSV1.nasal     1 -0.1077466301
+839        012-0035           CMV.pbmc     1 -0.1077466301
+840        012-0035           EBV.pbmc     1 -0.1077466301
+841        012-0036            Control     0  0.3236326444
+842        012-0038           CMV.pbmc     1 -0.3226571862
+843        012-0039 Anelloviridae.pbmc     1  0.0566267708
+844        012-0041           EBV.pbmc     1  0.1835123658
+845        012-0042            Control     0  0.7048788248
+846        013-0001            Control     0 -0.7039984248
+847        013-0002           EBV.pbmc     1 -1.1166760452
+848        013-0003            Control     0 -0.7043207007
+849        013-0004            Control     0  0.3667936499
+850        013-0005            Control     0  0.3556299603
+851        013-0006            Control     0  0.0907470734
+852        013-0007         HSV1.nasal     1 -0.4762331811
+853        013-0007           CMV.pbmc     1 -0.4762331811
+854        013-0008           EBV.pbmc     1 -0.1026649736
+855        013-0010 Anelloviridae.pbmc     1  0.4941805229
+856        013-0010           EBV.pbmc     1  0.4941805229
+857        013-0012            Control     0  0.8227036169
+858        013-0013            Control     0 -0.0773620168
+859        013-0014            Control     0 -0.2929785146
+860        013-0015            Control     0 -0.2551735950
+861        013-0017           EBV.pbmc     1 -0.3365619329
+862        013-0018 Anelloviridae.pbmc     1  0.2605754996
+863        013-0018         HSV1.nasal     1  0.2605754996
+864        013-0019            Control     0 -0.1395397557
+865        013-0020 Anelloviridae.pbmc     1 -0.1808188774
+866        013-0020         HSV1.nasal     1 -0.1808188774
+867        013-0020           EBV.pbmc     1 -0.1808188774
+868        013-0021            Control     0 -0.2019030218
+869        013-0022            Control     0  0.4568474270
+870        013-0023 Anelloviridae.pbmc     1 -0.5832010999
+871        013-0023         HSV1.nasal     1 -0.5832010999
+872        013-0024            Control     0  0.7941732592
+873        013-0025           EBV.pbmc     1 -0.2052787466
+874        013-0027            Control     0 -0.4486665618
+875        013-0028           EBV.pbmc     1 -0.1878942593
+876        013-0030            Control     0 -0.5880036527
+877        013-0031            Control     0 -0.3648922398
+878        013-0032            Control     0 -0.1247733334
+879        013-0033           EBV.pbmc     1  0.3160315414
+880        013-0034           EBV.pbmc     1 -0.3868647415
+881        013-0035            Control     0  0.2783145021
+882        013-0036         HSV1.nasal     1  0.4277043322
+883        013-0037            Control     0  0.5007502530
+884        013-0038 Anelloviridae.pbmc     1 -0.3002255030
+885        013-0038           EBV.pbmc     1 -0.3002255030
+886        013-0039            Control     0 -0.2374265136
+887        013-0040            Control     0 -0.1499228790
+888        013-0041           EBV.pbmc     1 -0.7816024529
+889        013-0042           EBV.pbmc     1  0.9895512864
+890        013-0043            Control     0 -0.2782021299
+891        013-0044            Control     0 -0.2299000993
+892        013-0046            Control     0  0.2386455726
+893        013-0048           EBV.pbmc     1 -0.1234729598
+894        013-0049            Control     0  0.0932016069
+895        013-0050           EBV.pbmc     1 -0.3229574281
+896        013-0052            Control     0 -0.3455894425
+897        013-0053           EBV.pbmc     1  0.2111258563
+898        013-0054         HSV1.nasal     1 -0.8518894168
+899        013-0054           EBV.pbmc     1 -0.8518894168
+900        013-0056            Control     0 -0.3720154915
+901        013-1002           EBV.pbmc     1 -0.4581020217
+902        013-1003            Control     0  0.6248896785
+903        013-1005 Anelloviridae.pbmc     1  0.5018861293
+904        013-1006           EBV.pbmc     1 -0.3307512930
+905        013-1007            Control     0  0.7778553935
+906        014-0001            Control     0 -0.3926668299
+907        014-0002           EBV.pbmc     1 -0.3983016432
+908        014-0003 Anelloviridae.pbmc     1  0.4771141740
+909        014-0004            Control     0 -0.2737532605
+910        014-0005         HSV1.nasal     1  0.3053210024
+911        014-0005           CMV.pbmc     1  0.3053210024
+912        014-0007            Control     0  0.3448362815
+913        014-0008         HSV1.nasal     1  0.2911107700
+914        014-0008           EBV.pbmc     1  0.2911107700
+915        014-0010            Control     0  0.3528721134
+916        014-0011           EBV.pbmc     1 -0.8386546907
+917        014-0013            Control     0 -0.4507832674
+918        014-0014           EBV.pbmc     1  1.0639611050
+919        014-0015            Control     0  1.0889162679
+920        014-0018 Anelloviridae.pbmc     1  0.4871565169
+921        014-0018         HSV1.nasal     1  0.4871565169
+922        014-0019            Control     0  0.2659981637
+923        014-0022         HSV1.nasal     1  0.7981533862
+924        014-0022           EBV.pbmc     1  0.7981533862
+925        014-0023            Control     0 -0.1986274051
+926        014-0025            Control     0 -0.2108712217
+927        014-0026            Control     0 -0.2272194722
+928        014-0027            Control     0  0.6261183263
+929        014-0029            Control     0  0.4098126353
+930        014-0030         HSV1.nasal     1 -0.4604942589
+931        014-0030           CMV.pbmc     1 -0.4604942589
+932        014-0030           EBV.pbmc     1 -0.4604942589
+933        014-0031            Control     0 -0.0979763032
+934        014-0033           EBV.pbmc     1 -0.2955472466
+935        014-1005 Anelloviridae.pbmc     1 -0.2470644016
+936        014-1005           EBV.pbmc     1 -0.2470644016
+937        014-1006            Control     0  0.1325844365
+938        014-1007            Control     0  0.4431795388
+939        014-1008           EBV.pbmc     1 -0.4323426130
+940        014-1009         HSV1.nasal     1  0.0618128624
+941        014-1010            Control     0  0.2075195286
+942        014-1011            Control     0  0.5581984906
+943        014-1013            Control     0  0.5462166396
+944        014-1014            Control     0  0.0121464391
+945        014-1015            Control     0  0.2762078205
+946        014-1016            Control     0  0.6041319750
+947        014-1018            Control     0  0.1214405340
+948        014-1019            Control     0 -0.1919162518
+949        014-1021           EBV.pbmc     1 -0.0853984174
+950        014-1023            Control     0 -0.1674486051
+951        014-2002            Control     0 -0.2478150489
+952        014-2003           EBV.pbmc     1 -0.4044255715
+953        014-2004            Control     0 -0.3095220073
+954        014-2005           EBV.pbmc     1 -0.2876790736
+955        014-2006            Control     0  0.1104398280
+956        014-2007 Anelloviridae.pbmc     1  0.2718738785
+957        014-2007           EBV.pbmc     1  0.2718738785
+958        014-2008            Control     0  0.0290684137
+959        014-2009            Control     0 -0.4325629251
+960        014-2010            Control     0  0.2018857728
+961        014-2011            Control     0  0.2463091849
+962        014-2012            Control     0  0.2193626769
+963        014-2014           EBV.pbmc     1 -0.0190015981
+964        014-2015 Anelloviridae.pbmc     1 -0.1434178318
+965        014-2016           EBV.pbmc     1  0.4025267821
+966        014-2017           EBV.pbmc     1 -0.2456663425
+967        014-2018            Control     0  0.0547725712
+968        014-2020           CMV.pbmc     1 -0.3816893649
+969        014-2020           EBV.pbmc     1 -0.3816893649
+970        014-2021 Anelloviridae.pbmc     1 -0.1769890038
+971        014-2022            Control     0 -0.6817466730
+972        014-2023         HSV1.nasal     1  0.5769551046
+973        014-2024            Control     0 -0.0507853709
+974        014-2025 Anelloviridae.pbmc     1 -0.1690532060
+975        014-2025           CMV.pbmc     1 -0.1690532060
+976        014-2025           EBV.pbmc     1 -0.1690532060
+977        014-2026           EBV.pbmc     1  0.1733209813
+978        014-2027            Control     0  0.0752144220
+979        014-2028 Anelloviridae.pbmc     1  0.4036197884
+980        014-2028         HSV1.nasal     1  0.4036197884
+981        014-2028           EBV.pbmc     1  0.4036197884
+982        014-2029         HSV1.nasal     1  0.3746966385
+983        014-2029           EBV.pbmc     1  0.3746966385
+984        014-2030            Control     0 -0.1475881794
+985        014-2033            Control     0  0.4488767164
+986        014-2034           EBV.pbmc     1 -0.2135843244
+987        014-2036            Control     0 -0.2780365270
+988        014-2037            Control     0  0.5586481158
+989        014-2038           EBV.pbmc     1 -0.2779921300
+990        014-2039 Anelloviridae.pbmc     1  0.0664149639
+991        014-2041            Control     0 -0.3614245027
+992        014-2045 Anelloviridae.pbmc     1 -0.4393787784
+993        014-2046 Anelloviridae.pbmc     1  1.0389682486
+994        014-2046           EBV.pbmc     1  1.0389682486
+995        014-2047           EBV.pbmc     1 -0.2642837797
+996        014-2048           CMV.pbmc     1  0.4413947767
+997        014-2049            Control     0 -0.0920969255
+998        014-2050           EBV.pbmc     1 -0.3421024652
+999        015-0002            Control     0 -0.2386579096
+1000       015-0003           EBV.pbmc     1 -0.1954752528
+1001       015-0004           CMV.pbmc     1 -0.1249790310
+1002       015-0004           EBV.pbmc     1 -0.1249790310
+1003       015-0005            Control     0 -0.4218591190
+1004       015-0006           EBV.pbmc     1  0.6472013573
+1005       015-0007           EBV.pbmc     1  0.5054649150
+1006       015-0008            Control     0 -0.1564612926
+1007       015-0009            Control     0 -0.4868880050
+1008       015-0010            Control     0  0.3779886015
+1009       015-0011           EBV.pbmc     1  0.4042862235
+1010       015-0012           EBV.pbmc     1  0.1806150456
+1011       015-0013           EBV.pbmc     1  0.4164321588
+1012       015-0015            Control     0 -0.4348427698
+1013       015-0016            Control     0  0.3983710941
+1014       015-0017            Control     0  0.7509896184
+1015       015-0018         HSV1.nasal     1  0.8303891578
+1016       015-0019            Control     0  0.4391947590
+1017       015-0021         HSV1.nasal     1  0.2376481966
+1018       015-0022            Control     0  0.5130227630
+1019       015-0023            Control     0  0.1726732731
+1020       015-0025            Control     0 -0.3106631419
+1021       015-0026            Control     0  0.2445435984
+1022       015-0027            Control     0  0.5472707890
+1023       015-0029            Control     0  0.3296394294
+1024       015-0030            Control     0 -0.6528050483
+1025       015-0031            Control     0 -0.4999907581
+1026       015-0033            Control     0  1.1071858514
+1027       015-0035         HSV1.nasal     1 -0.4089170939
+1028       015-0036         HSV1.nasal     1 -0.1745315169
+1029       015-0038            Control     0  0.5760454742
+1030       015-0039           EBV.pbmc     1  0.4769449957
+1031       015-0040           EBV.pbmc     1  0.3076616513
+1032       015-0041            Control     0 -0.1999226106
+1033       015-0042            Control     0 -0.3795280118
+1034       015-0043 Anelloviridae.pbmc     1 -0.1583473125
+1035       015-0045            Control     0  0.4656491491
+1036       015-0046           EBV.pbmc     1 -0.2591236430
+1037       015-0047            Control     0  0.5739150553
+1038       015-0048            Control     0  0.3739830094
+1039       015-0049            Control     0  0.2530855420
+1040       015-0050         HSV1.nasal     1  0.7649407061
+1041       015-0051            Control     0 -0.0957745013
+1042       015-0053            Control     0 -0.2176653914
+1043       015-0054           EBV.pbmc     1 -0.0904071315
 
 [[2]]
     event_date    predicted  std.error      conf.low     conf.high
@@ -5952,10 +6213,10 @@ Adding another scale for fill, which will replace the existing scale.</code></pr
 305            Control  40
 306            Control  40</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb95"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9F_part1.csv"</span>), <span class="at">x=</span>ggf_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
+<div class="sourceCode cell-code" id="cb95"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9E_part1.csv"</span>), <span class="at">x=</span>gge_data[[<span class="dv">1</span>]] <span class="sc">%&gt;%</span></span>
 <span id="cb95-2"><a href="#cb95-2" aria-hidden="true" tabindex="-1"></a>            <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb95-3"><a href="#cb95-3" aria-hidden="true" tabindex="-1"></a>            <span class="fu">select</span>(<span class="sc">-</span>participant_id))</span>
-<span id="cb95-4"><a href="#cb95-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9F_part2.csv"</span>), <span class="at">x=</span>ggf_data[[<span class="dv">2</span>]])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb95-4"><a href="#cb95-4" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(<span class="at">file=</span><span class="fu">paste0</span>(out_dir, <span class="st">"source_data_FigureS9E_part2.csv"</span>), <span class="at">x=</span>gge_data[[<span class="dv">2</span>]])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 </section>
@@ -6013,13 +6274,13 @@ loaded via a namespace (and not attached):
 [52] yaml_2.3.10         carData_3.0-5       MASS_7.3-53        
 [55] plyr_1.8.6          parallel_4.0.3      crayon_1.5.0       
 [58] lattice_0.20-41     cowplot_1.1.1       splines_4.0.3      
-[61] hms_1.1.3           knitr_1.49          pillar_1.9.0       
+[61] hms_1.1.3           knitr_1.51          pillar_1.9.0       
 [64] rjson_0.2.21        boot_1.3-25         ggsignif_0.6.3     
 [67] stats4_4.0.3        codetools_0.2-16    glue_1.6.2         
 [70] evaluate_1.0.1      ggfun_0.0.9         png_0.1-7          
 [73] vctrs_0.6.5         nloptr_2.0.0        tzdb_0.4.0         
 [76] foreach_1.5.2       gtable_0.3.0        clue_0.3-60        
-[79] xfun_0.49           broom_1.0.7         rstatix_0.7.2      
+[79] xfun_0.56           broom_1.0.7         rstatix_0.7.2      
 [82] ragg_1.3.3          iterators_1.0.14    IRanges_2.24.1     
 [85] beeswarm_0.4.0      cluster_2.1.0       timechange_0.3.0   </code></pre>
 </div>

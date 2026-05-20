@@ -985,6 +985,7 @@ write.csv(my_data %>%
 ## Richness of Genes
 all_late_new %>%
   left_join(gr_data_new) %>%
+  mutate(mls_gene_count = ifelse(is.na(mls_gene_count), 0, mls_gene_count)) %>%
   ggplot(aes(x=days_since_stop, y= mls_gene_count)) +
   geom_line(aes(group = participant_id, color = participant_id), alpha =0.4) +
   theme_classic() +
@@ -996,12 +997,14 @@ ggsave("FigureS5C.pdf", width = 4, height = 2.5)
 write.csv(file = "source_data_FigureS5C.csv",
           x = all_late_new %>%
   left_join(gr_data_new) %>%
+    mutate(mls_gene_count = ifelse(is.na(mls_gene_count), 0, mls_gene_count)) %>%
   mutate(participant_id = as.numeric(factor(participant_id))) %>%
     distinct(participant_id, mls_gene_count, days_since_stop))
 
 ## Percent of Resistome
 all_late_new %>%
   left_join(mls_perc_new) %>%
+  mutate(class_perc = ifelse(is.na(class_perc), 0, class_perc)) %>%
   ggplot(aes(x=days_since_stop, y= class_perc)) +
   geom_line(aes(group = participant_id, color = participant_id), alpha =0.4) +
   theme_classic() +
@@ -1013,6 +1016,7 @@ ggsave("FigureS5B.pdf", width = 4, height = 2.5)
 write.csv(file = "source_data_FigureS5B.csv",
           x = all_late_new %>%
   left_join(mls_perc_new) %>%
+    mutate(class_perc = ifelse(is.na(class_perc), 0, class_perc)) %>%
   mutate(participant_id = as.numeric(factor(participant_id))) %>%
     distinct(participant_id, class_perc, days_since_stop))
 ```

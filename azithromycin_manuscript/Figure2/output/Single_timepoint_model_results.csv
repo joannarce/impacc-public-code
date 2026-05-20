@@ -1,41 +1,41 @@
 "","name","timepoint","group1","group2","p","p.adj"
-"1","sc2_rpm","Day 0-2","No ABX","Azithro",0.0289555100526938,0.0868665301580814
-"2","sc2_rpm","Day 4-6","No ABX","Azithro",0.372172934962796,0.558259402444194
-"3","sc2_rpm","Day 0-2","Azithro","Other
-ABX",0.134513612700118,0.201770419050177
-"4","sc2_rpm","Day 4-6","Azithro","Other
-ABX",0.130439705086008,0.391319115258023
-"5","sc2_rpm","Day 0-2","No ABX","Other
-ABX",0.891242285791271,0.891242285791271
-"6","sc2_rpm","Day 4-6","No ABX","Other
-ABX",0.604226120592183,0.604226120592183
-"7","total_bacterial_rpm","Day 0-2","No ABX","Azithro",0.000648564132662935,0.00194569239798881
-"8","total_bacterial_rpm","Day 4-6","No ABX","Azithro",0.00865488726774751,0.0259646618032425
-"9","total_bacterial_rpm","Day 0-2","Azithro","Other
-ABX",0.153818308525866,0.153818308525866
-"10","total_bacterial_rpm","Day 4-6","Azithro","Other
-ABX",0.644673865761262,0.644673865761262
-"11","total_bacterial_rpm","Day 0-2","No ABX","Other
-ABX",0.0238323492064892,0.0357485238097339
-"12","total_bacterial_rpm","Day 4-6","No ABX","Other
-ABX",0.330607138891899,0.495910708337848
-"13","manual_diversity","Day 0-2","No ABX","Azithro",0.505306444236479,0.505306444236479
-"14","manual_diversity","Day 4-6","No ABX","Azithro",0.682193012367142,0.682193012367142
-"15","manual_diversity","Day 0-2","Azithro","Other
-ABX",0.0374461233669533,0.0561691850504299
-"16","manual_diversity","Day 4-6","Azithro","Other
-ABX",0.0600007628848128,0.180002288654439
-"17","manual_diversity","Day 0-2","No ABX","Other
-ABX",0.00957391211773579,0.0287217363532074
-"18","manual_diversity","Day 4-6","No ABX","Other
-ABX",0.327175890253736,0.490763835380603
-"19","fungal_rpm","Day 0-2","No ABX","Azithro",0.0127000300253926,0.0381000900761779
-"20","fungal_rpm","Day 4-6","No ABX","Azithro",0.861086735822926,0.861086735822926
-"21","fungal_rpm","Day 0-2","Azithro","Other
-ABX",0.582660827733202,0.582660827733202
-"22","fungal_rpm","Day 4-6","Azithro","Other
-ABX",0.353236936450053,0.861086735822926
-"23","fungal_rpm","Day 0-2","No ABX","Other
-ABX",0.238981119586819,0.358471679380228
-"24","fungal_rpm","Day 4-6","No ABX","Other
-ABX",0.748239149835629,0.861086735822926
+"1","sc2_rpm","Day 4-6","No ABX","Azithro",0.278629896235489,0.417944844353233
+"2","sc2_rpm","Day 0-2","No ABX","Azithro",0.0234807986564712,0.0704423959694137
+"3","sc2_rpm","Day 4-6","Azithro","Other
+ABX",0.109272050158845,0.327816150476536
+"4","sc2_rpm","Day 0-2","Azithro","Other
+ABX",0.178952995450402,0.264015028998309
+"5","sc2_rpm","Day 4-6","No ABX","Other
+ABX",0.429587185931037,0.429587185931037
+"6","sc2_rpm","Day 0-2","No ABX","Other
+ABX",0.264015028998309,0.264015028998309
+"7","total_bacterial_rpm","Day 4-6","No ABX","Azithro",0.126955199616014,0.380865598848043
+"8","total_bacterial_rpm","Day 0-2","No ABX","Azithro",0.011183303393534,0.033549910180602
+"9","total_bacterial_rpm","Day 4-6","Azithro","Other
+ABX",0.879221573664786,0.879221573664786
+"10","total_bacterial_rpm","Day 0-2","Azithro","Other
+ABX",0.089706370051343,0.134559555077015
+"11","total_bacterial_rpm","Day 4-6","No ABX","Other
+ABX",0.573694355685155,0.860541533527733
+"12","total_bacterial_rpm","Day 0-2","No ABX","Other
+ABX",0.375427929382575,0.375427929382575
+"13","manual_diversity","Day 4-6","No ABX","Azithro",0.61768753315069,0.61768753315069
+"14","manual_diversity","Day 0-2","No ABX","Azithro",0.604749364675354,0.7287049414977
+"15","manual_diversity","Day 4-6","Azithro","Other
+ABX",0.100663571677082,0.301990715031247
+"16","manual_diversity","Day 0-2","Azithro","Other
+ABX",0.0661360438241146,0.198408131472344
+"17","manual_diversity","Day 4-6","No ABX","Other
+ABX",0.239068893407437,0.358603340111155
+"18","manual_diversity","Day 0-2","No ABX","Other
+ABX",0.7287049414977,0.7287049414977
+"19","fungal_rpm","Day 4-6","No ABX","Azithro",0.564106118027071,0.643226017204811
+"20","fungal_rpm","Day 0-2","No ABX","Azithro",0.0410399793080615,0.123119937924185
+"21","fungal_rpm","Day 4-6","Azithro","Other
+ABX",0.599179055923438,0.643226017204811
+"22","fungal_rpm","Day 0-2","Azithro","Other
+ABX",0.311484359036987,0.46722653855548
+"23","fungal_rpm","Day 4-6","No ABX","Other
+ABX",0.643226017204811,0.643226017204811
+"24","fungal_rpm","Day 0-2","No ABX","Other
+ABX",0.954832715640241,0.954832715640241

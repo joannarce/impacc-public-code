@@ -257,7 +257,6 @@ max_part <- comb_data %>%
     distinct() %>%
     pivot_wider(names_from = name, values_from = value) %>%
     ungroup() %>%
-    #select(-ends_with(".ea"), -starts_with("Betacorona"), -Simplexvirus.pbmc) %>%
   pivot_longer(cols = -participant_id) %>%
   filter(grepl("CMV).pbmc", name)) %>%
   group_by(participant_id) %>%
@@ -278,7 +277,26 @@ Stanford_CMV <- luminex_data %>%
   mutate(event_id = paste0(participant_id, "-1")) %>%
   select(event_id, participant_id, `CMV serostatus`)
 
-gg3B <- rbind.data.frame(UCLA_CMV, Stanford_CMV) %>%
+## Calculating Confidence Intervals for Rate
+tmp_ci <- rbind.data.frame(UCLA_CMV, Stanford_CMV) %>%
+  distinct() %>%
+  inner_join(max_part) %>%
+  filter(!is.na(`CMV serostatus`)) %>%
+  group_by(value, `CMV serostatus`) %>%
+  dplyr::summarize(count = n()) %>%
+  mutate(freq = count / sum(count)) %>%
+  mutate(`CMV serostatus` = ifelse(`CMV serostatus` == 1, "CMV Seropositive", "CMV Seronegative")) %>%
+  mutate(`CMV serostatus` = as.factor(`CMV serostatus`)) %>%
+  mutate(value = ifelse(value ==1, 'CMV+', "CMV-"))
+CI_CMVneg <- prop.test(x=tmp_ci[2,3, drop=T], n=tmp_ci[1,3,drop=T] + tmp_ci[2,3,drop=T],
+          alternative = "two.sided",
+          conf.level = 0.95)
+
+CI_CMVnpos <- prop.test(x=tmp_ci[4,3, drop=T], n=tmp_ci[3,3,drop=T] + tmp_ci[4,3,drop=T],
+          alternative = "two.sided",
+          conf.level = 0.95)
+
+graph_data <- rbind.data.frame(UCLA_CMV, Stanford_CMV) %>%
   distinct() %>%
   inner_join(max_part) %>%
   filter(!is.na(`CMV serostatus`)) %>%
@@ -288,14 +306,24 @@ gg3B <- rbind.data.frame(UCLA_CMV, Stanford_CMV) %>%
   mutate(`CMV serostatus` = ifelse(`CMV serostatus` == 1, "CMV Seropositive", "CMV Seronegative")) %>%
   mutate(`CMV serostatus` = as.factor(`CMV serostatus`)) %>%
   mutate(value = ifelse(value ==1, 'CMV+', "CMV-")) %>%
+  mutate(lower_CI = NA, upper_CI = NA)
+
+graph_data[2,5] <- CI_CMVneg$conf.int[1]
+graph_data[2,6] <- CI_CMVneg$conf.int[2]
+graph_data[4,5] <- CI_CMVnpos$conf.int[1]
+graph_data[4,6] <- CI_CMVnpos$conf.int[2]
+
+gg3B <- graph_data %>%
   ggplot(aes(x=value, y = freq, fill =`CMV serostatus`)) +
   geom_bar(position = "fill", stat = "identity") +
+   geom_errorbar(aes(ymin = lower_CI, ymax = upper_CI), size = 0.4, width = 0.3) +
   theme_classic() +
   xlab("CMV Detected") +
   ylab("Frequency") +
   ggtitle("Visit 1") +
   scale_color_manual(values = c("darkgray", "#005F86"))+
-  scale_fill_manual(values = c("darkgray", "#005F86"))
+  scale_fill_manual(values = c("darkgray", "#005F86")) +
+  theme(legend.position = "none")
 gg3B
 ggsave(paste0(out_dir, "Figure3B.pdf"), width = 3.5, height = 3)
 write_csv(gg3B$data %>% select(-.group), paste0(out_dir, "source_data_Figure3B.csv"))
@@ -361,19 +389,38 @@ max_part <- comb_data %>%
   group_by(value, HHV1_1) %>%
   dplyr::summarize(count = n())
 
-gg3C <- max_part %>%
+## Calculating Confidence Intervals for Rate
+CI_HSVneg <- prop.test(x=max_part[1,3, drop=T], n=max_part[1,3,drop=T] + max_part[2,3,drop=T],
+          alternative = "two.sided",
+          conf.level = 0.95)
+
+CI_HSVpos <- prop.test(x=max_part[3,3, drop=T], n=max_part[3,3,drop=T] + max_part[4,3,drop=T],
+          alternative = "two.sided",
+          conf.level = 0.95)
+
+graph_data <- max_part %>%
   mutate(value = ifelse(value == 0, "HSV1-", "HSV1+")) %>%
   mutate(HHV1_1 = ifelse(is.na(HHV1_1), "Not Detected", "Detected")) %>%
   mutate(HHV1_1 = factor(HHV1_1, c("Not Detected", "Detected"))) %>%
   group_by(value) %>%
   mutate(percent = count / sum(count)) %>%
   filter(HHV1_1 == "Detected") %>%
+  mutate(lower_CI = NA, upper_CI = NA)
+
+graph_data[1,5] <- CI_HSVneg$conf.int[1]
+graph_data[1,6] <- CI_HSVneg$conf.int[2]
+graph_data[2,5] <- CI_HSVpos$conf.int[1]
+graph_data[2,6] <- CI_HSVpos$conf.int[2]
+
+gg3C <- graph_data %>%
   ggplot(aes(x=value, y= percent*100, fill = HHV1_1)) +
   geom_bar(stat = "identity", position = "stack") +
+    geom_errorbar(aes(ymin = lower_CI*100, ymax = upper_CI*100), size = 0.4, width = 0.3) +
   theme_classic() +
   ylab("Percent of Participants (%)") +
   scale_fill_manual(values = c("#1b820d"), name = "HSV1 Proteins") +
-  xlab("Nasal Transcripts Detected")
+  xlab("Nasal Transcripts Detected") +
+  theme(legend.position = "none")
 gg3C
 ggsave(paste0(out_dir, "Figure3C.pdf"), width = 3.5, height = 3)
 
@@ -434,7 +481,8 @@ for(i in unique(colnames(comb_data)[c(-1, -12)])){
           tmp$omic <- "CyTOF"
           tmp$virus <- i
           tmp$level <- "child"
-          tmp$coefficient <- fixef(fit)[match(tmp$variable, gsub("TRUE", "", names(fixef(fit))))]
+          tmp2 <- as.data.frame(intervals(fit,which = "fixed")[["fixed"]])
+          tmp <- tmp %>% left_join(tmp2 %>% rownames_to_column("variable"))
           model.out <- plyr::rbind.fill(model.out, tmp)
   }
 }
@@ -444,13 +492,14 @@ model.out.adj <- model.out %>%
   group_by(variable, virus) %>%
   mutate(p.adj = p.adjust(`p-value`, "fdr"))
 
-write.csv(model.out.adj, paste0(out_dir, "Supplemental_Data_2_part4.csv"))
+write.csv(model.out.adj, paste0(out_dir, "Supplemental_Data_2_part4_vCIs.csv"))
 ```
 
 ```{r, fig.width = 6.5, fig.height = 5}
 library(scales)
 
-model.out.adj <- read_csv(paste0(out_dir, "Supplemental_Data_2_part4.csv"))
+model.out.adj <- read_csv(paste0(out_dir, "Supplemental_Data_2_part4_vCIs.csv")) %>%
+  dplyr::rename("coefficient" = "est.")
 model.out.adj %>%
   mutate(virus = gsub(".*\\(", "", gsub("\\)", "", virus))) %>%
   mutate(compartment = gsub(".*\\.", "", virus)) %>%
@@ -490,7 +539,7 @@ ggsave(paste0(out_dir, "Figure3D.pdf"), height = 5, width = 6.5)
 
 # Supplemental Figure 7
 
-### Panel A: HSV1 Proteins by TG
+### Panel 7A: HSV1 Proteins by TG
 
 ```{r, fig.width = 2.25, fig.height = 2}
 tmp <- data_env$plasma_proteomics_global_dda_metadata %>%
@@ -546,7 +595,7 @@ ggsave(paste0(out_dir, "FigureS7A.pdf"), width = 2.25, height = 2)
 write_csv(ggS2$data, paste0(out_dir, "source_data_FigureS7A.csv"))
 ```
 
-### Panel B: TG correcting for cell types in Whole Blood
+### Panel 7B: TG correcting for cell types in Whole Blood
 
 ```{r}
 library(aplot)
@@ -600,7 +649,7 @@ clm_data <- comb_data %>%
   distinct() %>%
    mutate(name = gsub(".*\\(", "", gsub("\\)", "", name))) 
 
-model.out.adj <- read.csv(paste0(out_dir, "Supplemental_Data_2_part4.csv"), row.names = 1)
+model.out.adj <- read.csv(paste0(out_dir, "Supplemental_Data_2_part4_vCIs.csv"), row.names = 1)
 
 cytof_child <- preprocess_bld_cytof_child_seperate_granulo(cytof_count %>% column_to_rownames("sample_id")) %>%
     rownames_to_column("sample_id") %>%

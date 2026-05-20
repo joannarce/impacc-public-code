@@ -171,6 +171,41 @@ ABX_days_df <- read_csv("/scratch/metagenomics/antibiotic_data/ABX_days_unweight
 
 ### Figure 2A, 2B, and 2C: Timepoint Analyses
 
+### Other way
+
+```{r}
+#### Total AMR DPM ###
+all_data <- nasal_metagenomics_metadata %>%
+  left_join(clinical_data %>% dplyr::select(sample_id, participant_id, event_date)) %>%
+  filter(!is.na(participant_id)) %>%
+  left_join(ABX_days_df %>% dplyr::select(sample_id, Azithromycin, ABX_days)) %>%
+  filter(!is.na(ABX_days)) %>%
+  mutate(group_id = ifelse(Azithromycin > 0, "Azithromycin",
+                                      ifelse(ABX_days == 0, "No ABX", "Other ABX"))) %>%
+  mutate(timepoint = ifelse((group_id == "Azithromycin" & Azithromycin<=2)|
+                              (group_id == "Other ABX" & ABX_days<=2) |
+                              (group_id=="No ABX" & event_date<=40 & row_number()%%2==1), "Day 0-2",
+                            ifelse((group_id == "Azithromycin" & Azithromycin>=4  & Azithromycin<=6)|
+                                     (group_id == "Other ABX" & ABX_days<=6 & ABX_days>=4)|
+                                     (group_id=="No ABX" & event_date>=3 & event_date<=40 & row_number()%%2==0), "Day 4-6", "Other"))) %>%
+ 
+  filter(timepoint != "Other") 
+
+### Rarefy No ABX samples ###
+trim <- all_data %>% filter(group_id=="No ABX") %>%
+  arrange(timepoint) %>%
+  mutate(keep=case_when(row_number()%%2==0 ~ "yes", row_number()%%2==1 ~ "no"))
+
+data_trimmed <- all_data %>%
+  left_join(trim) %>%
+  filter(keep=="yes" | is.na(keep))
+
+table(data_trimmed$group_id, data_trimmed$timepoint)
+
+```
+
+### Original
+
 ```{r, fig.width = 5, fig.height = 3}
 ## Filter the Azithro and Other ABX down to participants that have completed date data
 
@@ -249,6 +284,15 @@ check <- data_trimmed %>%
 
 table(check$timepoint, check$Azithromycin_binary)
 
+check %>%
+  ggplot(aes(x=event_date, fill = timepoint)) +
+  geom_histogram() +
+  facet_grid(~Azithromycin_binary) +
+  theme_classic() +
+  xlab("Days from Hospitalization") +
+  ylab("Number of Samples")
+
+
 library(ggpubr)
 library(rstatix)
 stats_df <- compare_means(data = check, method = "wilcox.test", formula = value ~ Azithromycin_binary, group.by = c("timepoint", "name"))
@@ -260,7 +304,7 @@ effect_sizes <- check %>% group_by(timepoint, name, Azithromycin_binary) %>%
                    se = std_dev / sqrt(n()),
                    CI_lower = mean - (1.96 * se),
                    CI_upper = mean + (1.96 * se))
-write.csv(effect_sizes, paste0(out_dir, "Figure2ABC_effect_sizes.csv"))
+#write.csv(effect_sizes, paste0(out_dir, "Figure2ABC_effect_sizes.csv"))
 
 stats_df <- check %>%
   mutate(Azithromycin_binary = factor(Azithromycin_binary, c("No ABX", "Azithro", "Other\nABX"))) %>%
@@ -321,7 +365,7 @@ for(feature in unique(check$name)){
 out_df <- out_df %>%
   group_by(name, timepoint) %>%
   mutate(p.adj = p.adjust(p, "fdr"))
-write.csv(out_df, paste0(out_dir, "Single_timepoint_model_results.csv"))
+#write.csv(out_df, paste0(out_dir, "Single_timepoint_model_results.csv"))
 
 stats_df2 <- stats_df %>%
   select(-p.adj, -p) %>%
@@ -403,14 +447,203 @@ gga <- check %>%
   xlab("Antibiotic Status")
 gga
 
-write.csv(gga$data %>% distinct(Azithromycin_binary, timepoint, value),
-          paste0(out_dir, "Figure2A.csv"))
-write.csv(ggb$data %>% distinct(Azithromycin_binary, timepoint, value),
-          paste0(out_dir, "Figure2B.csv"))
-write.csv(ggc$data %>% distinct(Azithromycin_binary, timepoint, value),
-          paste0(out_dir, "Figure2C.csv"))
-write.csv(ggS4$data %>% distinct(Azithromycin_binary, timepoint, value),
-          paste0(out_dir, "FigureS4.csv"))
+# write.csv(gga$data %>% distinct(Azithromycin_binary, timepoint, value),
+#           paste0(out_dir, "Figure2A.csv"))
+# write.csv(ggb$data %>% distinct(Azithromycin_binary, timepoint, value),
+#           paste0(out_dir, "Figure2B.csv"))
+# write.csv(ggc$data %>% distinct(Azithromycin_binary, timepoint, value),
+#           paste0(out_dir, "Figure2C.csv"))
+# write.csv(ggS4$data %>% distinct(Azithromycin_binary, timepoint, value),
+#           paste0(out_dir, "FigureS4.csv"))
+```
+
+```{r, fig.width =5, fig.height =3.5}
+
+check <- data_trimmed %>%
+  left_join(nasal_fungal) %>%
+  filter(!is.na(participant_id)) %>%
+  left_join(clinical_data %>% select(sample_id, participant_id, event_date)) %>%
+  left_join(ABX_days_df %>% select(sample_id, Azithromycin, Ceftriaxone,
+                            Vancomycin, Cefepime, Piperacillin_Tazobactam,
+                            Doxycycline, Meropenem, ABX_days)) %>%
+  filter(!is.na(ABX_days)) %>%
+  left_join(as.data.frame(manual_diversity) %>% rownames_to_column("sample_id")) %>%
+  mutate(Azithromycin_binary = ifelse(Azithromycin > 0, "Azithromycin",
+                                      ifelse(ABX_days == 0, "No ABX", "Other ABX"))) %>%
+  mutate(sc2_rpm = log10(sc2_rpm+1),
+         total_bacterial_rpm = log10(total_bacterial_rpm +1),
+         fungal_rpm = log10(fungal_rpm +1)) %>%
+  pivot_longer(cols = c(sc2_rpm, total_bacterial_rpm, manual_diversity, fungal_rpm)) %>%
+  mutate(group_id = gsub("Other ABX", "Other\nABX", group_id)) %>%
+  mutate(group_id = gsub("Azithromycin", "Azithro", group_id)) %>%
+  mutate(Azith_other_one_zero = ifelse(group_id == "Azithro", 1,
+                                       ifelse(group_id == "Other\nABX", 0, NA)))
+
+table(check$timepoint, check$group_id)
+
+check %>%
+  ggplot(aes(x=event_date, fill = timepoint)) +
+  geom_histogram() +
+  facet_grid(~group_id) +
+  theme_classic() +
+  xlab("Days from Hospitalization") +
+  ylab("Number of Samples")
+
+
+library(ggpubr)
+library(rstatix)
+stats_df <- compare_means(data = check, method = "wilcox.test", formula = value ~ group_id, group.by = c("timepoint", "name"))
+
+effect_sizes <- check %>% group_by(timepoint, name, group_id) %>%
+  dplyr::summarize(mean = mean(value, na.rm = T),
+                   median = median(value, na.rm = T),
+                   std_dev = sd(value, na.rm = T),
+                   se = std_dev / sqrt(n()),
+                   CI_lower = mean - (1.96 * se),
+                   CI_upper = mean + (1.96 * se))
+#write.csv(effect_sizes, paste0(out_dir, "Figure2ABC_effect_sizes.csv"))
+
+stats_df <- check %>%
+  mutate(group_id = factor(group_id, c("No ABX", "Azithro", "Other\nABX"))) %>%
+  group_by(name, timepoint) %>%
+  wilcox_test(value ~ group_id) %>%
+  add_xy_position(step.increase = 0.2) %>%
+  mutate(p.adj = p.adjust(p = p, method = "fdr")) %>%
+  add_significance(p.col = "p.adj")
+
+### Linear Mixed Effect Model Alternative
+out_df <- data.frame()
+for(feature in unique(check$name)){
+  for(compairson in list(c("No ABX", "Azithro"),
+                         c("Azithro", "Other\nABX"),
+                         c("No ABX", "Other\nABX"))){
+    for(act_timepoint in unique(check$timepoint)){
+      if(compairson == c("No ABX", "Azithro")){
+        formula_fit1 <- formula("value ~ group_id + sex + discretized_admit_age_quantile + event_date + ever_steroids + trajectory_group + Ceftriaxone + Vancomycin + Cefepime + Piperacillin_Tazobactam + Doxycycline + Meropenem + (1|enrollment_site/participant_id)")
+        formula_fit2 <- formula("value ~ sex + discretized_admit_age_quantile + event_date + ever_steroids + trajectory_group + Ceftriaxone + Vancomycin + Cefepime + Piperacillin_Tazobactam + Doxycycline + Meropenem + (1|enrollment_site/participant_id)")
+      } else if(compairson == c("No ABX", "Other\nABX")){
+        formula_fit1 <- formula("value ~ group_id + sex + discretized_admit_age_quantile + event_date + ever_steroids + trajectory_group + (1|enrollment_site/participant_id)")
+        formula_fit2 <- formula("value ~ sex + discretized_admit_age_quantile + event_date + ever_steroids + trajectory_group + (1|enrollment_site/participant_id)")
+      } else if(compairson ==  c("Azithro", "Other\nABX")){
+        ## This is a model that only regresses the other six most common antibiotics for the Azithro group and not the Other ABX group (because these are the other antibiotics)
+        formula_fit1 <- formula("value ~ group_id + sex + discretized_admit_age_quantile + event_date + ever_steroids + trajectory_group + Azith_other_one_zero:Ceftriaxone + Azith_other_one_zero:Vancomycin + Azith_other_one_zero:Cefepime + Azith_other_one_zero:Piperacillin_Tazobactam + Azith_other_one_zero:Doxycycline + Azith_other_one_zero:Meropenem + (1|enrollment_site/participant_id)")
+        formula_fit2 <- formula("value ~ sex + discretized_admit_age_quantile + event_date + ever_steroids + trajectory_group + Azith_other_one_zero:Ceftriaxone + Azith_other_one_zero:Vancomycin + Azith_other_one_zero:Cefepime + Azith_other_one_zero:Piperacillin_Tazobactam + Azith_other_one_zero:Doxycycline + Azith_other_one_zero:Meropenem + (1|enrollment_site/participant_id)")
+      }
+      
+      fit <- lme4::lmer(formula = formula_fit1,
+       data = check %>% ungroup() %>%
+         filter(name == feature) %>%
+         filter(timepoint == act_timepoint) %>%
+         filter(group_id %in% compairson) %>%
+         inner_join(clinical_data_ext %>% distinct(participant_id,ever_steroids)) %>%
+         inner_join(clinical_data %>% distinct(participant_id,sex,
+                                               discretized_admit_age_quantile,trajectory_group,
+                                               enrollment_site)))
+      fit2 <- lme4::lmer(formula = formula_fit2,
+           data = check %>% ungroup() %>%
+         filter(name == feature) %>%
+         filter(timepoint == act_timepoint) %>%
+         filter(group_id %in% compairson) %>%
+         inner_join(clinical_data_ext %>% distinct(participant_id,ever_steroids)) %>%
+         inner_join(clinical_data %>% distinct(participant_id,sex,
+                                               discretized_admit_age_quantile,trajectory_group,
+                                               enrollment_site)))
+      an <- anova(fit, fit2)
+      out_df <- rbind.data.frame(out_df,
+                                 data.frame(name = feature,
+                                            timepoint = act_timepoint,
+                                            group1 = compairson[1],
+                                            group2 = compairson[2],
+                                            p = an$`Pr(>Chisq)`[2]))
+    }
+  }
+}
+
+out_df <- out_df %>%
+  group_by(name, timepoint) %>%
+  mutate(p.adj = p.adjust(p, "fdr"))
+
+
+stats_df2 <- stats_df %>%
+  select(-p.adj, -p) %>%
+  left_join(out_df)
+
+ggb <- check %>%
+  mutate(group_id = factor(group_id, c("No ABX", "Azithro", "Other\nABX"))) %>%
+  filter(name == "fungal_rpm") %>%
+  ggplot(aes(x=group_id, y=value, color = group_id,
+             group = group_id)) +
+  geom_boxplot(outlier.shape = NA) +
+  ggbeeswarm::geom_quasirandom(size = 0.8, alpha = 0.5) +
+  facet_grid(~timepoint,scales = "free") +
+  theme_classic() +
+  #theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  stat_pvalue_manual(stats_df2%>% filter(name == "fungal_rpm")%>%
+                       mutate(p.adj = signif(p.adj, 2)), label = "p.adj") +
+  scale_color_manual(values = ABX_colors) +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.15))) +
+  theme(legend.position = "none") +
+  ylab("Log10 Nasal Fungal RPM") +
+  xlab("Antibiotic Status")
+ggb
+
+ggS4 <- check %>%
+  mutate(group_id = factor(group_id, c("No ABX", "Azithro", "Other\nABX"))) %>%
+  filter(name == "sc2_rpm") %>%
+  ggplot(aes(x=group_id, y=value, color = group_id,
+             group = group_id)) +
+  geom_boxplot(outlier.shape = NA) +
+  ggbeeswarm::geom_quasirandom(size = 0.8, alpha = 0.5) +
+  facet_grid(~timepoint,scales = "free") +
+  theme_classic() +
+  #theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  stat_pvalue_manual(stats_df2 %>% filter(name == "sc2_rpm") %>%
+                       mutate(p.adj = signif(p.adj, 2)), label = "p.adj") +
+  scale_color_manual(values = ABX_colors) +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.15))) +
+  theme(legend.position = "none") +
+  ylab("Log10 Nasal\nSARS-CoV-2 RPM") +
+  xlab("Antibiotic Status")
+ggS4
+
+ggc <- check %>%
+  mutate(group_id = factor(group_id, c("No ABX", "Azithro", "Other\nABX"))) %>%
+  filter(name == "manual_diversity") %>%
+  ggplot(aes(x=group_id, y=value, color = group_id,
+             group = group_id)) +
+  geom_boxplot(outlier.shape = NA) +
+  ggbeeswarm::geom_quasirandom(size = 0.8, alpha = 0.5) +
+  facet_grid(~timepoint,scales = "free") +
+  theme_classic() +
+  #theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  stat_pvalue_manual(stats_df2%>% filter(name == "manual_diversity")%>%
+                       mutate(p.adj = signif(p.adj, 2)), label = "p.adj") +
+  scale_color_manual(values = ABX_colors) +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.12))) +
+  theme(legend.position = "none") +
+  ylab("Nasal Shannon\nAlpha Diversity") +
+  xlab("Antibiotic Status")
+ggc
+
+gga <- check %>%
+  mutate(group_id = factor(group_id, c("No ABX", "Azithro", "Other\nABX"))) %>%
+  filter(name == "total_bacterial_rpm") %>%
+  ggplot(aes(x=group_id, y=value, color = group_id,
+             group = group_id)) +
+  geom_boxplot(outlier.shape = NA) +
+  ggbeeswarm::geom_quasirandom(size = 0.8, alpha = 0.5) +
+  facet_grid(~timepoint,scales = "free") +
+  theme_classic() +
+  #theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  stat_pvalue_manual(stats_df2%>% filter(name == "total_bacterial_rpm")%>%
+                       mutate(p.adj = signif(p.adj, 2)), label = "p.adj") +
+  scale_color_manual(values = ABX_colors) +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.12))) +
+  theme(legend.position = "none") +
+  ylab("Log10 Nasal\nBacterial RPM") +
+  xlab("Antibiotic Status")
+gga
+
 ```
 
 #### Figure 2A, 2B, and 2C
@@ -642,7 +875,8 @@ dist_bc <- vegan::vegdist(log2(nasal_wide + 1), method = "bray")
 ##### Adonis permutation testing of bray curtis distance
 compairson <- list(c("Day 0-2", "No ABX"),
                    c("Day 4-6", "No ABX"),
-                   c("Day 0-2", "Day 4-6"))
+                   c("Day 0-2", "Day 4-6"),
+                   c("Day 0-2", "No ABX", "Day 4-6"))
 for(comp in compairson){
   bray_metadata <- nasal_long %>%
      filter(category %in% c("bacteria")) %>%

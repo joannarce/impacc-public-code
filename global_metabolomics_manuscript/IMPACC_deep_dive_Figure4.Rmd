@@ -1,0 +1,742 @@
+---
+title: "IMPACC_deep_dive_figure5"
+output: html_document
+date: "2023-12-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(data.table)
+library(DT)
+library(e1071)
+library(openxlsx)
+library(stringr)
+library(dplyr)
+library(plyr)
+ library(tidyr)
+library(tidyverse)
+library(ggpubr)
+source("~/Bitbucket/impacc-full-cohort/Analysis/IMPACC_data_analysis_codebase.R")
+load("/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/deep_dive_data.Rdata")
+```
+
+```{r}
+Metabolomics_counts_conv = Metabolomics_counts_conv[clinical_data$sample_id,]
+plasma_metabolomics_global_rowfeature = Metabolomics_rowfeature
+```
+#discharge
+```{r}
+clinical_df_met = clinical_data
+participant_list = unique(clinical_df_met$participant_id)
+clinical_df_met_discharge <- data.frame(matrix(ncol = length(colnames(clinical_df_met)), nrow = 0))
+colnames(clinical_df_met_discharge) <- colnames(clinical_df_met)
+for (i in participant_list) {
+  temp = subset(clinical_df_met, clinical_df_met$participant_id == i)
+  temp_Hospital = subset(temp, temp$event_location == "Hospital")
+  temp_Outpatient =  subset(temp, temp$event_location == "Outpatient")
+  if (dim(temp_Hospital)[1]>0 & dim(temp_Outpatient)[1]>0){
+    temp_Hospital_last = temp_Hospital[which.max(temp_Hospital$event_date),]
+    clinical_df_met_discharge = rbind(clinical_df_met_discharge,temp_Hospital_last)
+    temp_Outpatient_first = temp_Outpatient[which.min(temp_Outpatient$event_date),]
+    clinical_df_met_discharge = rbind(clinical_df_met_discharge,temp_Outpatient_first)
+  }
+  
+    
+}
+```
+```{r}
+library("geepack")
+clinical_df = clinical_df_met_discharge
+meta_data_raw <- plasma_metabolomics_global_metadata
+met_data <- merge(meta_data_raw, clinical_df, by = c("sample_id"))#,"phase"
+met_data <-  met_data[order(met_data$participant_id),]
+met_data <- met_data %>%  mutate(OUTCOME = case_when(
+    event_location == "Hospital"~ 0,
+    event_location == "Outpatient" ~ 1
+    ))
+
+met_data <- met_data %>% drop_na(OUTCOME)
+OUTCOME = met_data$OUTCOME
+table(OUTCOME)
+  
+sex <- as.factor(met_data$sex)
+y <- as.numeric (OUTCOME)
+age <- as.numeric(met_data$admit_age)
+bmi <- as.numeric(met_data$bmi) #numerical
+race <- as.factor(met_data$race)
+ethnicity <- as.factor(met_data$ethnicity)
+location <- as.factor(met_data$event_location)
+participant <- as.factor(met_data$participant_id)
+age_quantile <- as.factor(met_data$discretized_admit_age_quantile)
+phase <- as.factor(met_data$phase.x)
+plate <- as.factor(met_data$plate)
+type = as.factor(met_data$Type)
+#y <- as.factor (y)
+steroids <- as.factor(met_data$ever_steroids)
+plasma_metabolomics_global_counts_temp <- Metabolomics_counts_conv[met_data$sample_id,]
+plasma_metabolomics_global_rowfeature_tmp <- Metabolomics_rowfeature[colnames(plasma_metabolomics_global_counts_temp),]
+  
+x_met <- data.table(plasma_metabolomics_global_counts_temp)
+pval <- c()
+coef <- c()
+zval <- c()
+std <- c()
+output_all <- data.frame(matrix(NA, ncol = 8))
+colnames(output_all) <- c("outc", "metabolite", "beta", "se", "zval", "pval_raw", "lowerCI", "upperCI")
+
+for (i in 1:ncol(x_met)){
+    # Get metab x
+    #i = 1
+    met_i <- x_met[, ..i]
+    met_i_name <-colnames(x_met)[i]
+    
+    
+    # Build data frame
+    
+    df <- cbind(y, x_met,age, sex, participant, bmi,age_quantile,phase, plate,steroids,location,type)
+    df <- df[complete.cases(df),]
+    vars <- c("bmi","sex", "age_quantile","type","participant") #"",,"phase","plate","steroids"
+    xvars <- c(met_i_name, vars)
+   
+    fmla <- as.formula(paste("y ~ ", paste(xvars, collapse= "+")))
+    fmla
+    
+    # Build model and keep pvalue
+    #lr<- geeglm (fmla, data=df, corstr="exchangeable",family=binomial, id=participant) 
+    lr<- glm (fmla, data=df, family=binomial)#
+    
+    coef_2 <- summary(lr)$coef %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    coef_2 <- coef_2[rowname == met_i_name, ]
+    conf <- confint.default(lr) %>% as.data.frame() %>% rownames_to_column() %>% as.data.table()
+    conf <- conf[rowname == met_i_name, -c("rowname")]
+    output <- cbind(met_i_name, coef_2,conf)
+    setnames(output, c("outc", "metabolite", "beta", "se", "zval", "pval_raw","lowerCI","upperCI"))
+    output[, (colnames(output)[-c(1:2)]) := lapply(.SD, as.numeric), .SDcols = colnames(output)[-c(1:2)]]
+    output_all <- rbind(output_all, output)
+  
+    # Extract
+    pval <- c(pval, coef(summary(lr))[2,4]) #sign
+    #zval <- c(zval, coef(summary(lr))[2,3]) #zscore
+    coef <- c(coef, coef(summary(lr))[2,1]) #beta value
+    std <- c(std, coef(summary(lr))[2,2])  #stdev
+  }
+  feature_list = colnames(x_met)
+  lr_output <- data.table(feature_list)
+  
+  
+  lr_output$coef <- coef
+  lr_output$std <- std
+ 
+  lr_output$pval<- pval
+  lr_output$qval  <- p.adjust(pval, method = 'bonferroni')
+  
+  Compound_ID <- rownames (plasma_metabolomics_global_rowfeature_tmp)
+  Name <- plasma_metabolomics_global_rowfeature_tmp$CHEMICAL_NAME
+  SUPER_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUPER_PATHWAY
+  SUB_PATHWAY <- plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY
+  HMDB <- plasma_metabolomics_global_rowfeature_tmp$HMDB
+  KEGG <- plasma_metabolomics_global_rowfeature_tmp$KEGG
+  Platform <- plasma_metabolomics_global_rowfeature_tmp$PLATFORM
+  
+  lr_output_discharge <- data.table(Compound_ID, Name, Platform, SUPER_PATHWAY, SUB_PATHWAY, HMDB, lr_output)
+  sum(lr_output_discharge$qval <= 0.05)
+```
+```{r}
+lr_output_discharge_sig = subset(lr_output_discharge, lr_output_discharge$qval <= 0.05)
+changed_pathway = unique(lr_output_discharge_sig$SUB_PATHWAY)
+not_changed_pathway_discharge_less = subset(plasma_metabolomics_global_rowfeature_tmp, !plasma_metabolomics_global_rowfeature_tmp$SUB_PATHWAY %in% changed_pathway)
+not_changed_pathway_discharge_less = unique(not_changed_pathway_discharge_less[,c("SUPER_PATHWAY","SUB_PATHWAY")])
+cmpd.vec = lr_output_discharge_sig$HMDB
+for (p in cmpd.vec) {
+    if (grepl(",", p)){
+      temp <- str_split(p, ",")[[1]]
+      cmpd.vec <- c(cmpd.vec, temp)
+      cmpd.vec <- cmpd.vec[cmpd.vec!= p]
+    }
+    
+  }
+  cmpd.vec <- cmpd.vec[!is.na(cmpd.vec)]
+#  write_csv(as.data.frame(cmpd.vec), file = "~/hmdb_test.txt")
+  
+
+```
+```{r}
+sig_ids <- function(cmpd.vec, type){
+
+
+  cmpd.vec <- cmpd.vec
+
+  for (p in cmpd.vec) {
+    if (grepl(",", p)){
+      temp <- str_split(p, ",")[[1]]
+      cmpd.vec <- c(cmpd.vec, temp)
+      cmpd.vec <- cmpd.vec[cmpd.vec!= p]
+    }
+
+  }
+  cmpd.vec <- cmpd.vec[!is.na(cmpd.vec)]
+  if(type == "ramp"){
+    cmpd.vec_new <- c()
+    for (p in cmpd.vec) {
+      nes_hm <- paste("hmdb", p , sep = ":")
+      cmpd.vec_new <- c(cmpd.vec_new, nes_hm)
+    }
+
+
+    return(unique(cmpd.vec_new))
+  }
+  else{
+    return(unique(cmpd.vec))
+  }
+}
+sig_hmdb_ramp <- sig_ids(cmpd.vec, "ramp")
+```
+
+```{ r}
+library(RaMP)
+pkg.globals <- setConnectionToRaMP(
+    dbname = "ramp", username = "ramp", conpass = "RyobiAtlanticOcean",
+    host = "localhost")
+
+run_ramp <- function(ids){
+
+  fisher.results <- runCombinedFisherTest(analytes = c(ids))
+
+  filtered.fisher.results <- FilterFishersResults(fisher.results, pval_type = 'fdr', pval_cutoff=0.05)
+  filtered.fisher.results$fishresults <- filter(filtered.fisher.results$fishresults, filtered.fisher.results$fishresults$pathwaySource== "reactome")
+  if (dim(filtered.fisher.results$fishresults)[1] > 0){
+    clusters <- RaMP::findCluster(filtered.fisher.results,
+                                  perc_analyte_overlap = 0.2,
+                                  min_pathway_tocluster = 2, perc_pathway_overlap = 0.2)
+    #datatable(clusters$fishresults %>% mutate_if(is.numeric, ~ round(., 8)),
+    #                    rownames = FALSE)
+    pathwayResultsPlot_2 <- pathwayResultsPlot(filtered.fisher.results, text_size = 8, perc_analyte_overlap = 0.2,
+                                               min_pathway_tocluster = 2, perc_pathway_overlap = 0.2, interactive = FALSE)
+    return(pathwayResultsPlot_2)
+  }
+  else{
+    return("No results found")
+  }
+
+}
+ramp_plot <- run_ramp(sig_hmdb_ramp)
+
+print(ramp_plot)
+```
+```{r}
+library(ggrepel)
+volPlots2 <- function(df, titleArg = "Volcano Plot for omics features"){
+  
+  df <- df %>% as.data.frame() %>% dplyr::mutate(Direction = case_when(coef < 0 & qval < 0.05 ~ "Down", coef > 0 & qval < 0.05 ~ "Up", qval > 0.05 ~ "NotSig")) %>% dplyr::mutate(Direction = as.factor(Direction)) %>% dplyr::mutate(Direction = factor(Direction, levels = c("NotSig", "Down", "Up")))
+   label_data <- df %>% dplyr::filter(qval < 0.05)
+   my_subtitle <- glue::glue(
+      #"{nrow(filter(df, Direction != 'NotSig'))} DE metabolites: ",
+      "{nrow(filter(df, Direction == 'Up'))} Up, ",
+      "{nrow(filter(df, Direction == 'Down'))} Down")
+    ggplot(data = df)  +
+    geom_point(aes(x = coef, y = -log10(pval), color = Direction), size = 3, pch = 16, alpha = 0.5) +
+    #geom_label_repel(aes(x = coef, y = -log10(pval), label = Name), max.overlaps = 20, label.size = 0.05, label.padding = 0) +
+    theme_classic() +
+    scale_color_manual(values = c("NotSig" = "#C0C0C0", "Down"="darkblue","Up"="darkred" )) +
+   #ylim(0, 16) +
+    #xlim(-1.5, 1.5) + 
+    geom_hline(yintercept = 1.30, linetype = "dashed", alpha = 0.8) +
+    labs(title = titleArg,subtitle = my_subtitle, x = "log2FC", y = "-log10(Pvalue)") +
+      theme(text = element_text(face = "bold"))
+}
+lr_output_discharge = lr_output_discharge[order(lr_output_discharge$qval),]
+lr_output_discharge$name2 = ''
+lr_output_discharge$name2[1:10] = lr_output_discharge$Name[1:10]
+Volcano_metabolomics_1 <- volPlots2(lr_output_discharge, titleArg = "Discharge") #+geom_label_repel(aes(x = coef, y = -log10(pval), label = name2), max.overlaps = 20, label.size = 0.05, label.padding = 0.1)
+Volcano_metabolomics_1
+```
+
+# Top 20 box plot
+```{r}
+lr_output_discharge = lr_output_discharge[order(qval),]
+Top_20_mets = lr_output_discharge[1:20,]
+Top_20_mets_counts = plasma_metabolomics_global_counts_temp[,Top_20_mets$Compound_ID]
+colnames(Top_20_mets_counts) = Top_20_mets$Name
+Top_20_mets_counts = as.data.frame(t(Top_20_mets_counts))
+Top_20_mets_counts$Metabolite = rownames(Top_20_mets_counts)
+box_melt = melt(Top_20_mets_counts, id = "Metabolite") 
+met_data_baseline_TG = met_data[,c("OUTCOME","sample_id","event_location")]
+box_melt_with_TG = merge(box_melt, met_data_baseline_TG, by.x = "variable", by.y = "sample_id")
+
+box_melt_with_TG$Metabolite = factor(box_melt_with_TG$Metabolite, levels = Top_20_mets$Name)
+box_melt_with_TG$Metabolite = fct_rev(box_melt_with_TG$Metabolite)
+box_top_20 = ggplot(box_melt_with_TG, aes(x = Metabolite, y = value, color = event_location)) +  # ggplot function
+  geom_boxplot() +  theme_light() +
+    coord_flip() 
+box_top_20
+```
+
+```{r}
+figure_table = function(lr_table,plasma_metabolomics_global_rowfeature_temp){
+  tmp <- lr_table
+#tmp = merge(tmp, plasma_metabolomics_global_rowfeature_temp, by = "feature_list", all.y = TRUE)
+tmp <- tmp[!is.na(tmp$SUPER_PATHWAY),]
+tmp2 <- tmp[tmp$pval < 0.05, ]
+tmp3 <- tmp[tmp$qval < 0.05, ]
+dim(tmp3)
+tmp3 <- tmp[tmp$pval < 0.05 / 578, ]
+dim(tmp3)
+
+pathways <- unique(tmp$SUB_PATHWAY)
+
+# get a count of the total mets in each pathway 
+df <- data.table(pathways) # list of pathways
+df$total_pos <- 0 # create empty rows
+df$total_neg <- 0 # create empty rows
+for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp)){
+    if(df$pathways[i] == tmp$SUB_PATHWAY[j]){
+      if(tmp$coef[j] > 0){
+        df$total_pos[i] <- df$total_pos[i] + 1 
+      }
+      else{
+         df$total_neg[i] <- df$total_neg[i] - 1
+      }
+     
+    }
+  }
+}
+# get a count of sig mets in each pathway at P<0.05
+df$sig_neg <- 0
+df$sig_pos <- 0
+if(dim(tmp2)[1] > 0){
+for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp2)){
+    if(df$pathways[i] == tmp2$SUB_PATHWAY[j]){
+      ifelse(tmp2$coef[j] < 0, 
+             df$sig_neg[i] <- df$sig_neg[i] - 1,
+             df$sig_pos[i] <- df$sig_pos[i] + 1)
+    }
+  }
+}
+}
+# get a count of sig mets in each pathway at FDR<0.05
+df$sig_neg_adj <- 0
+df$sig_pos_adj <- 0
+if(dim(tmp3)[1] > 0){
+  for(i in 1:nrow(df)){
+  for(j in 1:nrow(tmp3)){
+    if(df$pathways[i] == tmp3$SUB_PATHWAY[j]){
+      ifelse(tmp3$coef[j] < 0, 
+             df$sig_neg_adj[i] <- df$sig_neg_adj[i] - 1,
+             df$sig_pos_adj[i] <- df$sig_pos_adj[i] + 1)
+    }
+  }
+}
+}
+
+
+# add in super pathways for coloring
+mets_info_all = plasma_metabolomics_global_rowfeature_temp
+mets_info_tmp <- mets_info_all[, c("SUPER_PATHWAY", "SUB_PATHWAY")]
+colnames(mets_info_tmp) <- c("SUPER_PATHWAY", "SUB_PATHWAY")
+df <- merge(mets_info_tmp, df, by.x = "SUB_PATHWAY", by.y = "pathways", all.y = T)
+
+# sort column and give idx
+df <- df[order(df$SUPER_PATHWAY, df$SUB_PATHWAY),] 
+
+df$idx <- as.factor(1:nrow(df))
+
+# create long df for plotting
+long <- melt(setDT(df), id.vars = c("SUB_PATHWAY","SUPER_PATHWAY", "idx"), variable.name = "key")
+long$SUB_PATHWAY <- as.factor(long$SUB_PATHWAY)
+long$color <- ifelse(long$SUPER_PATHWAY == "Amino Acid", "#FF689F",
+              ifelse(long$SUPER_PATHWAY == "Carbohydrate", "#E76BF3",
+              ifelse(long$SUPER_PATHWAY == "Cofactors and Vitamins", "#00A5FF",
+              ifelse(long$SUPER_PATHWAY == "Lipid", "#00B81F",
+              ifelse(long$SUPER_PATHWAY == "Nucleotide", "#BB9D00",
+              ifelse(long$SUPER_PATHWAY == "Peptide", "#F8766D",
+              ifelse(long$SUPER_PATHWAY == "Partially Characterized Molecules", "#E08B00",
+              ifelse(long$SUPER_PATHWAY == "Xenobiotics", "firebrick2",
+              ifelse(long$SUPER_PATHWAY == "Energy", "chocolate2", "pink")))))))))
+
+long$name <- paste0(long$SUPER_PATHWAY, " | ", long$SUB_PATHWAY)
+
+long2 <- long
+long2 <- long[!duplicated(long$name), ]
+rev_names =  rev(unique(long$name))
+long$name = factor(long$name, levels = rev_names)
+return(list(a = long, b= long2))
+}
+```
+
+```{r}
+Dis = figure_table(lr_output_discharge,plasma_metabolomics_global_rowfeature)
+
+p_1 = ggplot(Dis$a, aes(fill=key, y=name, x=value)) + 
+  geom_bar(position="identity", stat="identity") +
+  ylab('Metabolite Sub-Pathway') + xlab('# of metabolites') +
+  labs(title = 'Discharge') +
+  scale_fill_manual("Legend", 
+                    values = c("total_neg" = "gray83", 
+                               "total_pos" = "gray83", 
+                               "sig_neg" = "lightskyblue1", 
+                               "sig_pos" = "lightcoral",
+                               "sig_neg_adj" = "deepskyblue4",
+                               "sig_pos_adj" = "firebrick4")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.text.y = element_text(angle = 0, size = 8, vjust = 0.5,
+                                   color = rev(Dis$b$color)
+                                   )) +geom_vline(xintercept = 0)
+p_1
+```
+
+```{r}
+H_p = subset(clinical_df_met_discharge, clinical_df_met_discharge$event_location == "Hospital")
+plot(density(H_p$event_date), main = "Last Hospital samples",xlab = "Days of admission")
+O_p = subset(clinical_df_met_discharge, clinical_df_met_discharge$event_location == "Outpatient")
+plot(density(O_p$event_date), main = "First Outpatient samples",xlab = "Days of admission")
+par(mfrow=c(1,2))
+plot(density(H_p$event_date), main = "Last Hospital samples",xlab = "Days of admission")
+plot(density(O_p$event_date), main = "First Outpatient samples",xlab = "Days of admission")
+```
+```{r}
+H_p$event_type = factor(H_p$event_type, levels = c("Visit 1","Visit 2","Visit 3","Visit 4","Visit 5","Visit 6","Visit 7","Visit 8","Visit 9","Visit 10"))
+O_p$event_type = factor(O_p$event_type, levels = c("Visit 1","Visit 2","Visit 3","Visit 4","Visit 5","Visit 6","Visit 7","Visit 8","Visit 9","Visit 10"))
+H_p$date_cat <- cut(H_p$event_date, breaks = c(0,5,10,15,20,25,30,35), include.lowest=TRUE)
+totals_H<- as.data.frame(table(H_p$date_cat))
+H_figure = ggplot(H_p, aes(date_cat,fill = event_type)) + geom_bar() + theme_bw() + ggtitle("Last Hospital samples") +scale_fill_discrete(drop = F) + geom_text(aes(Var1,Freq,label = Freq,fill = NULL), data = totals_H, vjust=-0.1)+theme(axis.text.x = element_text(size = 9, angle = 45,vjust = 1, hjust=1))#+ geom_text(stat='count', aes(label=..count..))
+O_p$date_cat <- cut(O_p$event_date, breaks = c(12,60,120,180,240,300,360,420), include.lowest=TRUE)
+totals_O<- as.data.frame(table(O_p$date_cat))
+O_figure = ggplot(O_p, aes(date_cat, fill = event_type)) + geom_bar() + theme_bw() + ggtitle("First Outpatient samples") +scale_fill_discrete(drop = F) + geom_text(aes(Var1,Freq,label = Freq,fill = NULL), data = totals_O, vjust=-0.1) +theme(axis.text.x = element_text(size = 9,angle = 45,vjust = 1, hjust=1))
+a = ggarrange(H_figure, O_figure, ncol = 2, common.legend = T, legend = "right") 
+a
+```
+
+```{r}
+part1 = ggarrange(a,Volcano_metabolomics_1, ncol =1, labels = c("A","C"))
+part_all = ggarrange(part1, p_1, ncol = 2, labels = c("","B"))
+```
+
+
+```{r}
+H_p = H_p[,c("event_date","participant_id")]
+names(H_p)[1] = "H_date"
+O_p = O_p[,c("event_date","participant_id")]
+names(O_p)[1] = "O_date"
+com = merge(H_p, O_p, by = "participant_id")
+com$participant_id = NULL
+com = unique(com)
+```
+```{r}
+save(lr_output_discharge,file ="/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/D_data_use_heatmap.Rdata")
+```
+
+```{r}
+Metabolomics_rowfeature$Compound_ID = rownames(Metabolomics_rowfeature)
+Metabolomics_rowfeature_sort =  Metabolomics_rowfeature %>%
+  arrange(SUPER_PATHWAY, SUB_PATHWAY)
+write_csv(Metabolomics_rowfeature_sort, file = "~/deep_dive_rowfeature.csv")
+
+lr_output_discharge_sorted = lr_output_discharge[
+  match(Metabolomics_rowfeature_sort$Compound_ID,
+        lr_output_discharge$Compound_ID),
+]
+lr_output_discharge_sorted$FDR = p.adjust(lr_output_discharge_sorted$pval, method = 'BH')
+lr_output_discharge_sorted = lr_output_discharge_sorted[,c("Name","coef","pval","qval","FDR")]
+names(lr_output_discharge_sorted) = c("Name","coef","P","Adjusted Bonferroni","Adjusted FDR")
+write_csv(lr_output_discharge_sorted, file = "~/deep_dive_rowfeature_DC.csv")
+
+
+```
+
+# Lactosylceramides
+```{r}
+#lr_output_discharge = lr_output_discharge[order(qval),]
+Top_20_mets = subset(lr_output_discharge, lr_output_discharge$SUB_PATHWAY == "Lactosylceramides (LCER)")
+Top_20_mets_counts = plasma_metabolomics_global_counts_temp[,Top_20_mets$Compound_ID]
+colnames(Top_20_mets_counts) = Top_20_mets$Name
+Top_20_mets_counts = as.data.frame(t(Top_20_mets_counts))
+Top_20_mets_counts$Metabolite = rownames(Top_20_mets_counts)
+box_melt = melt(Top_20_mets_counts, id = "Metabolite") 
+met_data_baseline_TG = met_data[,c("OUTCOME","sample_id","event_location")]
+box_melt_with_TG = merge(box_melt, met_data_baseline_TG, by.x = "variable", by.y = "sample_id")
+
+box_melt_with_TG$Metabolite = factor(box_melt_with_TG$Metabolite, levels = Top_20_mets$Name)
+box_melt_with_TG$Metabolite = fct_rev(box_melt_with_TG$Metabolite)
+box_top_20 = ggplot(box_melt_with_TG, aes(x = Metabolite, y = value, color = event_location)) +  # ggplot function
+  geom_boxplot() +  theme_light() +
+    coord_flip() 
+box_top_20
+```
+
+# Ceramides
+```{r}
+#lr_output_discharge = lr_output_discharge[order(qval),]
+Top_20_mets = subset(lr_output_discharge, lr_output_discharge$SUB_PATHWAY == "Ceramides")
+Top_20_mets_counts = plasma_metabolomics_global_counts_temp[,Top_20_mets$Compound_ID]
+colnames(Top_20_mets_counts) = Top_20_mets$Name
+Top_20_mets_counts = as.data.frame(t(Top_20_mets_counts))
+Top_20_mets_counts$Metabolite = rownames(Top_20_mets_counts)
+box_melt = melt(Top_20_mets_counts, id = "Metabolite") 
+met_data_baseline_TG = met_data[,c("OUTCOME","sample_id","event_location")]
+box_melt_with_TG = merge(box_melt, met_data_baseline_TG, by.x = "variable", by.y = "sample_id")
+
+box_melt_with_TG$Metabolite = factor(box_melt_with_TG$Metabolite, levels = Top_20_mets$Name)
+box_melt_with_TG$Metabolite = fct_rev(box_melt_with_TG$Metabolite)
+box_top_20 = ggplot(box_melt_with_TG, aes(x = Metabolite, y = value, color = event_location)) +  # ggplot function
+  geom_boxplot() +  theme_light() +
+    coord_flip() 
+box_top_20
+```
+
+# Ceramides
+```{r}
+#lr_output_discharge = lr_output_discharge[order(qval),]
+Top_20_mets = subset(lr_output_discharge, lr_output_discharge$SUB_PATHWAY == "Sphingomyelins")
+Top_20_mets_counts = plasma_metabolomics_global_counts_temp[,Top_20_mets$Compound_ID]
+colnames(Top_20_mets_counts) = Top_20_mets$Name
+Top_20_mets_counts = as.data.frame(t(Top_20_mets_counts))
+Top_20_mets_counts$Metabolite = rownames(Top_20_mets_counts)
+box_melt = melt(Top_20_mets_counts, id = "Metabolite") 
+met_data_baseline_TG = met_data[,c("OUTCOME","sample_id","event_location")]
+box_melt_with_TG = merge(box_melt, met_data_baseline_TG, by.x = "variable", by.y = "sample_id")
+
+box_melt_with_TG$Metabolite = factor(box_melt_with_TG$Metabolite, levels = Top_20_mets$Name)
+box_melt_with_TG$Metabolite = fct_rev(box_melt_with_TG$Metabolite)
+box_top_20 = ggplot(box_melt_with_TG, aes(x = Metabolite, y = value, color = event_location)) +  # ggplot function
+  geom_boxplot() +  theme_light() +
+    coord_flip() 
+box_top_20
+```
+
+# sphingosine
+```{r}
+#lr_output_discharge = lr_output_discharge[order(qval),]
+Top_20_mets = as.data.frame(subset(lr_output_discharge, lr_output_discharge$Name == "sphingosine"))
+Top_20_mets_counts = as.data.frame(plasma_metabolomics_global_counts_temp[,Top_20_mets$Compound_ID])
+colnames(Top_20_mets_counts) = Top_20_mets$Name
+rownames(Top_20_mets_counts) = rownames(plasma_metabolomics_global_counts_temp)
+Top_20_mets_counts = as.data.frame(t(Top_20_mets_counts))
+Top_20_mets_counts$Metabolite = rownames(Top_20_mets_counts)
+
+box_melt = melt(Top_20_mets_counts, id = "Metabolite") 
+
+met_data_baseline_TG = met_data[,c("OUTCOME","sample_id","event_location")]
+box_melt_with_TG = merge(box_melt, met_data_baseline_TG, by.x = "variable", by.y = "sample_id")
+
+box_melt_with_TG$Metabolite = factor(box_melt_with_TG$Metabolite, levels = Top_20_mets$Name)
+box_melt_with_TG$Metabolite = fct_rev(box_melt_with_TG$Metabolite)
+box_top_20 = ggplot(box_melt_with_TG, aes(x = Metabolite, y = value, color = event_location)) +  # ggplot function
+  geom_boxplot() +  theme_light() +
+    coord_flip() 
+box_top_20
+```
+
+```{r}
+data_use_0 <-plasma_metabolomics_global_counts_temp %>%
+  rownames_to_column(var = "sample_id") %>%
+  merge(y  = dplyr::select(met_data, 
+                    sample_id, 
+                    event_location
+                   ),
+        by = "sample_id") %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate(VaccineGroup = factor(event_location)) %>%
+  
+  column_to_rownames(var = "sample_id")
+```
+#glycine
+```{r}
+library(ggplot2)
+library(ggbeeswarm)
+my_comparisons = list(c("Hospital","Outpatient"))
+data_use_0 %>%
+  rownames_to_column(var = "sample_id") %>%
+  dplyr::select(sample_id,event_location,X340) %>%
+  ggplot(mapping = aes(x = event_location, y = X340)) +
+  geom_beeswarm(mapping = aes(color = event_location), cex = 1.5, size = 0.8) +
+  geom_boxplot(fill = "transparent", outlier.color= "transparent") +
+  labs(y = "Eigenvalue", x = "event_location") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 6 )  +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("glycine")
+```
+#sarcosine
+```{r}
+my_comparisons = list(c("Hospital","Outpatient"))
+data_use_0 %>%
+  rownames_to_column(var = "sample_id") %>%
+  dplyr::select(sample_id,event_location,X1023) %>%
+  ggplot(mapping = aes(x = event_location, y = X1023)) +
+  geom_beeswarm(mapping = aes(color = event_location), cex = 1.5, size = 0.8) +
+  geom_boxplot(fill = "transparent", outlier.color= "transparent") +
+  labs(y = "Eigenvalue", x = "event_location") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 6 )  +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("sarcosine")
+```
+#serine
+```{r}
+my_comparisons = list(c("Hospital","Outpatient"))
+data_use_0 %>%
+  rownames_to_column(var = "sample_id") %>%
+  dplyr::select(sample_id,event_location,X503) %>%
+  ggplot(mapping = aes(x = event_location, y = X503)) +
+  geom_beeswarm(mapping = aes(color = event_location), cex = 1.5, size = 0.8) +
+  geom_boxplot(fill = "transparent", outlier.color= "transparent") +
+  labs(y = "Eigenvalue", x = "event_location") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 6 )  +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("serine")
+```
+#threonine
+```{r}
+my_comparisons = list(c("Hospital","Outpatient"))
+data_use_0 %>%
+  rownames_to_column(var = "sample_id") %>%
+  dplyr::select(sample_id,event_location,X564) %>%
+  ggplot(mapping = aes(x = event_location, y = X564)) +
+  geom_beeswarm(mapping = aes(color = event_location), cex = 1.5, size = 0.8) +
+  geom_boxplot(fill = "transparent", outlier.color= "transparent") +
+  labs(y = "Eigenvalue", x = "event_location") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 6 )  +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("threonine")
+```
+#betaine
+```{r}
+my_comparisons = list(c("Hospital","Outpatient"))
+data_use_0 %>%
+  rownames_to_column(var = "sample_id") %>%
+  dplyr::select(sample_id,event_location,X799) %>%
+  ggplot(mapping = aes(x = event_location, y = X799)) +
+  geom_beeswarm(mapping = aes(color = event_location), cex = 1.5, size = 0.8) +
+  geom_boxplot(fill = "transparent", outlier.color= "transparent") +
+  labs(y = "Eigenvalue", x = "event_location") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 6 )  +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("betaine")
+```
+#dimethylglycine
+```{r}
+my_comparisons = list(c("Hospital","Outpatient"))
+data_use_0 %>%
+  rownames_to_column(var = "sample_id") %>%
+  dplyr::select(sample_id,event_location,X806) %>%
+  ggplot(mapping = aes(x = event_location, y = X806)) +
+  geom_beeswarm(mapping = aes(color = event_location), cex = 1.5, size = 0.8) +
+  geom_boxplot(fill = "transparent", outlier.color= "transparent") +
+  labs(y = "Eigenvalue", x = "event_location") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 6 )  +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("dimethylglycine")
+```
+#pyruvate
+```{r}
+my_comparisons = list(c("Hospital","Outpatient"))
+data_use_0 %>%
+  rownames_to_column(var = "sample_id") %>%
+  dplyr::select(sample_id,event_location,X823) %>%
+  ggplot(mapping = aes(x = event_location, y = X823)) +
+  geom_beeswarm(mapping = aes(color = event_location), cex = 1.5, size = 0.8) +
+  geom_boxplot(fill = "transparent", outlier.color= "transparent") +
+  labs(y = "Eigenvalue", x = "event_location") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 6 )  +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("pyruvate")
+```
+#glycerate
+```{r}
+my_comparisons = list(c("Hospital","Outpatient"))
+data_use_0 %>%
+  rownames_to_column(var = "sample_id") %>%
+  dplyr::select(sample_id,event_location,X1052) %>%
+  ggplot(mapping = aes(x = event_location, y = X1052)) +
+  geom_beeswarm(mapping = aes(color = event_location), cex = 1.5, size = 0.8) +
+  geom_boxplot(fill = "transparent", outlier.color= "transparent") +
+  labs(y = "Eigenvalue", x = "event_location") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 6 )  +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("glycerate")
+```
+
+#choline
+```{r}
+my_comparisons = list(c("Hospital","Outpatient"))
+data_use_0 %>%
+  rownames_to_column(var = "sample_id") %>%
+  dplyr::select(sample_id,event_location,X1256) %>%
+  ggplot(mapping = aes(x = event_location, y = X1256)) +
+  geom_beeswarm(mapping = aes(color = event_location), cex = 1.5, size = 0.8) +
+  geom_boxplot(fill = "transparent", outlier.color= "transparent") +
+  labs(y = "Eigenvalue", x = "event_location") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 6 )  +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("choline")
+```
+#creatinine
+```{r}
+my_comparisons = list(c("Hospital","Outpatient"))
+data_use_0 %>%
+  rownames_to_column(var = "sample_id") %>%
+  dplyr::select(sample_id,event_location,X275) %>%
+  ggplot(mapping = aes(x = event_location, y = X275)) +
+  geom_beeswarm(mapping = aes(color = event_location), cex = 1.5, size = 0.8) +
+  geom_boxplot(fill = "transparent", outlier.color= "transparent") +
+  labs(y = "Eigenvalue", x = "event_location") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 6 )  +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("creatinine")
+```
+#guanidinoacetate
+```{r}
+my_comparisons = list(c("Hospital","Outpatient"))
+data_use_0 %>%
+  rownames_to_column(var = "sample_id") %>%
+  dplyr::select(sample_id,event_location,X344) %>%
+  ggplot(mapping = aes(x = event_location, y = X344)) +
+  geom_beeswarm(mapping = aes(color = event_location), cex = 1.5, size = 0.8) +
+  geom_boxplot(fill = "transparent", outlier.color= "transparent") +
+  labs(y = "Eigenvalue", x = "event_location") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 6 )  +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("guanidinoacetate")
+```
+#tryptophan
+```{r}
+my_comparisons = list(c("Hospital","Outpatient"))
+data_use_0 %>%
+  rownames_to_column(var = "sample_id") %>%
+  dplyr::select(sample_id,event_location,X565) %>%
+  ggplot(mapping = aes(x = event_location, y = X565)) +
+  geom_quasirandom(mapping = aes(color = event_location), cex = 1.5, size = 0.8) +
+  geom_boxplot(fill = "transparent", outlier.color= "transparent") +
+  labs(y = "Eigenvalue", x = "event_location") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 5, vjust = 0.6)  +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("tryptophan")
+```
+
+#aspartate
+
+```{r}
+my_comparisons = list(c("Hospital","Outpatient"))
+data_use_0 %>%
+  rownames_to_column(var = "sample_id") %>%
+  dplyr::select(sample_id,event_location,X234) %>%
+  ggplot(mapping = aes(x = event_location, y = X234)) +
+  geom_quasirandom(mapping = aes(color = event_location), cex = 1.5, size = 0.8) +
+  geom_boxplot(fill = "transparent", outlier.color= "transparent") +
+  labs(y = "Eigenvalue", x = "event_location") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 5, vjust = 0.6)  +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("aspartate")
+```
+
+#ectoine
+```{r}
+my_comparisons = list(c("Hospital","Outpatient"))
+data_use_0 %>%
+  rownames_to_column(var = "sample_id") %>%
+  dplyr::select(sample_id,event_location,X100001635) %>%
+  ggplot(mapping = aes(x = event_location, y = X100001635)) +
+  geom_quasirandom(mapping = aes(color = event_location), cex = 1.5, size = 0.8) +
+  geom_boxplot(fill = "transparent", outlier.color= "transparent") +
+  labs(y = "Eigenvalue", x = "event_location") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif", size = 5, vjust = 0.6)  +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("ectoine")
+```
+
+
+```{r}
+data_use_0_D = data_use_0
+save(data_use_0_D, file = "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/D_data_use.Rdata")
+```
