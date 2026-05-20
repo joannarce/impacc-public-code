@@ -1,0 +1,841 @@
+---
+title: "Fig4"
+output: pdf_document
+---
+
+```{r load library}
+require(openxlsx)
+library(factoextra)
+library(cluster)
+require(nlme) # directly provides p-values, unlike lme4
+require(splines)
+require(dplyr)
+library(fgsea)
+library(knitr)
+library(kableExtra)
+codebase_path = "~/impacc/Analysis/molecular_subtyping/codebase"
+source(paste0(codebase_path,"/data_analysis_template_codebase.R"))
+source(paste0(codebase_path,"/codebase_basic.R"))
+source(paste0(codebase_path,"/codebase_prediction.R"))
+source(paste0(codebase_path,"/codebase_interpretation.R"))
+source(paste0(codebase_path,"/class_structures.R"))
+source(paste0(codebase_path,"/codebase_mod.R"))
+source(paste0(codebase_path,"/codebase_subtype.R"))
+
+organized_data = readRDS("/scratch/data-integration/molecular_subtyping/Data Preprocessing/phases123_combined_jeremy_072023.rds")
+
+intermediate_results_outdir_DR = "/scratch/data-integration/molecular_subtyping/DimensionReduction/"
+mcia_results = readRDS(paste0(intermediate_results_outdir_DR,"MCIA_phase123_20230726.rds"))
+
+data_path <- "/scratch/data-integration/pipelines/processedData/"
+data_env0 <- readRDS(paste0(data_path, "data_env_ravi_20220513.RDS"))
+
+base_obj = readRDS(file = "/scratch/data-integration/cleanedup/mod1_interpretation_base.rds")
+```
+
+# Load preliminary results
+```{r load subtype assignment and clinical data}
+# load subtype assignment and clinical data
+nclust_tree_all = 6
+subtype_hcl = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/subtype_hcl.rds")
+clin_data_aligned = readRDS("~/impacc/Analysis/molecular_subtyping/code/Fig1/src/clin_data_aligned.rds")
+
+# load omics used
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+omic_names =c("plasma_proteomics_targeted","plasma_proteomics_global_dda",
+              "serum_olink","plasma_metabolomics_global","nasal_transcriptomics",
+              "pbmc_transcriptomics")
+
+# load all databases used for enrichment
+kegg_database = readRDS(file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/kegg0522.rds")
+hallmark_database = readRDS( file = "/scratch/data-integration/pipelines/Interpretation/remapped_databases/hallmark0522.rds")
+metabolite_row_DF = data_env0$plasma_metabolomics_global_rowfeature
+rownames(metabolite_row_DF) = metabolite_row_DF[["CHEMICAL_NAME"]]
+metabolite_row_DF=metabolite_row_DF[,c("CHEMICAL_NAME","SUB_PATHWAY","SUPER_PATHWAY")]
+subpath_databse = list()
+subpath_databse[["pmg"]] = data.frame(description =metabolite_row_DF[["SUB_PATHWAY"]],
+                                      CHEMICAL_NAME = metabolite_row_DF[["CHEMICAL_NAME"]])
+for(k in 1:length(kegg_database)){
+  kegg_database[[k]]=kegg_database[[k]][which(kegg_database[[k]]!="Ig"),]
+}
+
+# load enrichment results
+mag_thr=0.3
+enrichment_mhg_list0 = readRDS(file=paste0(intermediate_results_outdir_DR, "pathway_enrichment_mhgF1_2_3_10_LG", mag_thr,".rds"))
+
+projection_coef0 = convert_mciaObj_to_annotation_format(mcia_results$mcia_factor_evaluation$projection_coef, omic_names = names(omics_used_DR))
+projection_pval0 = convert_mciaObj_to_annotation_format(mcia_results$mcia_factor_evaluation$projection_pval, omic_names = names(omics_used_DR))
+K = 10
+projection_coef=projection_coef0[1:K]
+projection_pval=projection_pval0[1:K]
+for(mod_id in c(1:K)){
+  mod_name = paste0("mod", mod_id)
+  print(mod_name)
+  projection_coef[[mod_id]]= coefficient_name_translator(data_env = data_env0, projection_coef_factor = projection_coef[[mod_id]], omic_names = omic_names) 
+  projection_pval[[mod_id]]= coefficient_name_translator(data_env = data_env0, projection_coef_factor = projection_pval[[mod_id]], omic_names = omic_names)
+}
+
+###### FACTOR NEGATION IF NEEDED
+mod_ids = c(1, 2, 3,10)
+negation = c(-1, 1, 1, 1)
+# negate factor coefficients
+for(l in 1:length(mod_ids)){
+  mod_id = mod_ids[l]
+  mod_name = paste0("mod", mod_id)
+  print(mod_name)
+  for(i in 1:length(projection_coef[[mod_id]])){
+    projection_coef[[mod_id]][[i]][,1] = negation[l]*
+      projection_coef[[mod_id]][[i]][,1]
+  }
+}
+# negate enrichment results
+enrichment_mhg_list = enrichment_mhg_list0
+for(l in 1:length(enrichment_mhg_list)){
+  for(i in 1:length(mod_ids)){
+    mod_id =mod_ids[i]
+    if(negation[i] == -1){
+      enrichment_mhg_list[[l]][[mod_id]]$pos = enrichment_mhg_list0[[l]][[mod_id]]$neg
+      enrichment_mhg_list[[l]][[mod_id]]$neg = enrichment_mhg_list0[[l]][[mod_id]]$pos
+    }
+  }
+}
+```
+
+# Factor trajectory (Figure 4A left & Figure 4C left)
+```{r factor trajectory, fig.height=6, fig.width=6, warning=FALSE}
+mod_ids = c(1, 2, 3, 10)
+negation = c(-1, 1, 1, 1)
+# negate factors
+mcia_factors = t(t(mcia_results$mcia_factors[,mod_ids]) * negation)
+mcia_factors=apply(mcia_factors,2, function(z) qqnorm(z, plot.it = F)$x)
+mcia_factors = data.frame(mcia_factors,row.names = rownames(organized_data$datasets$plasma_proteomics_targeted))
+mcia_factors = mcia_factors[clin_data_aligned$event_id,]
+colnames(mcia_factors) = paste0("Factor", mod_ids)
+
+assay_mat = mcia_factors
+assay_mat$event_id = rownames(assay_mat)
+assay_mat = cytof_mat_preprocess(cytof_mat = assay_mat, 
+                                 subtype_hcl =subtype_hcl,
+                                 clin_data = clin_data_aligned)
+clin_colnames_select = setdiff(colnames(assay_mat), colnames(mcia_factors))
+
+factor_trajectory_analysis_results = helper_trajectory_data_smooth_spline(
+  assay_mat = assay_mat, clin_colnames_select = clin_colnames_select,
+  endpoint = "label", use_endpoint_levels = c("A", "B", "C", "E", "F"),
+  max_date = 40, text_position = 2)
+test_Fig4_factor_traj = factor_trajectory_analysis_results$test_pval_list
+factor_trajectory_analysis_results$test_fig_list$Factor1
+factor_trajectory_analysis_results$test_fig_list$Factor10
+```
+
+# Early/late Factor 1 multi-group comparison (Figure 4A right)
+```{r early/late Factor 1 multi-group comparison, fig.height=6, fig.width=3.7}
+mod_ids = c(1, 10)
+negation = c(-1, 1)
+# negate factors
+mcia_factors = t(t(mcia_results$mcia_factors[,mod_ids]) * negation)
+mcia_factors=apply(mcia_factors,2, function(z) qqnorm(z, plot.it = F)$x)
+mcia_factors = data.frame(mcia_factors,row.names = rownames(organized_data$datasets$plasma_proteomics_targeted))
+mcia_factors = mcia_factors[clin_data_aligned$event_id,]
+colnames(mcia_factors) = paste0("Factor", mod_ids)
+
+assay_mat = mcia_factors
+assay_mat$event_id = rownames(assay_mat)
+assay_mat = cytof_mat_preprocess(cytof_mat = assay_mat, 
+                                 subtype_hcl =subtype_hcl,
+                                 clin_data = clin_data_aligned)
+
+discretized_test = list()
+feature_name = c("Factor1","Factor10")
+discretized_test[["early"]] = multi_group_mixed_test(
+  feature_name = feature_name, data_mat = assay_mat, 
+  visit_numbers = c("V1", "V2", "V3"))
+discretized_test[["late"]] = multi_group_mixed_test(
+  feature_name = feature_name, data_mat = assay_mat, 
+  visit_numbers = c("V4", "V5", "V6"))
+
+# Factor 1
+est_mat = cbind(discretized_test$early$est[,1],
+                discretized_test$late$est[,1])
+colnames(est_mat) = c("V1-V3", "V4-V6")
+pval_mat = cbind(discretized_test$early$pval[,1],
+                 discretized_test$late$pval[,1])
+colnames(pval_mat) = c("V1-V3", "V4-V6")
+adj_p = apply(pval_mat, 2, function(p) p.adjust(p, method = "BH"))
+test_Fig4A = list()
+test_Fig4A$estimate = est_mat
+test_Fig4A$pval = pval_mat
+test_Fig4A$adj_p = adj_p
+
+factor1_multi_comparison = ComplexHeatmap::Heatmap(
+  as.matrix(est_mat), row_names_gp = gpar(fontsize = 18), 
+  column_names_gp = gpar(fontsize = 18), column_names_rot = 0, 
+  column_names_centered = T, 
+  heatmap_legend_param = list(title = "Coefficient", direction = "horizontal", 
+                              title_position = "topcenter",
+                              title_gp = gpar(fontsize = 18), 
+                              labels_gp = gpar(fontsize = 18)),
+  col = circlize::colorRamp2(c(-max(abs(est_mat)), 0, max(abs(est_mat))), 
+                             c("#284AA0", "white", "#BC4A4A")), 
+  na_col = "grey90", cluster_columns = F, cluster_rows = F, 
+  cell_fun = function(j, i, x, y, w, h, fill) {
+    if(adj_p[i, j] < 0.001) {
+      grid.text("***", x, y-h*0.08, gp = gpar(cex=2))
+      } else if(adj_p[i, j] < 0.01) {
+        grid.text("**", x, y-h*0.08, gp = gpar(cex=2))
+        } else if(adj_p[i, j] < 0.05) {
+          grid.text("*", x, y-h*0.08, gp = gpar(cex=2))
+          }
+    })
+ComplexHeatmap::draw(factor1_multi_comparison, heatmap_legend_side = "top")
+```
+
+# Early/late Factor 10 multi-group comparison (Figure 4C right)
+```{r early/late Factor 10 multi-group comparison, fig.height=6, fig.width=3.7}
+# Factor 10
+est_mat = cbind(discretized_test$early$est[,2],
+                discretized_test$late$est[,2])
+colnames(est_mat) = c("V1-V3", "V4-V6")
+pval_mat = cbind(discretized_test$early$pval[,2],
+                 discretized_test$late$pval[,2])
+colnames(pval_mat) = c("V1-V3", "V4-V6")
+adj_p = apply(pval_mat, 2, function(p) p.adjust(p, method = "BH"))
+test_Fig4C = list()
+test_Fig4C$estimate = est_mat
+test_Fig4C$pval = pval_mat
+test_Fig4C$adj_p = adj_p
+
+factor10_multi_comparison = ComplexHeatmap::Heatmap(
+  as.matrix(est_mat), row_names_gp = gpar(fontsize = 18), 
+  column_names_gp = gpar(fontsize = 18), column_names_rot = 0, 
+  column_names_centered = T, 
+  heatmap_legend_param = list(title = "Coefficient", direction = "horizontal", 
+                              title_position = "topcenter",
+                              title_gp = gpar(fontsize = 18), 
+                              labels_gp = gpar(fontsize = 16)),
+  col = circlize::colorRamp2(c(-max(abs(est_mat)), 0, max(abs(est_mat))), 
+                             c("#284AA0", "white", "#BC4A4A")), 
+  na_col = "grey90", cluster_columns = F, cluster_rows = F, 
+  cell_fun = function(j, i, x, y, w, h, fill) {
+    if(adj_p[i, j] < 0.001) {
+      grid.text("***", x, y-h*0.08, gp = gpar(cex=2))
+      } else if(adj_p[i, j] < 0.01) {
+        grid.text("**", x, y-h*0.08, gp = gpar(cex=2))
+        } else if(adj_p[i, j] < 0.05) {
+          grid.text("*", x, y-h*0.08, gp = gpar(cex=2))
+          }
+    })
+ComplexHeatmap::draw(factor10_multi_comparison, heatmap_legend_side = "top")
+```
+
+# Enrichment analysis - Factor 1 (Figure 4B)
+```{r enrichment analysis - Factor 1, fig.height=10, fig.width=10}
+KEGG_max = 10; Hallmark_max = 10; Subpath_max = 5
+KEGG_metabo_max = 2; pathway_max = 30; date = 20231201
+kegg_pathnames = unique(kegg_database$pbmc$description)
+kegg_metabopathnames = kegg_pathnames[grepl("metabolism",kegg_pathnames)]
+data_base_names = c( "kegg","hallmark","subpath")
+size_max = c(KEGG_max,Hallmark_max,Subpath_max)
+shorten = FALSE
+plot_list = list()
+test_enrichment = list()
+thr = 0.05
+pathway_counts = data.frame(matrix(NA, ncol = 6, nrow = length(mod_ids)))
+colnames(pathway_counts) = names(enrichment_mhg_list$kegg[[1]]$pos)
+rownames(pathway_counts) = paste0("Factor", mod_ids)
+
+for(i in 1:length(mod_ids)){
+  mod_id = mod_ids[i]
+  factor_enrichment = lapply(enrichment_mhg_list, function(z) z[[mod_id]])
+  aggregated_mat = enrichment_aggregation_subtype(
+    factor_enrichment[1:3], adj.p.thr = thr, thr = .2, type = "mhg")
+  temp = aggregated_mat[,c(1:6)]
+  temp[is.na(temp)] = 0
+  pathway_counts[i,]=apply(abs(temp) > (-log(thr, base = 10)), 2, sum)
+  if(shorten){
+    aggregated_mat_short = pathway_shortlist_selection(
+      aggregated_mat, data_base_names = data_base_names, 
+      size_max = size_max, KEGG_metabo_max = KEGG_metabo_max)
+  } else {
+    aggregated_mat_short = aggregated_mat
+  }
+  aggregated_mat_short = aggregated_mat_short
+  aggregated_mat_short = aggregated_mat_short[order(-aggregated_mat_short$joint),]
+  
+  plot_title = paste0("Factor",mod_id)
+  plotDF_df = gather(
+    aggregated_mat_short[1:min(nrow(aggregated_mat_short), pathway_max),],
+    key = "dataset", value = "log10.sig.val", -joint, -pathway, -database)
+  plotDF_df = plotDF_df[!is.na(plotDF_df$log10.sig.val),]
+  plotDF_df$direction = NA
+  plotDF_df$direction[plotDF_df$log10.sig.val>0] = "pos"
+  plotDF_df$direction[plotDF_df$log10.sig.val<0] = "neg"
+  plotDF_df$direction[plotDF_df$dataset == "joint_adj"] = "unsigned"
+  plotDF_df$log10.sig.val = abs(plotDF_df$log10.sig.val)
+  
+  plotDF_df$pathway = factor(
+    plotDF_df$pathway,
+    levels = aggregated_mat_short$pathway[length(aggregated_mat$pathway):1])
+  plotDF_df$dataset = factor(plotDF_df$dataset, 
+                             levels = c(omic_short_names, "joint_adj"))
+  plotDF_df$database = factor(plotDF_df$database, 
+                              levels = data_base_names)
+  test_enrichment[[i]] = plotDF_df
+  plot_list[[i]] = ggplot(data = plotDF_df, 
+                          aes(x = dataset, y = pathway,
+                              size = log10.sig.val, col = direction)) +
+    geom_point(color="white") +
+    geom_point(shape=1) +
+    geom_point(data=. %>% dplyr::filter(log10.sig.val > -log10(thr) ) ) +
+    ggtitle(plot_title) + 
+    theme_classic() +
+    theme(panel.grid.major = element_line(color = "grey", size = 0.1), 
+          axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, 
+                                     size = 15, color = "black"), 
+          axis.text.y = element_text(size = 15, color = "black"),
+          strip.text = element_text(color = "black", size = 15),
+          plot.title = element_text(color = "black", size = 15),
+          legend.title = element_text(color = "black", size = 15),
+          legend.text = element_text(color = "black", size = 15)) +
+    ylab("") +
+    xlab("") +
+    scale_color_manual(values = c("pos" ="#BC4A4A", "neg" ="#284AA0", 
+                                  "unsigned"= "#808080"), 
+                       breaks = c("neg", "pos", "unsigned"), 
+                       labels = c("negative","positive","unsigned"), 
+                       name = "Direction") +
+    facet_grid(database~., scales = "free_y", space = "free_y") +
+    guides(size = guide_legend(title = expression("Signed "*log[10]*"(p.val)"), 
+                               order = 1))
+}
+#          ppt ppgd so pmg  nt pbmc
+# Factor1    8   34 11  12  10   77
+# Factor10   0    0  0   0 143    0
+print(pathway_counts)
+test_Fig4B = test_enrichment[[1]]
+
+plot_list[[1]]
+```
+
+# Core analytes
+```{r core analytes}
+# Truncate the analytes in each assay to keep the most important ones.
+# Look at the unsigned list to keep both the positive and the negative ones.
+
+K = 10
+mcia_output=mcia_results
+omics_used_DR = c(
+  "ppt" = "plasma_proteomics_targeted",
+  "ppgd" = "plasma_proteomics_global_dda",
+  "so" = "serum_olink",
+  "pmg" = "plasma_metabolomics_global",
+  "nt" = "nasal_transcriptomics",
+  "pbmc" = "pbmc_transcriptomics"
+)
+omic_short_names = names(omics_used_DR) %>% setNames(omics_used_DR)
+omic_names =c("plasma_proteomics_targeted","plasma_proteomics_global_dda",
+              "serum_olink","plasma_metabolomics_global","nasal_transcriptomics",
+              "pbmc_transcriptomics")
+projection_coef = convert_mciaObj_to_annotation_format(
+  mcia_output$mcia_factor_evaluation$projection_coef, 
+  omic_names = names(omics_used_DR))
+projection_pval = convert_mciaObj_to_annotation_format(
+  mcia_output$mcia_factor_evaluation$projection_pval, 
+  omic_names = names(omics_used_DR))
+projection_coef=projection_coef[1:K]
+projection_pval=projection_pval[1:K]
+for(mod_id in c(1:K)){
+  mod_name = paste0("mod", mod_id)
+  print(mod_name)
+  projection_coef[[mod_id]]= coefficient_name_translator(data_env = data_env0, projection_coef_factor = projection_coef[[mod_id]], omic_names = omic_names)
+  projection_pval[[mod_id]]= coefficient_name_translator(data_env = data_env0, projection_coef_factor = projection_pval[[mod_id]], omic_names = omic_names)
+}
+short_list_features = list()
+mag_thr = 0.3; adjp = 0.01
+for(mod_id in c(1:K)){
+  ###extract coefficients for relevant module
+  tmp_coef = projection_coef[[mod_id]]
+  tmp_pval = projection_pval[[mod_id]]
+  short_list_features[[mod_id]] = list()
+  short_list_features[[mod_id]][["unsigned"]]=cutlist(
+    projection_coef = tmp_coef ,
+    projection_pval = tmp_pval,
+    mag_thr = mag_thr, FWER_thr =adjp, direction = NULL)
+  short_list_features[[mod_id]][["pos"]]=cutlist(
+    projection_coef = tmp_coef ,
+    projection_pval = tmp_pval,
+    mag_thr = mag_thr, FWER_thr =adjp, direction =1)
+  short_list_features[[mod_id]][["neg"]]=cutlist(
+    projection_coef = tmp_coef ,
+    projection_pval = tmp_pval,
+    mag_thr = mag_thr, FWER_thr =adjp, direction =-1)
+}
+counts_analyte = lapply(short_list_features,function(z) sapply(z[[1]],dim))
+# counts_analyte[[10]]
+# short_list_features[[1]]$unsigned$pbmc[order(-abs(short_list_features[[1]]$unsigned$pbmc[,1])),,drop = F]
+```
+
+# Enrichment analysis - Factor 10 (Figure 4D bottom)
+```{r enrichment analysis - Factor 10, fig.height=8.2, fig.width=10}
+KEGG_max = 10; Hallmark_max = 10; Subpath_max = 5
+KEGG_metabo_max = 2; pathway_max = 30; date = 20231201
+kegg_pathnames = unique(kegg_database$pbmc$description)
+kegg_metabopathnames = kegg_pathnames[grepl("metabolism",kegg_pathnames)]
+data_base_names = c( "kegg","hallmark","subpath")
+size_max = c(KEGG_max,Hallmark_max,Subpath_max)
+shorten =FALSE
+plot_list = list()
+thr = 0.05
+
+i=2
+mod_id = mod_ids[i]
+factor_enrichment = lapply(enrichment_mhg_list, function(z) z[[mod_id]])
+aggregated_mat = enrichment_aggregation_subtype(
+  factor_enrichment[1:3], adj.p.thr =thr, thr = .2, type = "mhg")
+temp = aggregated_mat[,c(1:6)]
+temp[is.na(temp)] = 0
+if(shorten){
+  aggregated_mat_short = pathway_shortlist_selection(
+    aggregated_mat, data_base_names = data_base_names, 
+    size_max = size_max, KEGG_metabo_max = KEGG_metabo_max)
+} else {
+  aggregated_mat_short = aggregated_mat
+}
+aggregated_mat_short = aggregated_mat_short
+aggregated_mat_short = aggregated_mat_short[order(-aggregated_mat_short$joint),]
+
+plot_title = paste0("Factor",mod_id)
+plotDF_df = gather(
+  aggregated_mat_short[1:min(nrow(aggregated_mat_short), pathway_max),],
+  key = "dataset", value = "log10.sig.val", -joint, -pathway, -database)
+plotDF_df = plotDF_df[!is.na(plotDF_df$log10.sig.val),]
+plotDF_df$direction = NA
+plotDF_df$direction[plotDF_df$log10.sig.val>0] = "pos"
+plotDF_df$direction[plotDF_df$log10.sig.val<0] = "neg"
+plotDF_df$direction[plotDF_df$dataset == "joint_adj"] = "unsigned"
+plotDF_df$log10.sig.val = abs(plotDF_df$log10.sig.val)
+
+plotDF_df$pathway = factor(
+  plotDF_df$pathway, 
+  levels = aggregated_mat_short$pathway[length(aggregated_mat$pathway):1])
+plotDF_df$dataset = factor(plotDF_df$dataset, 
+                           levels = c(omic_short_names, "joint_adj"))
+plotDF_df$database = factor(plotDF_df$database, levels = data_base_names)
+plotDF_df = plotDF_df[plotDF_df$dataset=="nt",]
+
+# Count analytes in each pathways
+analytes = short_list_features[[10]]$unsigned$nt
+nt_kegg = kegg_database$nt
+nt_hallmark = hallmark_database$nt
+nt_kegg = nt_kegg[nt_kegg$description %in% plotDF_df$pathway,]
+nt_hallmark = nt_hallmark[nt_hallmark$description %in% plotDF_df$pathway,]
+nt = rbind(nt_kegg, nt_hallmark)
+nt = nt[nt$gene_name %in% rownames(analytes),]
+counts = as.data.frame(table(nt$description))
+colnames(counts) = c("pathway", "count")
+plotDF_df = merge(plotDF_df, counts, by = "pathway")
+test_Fig4D = plotDF_df
+ggplot(data = plotDF_df, aes(x = count, y = pathway, fill = log10.sig.val)) +
+  geom_bar(stat = "identity") + 
+  ggtitle(plot_title) + 
+  theme_classic() +
+  theme(panel.grid.major = element_line(color = "grey", size = 0.1), 
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, 
+                                   size = 15, color = "black"), 
+        axis.text.y = element_text(size = 15, color = "black"),
+        axis.title.x = element_text(size = 15, color = "black"),
+        strip.text = element_text(color = "black", size = 15),
+        plot.title = element_text(color = "black", size = 15),
+        legend.title = element_text(color = "black", size = 15),
+        legend.text = element_text(color = "black", size = 15),
+        ) +
+  ylab("") +
+  xlab("Analyte count") +
+  scale_fill_gradient2(low = "#284AA0", mid="white",  high = "#BC4A4A", 
+                       midpoint=0, name = expression("Signed "*log[10]*"(p.val)"),
+                       na.value="grey90", 
+                       limits = c(-max(abs(plotDF_df$log10.sig.val)), 
+                                  max(abs(plotDF_df$log10.sig.val)))) +
+  facet_grid(database~., scales = "free_y", space = "free_y")
+#          ppt ppgd so pmg  nt pbmc
+# Factor1    8   34 11  12  10   77
+# Factor10   0    0  0   0 143    0
+```
+
+# Analyte and pathway count (Figure 4D top)
+```{r analyte and pathway count}
+df_count = data.frame(Counts = c("Analyte", "Pathway"),
+                      rbind(counts_analyte[[10]][1,],
+                            pathway_counts[2,]), row.names = NULL)
+
+kable(df_count) %>%
+  kable_styling(full_width = FALSE)
+```
+
+# Load viral load/antibody/cytof and cytokine cluster PC
+```{r load viral load/antibody/cytof and cytokine cluster PC}
+cytof_parent_mat_train = base_obj$others$bld_cytof$train$bld_cytof_counts
+cytof_parent_mat_train = 
+  base_obj$others$bld_cytof$preprocess_bld_cytof_parent_granulo_separate(
+  counts = cytof_parent_mat_train, 
+  rowfeature = base_obj$others$bld_cytof$train$bld_cytof_rowfeatures)
+cytof_parent_mat_test = base_obj$others$bld_cytof$test$bld_cytof_counts
+cytof_parent_mat_test = 
+  base_obj$others$bld_cytof$preprocess_bld_cytof_parent_granulo_separate(
+    counts = cytof_parent_mat_test, 
+    rowfeature = base_obj$others$bld_cytof$test$bld_cytof_rowfeatures)
+
+cytof_parent_mat = rbind(cytof_parent_mat_train, cytof_parent_mat_test)
+cytof_feature_names = colnames(cytof_parent_mat)
+cytof_parent_mat$event_id = rownames(cytof_parent_mat)
+cytof_parent_mat = cytof_mat_preprocess(cytof_parent_mat, 
+                                        subtype_hcl = subtype_hcl,  
+                                        clin_data = clin_data_aligned)
+
+ct_train = data.frame(
+  "event_id" = rownames(base_obj$others$nasal_viralload$train$nasal_viralload_counts),
+  "Ct" = base_obj$others$nasal_viralload$train$nasal_viralload_counts$N1_CT,
+  "RP_CT" = base_obj$others$nasal_viralload$train$nasal_viralload_counts$RP_CT)
+ct_test = data.frame(
+  "event_id" = rownames(base_obj$others$nasal_viralload$test$nasal_viralload_counts),
+  "Ct" = base_obj$others$nasal_viralload$test$nasal_viralload_counts$N1_CT,
+  "RP_CT" = base_obj$others$nasal_viralload$test$nasal_viralload_counts$RP_CT)
+ct_df = rbind(ct_train, ct_test)
+ct_df = ct_df[order(ct_df$event_id),]
+rownames(ct_df) = ct_df$event_id
+# remove samples with undetected RP_CT values
+ct_df = ct_df[!is.na(ct_df$RP_CT), ]
+# replace NA (undetermined) in N1_CT to 40
+ct_df$Ct[is.na(ct_df$Ct)] = 40
+# replace values > 40 to 40
+ct_df$Ct[ct_df$Ct > 40] = 40
+# flip the sign of N1_CT
+ct_df$Ct = -ct_df$Ct
+ct_df = subset(ct_df, select = -c(event_id, RP_CT))
+ct_df = quantileNormalizeNoTies(ct_df)
+ct_df = as.data.frame(ct_df)
+ct_df$event_id = rownames(ct_df)
+ct_df = cytof_mat_preprocess(ct_df, subtype_hcl, clin_data_aligned)
+
+auc_train = data.frame(
+  "event_id" = rownames(base_obj$others$serum_rbd_abtiters$train$serum_rbd_abtiters_counts),
+  "log2_AUC" = base_obj$others$serum_rbd_abtiters$train$serum_rbd_abtiters_counts$`AUC RBD IgG`)
+auc_test = data.frame(
+  "event_id" = rownames(base_obj$others$serum_rbd_abtiters$test$serum_rbd_abtiters_counts),
+  "log2_AUC" = base_obj$others$serum_rbd_abtiters$test$serum_rbd_abtiters_counts$`AUC RBD IgG`)
+auc_df = rbind(auc_train, auc_test)
+auc_df = auc_df[order(auc_df$event_id),]
+rownames(auc_df) = auc_df$event_id
+auc_df = subset(auc_df, select = -event_id)
+auc_df = quantileNormalizeNoTies(auc_df)
+auc_df = as.data.frame(auc_df)
+auc_df$event_id = rownames(auc_df)
+auc_df = cytof_mat_preprocess(auc_df, subtype_hcl, clin_data_aligned)
+
+cytokine_mat = organized_data$datasets$serum_olink
+cytokine_feature_names = colnames(cytokine_mat)
+cytokine_mat$event_id = rownames(cytokine_mat)
+cytokine_mat = cytof_mat_preprocess(cytokine_mat, 
+                                    subtype_hcl = subtype_hcl,  
+                                    clin_data = clin_data_aligned)
+cytokine_cls = readRDS("~/impacc/Analysis/data-integration/Subtyping/test/olink_cluster.rds")
+
+cytokine_PCs = matrix(NA, ncol = 10, nrow = nrow(cytokine_mat))
+for(SPmod in 1:10){
+  ii = cytokine_cls$feature[cytokine_cls$category==SPmod]
+  temp = cytokine_mat[,ii]
+  ii1 = which(!is.na(temp[,1]))
+  temp1 = svd(scale(temp[ii1,],scale = F, center = T))
+  loading = temp1$v[,1]
+  if(sum(loading)<0){
+    loading= -loading
+  }
+  cytokine_PCs[,SPmod] = as.matrix(temp)%*% loading
+}
+cytokine_PCs = data.frame(cytokine_PCs)
+rownames(cytokine_PCs) = rownames(cytokine_mat)
+colnames(cytokine_PCs) = paste0("SPmod",1:10)
+cytokine_PCs$event_id = cytokine_mat$event_id
+```
+
+# Interaction with viral load and cytokine PC (Figure 4E)
+```{r interaction with viral load and cytokine PC, fig.height=6, fig.width=9.7}
+datDF = left_join(left_join(left_join(left_join(
+  assay_mat, ct_df[, c("Ct", "event_id")], by = "event_id"),
+  auc_df[, c("log2_AUC", "event_id")], by = "event_id"),
+  cytof_parent_mat[, 1:15], by = "event_id"),
+                  cytokine_PCs, by = "event_id")
+labels_select <- c("Factor1", "Factor10", "Ct", "log2_AUC", paste0("SPmod",1:10))
+datDF = datDF[, c(labels_select,
+                  "participant_id", "event_type", "event_date", 
+                  "enrollment_site", "discretized_admit_age_quantile", 
+                  "sex", "label")]
+datDF[,1:length(labels_select)] = scale(datDF[,1:length(labels_select)])
+datDF0 = datDF[datDF$label %in% c("A", "B", "C"),]
+datDF0 = datDF0[apply(is.na(datDF0),1,sum) == 0,]
+
+datDF1 = datDF[datDF$label %in% c("E","F"),]
+datDF1 = datDF1[apply(is.na(datDF1),1,sum)==0,]
+
+datDF2 = rbind(datDF0, datDF1)
+datDF2 = cbind(datDF2[,1:14], datDF2)
+colnames(datDF2)[1:14] = paste0(colnames(datDF2)[15:28],"_delta")
+datDF2[datDF2$label %in% c("A","B","C"),1:14] = 0
+
+# both pan-inflammation
+formula0 = formula(paste0("Ct~sex+discretized_admit_age_quantile+Factor1+Factor10+log2_AUC+",
+                          paste(paste0("SPmod",1:10),collapse = "+")))
+formula1 = formula(paste0("Ct~sex+discretized_admit_age_quantile+log2_AUC+",
+                          paste(paste0("SPmod",1:10),collapse = "+")))
+formula2 = formula(paste0("Ct~sex+discretized_admit_age_quantile+Factor1+Factor10+log2_AUC+",
+                          paste(paste0("SPmod",1:10),collapse = "+"), "+", 
+                          paste(colnames(datDF2)[1:14][-3],collapse = "+")))
+formula3 = formula(paste0("Ct~sex+discretized_admit_age_quantile+log2_AUC+",
+                          paste(paste0("SPmod",1:10),collapse = "+"), "+",
+                          paste(colnames(datDF2)[4:14],collapse = "+")))
+
+fit1 = nlme::lme(formula0, random = ~1|enrollment_site/participant_id,data=datDF0)
+fit2 = nlme::lme(formula0, random = ~1|enrollment_site/participant_id,data=datDF1)
+coef_table = data.frame(t(cbind(summary(fit1)$tTable[-(1:6),1], summary(fit2)$tTable[-(1:6),1])))[,1:2]
+pval_table = data.frame(t(cbind(summary(fit1)$tTable[-(1:6),5], summary(fit2)$tTable[-(1:6),5])))[,1:2]
+fit5 = nlme::lme(formula2, random = ~1|enrollment_site/participant_id,data=datDF2)
+coef_table = rbind(coef_table, summary(fit5)$tTable[-(1:6),1][c(14,15)])
+pval_table = rbind(pval_table, summary(fit5)$tTable[-(1:6),5][c(14,15)])
+
+fit3 = nlme::lme(formula1, random = ~1|enrollment_site/participant_id,data=datDF0)
+fit4 = nlme::lme(formula1, random = ~1|enrollment_site/participant_id,data=datDF1)
+fit6 = nlme::lme(formula3, random = ~1|enrollment_site/participant_id,data=datDF2)
+coef_table = cbind(coef_table, rbind(data.frame(t(cbind(summary(fit3)$tTable[-(1:6),1], summary(fit4)$tTable[-(1:6),1]))),summary(fit6)$tTable[-(1:6),1][12:22])) 
+pval_table = cbind(pval_table, rbind(data.frame(t(cbind(summary(fit3)$tTable[-(1:6),5], summary(fit4)$tTable[-(1:6),5]))),summary(fit6)$tTable[-(1:6),5][12:22]))
+rownames(coef_table) = rownames(pval_table) = c("Severe", "Critical", "Critical-Severe")
+
+pval_table_adj = pval_table
+pval_table_adj = t(apply(pval_table, 1, function(x) p.adjust(x, method = "BH")))
+ii = which(apply(pval_table_adj[1:2,],2,min)<0.1)
+pval_table_adj=pval_table_adj[,ii]
+colnames(coef_table)[3] <- "AUC RBD IgG"
+test_types = c(rep("formula0",2),rep("formula1",length(ii)-2))
+test_types = factor(test_types, levels = c("formula0","formula1"))
+factor_interaction = ComplexHeatmap::Heatmap(
+  as.matrix(coef_table[,ii]), column_title_gp = gpar(fontsize = 25),
+  column_title=gt_render("Interaction with viral load"),
+  row_names_gp = gpar(fontsize = 18), column_names_gp = gpar(fontsize = 18),
+  heatmap_legend_param = list(title = "Coefficient    ",
+                              direction = "horizontal", 
+                              title_position = "leftcenter",
+                              title_gp = gpar(fontsize = 18), 
+                              labels_gp = gpar(fontsize = 18)),
+  col = circlize::colorRamp2(c(-max(abs(coef_table[,ii])), 0, 
+                               max(abs(coef_table[,ii]))), 
+                             c("#284AA0", "white", "#BC4A4A")), 
+  na_col = "grey90", column_split = test_types, column_gap = unit(2, "mm"),
+  cluster_columns = F, cluster_rows = F, 
+  cell_fun = function(j, i, x, y, w, h, fill) {
+    if(pval_table_adj[i, j] < 0.001) {
+      grid.text("***", x, y, gp = gpar(cex=2), vjust=0.7)
+      }else if(pval_table_adj[i, j] < 0.01) {
+        grid.text("**", x, y, gp = gpar(cex=2), vjust=0.7)
+        }else if(pval_table_adj[i, j] < 0.05) {
+          grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+          }
+    })
+test_Fig4E = list()
+test_Fig4E$Coefficient = coef_table
+test_Fig4E$pval = pval_table
+colnames(test_Fig4E$pval)[colnames(test_Fig4E$pval) == "log2_AUC"] = "AUC RBD IgG"
+test_Fig4E$adj_pval = t(apply(pval_table,1,p.adjust))
+colnames(test_Fig4E$adj_pval)[colnames(test_Fig4E$adj_pval) == "log2_AUC"] = "AUC RBD IgG"
+ComplexHeatmap::draw(factor_interaction, heatmap_legend_side = "bottom")
+```
+
+```{r interaction with viral load and cytokine PC - time, fig.height=6, fig.width=9.7}
+datDF = left_join(left_join(left_join(left_join(
+  assay_mat, ct_df[, c("Ct", "event_id")], by = "event_id"),
+  auc_df[, c("log2_AUC", "event_id")], by = "event_id"),
+  cytof_parent_mat[, 1:15], by = "event_id"),
+                  cytokine_PCs, by = "event_id")
+labels_select <- c("Factor1", "Factor10", "Ct", "log2_AUC", paste0("SPmod",1:10))
+datDF = datDF[, c(labels_select,
+                  "participant_id", "event_type", "event_date", 
+                  "enrollment_site", "discretized_admit_age_quantile", 
+                  "sex", "label")]
+datDF[,1:length(labels_select)] = scale(datDF[,1:length(labels_select)])
+datDF0 = datDF[datDF$label %in% c("A", "B", "C"),]
+datDF0 = datDF0[apply(is.na(datDF0),1,sum) == 0,]
+
+datDF1 = datDF[datDF$label %in% c("E","F"),]
+datDF1 = datDF1[apply(is.na(datDF1),1,sum)==0,]
+
+datDF2 = rbind(datDF0, datDF1)
+datDF2 = cbind(datDF2[,1:14], datDF2)
+colnames(datDF2)[1:14] = paste0(colnames(datDF2)[15:28],"_delta")
+datDF2[datDF2$label %in% c("A","B","C"),1:14] = 0
+
+# both pan-inflammation
+formula0 = formula(paste0("Ct~sex+discretized_admit_age_quantile+event_type+Factor1+Factor10+log2_AUC+",
+                          paste(paste0("SPmod",1:10),collapse = "+")))
+formula1 = formula(paste0("Ct~sex+discretized_admit_age_quantile+event_type+log2_AUC+",
+                          paste(paste0("SPmod",1:10),collapse = "+")))
+formula2 = formula(paste0("Ct~sex+discretized_admit_age_quantile+event_type+Factor1+Factor10+log2_AUC+",
+                          paste(paste0("SPmod",1:10),collapse = "+"), "+", 
+                          paste(colnames(datDF2)[1:14][-3],collapse = "+")))
+formula3 = formula(paste0("Ct~sex+discretized_admit_age_quantile+event_type+log2_AUC+",
+                          paste(paste0("SPmod",1:10),collapse = "+"), "+",
+                          paste(colnames(datDF2)[4:14],collapse = "+")))
+
+fit1 = nlme::lme(formula0, random = ~1|enrollment_site/participant_id,data=datDF0)
+fit2 = nlme::lme(formula0, random = ~1|enrollment_site/participant_id,data=datDF1)
+coef_table = data.frame(t(cbind(summary(fit1)$tTable[-(1:11),1], summary(fit2)$tTable[-(1:11),1])))[,1:2]
+pval_table = data.frame(t(cbind(summary(fit1)$tTable[-(1:11),5], summary(fit2)$tTable[-(1:11),5])))[,1:2]
+fit5 = nlme::lme(formula2, random = ~1|enrollment_site/participant_id,data=datDF2)
+coef_table = rbind(coef_table, summary(fit5)$tTable[-(1:11),1][c(14,15)]) # Factor1_delta Factor10_delta
+pval_table = rbind(pval_table, summary(fit5)$tTable[-(1:11),5][c(14,15)])
+
+fit3 = nlme::lme(formula1, random = ~1|enrollment_site/participant_id,data=datDF0)
+fit4 = nlme::lme(formula1, random = ~1|enrollment_site/participant_id,data=datDF1)
+fit6 = nlme::lme(formula3, random = ~1|enrollment_site/participant_id,data=datDF2)
+coef_table = cbind(coef_table, rbind(data.frame(t(cbind(summary(fit3)$tTable[-(1:11),1], summary(fit4)$tTable[-(1:11),1]))),summary(fit6)$tTable[-(1:11),1][12:22])) # SP1-10 AUC delta
+pval_table = cbind(pval_table, rbind(data.frame(t(cbind(summary(fit3)$tTable[-(1:11),5], summary(fit4)$tTable[-(1:11),5]))),summary(fit6)$tTable[-(1:11),5][12:22]))
+rownames(coef_table) = rownames(pval_table) = c("Severe", "Critical", "Critical-Severe")
+
+pval_table_adj = pval_table
+pval_table_adj = t(apply(pval_table, 1, function(x) p.adjust(x, method = "BH")))
+# ii = which(apply(pval_table_adj[1:2,],2,min)<0.1)
+ii = match(c("Factor1", "Factor10", "log2_AUC", "SPmod1", "SPmod3", "SPmod4", "SPmod5", "SPmod6"),
+           colnames(pval_table_adj))
+pval_table_adj=pval_table_adj[,ii]
+colnames(coef_table)[3] <- "AUC RBD IgG"
+test_types = c(rep("formula0",2),rep("formula1",length(ii)-2))
+test_types = factor(test_types, levels = c("formula0","formula1"))
+factor_interaction = ComplexHeatmap::Heatmap(
+  as.matrix(coef_table[,ii]), column_title_gp = gpar(fontsize = 25),
+  column_title=gt_render("Interaction with viral load"),
+  row_names_gp = gpar(fontsize = 18), column_names_gp = gpar(fontsize = 18),
+  heatmap_legend_param = list(title = "Coefficient    ",
+                              direction = "horizontal", 
+                              title_position = "leftcenter",
+                              title_gp = gpar(fontsize = 18), 
+                              labels_gp = gpar(fontsize = 18)),
+  col = circlize::colorRamp2(c(-max(abs(coef_table[,ii])), 0, 
+                               max(abs(coef_table[,ii]))), 
+                             c("#284AA0", "white", "#BC4A4A")), 
+  na_col = "grey90", column_split = test_types, column_gap = unit(2, "mm"),
+  cluster_columns = F, cluster_rows = F, 
+  cell_fun = function(j, i, x, y, w, h, fill) {
+    if(pval_table_adj[i, j] < 0.001) {
+      grid.text("***", x, y, gp = gpar(cex=2), vjust=0.7)
+      }else if(pval_table_adj[i, j] < 0.01) {
+        grid.text("**", x, y, gp = gpar(cex=2), vjust=0.7)
+        }else if(pval_table_adj[i, j] < 0.05) {
+          grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+          }
+    })
+test_Fig4E = list()
+test_Fig4E$Coefficient = coef_table
+test_Fig4E$pval = pval_table
+colnames(test_Fig4E$pval)[colnames(test_Fig4E$pval) == "log2_AUC"] = "AUC RBD IgG"
+test_Fig4E$adj_pval = t(apply(pval_table,1,p.adjust))
+colnames(test_Fig4E$adj_pval)[colnames(test_Fig4E$adj_pval) == "log2_AUC"] = "AUC RBD IgG"
+ComplexHeatmap::draw(factor_interaction, heatmap_legend_side = "bottom")
+```
+
+```{r interaction with viral load and cytokine PC - v1, fig.height=6, fig.width=9.7}
+datDF = left_join(left_join(left_join(left_join(
+  assay_mat, ct_df[, c("Ct", "event_id")], by = "event_id"),
+  auc_df[, c("log2_AUC", "event_id")], by = "event_id"),
+  cytof_parent_mat[, 1:15], by = "event_id"),
+                  cytokine_PCs, by = "event_id")
+labels_select <- c("Factor1", "Factor10", "Ct", "log2_AUC", paste0("SPmod",1:10))
+datDF = datDF[, c(labels_select,
+                  "participant_id", "event_type", "event_date", 
+                  "enrollment_site", "discretized_admit_age_quantile", 
+                  "sex", "label")]
+datDF[,1:length(labels_select)] = scale(datDF[,1:length(labels_select)])
+datDF = datDF[datDF$event_type == "V1",]
+datDF0 = datDF[datDF$label %in% c("A", "B", "C"),]
+datDF0 = datDF0[apply(is.na(datDF0),1,sum) == 0,]
+
+datDF1 = datDF[datDF$label %in% c("E","F"),]
+datDF1 = datDF1[apply(is.na(datDF1),1,sum)==0,]
+
+datDF2 = rbind(datDF0, datDF1)
+datDF2 = cbind(datDF2[,1:14], datDF2)
+colnames(datDF2)[1:14] = paste0(colnames(datDF2)[15:28],"_delta")
+datDF2[datDF2$label %in% c("A","B","C"),1:14] = 0
+
+# both pan-inflammation
+formula0 = formula(paste0("Ct~sex+discretized_admit_age_quantile+Factor1+Factor10+log2_AUC+",
+                          paste(paste0("SPmod",1:10),collapse = "+")))
+formula1 = formula(paste0("Ct~sex+discretized_admit_age_quantile+log2_AUC+",
+                          paste(paste0("SPmod",1:10),collapse = "+")))
+formula2 = formula(paste0("Ct~sex+discretized_admit_age_quantile+Factor1+Factor10+log2_AUC+",
+                          paste(paste0("SPmod",1:10),collapse = "+"), "+", 
+                          paste(colnames(datDF2)[1:14][-3],collapse = "+")))
+formula3 = formula(paste0("Ct~sex+discretized_admit_age_quantile+log2_AUC+",
+                          paste(paste0("SPmod",1:10),collapse = "+"), "+",
+                          paste(colnames(datDF2)[4:14],collapse = "+")))
+
+fit1 = nlme::lme(formula0, random = ~1|enrollment_site/participant_id,data=datDF0)
+fit2 = nlme::lme(formula0, random = ~1|enrollment_site/participant_id,data=datDF1)
+coef_table = data.frame(t(cbind(summary(fit1)$tTable[-(1:6),1], summary(fit2)$tTable[-(1:6),1])))[,1:2]
+pval_table = data.frame(t(cbind(summary(fit1)$tTable[-(1:6),5], summary(fit2)$tTable[-(1:6),5])))[,1:2]
+fit5 = nlme::lme(formula2, random = ~1|enrollment_site/participant_id,data=datDF2)
+coef_table = rbind(coef_table, summary(fit5)$tTable[-(1:6),1][c(14,15)])
+pval_table = rbind(pval_table, summary(fit5)$tTable[-(1:6),5][c(14,15)])
+
+fit3 = nlme::lme(formula1, random = ~1|enrollment_site/participant_id,data=datDF0)
+fit4 = nlme::lme(formula1, random = ~1|enrollment_site/participant_id,data=datDF1)
+fit6 = nlme::lme(formula3, random = ~1|enrollment_site/participant_id,data=datDF2)
+coef_table = cbind(coef_table, rbind(data.frame(t(cbind(summary(fit3)$tTable[-(1:6),1], summary(fit4)$tTable[-(1:6),1]))),summary(fit6)$tTable[-(1:6),1][12:22])) 
+pval_table = cbind(pval_table, rbind(data.frame(t(cbind(summary(fit3)$tTable[-(1:6),5], summary(fit4)$tTable[-(1:6),5]))),summary(fit6)$tTable[-(1:6),5][12:22]))
+rownames(coef_table) = rownames(pval_table) = c("Severe", "Critical", "Critical-Severe")
+
+pval_table_adj = pval_table
+pval_table_adj = t(apply(pval_table, 1, function(x) p.adjust(x, method = "BH")))
+# ii = which(apply(pval_table_adj[1:2,],2,min)<0.1)
+ii = match(c("Factor1", "Factor10", "log2_AUC", "SPmod1", "SPmod3", "SPmod4", "SPmod5", "SPmod6"),
+           colnames(pval_table_adj))
+pval_table_adj=pval_table_adj[,ii]
+colnames(coef_table)[3] <- "AUC RBD IgG"
+test_types = c(rep("formula0",2),rep("formula1",length(ii)-2))
+test_types = factor(test_types, levels = c("formula0","formula1"))
+factor_interaction = ComplexHeatmap::Heatmap(
+  as.matrix(coef_table[,ii]), column_title_gp = gpar(fontsize = 25),
+  column_title=gt_render("Interaction with viral load"),
+  row_names_gp = gpar(fontsize = 18), column_names_gp = gpar(fontsize = 18),
+  heatmap_legend_param = list(title = "Coefficient    ",
+                              direction = "horizontal", 
+                              title_position = "leftcenter",
+                              title_gp = gpar(fontsize = 18), 
+                              labels_gp = gpar(fontsize = 18)),
+  col = circlize::colorRamp2(c(-max(abs(coef_table[,ii])), 0, 
+                               max(abs(coef_table[,ii]))), 
+                             c("#284AA0", "white", "#BC4A4A")), 
+  na_col = "grey90", column_split = test_types, column_gap = unit(2, "mm"),
+  cluster_columns = F, cluster_rows = F, 
+  cell_fun = function(j, i, x, y, w, h, fill) {
+    if(pval_table_adj[i, j] < 0.001) {
+      grid.text("***", x, y, gp = gpar(cex=2), vjust=0.7)
+      }else if(pval_table_adj[i, j] < 0.01) {
+        grid.text("**", x, y, gp = gpar(cex=2), vjust=0.7)
+        }else if(pval_table_adj[i, j] < 0.05) {
+          grid.text("*", x, y, gp = gpar(cex=2), vjust=0.7)
+          }
+    })
+test_Fig4E = list()
+test_Fig4E$Coefficient = coef_table
+test_Fig4E$pval = pval_table
+colnames(test_Fig4E$pval)[colnames(test_Fig4E$pval) == "log2_AUC"] = "AUC RBD IgG"
+test_Fig4E$adj_pval = t(apply(pval_table,1,p.adjust))
+colnames(test_Fig4E$adj_pval)[colnames(test_Fig4E$adj_pval) == "log2_AUC"] = "AUC RBD IgG"
+ComplexHeatmap::draw(factor_interaction, heatmap_legend_side = "bottom")
+```
+
