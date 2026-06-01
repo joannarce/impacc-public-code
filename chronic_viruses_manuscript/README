@@ -3,8 +3,10 @@
 ---
 Contact Information: Cole Maguire (colemag@utexas.edu)
 ## Instructions
-This code is for the manuscript titled "Chronic Viral Reactivation and Associated Host Immune Response and Clinical Outcomes in Acute COVID-19 and Post-Acute Sequelae of COVID-19"
+This code is for the manuscript titled "Virus Reactivation in Acute and Long COVID-19"
+
 Update 6/16/2025: The codebase has been updated for revisions to the manuscript as part of the peer review process. Due to Figures shifting, particularly the supplement, a mapping of the pre-print supplement to the current supplement is provided at the bottom.
+
 Update 5/3/2026: The codebase has been updated to match the final figure order. Of note, Extended Data Figures are still referred to as "Supplementary Figures" and are denoted with an "S" in front of them (e.g. Figure S2A would be Extended Data Figure 2a). The mapping of figures compared to the pre-print has been updated at the bottom of this file. The data availability statement has been updated to include more details.
 ### Data availability
 The IMPACC Data Sharing Plan aims to support broad data dissemination while safeguarding participant privacy and data integrity through de-identification and masking of sensitive data fields. All IMPACC data, including those produced as part of this study, have been submitted to the Immunology Database and Analysis Portal (ImmPort), a repository supported by the NIAID Division of Allergy, Immunology and Transplantation under accession code SDY1760 (https://www.immport.org/shared/study/SDY1760), as well as to the NLM's Database of Genotypes and Phenotypes (dbGaP) under accession number phs002686.v2.p2. Both raw and processed datasets are available through restricted access in accordance with the NIH public data sharing policy for IRB-exempted public health surveillance studies. Access may be requested through AccessClinicalData@NIAID (https://accessclinicaldata.niaid.nih.gov/study-viewer/clinical_trials). Further detailed guidance on data access is provided on ImmPort (https://docs.immport.org/home/impaccslides).
@@ -19,8 +21,8 @@ Scripts used to generate figures and tables. Of note, Figures denoted with "S" a
 | Figure |Source File| Output |
 |:-----|:-----|:-----|
 | Figure 1, S2, S3, and S4 | [Figure1.Rmd](Figure1/src/Figure1.qmd) | [Figure1](Figure1/output) |
-| Figure S5 | [Figure1.Rmd](Figure1/src/FigureS5_External_Validation.qmd) | [Figure1](Figure1/output) |
-| Figure 2 and S6  | [Figure2.Rmd](Figure2/src/Figure2.qmd) | [Figure2](Figure2/output) |
+| Figure S5A-C | [FigureS5_External_Validation.Rmd](Figure1/src/FigureS5_External_Validation.qmd) | [Figure1](Figure1/output) |
+| Figure 2, S5D-E, and S6  | [Figure2.Rmd](Figure2/src/Figure2.qmd) | [Figure2](Figure2/output) |
 | Figure 3 and S7A-B  | [Figure3.Rmd](Figure3/src/Figure3.qmd) | [Figure3](Figure3/output) |
 | Figure 4 and S7C-D  | [Figure4.Rmd](Figure4/src/Figure4.qmd) | [Figure4](Figure4/output) |
 | Figure 5 and S8 and S9A-E  | [Figure5.Rmd](Figure5/src/Figure5.qmd) | [Figure5](Figure5/output) |
