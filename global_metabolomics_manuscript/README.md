@@ -23,8 +23,9 @@ The code used to generate the supplementary figures is also organized by related
 - **Figure S2**: `IMPACC_deep_dive_FigureS2.Rmd`
 - **Figure S3**: `IMPACC_deep_dive_Figure3.Rmd`
 - **Figure S4**: `IMPACC_deep_dive_FigureS4.Rmd`
-- **Figure S5**: `IMPACC_deep_dive_Figure5.Rmd`, `IMPACC_deep_dive_FigureS5.Rmd`
+- **Figure S5**: `IMPACC_deep_dive_FigureS4.Rmd`
 - **Figure S6**: `IMPACC_deep_dive_FigureS6.Rmd`
+- **Figure S7**: `IMPACC_deep_dive_Figure5.Rmd`, `IMPACC_deep_dive_FigureS7.Rmd`
 
 ## Notes
 

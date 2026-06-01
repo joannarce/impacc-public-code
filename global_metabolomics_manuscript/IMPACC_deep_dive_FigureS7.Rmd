@@ -1,0 +1,613 @@
+---
+title: "Groupped_box"
+output: html_document
+date: "2024-09-12"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{ r}
+# library
+library(ggplot2)
+ 
+# create a data frame
+variety=rep(LETTERS[1:7], each=40)
+treatment=rep(c("high","low"),each=20)
+note=seq(1:280)+sample(1:150, 280, replace=T)
+data=data.frame(variety, treatment ,  note)
+ 
+# grouped boxplot
+ggplot(data, aes(x=variety, y=note, fill=treatment)) + 
+    geom_boxplot()
+
+```
+
+```{r}
+load( "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/TG_data_use.Rdata")
+load( "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/PRO_data_use.Rdata")
+load( "/scratch/metabolomics/plasma-metabolomics-global/scripts/deep_dive_met/D_data_use.Rdata")
+```
+#creatinine
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+data_use_0_TG_TEMP =  data_use_0_TG[,c("X275","trajectory_group")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_D_TEMP =  data_use_0_D[,c("X275","event_location")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_D_TEMP = data_use_0_D_TEMP %>% mutate(trajectory_group = case_when(
+  event_location == "Hospital" ~ 1,
+  event_location == "Outpatient" ~ 2
+))
+data_use_0_D_TEMP$event_location = NULL
+data_use_0_PRO_TEMP =  data_use_0_PRO[,c("X275","conv_cluster4")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_PRO_TEMP = data_use_0_PRO_TEMP %>% mutate(trajectory_group = case_when(
+  conv_cluster4 == 1 ~ 1,
+  conv_cluster4 == 2 ~ 2,
+  conv_cluster4 == 5 ~ 3,
+  conv_cluster4 == 6 ~ 4
+))
+data_use_0_PRO_TEMP$conv_cluster4 = NULL
+data_use_0_PRO_TEMP$type = "Long COVID"
+data_use_0_D_TEMP$type = "Discharge"
+data_use_0_TG_TEMP$type = "TG"
+
+#data_use_0_all = merge(data_use_0_TG_TEMP, data_use_0_D_TEMP, by = c("X275", "sample_id"), all= TRUE)
+#data_use_0_all = merge(data_use_0_all, data_use_0_PRO_TEMP, by = c("X275", "sample_id"), all= TRUE)
+data_use_0_all = rbind(data_use_0_TG_TEMP, data_use_0_D_TEMP,data_use_0_PRO_TEMP)
+data_use_0_all%>%  ggplot(mapping = aes(x = type, y = X275, fill = trajectory_group)) +
+  geom_boxplot() +
+  labs(y = "Eigenvalue", x = "") + # +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) 
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("creatinine")
+```
+
+#creatinine
+```{r}
+data_use_0_TG_TEMP =  data_use_0_TG[,c("X275","trajectory_group")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_D_TEMP =  data_use_0_D[,c("X275","event_location")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_PRO_TEMP =  data_use_0_PRO[,c("X275","Convalescent")] %>%
+  rownames_to_column(var = "sample_id") 
+####
+data_use_0_TG_TEMP = data_use_0_TG_TEMP %>% mutate( TG = case_when(
+  trajectory_group == 1 ~ "TG1",
+  trajectory_group == 2 ~ "TG2",
+  trajectory_group == 3 ~ "TG3",
+  trajectory_group == 4 ~ "TG4",
+  trajectory_group == 5 ~ "TG5",
+))
+my_comparisons = list(c( "TG1","TG2"),c( "TG1","TG3"),c( "TG1","TG4"),c( "TG1","TG5"))
+a = data_use_0_TG_TEMP%>%  ggplot(mapping = aes(x = TG, y = X275, fill = TG)) +
+  geom_boxplot() +
+  labs(y = "", x = "") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Trajectory") + scale_fill_manual(values = c("TG1" = "#639A21",
+                                "TG2" = "#39828C",
+                                "TG3" = "#6371AD",
+                                "TG4" = "#BD7D31",
+                                "TG5" = "#9C3418"))
+####
+my_comparisons = list(c( "Hospital","Outpatient"))
+b = data_use_0_D_TEMP%>%  ggplot(mapping = aes(x = event_location, y = X275, fill = event_location)) +
+  geom_boxplot() +
+  labs(y = "", x = "") + ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Discharge")
+####
+my_comparisons = list(c( "MIN","PHY"),c( "MIN","COG"),c( "MIN","MLT"))
+c = data_use_0_PRO_TEMP%>%  ggplot(mapping = aes(x = Convalescent, y = X275,fill = Convalescent)) +
+  geom_boxplot() +
+  labs(y = "", x = "")  +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Long COVID") + scale_fill_manual(values= c("MIN"  = "#639A21",
+                                 "PHY"  = "#39828C",
+                                 "COG"  = "#9C3418",
+                                 "MLT"  = "#0072B2")) 
+library(ggpubr)
+Creatinine = ggarrange(a,b,c, ncol = 3)
+annotate_figure(Creatinine, top = text_grob("Creatinine",face = "bold", size = 18))
+
+```
+#Guanidinoacetate
+```{r}
+data_use_0_TG_TEMP =  data_use_0_TG[,c("X344","trajectory_group")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_D_TEMP =  data_use_0_D[,c("X344","event_location")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_PRO_TEMP =  data_use_0_PRO[,c("X344","Convalescent")] %>%
+  rownames_to_column(var = "sample_id") 
+####
+data_use_0_TG_TEMP = data_use_0_TG_TEMP %>% mutate( TG = case_when(
+  trajectory_group == 1 ~ "TG1",
+  trajectory_group == 2 ~ "TG2",
+  trajectory_group == 3 ~ "TG3",
+  trajectory_group == 4 ~ "TG4",
+  trajectory_group == 5 ~ "TG5",
+))
+my_comparisons = list(c( "TG1","TG2"),c( "TG1","TG3"),c( "TG1","TG4"),c( "TG1","TG5"))
+a = data_use_0_TG_TEMP%>%  ggplot(mapping = aes(x = TG, y = X344, fill = TG)) +
+  geom_boxplot() +
+  labs(y = "", x = "") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Trajectory") + scale_fill_manual(values = c("TG1" = "#639A21",
+                                "TG2" = "#39828C",
+                                "TG3" = "#6371AD",
+                                "TG4" = "#BD7D31",
+                                "TG5" = "#9C3418"))
+####
+my_comparisons = list(c( "Hospital","Outpatient"))
+b = data_use_0_D_TEMP%>%  ggplot(mapping = aes(x = event_location, y = X344, fill = event_location)) +
+  geom_boxplot() +
+  labs(y = "", x = "") + ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Discharge")
+####
+my_comparisons = list(c( "MIN","PHY"),c( "MIN","COG"),c( "MIN","MLT"))
+c = data_use_0_PRO_TEMP%>%  ggplot(mapping = aes(x = Convalescent, y = X344,fill = Convalescent)) +
+  geom_boxplot() +
+  labs(y = "", x = "")  +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Long COVID") + scale_fill_manual(values= c("MIN"  = "#639A21",
+                                 "PHY"  = "#39828C",
+                                 "COG"  = "#9C3418",
+                                 "MLT"  = "#0072B2")) 
+library(ggpubr)
+Guanidinoacetate = ggarrange(a,b,c, ncol = 3)
+annotate_figure(Guanidinoacetate, top = text_grob("Guanidinoacetate",face = "bold", size = 18))
+
+```
+#Glycine
+```{r}
+data_use_0_TG_TEMP =  data_use_0_TG[,c("X340","trajectory_group")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_D_TEMP =  data_use_0_D[,c("X340","event_location")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_PRO_TEMP =  data_use_0_PRO[,c("X340","Convalescent")] %>%
+  rownames_to_column(var = "sample_id") 
+####
+data_use_0_TG_TEMP = data_use_0_TG_TEMP %>% mutate( TG = case_when(
+  trajectory_group == 1 ~ "TG1",
+  trajectory_group == 2 ~ "TG2",
+  trajectory_group == 3 ~ "TG3",
+  trajectory_group == 4 ~ "TG4",
+  trajectory_group == 5 ~ "TG5",
+))
+my_comparisons = list(c( "TG1","TG2"),c( "TG1","TG3"),c( "TG1","TG4"),c( "TG1","TG5"))
+a = data_use_0_TG_TEMP%>%  ggplot(mapping = aes(x = TG, y = X340, fill = TG)) +
+  geom_boxplot() +
+  labs(y = "", x = "") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Trajectory") + scale_fill_manual(values = c("TG1" = "#639A21",
+                                "TG2" = "#39828C",
+                                "TG3" = "#6371AD",
+                                "TG4" = "#BD7D31",
+                                "TG5" = "#9C3418"))
+####
+my_comparisons = list(c( "Hospital","Outpatient"))
+b = data_use_0_D_TEMP%>%  ggplot(mapping = aes(x = event_location, y = X340, fill = event_location)) +
+  geom_boxplot() +
+  labs(y = "", x = "") + ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Discharge")
+####
+my_comparisons = list(c( "MIN","PHY"),c( "MIN","COG"),c( "MIN","MLT"))
+c = data_use_0_PRO_TEMP%>%  ggplot(mapping = aes(x = Convalescent, y = X340,fill = Convalescent)) +
+  geom_boxplot() +
+  labs(y = "", x = "")  +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Convalescent") + scale_fill_manual(values= c("MIN"  = "#639A21",
+                                 "PHY"  = "#39828C",
+                                 "COG"  = "#9C3418",
+                                 "MLT"  = "#0072B2")) 
+library(ggpubr)
+Glycine = ggarrange(a,b,c, ncol = 3)
+annotate_figure(Glycine, top = text_grob("Glycine",face = "bold", size = 18))
+
+```
+
+#Serine
+```{r}
+data_use_0_TG_TEMP =  data_use_0_TG[,c("X503","trajectory_group")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_D_TEMP =  data_use_0_D[,c("X503","event_location")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_PRO_TEMP =  data_use_0_PRO[,c("X503","Convalescent")] %>%
+  rownames_to_column(var = "sample_id") 
+####
+data_use_0_TG_TEMP = data_use_0_TG_TEMP %>% mutate( TG = case_when(
+  trajectory_group == 1 ~ "TG1",
+  trajectory_group == 2 ~ "TG2",
+  trajectory_group == 3 ~ "TG3",
+  trajectory_group == 4 ~ "TG4",
+  trajectory_group == 5 ~ "TG5",
+))
+my_comparisons = list(c( "TG1","TG2"),c( "TG1","TG3"),c( "TG1","TG4"),c( "TG1","TG5"))
+a = data_use_0_TG_TEMP%>%  ggplot(mapping = aes(x = TG, y = X503, fill = TG)) +
+  geom_boxplot() +
+  labs(y = "", x = "") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Trajectory") + scale_fill_manual(values = c("TG1" = "#639A21",
+                                "TG2" = "#39828C",
+                                "TG3" = "#6371AD",
+                                "TG4" = "#BD7D31",
+                                "TG5" = "#9C3418"))
+####
+my_comparisons = list(c( "Hospital","Outpatient"))
+b = data_use_0_D_TEMP%>%  ggplot(mapping = aes(x = event_location, y = X503, fill = event_location)) +
+  geom_boxplot() +
+  labs(y = "", x = "") + ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Discharge")
+####
+my_comparisons = list(c( "MIN","PHY"),c( "MIN","COG"),c( "MIN","MLT"))
+c = data_use_0_PRO_TEMP%>%  ggplot(mapping = aes(x = Convalescent, y = X503,fill = Convalescent)) +
+  geom_boxplot() +
+  labs(y = "", x = "")  +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Convalescent") + scale_fill_manual(values= c("MIN"  = "#639A21",
+                                 "PHY"  = "#39828C",
+                                 "COG"  = "#9C3418",
+                                 "MLT"  = "#0072B2")) 
+library(ggpubr)
+Serine = ggarrange(a,b,c, ncol = 3)
+annotate_figure(Serine, top = text_grob("Serine",face = "bold", size = 18))
+
+```
+
+#Tryptophan
+```{r}
+data_use_0_TG_TEMP =  data_use_0_TG[,c("X565","trajectory_group")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_D_TEMP =  data_use_0_D[,c("X565","event_location")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_PRO_TEMP =  data_use_0_PRO[,c("X565","Convalescent")] %>%
+  rownames_to_column(var = "sample_id") 
+names(data_use_0_PRO_TEMP) = c("sample_id","X565","Long COVID")
+
+####
+data_use_0_TG_TEMP = data_use_0_TG_TEMP %>% mutate( TG = case_when(
+  trajectory_group == 1 ~ "TG1",
+  trajectory_group == 2 ~ "TG2",
+  trajectory_group == 3 ~ "TG3",
+  trajectory_group == 4 ~ "TG4",
+  trajectory_group == 5 ~ "TG5",
+))
+my_comparisons = list(c( "TG1","TG2"),c( "TG1","TG3"),c( "TG1","TG4"),c( "TG1","TG5"))
+a = data_use_0_TG_TEMP%>%  ggplot(mapping = aes(x = TG, y = X565, fill = TG)) +
+  geom_boxplot() +
+  labs(y = "", x = "") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Trajectory") + scale_fill_manual(values = c("TG1" = "#639A21",
+                                "TG2" = "#39828C",
+                                "TG3" = "#6371AD",
+                                "TG4" = "#BD7D31",
+                                "TG5" = "#9C3418"))
+####
+my_comparisons = list(c( "Hospital","Outpatient"))
+b = data_use_0_D_TEMP%>%  ggplot(mapping = aes(x = event_location, y = X565, fill = event_location)) +
+  geom_boxplot() +
+  labs(y = "", x = "") + ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Discharge")
+####
+my_comparisons = list(c( "MIN","PHY"),c( "MIN","COG"),c( "MIN","MLT"))
+c = data_use_0_PRO_TEMP%>%  ggplot(mapping = aes(x = `Long COVID`, y = X565,fill = `Long COVID`)) +
+  geom_boxplot() +
+  labs(y = "", x = "")  +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Convalescent") + scale_fill_manual(values= c("MIN"  = "#639A21",
+                                 "PHY"  = "#39828C",
+                                 "COG"  = "#9C3418",
+                                 "MLT"  = "#0072B2")) 
+library(ggpubr)
+Tryptophan = ggarrange(a,b,c, ncol = 3)
+annotate_figure(Tryptophan, top = text_grob("Tryptophan",face = "bold", size = 18))
+
+```
+
+#Tryptophan
+```{r}
+data_use_0_TG_TEMP =  data_use_0_TG[,c("X565","trajectory_group")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_D_TEMP =  data_use_0_D[,c("X565","event_location")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_PRO_TEMP =  data_use_0_PRO[,c("X565","Convalescent")] %>%
+  rownames_to_column(var = "sample_id") 
+names(data_use_0_PRO_TEMP) = c("sample_id","X565","Long COVID")
+
+####
+data_use_0_TG_TEMP = data_use_0_TG_TEMP %>% mutate( TG = case_when(
+  trajectory_group == 1 ~ "TG1",
+  trajectory_group == 2 ~ "TG2",
+  trajectory_group == 3 ~ "TG3",
+  trajectory_group == 4 ~ "TG4",
+  trajectory_group == 5 ~ "TG5",
+))
+my_comparisons = list(c( "TG1","TG2"),c( "TG1","TG3"),c( "TG1","TG4"),c( "TG1","TG5"))
+a = data_use_0_TG_TEMP%>%  ggplot(mapping = aes(x = TG, y = X565, fill = TG)) +
+ geom_violin(position=position_dodge(1)) +
+  labs(y = "", x = "") + ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Trajectory") + scale_fill_manual(values = c("TG1" = "#639A21",
+                                "TG2" = "#39828C",
+                                "TG3" = "#6371AD",
+                                "TG4" = "#BD7D31",
+                                "TG5" = "#9C3418"))
+####
+my_comparisons = list(c( "Hospital","Outpatient"))
+b = data_use_0_D_TEMP%>%  ggplot(mapping = aes(x = event_location, y = X565, fill = event_location)) +
+   geom_violin(position=position_dodge(1))+
+  labs(y = "", x = "") + ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Discharge")
+####
+my_comparisons = list(c( "MIN","PHY"),c( "MIN","COG"),c( "MIN","MLT"))
+c = data_use_0_PRO_TEMP%>%  ggplot(mapping = aes(x = `Long COVID`, y = X565,fill = `Long COVID`)) +
+   geom_violin(position=position_dodge(1))+
+  labs(y = "", x = "")  +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Long COVID") + scale_fill_manual(values= c("MIN"  = "#639A21",
+                                 "PHY"  = "#39828C",
+                                 "COG"  = "#9C3418",
+                                 "MLT"  = "#0072B2")) 
+library(ggpubr)
+Tryptophan = ggarrange(a,b,c, ncol = 3)
+annotate_figure(Tryptophan, top = text_grob("Tryptophan",face = "bold", size = 18))
+
+```
+
+#Tryptophan
+```{r}
+data_use_0_TG_TEMP =  data_use_0_TG[,c("X565","trajectory_group")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_D_TEMP =  data_use_0_D[,c("X565","event_location")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_PRO_TEMP =  data_use_0_PRO[,c("X565","Convalescent")] %>%
+  rownames_to_column(var = "sample_id") 
+names(data_use_0_PRO_TEMP) = c("sample_id","X565","Long COVID")
+####
+data_use_0_TG_TEMP = data_use_0_TG_TEMP %>% mutate( TG = case_when(
+  trajectory_group == 1 ~ "TG1",
+  trajectory_group == 2 ~ "TG2",
+  trajectory_group == 3 ~ "TG3",
+  trajectory_group == 4 ~ "TG4",
+  trajectory_group == 5 ~ "TG5",
+))
+my_comparisons = list(c( "TG1","TG2"),c( "TG1","TG3"),c( "TG1","TG4"),c( "TG1","TG5"))
+a = data_use_0_TG_TEMP%>%  ggplot(mapping = aes(x = TG, y = X565, fill = TG)) +
+ geom_violin(position=position_dodge(1)) + geom_boxplot(width=0.1, fill="white")+
+  labs(y = "", x = "") + ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Trajectory") + scale_fill_manual(values = c("TG1" = "#639A21",
+                                "TG2" = "#39828C",
+                                "TG3" = "#6371AD",
+                                "TG4" = "#BD7D31",
+                                "TG5" = "#9C3418"))
+####
+my_comparisons = list(c( "Hospital","Outpatient"))
+b = data_use_0_D_TEMP%>%  ggplot(mapping = aes(x = event_location, y = X565, fill = event_location)) +
+   geom_violin(position=position_dodge(1))+ geom_boxplot(width=0.1, fill="white")+
+  labs(y = "", x = "") + ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Discharge")
+####
+my_comparisons = list(c( "MIN","PHY"),c( "MIN","COG"),c( "MIN","MLT"))
+c = data_use_0_PRO_TEMP%>%  ggplot(mapping = aes(x = `Long COVID`, y = X565,fill = `Long COVID`)) +
+   geom_violin(position=position_dodge(1))+ geom_boxplot(width=0.1, fill="white")+
+  labs(y = "", x = "")  +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Long COVID") + scale_fill_manual(values= c("MIN"  = "#639A21",
+                                 "PHY"  = "#39828C",
+                                 "COG"  = "#9C3418",
+                                 "MLT"  = "#0072B2")) 
+library(ggpubr)
+Tryptophan = ggarrange(a,b,c, ncol = 3)
+annotate_figure(Tryptophan, top = text_grob("Tryptophan",face = "bold", size = 18))
+
+```
+
+#Serine
+```{r}
+data_use_0_TG_TEMP =  data_use_0_TG[,c("X503","trajectory_group")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_D_TEMP =  data_use_0_D[,c("X503","event_location")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_PRO_TEMP =  data_use_0_PRO[,c("X503","Convalescent")] %>%
+  rownames_to_column(var = "sample_id") 
+names(data_use_0_PRO_TEMP) = c("sample_id","X503","Long COVID")
+####
+data_use_0_TG_TEMP = data_use_0_TG_TEMP %>% mutate( TG = case_when(
+  trajectory_group == 1 ~ "TG1",
+  trajectory_group == 2 ~ "TG2",
+  trajectory_group == 3 ~ "TG3",
+  trajectory_group == 4 ~ "TG4",
+  trajectory_group == 5 ~ "TG5",
+))
+my_comparisons = list(c( "TG1","TG2"),c( "TG1","TG3"),c( "TG1","TG4"),c( "TG1","TG5"))
+a = data_use_0_TG_TEMP%>%  ggplot(mapping = aes(x = TG, y = X503, fill = TG)) +
+   geom_violin(position=position_dodge(1))+ geom_boxplot(width=0.1, fill="white")+
+  labs(y = "", x = "") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Trajectory") + scale_fill_manual(values = c("TG1" = "#639A21",
+                                "TG2" = "#39828C",
+                                "TG3" = "#6371AD",
+                                "TG4" = "#BD7D31",
+                                "TG5" = "#9C3418"))
+####
+my_comparisons = list(c( "Hospital","Outpatient"))
+b = data_use_0_D_TEMP%>%  ggplot(mapping = aes(x = event_location, y = X503, fill = event_location)) +
+  geom_violin(position=position_dodge(1))+ geom_boxplot(width=0.1, fill="white")+
+  labs(y = "", x = "") + ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Discharge")
+####
+my_comparisons = list(c( "MIN","PHY"),c( "MIN","COG"),c( "MIN","MLT"))
+c = data_use_0_PRO_TEMP%>%  ggplot(mapping = aes(x = `Long COVID`, y = X503,fill = `Long COVID`)) +
+  geom_violin(position=position_dodge(1))+ geom_boxplot(width=0.1, fill="white")+
+  labs(y = "", x = "")  +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Long COVID") + scale_fill_manual(values= c("MIN"  = "#639A21",
+                                 "PHY"  = "#39828C",
+                                 "COG"  = "#9C3418",
+                                 "MLT"  = "#0072B2")) 
+library(ggpubr)
+Serine = ggarrange(a,b,c, ncol = 3)
+annotate_figure(Serine, top = text_grob("Serine",face = "bold", size = 18))
+
+```
+
+#Glycine
+```{r}
+data_use_0_TG_TEMP =  data_use_0_TG[,c("X340","trajectory_group")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_D_TEMP =  data_use_0_D[,c("X340","event_location")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_PRO_TEMP =  data_use_0_PRO[,c("X340","Convalescent")] %>%
+  rownames_to_column(var = "sample_id") 
+names(data_use_0_PRO_TEMP) = c("sample_id","X340","Long COVID")
+####
+data_use_0_TG_TEMP = data_use_0_TG_TEMP %>% mutate( TG = case_when(
+  trajectory_group == 1 ~ "TG1",
+  trajectory_group == 2 ~ "TG2",
+  trajectory_group == 3 ~ "TG3",
+  trajectory_group == 4 ~ "TG4",
+  trajectory_group == 5 ~ "TG5",
+))
+my_comparisons = list(c( "TG1","TG2"),c( "TG1","TG3"),c( "TG1","TG4"),c( "TG1","TG5"))
+a = data_use_0_TG_TEMP%>%  ggplot(mapping = aes(x = TG, y = X340, fill = TG)) +
+ geom_violin(position=position_dodge(1))+ geom_boxplot(width=0.1, fill="white")+
+  labs(y = "", x = "") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Trajectory") + scale_fill_manual(values = c("TG1" = "#639A21",
+                                "TG2" = "#39828C",
+                                "TG3" = "#6371AD",
+                                "TG4" = "#BD7D31",
+                                "TG5" = "#9C3418"))
+####
+my_comparisons = list(c( "Hospital","Outpatient"))
+b = data_use_0_D_TEMP%>%  ggplot(mapping = aes(x = event_location, y = X340, fill = event_location)) +
+  geom_violin(position=position_dodge(1))+ geom_boxplot(width=0.1, fill="white")+
+  labs(y = "", x = "") + ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Discharge")
+####
+my_comparisons = list(c( "MIN","PHY"),c( "MIN","COG"),c( "MIN","MLT"))
+c = data_use_0_PRO_TEMP%>%  ggplot(mapping = aes(x = `Long COVID`, y = X340,fill = `Long COVID`)) +
+  geom_violin(position=position_dodge(1))+ geom_boxplot(width=0.1, fill="white")+
+  labs(y = "", x = "")  +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Long COVID") + scale_fill_manual(values= c("MIN"  = "#639A21",
+                                 "PHY"  = "#39828C",
+                                 "COG"  = "#9C3418",
+                                 "MLT"  = "#0072B2")) 
+library(ggpubr)
+Glycine = ggarrange(a,b,c, ncol = 3)
+annotate_figure(Glycine, top = text_grob("Glycine",face = "bold", size = 18))
+
+```
+
+#Guanidinoacetate
+```{r}
+data_use_0_TG_TEMP =  data_use_0_TG[,c("X344","trajectory_group")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_D_TEMP =  data_use_0_D[,c("X344","event_location")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_PRO_TEMP =  data_use_0_PRO[,c("X344","Convalescent")] %>%
+  rownames_to_column(var = "sample_id") 
+names(data_use_0_PRO_TEMP) = c("sample_id","X344","Long COVID")
+####
+data_use_0_TG_TEMP = data_use_0_TG_TEMP %>% mutate( TG = case_when(
+  trajectory_group == 1 ~ "TG1",
+  trajectory_group == 2 ~ "TG2",
+  trajectory_group == 3 ~ "TG3",
+  trajectory_group == 4 ~ "TG4",
+  trajectory_group == 5 ~ "TG5",
+))
+my_comparisons = list(c( "TG1","TG2"),c( "TG1","TG3"),c( "TG1","TG4"),c( "TG1","TG5"))
+a = data_use_0_TG_TEMP%>%  ggplot(mapping = aes(x = TG, y = X344, fill = TG)) +
+ geom_violin(position=position_dodge(1))+ geom_boxplot(width=0.1, fill="white")+
+  labs(y = "", x = "") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Trajectory") + scale_fill_manual(values = c("TG1" = "#639A21",
+                                "TG2" = "#39828C",
+                                "TG3" = "#6371AD",
+                                "TG4" = "#BD7D31",
+                                "TG5" = "#9C3418"))
+####
+my_comparisons = list(c( "Hospital","Outpatient"))
+b = data_use_0_D_TEMP%>%  ggplot(mapping = aes(x = event_location, y = X344, fill = event_location)) +
+   geom_violin(position=position_dodge(1))+ geom_boxplot(width=0.1, fill="white")+
+  labs(y = "", x = "") + ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Discharge")
+####
+my_comparisons = list(c( "MIN","PHY"),c( "MIN","COG"),c( "MIN","MLT"))
+c = data_use_0_PRO_TEMP%>%  ggplot(mapping = aes(x = `Long COVID`, y = X344,fill = `Long COVID`)) +
+  geom_violin(position=position_dodge(1))+ geom_boxplot(width=0.1, fill="white")+
+  labs(y = "", x = "")  +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Long COVID") + scale_fill_manual(values= c("MIN"  = "#639A21",
+                                 "PHY"  = "#39828C",
+                                 "COG"  = "#9C3418",
+                                 "MLT"  = "#0072B2")) 
+library(ggpubr)
+Guanidinoacetate = ggarrange(a,b,c, ncol = 3)
+annotate_figure(Guanidinoacetate, top = text_grob("Guanidinoacetate",face = "bold", size = 18))
+
+```
+
+#creatinine
+```{r}
+data_use_0_TG_TEMP =  data_use_0_TG[,c("X275","trajectory_group")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_D_TEMP =  data_use_0_D[,c("X275","event_location")] %>%
+  rownames_to_column(var = "sample_id") 
+data_use_0_PRO_TEMP =  data_use_0_PRO[,c("X275","Convalescent")] %>%
+  rownames_to_column(var = "sample_id") 
+names(data_use_0_PRO_TEMP) = c("sample_id","X275","Long COVID")
+####
+data_use_0_TG_TEMP = data_use_0_TG_TEMP %>% mutate( TG = case_when(
+  trajectory_group == 1 ~ "TG1",
+  trajectory_group == 2 ~ "TG2",
+  trajectory_group == 3 ~ "TG3",
+  trajectory_group == 4 ~ "TG4",
+  trajectory_group == 5 ~ "TG5",
+))
+my_comparisons = list(c( "TG1","TG2"),c( "TG1","TG3"),c( "TG1","TG4"),c( "TG1","TG5"))
+a = data_use_0_TG_TEMP%>%  ggplot(mapping = aes(x = TG, y = X275, fill = TG)) +
+   geom_violin(position=position_dodge(1))+ geom_boxplot(width=0.1, fill="white")+
+  labs(y = "", x = "") +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Trajectory") + scale_fill_manual(values = c("TG1" = "#639A21",
+                                "TG2" = "#39828C",
+                                "TG3" = "#6371AD",
+                                "TG4" = "#BD7D31",
+                                "TG5" = "#9C3418"))
+####
+my_comparisons = list(c( "Hospital","Outpatient"))
+b = data_use_0_D_TEMP%>%  ggplot(mapping = aes(x = event_location, y = X275, fill = event_location)) +
+   geom_violin(position=position_dodge(1))+ geom_boxplot(width=0.1, fill="white")+
+  labs(y = "", x = "") + ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Discharge")
+####
+my_comparisons = list(c( "MIN","PHY"),c( "MIN","COG"),c( "MIN","MLT"))
+c = data_use_0_PRO_TEMP%>%  ggplot(mapping = aes(x = `Long COVID`, y = X275,fill = `Long COVID`)) +
+   geom_violin(position=position_dodge(1))+ geom_boxplot(width=0.1, fill="white")+
+  labs(y = "", x = "")  +ggpubr::stat_compare_means(comparisons = my_comparisons, label = "p.signif",size = 5, vjust = 0.6) +
+  theme_bw() +
+  theme(legend.pos = "none", axis.title.x = element_text(size = 15)) + theme(axis.title=element_text(size=15), legend.title= element_text (size=15))+theme(strip.text.x = element_text(size = 15)) + theme(axis.text = element_text(size = 15)) + theme(title=element_text(size = 15)) + ggtitle("Long COVID") + scale_fill_manual(values= c("MIN"  = "#639A21",
+                                 "PHY"  = "#39828C",
+                                 "COG"  = "#9C3418",
+                                 "MLT"  = "#0072B2")) 
+library(ggpubr)
+Creatinine = ggarrange(a,b,c, ncol = 3)
+annotate_figure(Creatinine, top = text_grob("Creatinine",face = "bold", size = 18))
+
+```

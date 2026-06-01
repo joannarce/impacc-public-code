@@ -412,6 +412,49 @@ O_figure = ggplot(O_p, aes(date_cat, fill = event_type)) + geom_bar() + theme_bw
 a = ggarrange(H_figure, O_figure, ncol = 2, common.legend = T, legend = "right") 
 a
 ```
+```{r}
+visit_colors <- setNames(
+  scales::hue_pal()(10),
+  c("Visit 1","Visit 2","Visit 3","Visit 4","Visit 5",
+    "Visit 6","Visit 7","Visit 8","Visit 9","Visit 10")
+)
+
+H_figure = ggplot(H_p, aes(date_cat, fill = event_type)) + 
+  geom_bar() + theme_bw() + ggtitle("Last Hospital samples") +
+  scale_fill_manual(values = visit_colors, drop = FALSE) +
+  geom_text(aes(Var1, Freq, label = Freq, fill = NULL), data = totals_H, vjust = -0.1) +
+  theme(axis.text.x = element_text(size = 9, angle = 45, vjust = 1, hjust = 1))
+
+O_figure = ggplot(O_p, aes(date_cat, fill = event_type)) + 
+  geom_bar() + theme_bw() + ggtitle("First Outpatient samples") +
+  scale_fill_manual(values = visit_colors, drop = FALSE) +
+  geom_text(aes(Var1, Freq, label = Freq, fill = NULL), data = totals_O, vjust = -0.1) +
+  theme(axis.text.x = element_text(size = 9, angle = 45, vjust = 1, hjust = 1))
+
+a = ggarrange(H_figure, O_figure, ncol = 2, common.legend = TRUE, legend = "right")
+a
+```
+```{r}
+all_levels <- data.frame(
+  x = 1:10,
+  event_type = factor(paste("Visit", 1:10), 
+                      levels = paste("Visit", 1:10))
+)
+
+dummy_plot <- ggplot(all_levels, aes(x = x, fill = event_type)) +
+  geom_bar() +
+  scale_fill_manual(values = visit_colors, drop = FALSE) +
+  labs(fill = "event_type") +
+  theme(legend.position = "right")
+
+# Extract legend from dummy plot
+shared_legend <- get_legend(dummy_plot)
+
+# Combine
+a <- ggarrange(H_figure+theme(legend.position = "none"), O_figure+theme(legend.position = "none"), ncol = 2) 
+final <- ggarrange(a, shared_legend, ncol = 2, widths = c(4, 1))
+final
+```
 
 ```{r}
 part1 = ggarrange(a,Volcano_metabolomics_1, ncol =1, labels = c("A","C"))
