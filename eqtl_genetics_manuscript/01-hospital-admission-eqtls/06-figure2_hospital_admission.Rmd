@@ -1,0 +1,397 @@
+---
+title: "Hospital-admission cis-eQTLs: Figure 2"
+author: "Ernie Chen (ernie.chen@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(data.table)
+library(ComplexHeatmap)   # if not installed: BiocManager::install("ComplexHeatmap")
+library(circlize)         # for colour ramps
+library(ggplot2)
+library(scales)
+library(ggbreak)
+library(qs2)
+```
+
+## Paths and parameters
+
+All hardcoded absolute paths from the original notebook are collected here.
+Edit these values to match your environment; everything downstream is built
+from them with `file.path()`.
+
+```{r paths-and-parameters}
+# ---- EDIT THESE FOR YOUR ENVIRONMENT ----
+# Analysis output / results root (this is the original panEQTL_dir).
+results_root <- "/path/to/hospital_admission_results"
+panEQTL_dir <- results_root
+
+# Directory holding the eigenMT-significant eQTL table and coloc results.
+results_dir <- file.path(panEQTL_dir, "panEQTL_results")
+# -----------------------------------------
+
+cis_eqtls_of_published_snps <- qs_read(file.path(results_dir, "panEQTL_significant_published_eqtls.qs2")) 
+
+coloc_dat <- qs_read(file.path(results_dir, "panEQTL_coloc_results.qs2")) 
+```
+
+## Figure 2B: Visit-1 SNP x gene effect-size heatmap
+
+Merge the colocalization posterior probabilities onto the significant cis-eQTL
+table, keep only SNP-gene pairs with eigenMT < 0.01 (61 pairs, 52 genes,
+32 SNPs), and build the SNP-by-gene effect-size matrix. SNPs are ordered by
+genomic position and genes by hierarchical clustering of beta. The heatmap fill
+is the signed effect size; each significant cell carries a diagonal mark, and
+colocalized pairs (PP.H4 > 0.5) get a full X plus a border box, with their SNP
+and gene labels highlighted.
+
+```{r figure2b-heatmap}
+############################################################
+## Figure 2: Visit-1 cis-eQTL landscape
+##   • Panel A: dot-heat-map (58 SNPs × 52 genes)
+##   • Panel B: discovery/colocalisation bar
+############################################################
+## ──────────────────────────────────────────────
+## 1.  Merge coloc results back onto cis-eQTL table
+##     (coloc columns are NA for the >800 non-significant pairs)
+## ──────────────────────────────────────────────
+eqtl_v1 <- cis_eqtls_of_published_snps %>% 
+  left_join(    # adds PP.H1-H4 where available
+    coloc_dat   %>%   
+      select(grch38, gene, starts_with("PP.H")), 
+    by = c("grch38", "gene")
+  )
+
+## ──────────────────────────────────────────────
+## 2.  Keep only SNP-gene pairs with eigenMT < 0.01
+##     → 61 pairs, 52 unique genes, 32 unique SNPs
+## ──────────────────────────────────────────────
+eqtl_sig <- eqtl_v1 %>% 
+  filter(eigenMT < 0.01)
+
+## ──────────────────────────────────────────────
+## 3.  Derive plotting helpers
+## ──────────────────────────────────────────────
+eqtl_sig <- eqtl_sig %>% 
+  mutate(
+    neglog10P  = pmin(-log10(eigenMT), 10),
+    signed     = ifelse(beta >= 0,  neglog10P, -neglog10P),
+    coloc_flag = ifelse(!is.na(PP.H4) & PP.H4 > 0.5, TRUE, FALSE)  # NA → FALSE
+  )
+
+## Ordering rows (SNPs) by genomic position …
+snp_order <- eqtl_sig %>% 
+  distinct(grch37, grch38) %>% 
+  separate(grch38, into = c("chr","pos"), sep = ":", convert = TRUE, remove = FALSE) %>% 
+  arrange(chr, pos) %>% 
+  pull(grch38)
+
+## …and columns (genes) by hierarchical clustering of beta
+gene_order <- eqtl_sig %>% 
+  select(grch38, gene_name, beta) %>% 
+  pivot_wider(names_from = gene_name, values_from = beta, values_fill = 0) %>% 
+  column_to_rownames("grch38") %>% 
+  as.matrix() %>% 
+  t() %>%                                  # genes in rows
+  { 
+    hc <- hclust(dist(., method = "euclidean"), method = "ward.D2")
+    hc$labels[hc$order]                    # ordered gene names
+  }
+
+## ──────────────────────────────────────────────
+## 4.  Build matrices for ComplexHeatmap
+## ──────────────────────────────────────────────
+mat_beta <- eqtl_sig %>%
+  select(grch38, gene_name, beta) %>%
+  pivot_wider(names_from = gene_name, values_from = beta, values_fill = 0) %>%
+  column_to_rownames("grch38") %>%
+  as.matrix() %>%
+  .[snp_order, gene_order]
+
+mat_coloc <- eqtl_sig %>%
+  select(grch38, gene_name, coloc_flag) %>%
+  pivot_wider(names_from = gene_name, values_from = coloc_flag, values_fill = FALSE) %>%
+  column_to_rownames("grch38") %>%
+  as.matrix() %>%
+  .[snp_order, gene_order]
+
+# First, identify which SNPs and genes have any colocalization
+snps_with_coloc <- rownames(mat_coloc)[rowSums(mat_coloc, na.rm = TRUE) > 0]
+genes_with_coloc <- colnames(mat_coloc)[colSums(mat_coloc, na.rm = TRUE) > 0]
+
+# Create vectors to store the text colors and font styles
+row_colors <- ifelse(rownames(mat_beta) %in% snps_with_coloc, "red", "black")
+row_faces <- ifelse(rownames(mat_beta) %in% snps_with_coloc, "bold", "plain") 
+row_sizes <- ifelse(rownames(mat_beta) %in% snps_with_coloc, 9.5, 8)  # Larger font for colocalized SNPs
+
+column_colors <- ifelse(colnames(mat_beta) %in% genes_with_coloc, "red", "black")
+column_faces <- ifelse(colnames(mat_beta) %in% genes_with_coloc, "bold", "plain")
+column_sizes <- ifelse(colnames(mat_beta) %in% genes_with_coloc, 9.5, 8)  # Larger font for colocalized genes
+
+## ---- per-SNP significant-gene counts (for right-hand bar) ----
+row_counts <- rowSums(mat_beta != 0)
+
+ha_right <- rowAnnotation(
+  # Change title from "Sig\nGenes" to "Sig Genes" (single line)
+  `Sig. Genes` = anno_barplot(
+    row_counts,
+    border = FALSE,
+    gp      = gpar(fill = "#8DA0CB"),
+    # Increase width from 15mm to 25mm
+    width   = unit(25, "mm"),
+    axis_param = list(
+      at = seq(0, max(row_counts) + (max(row_counts) %% 2), by = 2),
+      labels = as.character(seq(0, max(row_counts) + (max(row_counts) %% 2), by = 2)),
+      labels_rot = 0,
+      # Increase axis label font size
+      gp = gpar(fontsize = 9)
+    )
+  ),
+  annotation_name_side = "top",
+  annotation_name_rot = 0,
+  # Increase title font size from 8 to 10
+  annotation_name_gp = gpar(fontsize = 12, fontface = "bold")
+)
+
+## ──────────────────────────────────────────────
+## Figure 2B: Visit-1 cis-eQTL effect-size heatmap
+## ──────────────────────────────────────────────
+# Determine reasonable beta range for color scale
+beta_range <- max(abs(range(mat_beta, na.rm = TRUE)))
+col_fun <- colorRamp2(c(-beta_range, 0, beta_range), c("#2C7BB6", "white", "#D7191C"))  
+
+ht <- Heatmap(
+  mat_beta,
+  name             = "Effect Size",
+  col              = col_fun,
+  na_col           = "grey90",
+  cluster_rows     = FALSE,
+  cluster_columns  = FALSE,
+  
+  # Use custom row name parameters with varied sizes
+  show_row_names   = TRUE,
+  row_names_gp     = gpar(fontsize = row_sizes, col = row_colors, fontface = row_faces),
+  
+  # Use custom column name parameters with varied sizes
+  show_column_names= TRUE, 
+  column_names_gp  = gpar(fontsize = column_sizes, col = column_colors, fontface = column_faces),
+  
+  heatmap_width    = unit(264, "mm"), # 120
+  heatmap_height   = unit(166,  "mm"), # 80
+  right_annotation = ha_right,
+
+    cell_fun = function(j, i, x, y, width, height, fill) {
+      # Draw the background fill for the cell
+      if(!is.na(fill)) {
+        grid.rect(x, y, width, height, 
+                  gp = gpar(fill = fill, col = NA))
+      }
+      
+      # Check if this cell has a significant eQTL (non-zero beta)
+      if(!is.na(mat_beta[i, j]) && mat_beta[i, j] != 0) {
+        
+        # Check if it's also colocalized
+        if(!is.na(mat_coloc[i, j]) && mat_coloc[i, j]) {
+          # Full "X" for colocalized eQTLs
+          grid.lines(
+            x = c(x - width*0.4, x + width*0.4),
+            y = c(y - height*0.4, y + height*0.4),
+            gp = gpar(col = "black", lwd = 1.5)
+          )
+          grid.lines(
+            x = c(x - width*0.4, x + width*0.4),
+            y = c(y + height*0.4, y - height*0.4),
+            gp = gpar(col = "black", lwd = 1.5)
+          )
+          
+          # ADD THIS: Border box around colocalized pairs
+          grid.rect(x, y, width*0.85, height*0.85,
+                    gp = gpar(col = "black", fill = NA, lwd = 2))
+          
+        } else {
+          # Single "\" for significant cis-eQTLs only
+          grid.lines(
+            x = c(x - width*0.4, x + width*0.4),
+            y = c(y - height*0.4, y + height*0.4),
+            gp = gpar(col = "black", lwd = 1.5)
+          )
+        }
+      }
+      
+      # Light grey border around all cells
+      grid.rect(x, y, width, height,
+                gp = gpar(col = "grey90", fill = NA, lwd = 0.4))
+    },
+
+  # Customize the titles
+  column_title = "Significant cis-eQTLs at Visit 1",
+  column_title_gp = gpar(fontsize = 16, fontface = "bold"),  # Larger bold font for column title
+  
+  row_title = "Critical COVID-19 GWAS lead SNPs",
+  row_title_gp = gpar(fontsize = 14),  # Larger bold font for row title
+  
+  # You can also customize the legend title
+  heatmap_legend_param = list(
+    title_gp = gpar(fontsize = 10, fontface = "bold"),  # Bold legend title
+    labels_gp = gpar(fontsize = 9),  # Normal font for legend labels
+    title_position = "topcenter"
+  )
+)
+draw(ht)
+```
+
+## Figure 2A: SNP and gene attrition bars
+
+Summarize the attrition from all tested SNPs and genes through eigenMT
+significance to colocalization, as percentages of the total tested. The
+broken-axis bar plot accommodates the 887 total tested genes alongside the much
+smaller significant and colocalized counts.
+
+```{r figure2a-attrition}
+## Figure 2A: SNP and gene attrition and colocalization bars
+## -----------------------------------------------------------------------
+## Counts derived outside the plot for full reproducibility
+
+# Clean data structure - counts only
+panelB_df <- tibble::tribble(
+  ~Category, ~Status,        ~Count,
+  "SNPs",    "Total Tested",       58,
+  "SNPs",    "Significant",        32,
+  "SNPs",    "Colocalized",         9,
+  "Genes",   "Total Tested",      887,
+  "Genes",   "Significant",        52,
+  "Genes",   "Colocalized",        10
+) %>% 
+  mutate(
+    Category = factor(Category, levels = c("SNPs", "Genes")),
+    # Reorder for filtering pipeline: Total (top) → Significant (middle) → Colocalized (bottom)
+    Status = factor(Status, levels = c("Colocalized", "Significant", "Total Tested"))
+  ) %>%
+  group_by(Category) %>%
+  mutate(
+    Percentage = round(Count / first(Count[Status == "Total Tested"]) * 100, 1)
+  ) %>%
+  ungroup()
+
+# More intuitive color scheme: light → dark = less → more specific
+journal_colors <- c("Total Tested" = "#969696",   # Light gray for all tested
+                    "Significant" = "#377EB8",     # Blue for significant eQTLs  
+                    "Colocalized" = "#053061")     # Dark blue for colocalized
+
+# Create improved publication-quality plot
+bar_plots <- ggplot(panelB_df, aes(x = Status, y = Count, fill = Status)) +
+  facet_wrap(~Category, scales = "free_y", ncol = 1, strip.position = "left") +
+  
+  # Main bars
+  geom_bar(stat = "identity", width = 0.9, color = "white", size = 0.75) +
+  
+  # Percentage labels positioned next to bars
+  geom_text(data = filter(panelB_df, Status != "Total Tested"),
+            aes(label = paste0(round(Percentage, 1), "%"),
+                y = Count + 0.5),  # Small offset to the right of bars
+            size = 4.5, hjust = 0, vjust = 0.5, fontface = "bold") +
+  
+#  Count labels with conditional formatting
+  geom_text(data = filter(panelB_df, Status == "Total Tested"),
+            aes(label = comma(Count, accuracy = 1)),
+            position = position_stack(vjust = 0.5),
+            size = 5, fontface = "bold", color = "black") +
+            
+  geom_text(data = filter(panelB_df, Status == "Significant"),
+            aes(label = comma(Count, accuracy = 1)),
+            position = position_stack(vjust = 0.5),
+            size = 5, fontface = "bold", color = "white") +
+            
+  geom_text(data = filter(panelB_df, Status == "Colocalized"),
+            aes(label = comma(Count, accuracy = 1)),
+            position = position_stack(vjust = 0.5),
+            size = 4, fontface = "bold", color = "white") +
+  
+  # Clean, professional theme
+  theme_minimal(base_size = 14) +
+  theme(
+    # Remove y-axis elements for cleaner look
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(), 
+    axis.title.y = element_blank(),
+    axis.text.x = element_text(face = "bold", size = 12, angle = 0),
+    axis.line.x = element_line(color = "black", size = 1),
+    axis.ticks.x = element_line(color = "black", size = 0.5),
+    axis.ticks.length.x = unit(0.25, "cm"),
+    
+    # Clean panels
+    panel.grid = element_blank(),
+    panel.background = element_rect(fill = "white", color = NA),
+    
+    # Improved strip styling
+    strip.background = element_rect(fill = "grey90", color = "black", size = 0.5),
+    strip.text = element_text(size = 14, face = "bold", margin = margin(5, 5, 5, 5)),
+    
+    # Legend improvements - make sure it's visible
+    legend.position = "right",  # Simple right position
+    legend.background = element_rect(fill = "white", color = "black", size = 0.5),
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 11),
+    legend.key.size = unit(0.8, "cm"),
+    legend.margin = margin(8, 8, 8, 8),
+    
+    # Better spacing
+    panel.spacing.y = unit(1.5, "cm"),
+    aspect.ratio = 0.25,
+    
+    # Title styling
+    plot.title = element_text(size = 16, face = "bold"),
+    plot.subtitle = element_text(size = 12, color = "grey30", margin = margin(b = 15)),
+    plot.caption = element_text(size = 10, color = "grey50", hjust = 0),
+    plot.margin = margin(15, 25, 15, 25)
+  ) +
+  
+  # Color scheme with proper order for filtering pipeline
+  scale_fill_manual(
+    name = "Analysis Stage",
+    values = journal_colors,
+    breaks = c("Total Tested", "Significant", "Colocalized"),  # Legend order
+    guide = guide_legend(override.aes = list(color = "white", size = 0.5))
+  ) +
+  
+  # Put back the essential scale break for the 887 value
+  scale_y_break(c(60, 400), scales = "free", ticklabels = NULL, expand = c(0.01, 0.01)) +
+  
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.05)),
+    breaks = function(x) {
+      if(max(x) > 100) seq(0, ceiling(max(x)/100)*100, by = 200)
+      else seq(0, ceiling(max(x)/10)*10, by = 20)
+    }
+  ) +
+  
+  # Improved labeling with methodological details
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "eQTL Colocalization of Critical COVID-19 GWAS Variants",
+    subtitle = "PBMC tissue • eigenMT FDR < 0.01 • COLOC posterior probability > 0.5",
+    caption = "Colocalization indicates shared causal variants between GWAS and eQTL signals."
+  ) +
+  
+  scale_x_discrete(expand = expansion(mult = c(0.3, 0.3))) +
+  coord_flip()
+
+# Display the plot
+print(bar_plots)
+```

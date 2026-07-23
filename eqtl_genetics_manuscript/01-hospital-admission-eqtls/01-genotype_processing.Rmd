@@ -1,0 +1,188 @@
+---
+title: "Hospital-admission cis-eQTLs: cohort definition and genotype extraction"
+author: "Ernie Chen (ernie.chen@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(dplyr)
+library(data.table)
+library(tidyverse)
+library(tidyr)
+library(tibble)
+library(readxl)
+library(qs2)
+library(SNPRelate)
+library(GENESIS)
+library(magrittr)
+library(GWASTools)
+library(nFactors)
+```
+
+## Paths and parameters
+
+All hardcoded absolute paths from the original notebook are collected here.
+Edit these values to match your environment; everything downstream is built
+from them with `file.path()`.
+
+```{r paths-and-parameters}
+# ---- EDIT THESE FOR YOUR ENVIRONMENT ----
+# Root of the raw IMPACC genotype/expression data env.
+base_dir <- "/path/to/impacc_data/"
+
+# Serialized IMPACC data environment (clinical + omics).
+data_env_path <- file.path(base_dir, "impacc_data_env.RDS")
+
+# Post-QC admixture phenotype file (maps participant_id to core_specific_id).
+admixture_pheno_path <- "/path/to/impacc_admixture_pheno.txt"
+
+# Published critical COVID-19 GWAS lead-SNP table.
+published_snps_path <- "/path/to/All_Severe_COVID_GWAS_hits.xlsx"
+
+# Analysis output / results root (this is the original panEQTL_dir).
+results_dir <- "/path/to/hospital_admission_results"
+panEQTL_dir <- results_dir
+# -----------------------------------------
+
+data_env <- readRDS(data_env_path)
+```
+
+## Set up the GWAS cohort (no trajectory-group stratification)
+
+Define the unstratified GWAS cohort: all GWAS samples that passed genotyping
+QC, with age and sex recorded. Sex is recoded numerically (0 = Female,
+1 = Male), and the cohort is intersected with the post-QC admixture sample list.
+
+```{r gwas-cohort}
+gwas_cohort <- data_env$clinical_data %>% # 1255 GWAS samples
+    filter(sample_type == "GWAS") %>%
+    select(participant_id, trajectory_group, admit_age, sex) %>%
+    arrange(participant_id) %>%
+    mutate(
+    # Convert sex to a numeric variable where 0 = Female and 1 = Male.
+    sex = ifelse(sex == "Male", 1, 0)) %>%
+    distinct() #1112 distinct GWAS samples
+
+# post-QC IMPACC cohort
+fam <- fread(admixture_pheno_path) %>%
+    select(participant_id, FID) %>%
+    rename(core_specific_id = FID)
+
+final_gwas_cohort <- gwas_cohort %>% # 1031 samples 
+    inner_join(fam, by = "participant_id") %>%
+    relocate(core_specific_id, .before = "trajectory_group")
+
+#   1   2   3   4   5 
+# 204 230 303 195  99 
+
+qs_save(final_gwas_cohort, file.path(panEQTL_dir, "impacc_panEQTL_cohort.qs2"))
+```
+
+## Convert the genotype GDS to PLINK format
+
+Convert the IMPACC GDS genotype file to PLINK BED/BIM/FAM using SNPRelate.
+
+```{r gds-to-plink}
+## ---- gds-to-plink ---------------------------------------------------------
+
+# path to your GDS file
+gds_fn <- file.path(base_dir, "impacc_geno.gds")
+
+# create an output directory for PLINK files
+plink_dir <- file.path(base_dir, "plink")
+if (!dir.exists(plink_dir)) dir.create(plink_dir, recursive = TRUE)
+
+# prefix for PLINK output (creates *.bed, *.bim, *.fam)
+plink_prefix <- file.path(plink_dir, "impacc_geno")
+
+# open the GDS file
+gds <- snpgdsOpen(gds_fn, readonly = TRUE)
+
+# optional: subset samples or SNPs here
+# samp_keep <- readLines("sample_ids.txt")      # example
+# snp_keep  <- readLines("snp_ids.txt")         # example
+
+## THIS FIRST STEP CAUSES an ALT/REF Allele error.
+
+# convert to PLINK
+snpgdsGDS2BED(
+  gds,
+  bed.fn = paste0(plink_prefix),   # .bim and .fam are created automatically
+  # sample.id = samp_keep,                 # uncomment if sub-setting
+  # snp.id    = snp_keep,
+  verbose = TRUE
+)
+
+snpgdsClose(gds)
+```
+
+## Define the extraction ranges around the published GWAS loci
+
+Build the +/- 1 Mb range list around each published critical COVID-19 GWAS
+lead SNP (GenOMICC PMID 37198478, HGI PMID 37674002). The published list is 69
+non-overlapping SNPs. Both a point-position list (snps_to_extract.txt) and a
+2 Mb-window list (ranges_to_extract.txt) are written for PLINK. This step does
+not need to be re-run every time.
+
+```{r gwas-ranges}
+published_snps <- read_excel(published_snps_path)
+
+snps_to_extract <- published_snps %>%
+        pivot_longer(cols = everything(), 
+                    values_to = "chr:pos") %>%
+        filter(!is.na(`chr:pos`)) %>%
+        distinct(`chr:pos`) %>%
+        separate(`chr:pos`, into = c("chr", "pos"), sep = ":") %>%
+        mutate(pos = as.numeric(pos),
+                start = pos,
+                end = pos) %>%
+        arrange(chr, start) %>%
+        mutate(ranges = paste0("R", 1:n())) %>%
+        select(chr, start, end, ranges)
+
+# 69 published, non-overlapping critical COVID-19 GWAS SNPs  
+write.table(snps_to_extract, 
+            file = file.path(panEQTL_dir, "snps_to_extract.txt"),
+            quote = FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE, 
+            sep = "\t")
+
+# Expand the extraction range to include 2 Mb around all SNPs
+ranges_to_extract <- published_snps %>%
+        pivot_longer(cols = everything(), 
+                    values_to = "chr:pos") %>%
+        filter(!is.na(`chr:pos`)) %>%
+        distinct(`chr:pos`) %>%
+        separate(`chr:pos`, into = c("chr", "pos"), sep = ":") %>%
+        mutate(pos = as.numeric(pos),
+                start = pos - 1000000,
+                end = pos + 1000000) %>%
+        arrange(chr, start) %>%
+        mutate(ranges = paste0("R", 1:n())) %>%
+        select(chr, start, end, ranges)
+
+write.table(ranges_to_extract, 
+            file = file.path(panEQTL_dir, "ranges_to_extract.txt"),
+            quote = FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE, 
+            sep = "\t")        
+```
+
+The actual PLINK `--extract range` run that consumes `ranges_to_extract.txt`
+(299,380 variants extracted across the 69 ranges) lives in
+`00-extract_gwas_loci.sh`.
+

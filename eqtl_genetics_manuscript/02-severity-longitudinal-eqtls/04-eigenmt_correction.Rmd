@@ -1,0 +1,602 @@
+---
+title: "Severity-longitudinal cis-eQTLs: eigenMT multiple-testing correction"
+author: "Ernie Chen (ernie.chen@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+This notebook applies eigenMT as a fast proxy for permutation-based
+multiple-testing correction of the per-stratum MatrixEQTL results. We first
+reformat the MatrixEQTL outputs into the column layout eigenMT expects, run
+eigenMT per chromosome (see `04-run_eigenmt.sh`), combine the per-chromosome
+results into a single merged table, assemble the full combined cis-eQTL summary
+statistics with GRCh37/38 annotation, and compute eigenMT-corrected
+significance (p-value times the eigenMT effective number of tests) at the
+published critical COVID-19 GWAS loci.
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(data.table)
+library(dplyr)
+library(tibble)
+library(tidyr)
+library(stringr)
+library(readxl)
+library(qs2)
+```
+
+```{r paths-and-parameters}
+# ---- EDIT THESE PATHS FOR YOUR ENVIRONMENT --------------------------------
+# base_dir            : root for all inputs and outputs of this track.
+# results_dir         : holds final_files/, results/, eigenMT_FDR/, etc.
+# data_env_path       : IMPACC acute-phase data environment (RDS) for gene
+#                       row features.
+# genotype_bim_path   : .bim of the full post-QC IMPACC genotype set, used to
+#                       map GRCh37 IDs to GRCh38 and recover minor/major alleles.
+# published_snps_path : Excel workbook of published critical COVID-19 GWAS hits.
+# chr12_ld_path       : LDlink output for the chr12:112922758 proxy search.
+base_dir            <- path.expand("/path/to/eqtl_data")
+results_dir         <- file.path(base_dir, "tg_eQTL_with_convalescent")
+data_env_path       <- file.path(base_dir, "expression_data",
+                                 "impacc_full-cohort_acute_data_env_030625.RDS")
+genotype_bim_path   <- file.path(base_dir, "genotype_data",
+                                 "impacc_chrALL_imputed_rsq07_ancestry_maf05_38.bim")
+published_snps_path <- file.path(base_dir, "tg_impacc_GWAS",
+                                 "All_Severe_COVID_GWAS_hits.xlsx")
+chr12_ld_path       <- file.path(base_dir, "chr12_LD_proxy", "chr12_112922758_LD.txt")
+# ----------------------------------------------------------------------------
+
+final_files_dir <- file.path(results_dir, "final_files")
+matrix_results_dir <- file.path(results_dir, "results")
+formatted_dir <- file.path(results_dir, "eigenMT_FDR", "eigenMT_formatted_files")
+eigenmt_results_dir <- file.path(results_dir, "eigenMT_FDR", "eigenMT_results")
+combined_dir <- file.path(results_dir, "eigenMT_FDR", "eigenMT_combined_final_result")
+sumstats_dir <- file.path(results_dir, "tg_sumstats")
+for (d in c(combined_dir, sumstats_dir)) if (!dir.exists(d)) dir.create(d, recursive = TRUE)
+
+visits <- paste0("visit_", 1:10)
+groups <- c("case", "control")
+```
+
+## Reformat MatrixEQTL output for eigenMT
+
+eigenMT needs the chromosome prefix stripped and the QTL columns renamed
+(SNP, t-stat, p-value) with beta placed before the statistic. We rewrite the
+SNP, snploc, geneloc, and cis-eQTL files into an `eigenMT_formatted_files`
+directory per stratum.
+
+```{r}
+# 19 unique chromosomes present: 1 10 11 12 13 16 17 19 2 20 21 3 4 5 6 7 8 9 X
+
+# Loop over visits and groups
+for (visit in visits) {
+  for (group in groups) {
+
+    # Skip visit_5 control only
+    if(visit == "visit_5" && group == "control") {
+      message("Skipping ", visit, " ", group)
+      next
+    }
+    message("Processing ", visit, " ", group, " ...")
+
+    # Create output directory for formatted files
+    out_dir <- file.path(formatted_dir, visit, group)
+    if (!dir.exists(out_dir)) {
+      dir.create(out_dir, recursive = TRUE)
+    }
+
+    ## Process snploc file
+    snploc_in <- file.path(final_files_dir, visit, group, paste0(visit, "_", group, "_snploc.txt"))
+    snploc_out <- file.path(out_dir, paste0(visit, "_", group, "_snploc_eigenMT.txt"))
+
+    dt_snploc <- fread(snploc_in) %>%
+      # Remove the "chr" prefix from the chr column
+      mutate(chr = gsub("chr", "", chr))
+
+    fwrite(dt_snploc, snploc_out, sep = "\t", quote = FALSE)
+
+    ## Process SNP file
+    snp_in <- file.path(final_files_dir, visit, group, paste0(visit, "_", group, "_SNP.txt"))
+    snp_out <- file.path(out_dir, paste0(visit, "_", group, "_SNP_eigenMT.txt"))
+
+    dt_snp <- fread(snp_in)
+
+    fwrite(dt_snp, snp_out, sep = "\t", quote = FALSE)
+
+    ## Process cis_eQTL file (from the 'results' directory)
+    qtl_in <- file.path(matrix_results_dir, visit, group, paste0(visit, "_", group, "_cis_eQTL.txt"))
+    qtl_out <- file.path(out_dir, paste0(visit, "_", group, "_cis_eQTL_eigenMT.txt"))
+
+    dt_qtl <- fread(qtl_in) %>%
+      # Move the beta column to come before statistic
+      relocate(beta, .before = statistic) %>%
+      # Rename columns as needed for eigenMT
+      rename(SNP = snps,
+             `t-stat` = statistic,
+             `p-value` = pvalue)
+
+    fwrite(dt_qtl, qtl_out, sep = "\t", quote = FALSE)
+
+    ## Process geneloc file
+    geneloc_in <- file.path(final_files_dir, visit, group, paste0(visit, "_", group, "_geneloc.txt"))
+    geneloc_out <- file.path(out_dir, paste0(visit, "_", group, "_geneloc_eigenMT.txt"))
+
+    dt_geneloc <- fread(geneloc_in) %>%
+      # Remove the "chr" prefix from the chr column
+      mutate(chr = gsub("chr", "", chr))
+
+    fwrite(dt_geneloc, geneloc_out, sep = "\t", quote = FALSE)
+
+    message("Finished processing ", visit, " ", group)
+  }
+}
+```
+
+Run eigenMT now: the per-chromosome eigenMT runs are performed by
+`04-run_eigenmt.sh`, which reads the eigenMT-formatted files written above,
+splits each stratum by chromosome, calls `eigenMT.py`, and writes one output
+file per chromosome per stratum.
+
+## Combine the per-chromosome eigenMT results
+
+For each stratum we row-bind the per-chromosome eigenMT outputs into one merged
+table, then row-bind all strata into the final combined eigenMT result.
+
+```{r}
+# Create an empty list to store merged data for each visit/group.
+final_list <- list()
+
+# Loop over each visit and group
+for (visit in visits) {
+  for (grp in groups) {
+
+    # Skip visit_5 control only
+    if(visit == "visit_5" && grp == "control") {
+      message("Skipping ", visit, " ", grp)
+      next
+    }
+
+    message("Processing ", visit, " ", grp, " ...")
+
+    # Define the directory for the current visit and group.
+    input_dir <- file.path(eigenmt_results_dir, visit, grp)
+    if (!dir.exists(input_dir)) {
+      message("Directory ", input_dir, " does not exist; skipping.")
+      next
+    }
+
+    # Construct a regex pattern to match all chromosome-specific eigenMT files for this visit/group.
+    # For example: "^chr.*_visit_1_case_eigenMT.txt$"
+    pattern <- paste0("^chr.*_", visit, "_", grp, "_eigenMT\\.txt$")
+    files <- list.files(path = input_dir, pattern = pattern, full.names = TRUE)
+
+    if (length(files) == 0) {
+      message("No eigenMT files found for ", visit, " ", grp, "; skipping.")
+      next
+    }
+
+    # Read the header from the first file to establish column names.
+    header <- names(fread(files[1], nrows = 0))
+
+    # Read each file, checking that the header is consistent.
+    dfs <- lapply(files, function(file) {
+      dt <- fread(file)
+      if (!identical(names(dt), header)) {
+        stop(sprintf("Header mismatch in file: %s", file))
+      }
+      return(dt)
+    })
+
+    # Merge all files row-wise.
+    merged_data <- rbindlist(dfs)
+
+    # Add the visit and group columns.
+    merged_data <- merged_data %>% mutate(visit = visit, group = grp)
+
+    # Define output file name for the merged data.
+    output_file <- file.path(input_dir, paste0(visit, "_", grp, "_merged_eigenMT.txt"))
+
+    # Write the merged data to the output file.
+    fwrite(merged_data, file = output_file, sep = "\t", quote = FALSE)
+
+    message("Merged eigenMT results for ", visit, " ", grp, " saved to ", output_file)
+
+    # Store the merged data for the final combined merge.
+    final_list[[paste0(visit, "_", grp)]] <- merged_data
+  }
+}
+
+# Combine all merged data across visits and groups.
+if (length(final_list) > 0) {
+  combined_data <- rbindlist(final_list)
+  combined_output_file <- file.path(combined_dir, "final_all_merged_eigenMT.txt")
+  fwrite(combined_data, file = combined_output_file, sep = "\t", quote = FALSE)
+  message("Final combined eigenMT results saved to ", combined_output_file)
+} else {
+  message("No merged eigenMT files were generated.")
+}
+
+# final file is stored in: file.path(combined_dir, "final_all_merged_eigenMT.txt")
+```
+
+## Assemble the combined cis-eQTL summary statistics
+
+We read all per-stratum MatrixEQTL results, tag each with its visit and group,
+annotate with gene names and the GRCh37-to-GRCh38 mapping (and minor/major
+alleles) from the genotype .bim, and save the combined summary statistics.
+
+```{r}
+# Initialize an empty list to hold each cis-eQTL results data frame.
+all_eqtls <- list()
+
+# Get the list of visit directories (e.g., "visit_1", "visit_2", ..., "visit_10")
+visit_dirs <- list.dirs(matrix_results_dir, recursive = FALSE, full.names = TRUE)
+
+# Loop through each visit directory.
+for (visit_dir in visit_dirs) {
+  visit_name <- basename(visit_dir)  # e.g., "visit_1"
+
+  # Get the list of group directories (should be "case" and "control") within the visit directory.
+  group_dirs <- list.dirs(visit_dir, recursive = FALSE, full.names = TRUE)
+
+  # Loop through each group directory.
+  for (group_dir in group_dirs) {
+    group_name <- basename(group_dir)  # "case" or "control"
+
+    # Construct the file name assuming it follows the naming convention:
+    # e.g., "visit_1_case_cis_eQTL.txt"
+    eqtl_file <- file.path(group_dir, paste0(visit_name, "_", group_name, "_cis_eQTL.txt"))
+
+    # Check if the file exists; if not, skip this group.
+    if (!file.exists(eqtl_file)) {
+      message("File does not exist: ", eqtl_file)
+      next
+    }
+
+    # Read the cis-eQTL results file.
+    df <- fread(eqtl_file, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+    # Add two new columns:
+    #   - "visit": to record the visit (e.g., "visit_1")
+    #   - "group": to record the case/control designation.
+    df$visit <- visit_name
+    df$group <- group_name
+
+    # Append this data frame to the list.
+    all_eqtls[[length(all_eqtls) + 1]] <- df
+  }
+}
+
+# Combine all the data frames into one giant data frame.
+combined_eqtls <- bind_rows(all_eqtls)
+
+data_env <- readRDS(data_env_path)
+
+rowfeature <- data_env$pbmc_transcriptomics_rowfeature %>%
+        rownames_to_column(var = "gene") %>%
+        select(gene, gene_name)
+
+grch38_to_37 <- fread(genotype_bim_path) %>%
+    select(-"V3") %>%
+    rename(grch37 = "V2",
+           minor = "V5",
+           major = "V6") %>%
+           unite(`grch38`, c("V1","V4"), sep = ":")
+
+# Reorder columns so that "visit" and "group" appear first.
+combined_eqtls_final <- combined_eqtls %>%
+  select(visit, group, snps, gene, statistic, pvalue, FDR, beta) %>%
+  rename(grch37 = snps) %>%
+  inner_join(rowfeature, by = "gene") %>%
+  relocate(gene_name, .before = "statistic") %>%
+  inner_join(grch38_to_37, by = "grch37") %>%
+  relocate(grch38, .before = "gene")
+
+# Save the combined cis-eQTL results.
+qs_save(combined_eqtls_final, file.path(sumstats_dir, "combined_eqtls_tg_final.qs2"))
+
+### LOAD HERE
+# combined_eqtls_tg_final <- qs_read(file.path(sumstats_dir, "combined_eqtls_tg_final.qs2"))
+```
+
+## eigenMT-corrected significance at the published GWAS loci
+
+We restrict to the published critical COVID-19 GWAS SNPs (plus a chosen chr12
+LD proxy), join the eigenMT effective test counts, and compute the
+eigenMT-corrected significance as p-value times TESTS. eigenMT < 0.01 is the
+chosen significance filter for these loci.
+
+```{r}
+published_snps <- read_excel(published_snps_path) %>%
+  pivot_longer(cols = everything(),
+              values_to = "grch38") %>%
+  filter(!is.na(`grch38`)) %>%
+  group_by(grch38) %>%
+  mutate(source = if(n() > 1) "both" else as.character(name)) %>%
+  ungroup() %>%
+  select(-"name") %>%
+  distinct(grch38, source)
+
+missing_snps <- fread(file.path(base_dir, "genotype_data", "twelve_SNPs_not_in_IMPACC_cohort.txt"), header = F) %>%
+    rename("grch38" = "V1")
+
+# Accounting of the 69 published variants:
+# 57 variants are present in our data; 13 of those have FDR eQTLs <= 1e-6 at
+# some visit and cohort. Of the 12 missing variants, 9 had MAF < 0.05, 1 is on
+# the X chromosome, and 2 are on chr12 (chr12:112922758 and chr12:112919637) in
+# r2 = 0.9668 LD, for which we select an LD proxy below. 57 + 9 + 1 + 2 = 69.
+
+# Choose an LD proxy for the two correlated chr12 reported SNPs.
+chr12_ld_proxies <- fread(chr12_ld_path) %>%
+    select(Coord, R2, Correlated_Alleles) %>%
+    mutate(Coord = gsub("chr", "", Coord)) %>%
+    rename(grch38 = Coord) %>%
+    filter(R2 > 0.59) %>%
+    inner_join(combined_eqtls_final, by = "grch38") %>%
+    filter(FDR <= 10^-6)
+
+# Chosen proxy: 12:112945172
+# r2 = 0.6259 with chr12:112922758 and r2 = 0.6039 with chr12:112919637.
+# eQTL FDR = 5.532148e-08 at visit_1 control. All 69 variants are accounted for.
+
+# eigenMT effective test counts per gene/stratum.
+eigenMT_final <- fread(file.path(combined_dir, "final_all_merged_eigenMT.txt")) %>%
+  select(gene, TESTS, visit, group)
+
+# Restrict to the published SNPs plus the chr12 proxy, join eigenMT TESTS, and
+# compute eigenMT-corrected significance.
+dynamic_eQTLs_snps <- published_snps %>%
+    distinct(grch38) %>%
+    bind_rows(tibble(grch38 = "12:112945172")) %>%  # add the extra chr 12 proxy variant
+    inner_join(combined_eqtls_final, by = "grch38") %>%
+    inner_join(eigenMT_final, by = c("gene", "visit", "group")) %>%
+    mutate(eigenMT = pvalue*TESTS) %>%
+    relocate(eigenMT, .before="FDR") %>%
+    rename(eigenMT_tests = "TESTS")
+
+# eigenMT < 0.01 is the chosen filter for these loci (195 SNP-gene-stratum
+# observations across the published loci pass).
+eigenMT_filter <- dynamic_eQTLs_snps %>% filter(eigenMT < 0.01)
+```
+
+## Significant eQTLs and residuals for the plotting and downstream steps
+
+These final steps identify the significant cis-eQTLs at the published GWAS loci,
+compute covariate-adjusted residual expression for the Figure 4 plots, and save
+the master object signif_eqtls_final_tg.qs2 that the colocalization notebook (05)
+and the figure notebooks (07, 08) consume.
+
+```{r paths-for-significant-eqtl-step}
+# Additional paths used by the steps below.
+final_dir     <- final_files_dir
+residuals_dir <- file.path(results_dir, "dynamic_eQTL_analysis", "residuals")
+if (!dir.exists(residuals_dir)) dir.create(residuals_dir, recursive = TRUE)
+
+# combined_eqtls_tg_final was assembled and saved just above; reuse it here.
+combined_eqtls_tg_final <- combined_eqtls_final
+```
+
+## Identify differential eQTLs across severity groups
+
+We count, per SNP-gene pair and severity group, how many strata reach
+eigenMT < 0.01, pivot to compare case (TG4-5) versus control (TG1-3), and retain
+the pairs at the published loci with at least 10 visit-level tests and at least
+one significant cis-eQTL. This is the differential-eQTL summary.
+
+```{r}
+# Load published SNP data and reformat
+published_snps <- read_excel(published_snps_path) %>%
+  pivot_longer(cols = everything(), values_to = "grch38") %>%
+  filter(!is.na(grch38)) %>%
+  group_by(grch38) %>%
+  mutate(source = if(n() > 1) "both" else as.character(name)) %>%
+  ungroup() %>%
+  select(-name) %>%
+  distinct(grch38, source)
+
+# Create list of SNPs of interest and add extra proxy variant for chr12
+published_snps_plus_chr12 <- published_snps %>%
+  distinct(grch38) %>%
+  bind_rows(tibble(grch38 = "12:112945172"))
+
+eigenMT_final <- fread(file.path(combined_dir, "final_all_merged_eigenMT.txt")) %>%
+  select(gene, TESTS, visit, group)
+
+# Convert to data.table
+combined_eqtls_dt <- as.data.table(combined_eqtls_tg_final)
+eigenMT_dt <- as.data.table(eigenMT_final)
+published_snps_dt <- as.data.table(published_snps_plus_chr12)
+
+# Set keys for faster joins
+setkey(combined_eqtls_dt, gene, visit, group)
+setkey(eigenMT_dt, gene, visit, group)
+
+# Step 1: Join and summarize
+group_summary_dt <- combined_eqtls_dt[eigenMT_dt, nomatch=0
+  ][, eigenMT := pvalue*TESTS
+  ][, .(total = .N,
+        sig_count = sum(eigenMT < 0.01)),
+    by = .(grch37, grch38, gene_name, gene, group)]
+
+# Step 2: Pivot wider efficiently
+summary_wide_dt <- dcast(group_summary_dt,
+                        grch37 + grch38 + gene_name + gene ~ group,
+                        value.var = c("total", "sig_count"),
+                        fill = 0)
+
+# Step 3: Final filtering
+setkey(summary_wide_dt, grch38)
+setkey(published_snps_dt, grch38)
+
+result_dt <- summary_wide_dt[published_snps_dt, nomatch=0
+  ][, total_all := total_case + total_control
+  ][, sig_all := sig_count_case + sig_count_control
+  ][total_all >= 10 & sig_all >= 1]
+
+all_sig_eqtls <- result_dt %>%
+  select(grch37, grch38, gene_name, gene)
+
+all_sig_eqtls_sumstats <- combined_eqtls_tg_final %>%
+  semi_join(all_sig_eqtls, by = c("grch37","grch38", "gene_name", "gene"))
+# 91 significant eQTLs with a minimum of 10 visit-level tests and 1 cis-eQTL:
+# 41 unique SNPs, 73 unique genes, 91 unique pairs.
+
+qs_save(all_sig_eqtls_sumstats, file.path(sumstats_dir, "all_sig_eqtls_sumstats_pivot.qs2"))
+```
+
+## Compute covariate-adjusted residual expression for the significant pairs
+
+For each significant SNP-gene pair and each stratum (visits 1-4, 6-10), we
+regress inverse-normalized expression on the covariates (genotype excluded) and
+keep the residuals together with the additive genotype dosage. These residuals
+are what the Figure 4 boxplots and dose-response curves display.
+
+```{r}
+all_sig_eqtls_full_df <- all_sig_eqtls_sumstats %>%
+  inner_join(eigenMT_final, by = c("gene", "visit", "group")) %>%
+  mutate(eigenMT = pvalue*TESTS) %>%
+  relocate(eigenMT, .before=beta)
+
+# target_pairs: the distinct SNP-gene pairs to compute residuals for.
+target_pairs <- all_sig_eqtls_full_df %>%
+  distinct(grch37, gene)
+
+# Define visits (excluding visit_5) and groups
+visits_to_use <- c("visit_1", "visit_2", "visit_3", "visit_4", "visit_6", "visit_7", "visit_8", "visit_9", "visit_10")
+groups <- c("case", "control")
+
+# Initialize a list to store residual results for each SNP-gene pair
+residuals_for_all_eqtls <- list()
+
+# Loop over each SNP-gene pair
+for (i in seq_len(nrow(target_pairs))) {
+  target_snp <- target_pairs$grch37[i]   # SNP identifier
+  target_gene <- target_pairs$gene[i] # Gene name
+  pair_id <- paste0(target_snp, "_", target_gene)
+
+  # Initialize a data frame to collect residuals for this pair
+  residuals_df <- data.frame()
+
+  # Loop over each visit and group
+  for (visit in visits_to_use) {
+    for (gr in groups) {
+
+      # Skip visit_5 control only
+      if(visit == "visit_5" && grp == "control") {
+        message("Skipping ", visit, " ", gr)
+        next
+      }
+      # Construct file paths based on our naming convention:
+      # Gene expression file (GE), Covariates file, and SNP file.
+      ge_file <- file.path(final_dir, visit, gr, paste0(visit, "_", gr, "_GE.txt"))
+      covar_file <- file.path(final_dir, visit, gr, paste0(visit, "_", gr, "_Covariates.txt"))
+      snp_file <- file.path(final_dir, visit, gr, paste0(visit, "_", gr, "_SNP.txt"))
+
+      # Check that files exist; if not, skip.
+      if(!file.exists(ge_file) | !file.exists(covar_file) | !file.exists(snp_file)) {
+        message("Missing file(s) for ", visit, " ", gr, ". Skipping this combination.")
+        next
+      }
+
+      # Read the files
+      ge <- fread(ge_file) %>% column_to_rownames(var = "ID")
+      covar <- fread(covar_file) %>% column_to_rownames(var = "ID")
+      snp <- fread(snp_file) %>% column_to_rownames(var = "ID")
+
+      # Extract expression for target gene
+      if(!(target_gene %in% rownames(ge))) {
+        message("Target gene ", target_gene, " not found in GE file for ", visit, " ", gr, ".")
+        next
+      }
+      expr_vals <- t(ge[target_gene,]) %>%
+                    as.data.frame() %>%
+                    setNames("expression") %>%
+                    rownames_to_column(var = "core_specific_ids")
+
+      # Extract genotype for target SNP
+      if(!(target_snp %in% rownames(snp))) {
+        message("Target SNP ", target_snp, " not found in SNP file for ", visit, " ", gr, ".")
+        next
+      }
+      geno_vals <- t(snp[target_snp,]) %>%
+                    as.data.frame() %>%
+                    setNames("genotype") %>%
+                    rownames_to_column(var = "core_specific_ids")
+
+      covar_final <- t(covar) %>%
+                    as.data.frame() %>%
+                    rownames_to_column(var = "core_specific_ids")
+
+      # Combine into a data frame for regression by core_specific_ids. Covariates has multiple columns.
+      dat <- inner_join(expr_vals, geno_vals, by = "core_specific_ids") %>%
+            inner_join(covar_final, by = "core_specific_ids") %>%
+            column_to_rownames(var = "core_specific_ids")
+
+      # Build the linear model formula: expression ~ (all covariate columns) [DO NOT INCLUDE GENOTYPE]
+      covar_names <- colnames(covar_final)[-1]
+
+      formula_str <- paste("expression ~ ", paste(covar_names, collapse = " + "))
+
+      # Fit the linear model
+      model <- lm(as.formula(formula_str), data = dat)
+
+      # Extract residuals
+      resids <- residuals(model) %>%
+            as.data.frame() %>%
+            setNames("residuals") %>%
+            rownames_to_column(var = "core_specific_ids")
+
+      geno_for_plotting <- dat %>%
+                           select(genotype) %>%
+                           rownames_to_column(var = "core_specific_ids")
+
+      # Create a data frame with the results for this visit & group
+      res_df <- resids %>%
+            inner_join(geno_for_plotting, by = "core_specific_ids") %>%
+            mutate(visit = visit,
+                   group = gr)
+
+      # Append the results to residuals_df
+      residuals_df <- bind_rows(residuals_df, res_df)
+    }
+  }
+
+  # Store the residuals data frame for this SNP-gene pair in the output list
+  residuals_for_all_eqtls[[pair_id]] <- residuals_df
+}
+
+# Combine all residuals into one large data frame for plotting, adding an identifier column.
+combined_residuals <- bind_rows(residuals_for_all_eqtls, .id = "snp_gene_pair") %>%
+                      separate(snp_gene_pair, into = c("grch37", "gene"), sep = "_", remove = TRUE)
+
+# Combined residuals dimensions: 336042 7
+qs_save(combined_residuals, file.path(residuals_dir, "combined_residuals.qs2"))
+```
+
+## Save the significant-eQTL summary statistics joined to residuals
+
+We join the residuals to the significant-eQTL summary statistics to produce the
+master plotting and downstream-analysis data frame. This object is read by the
+colocalization notebook (`05`) and both figure notebooks (`07`, `08`).
+
+```{r}
+# residuals df
+combined_residuals <- qs_read(file.path(residuals_dir, "combined_residuals.qs2"))
+
+# final longitudinal plotting df (all info)
+all_sig_eqtl_residuals_full <- combined_residuals %>%
+                        inner_join(all_sig_eqtls_full_df, by =c("grch37", "gene", "visit", "group"))
+
+# This is the df for all interesting eQTLs from now on.
+qs_save(all_sig_eqtl_residuals_full, file = file.path(sumstats_dir, "signif_eqtls_final_tg.qs2"))
+```

@@ -1,0 +1,261 @@
+---
+title: "Hospital-admission cis-eQTLs: eigenMT correction and significance"
+author: "Ernie Chen (ernie.chen@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(data.table)
+library(dplyr)
+library(tidyverse)
+library(tibble)
+library(readxl)
+library(qs2)
+```
+
+## Paths and parameters
+
+All hardcoded absolute paths from the original notebook are collected here.
+Edit these values to match your environment; everything downstream is built
+from them with `file.path()`.
+
+```{r paths-and-parameters}
+# ---- EDIT THESE FOR YOUR ENVIRONMENT ----
+# Root of the raw IMPACC genotype/expression data env.
+base_dir <- "/path/to/impacc_data/"
+
+# Serialized IMPACC data environment (clinical + omics).
+data_env_path <- file.path(base_dir, "impacc_data_env.RDS")
+
+# PLINK genotype prefix (its .bim provides grch37 -> grch38 mapping).
+plink_geno_prefix <- file.path(base_dir, "plink", "impacc_geno")
+
+# Published critical COVID-19 GWAS lead-SNP table.
+published_snps_path <- "/path/to/All_Severe_COVID_GWAS_hits.xlsx"
+
+# Analysis output / results root (this is the original panEQTL_dir).
+results_dir <- "/path/to/hospital_admission_results"
+panEQTL_dir <- results_dir
+
+# Subdirectories built from the results root.
+final_dir          <- file.path(panEQTL_dir, "final_files")
+matrixeqtl_results <- file.path(panEQTL_dir, "panEQTL_results")  # holds the cis-eQTL file
+formatted_dir      <- file.path(panEQTL_dir, "eigenMT_formatted_files")
+prefix <- "impacc_panEQTL_visit1"
+# -----------------------------------------
+```
+
+## Format the MatrixEQTL output for eigenMT
+
+eigenMT is a computationally efficient proxy for permutation-based FDR control.
+This chunk rewrites the MatrixEQTL inputs and outputs into the layout eigenMT
+expects: chromosome labels lose the "chr" prefix, beta is moved before the test
+statistic, and the cis-eQTL columns are renamed (SNP, t-stat, p-value).
+
+```{r format-for-eigenmt}
+# 1 10 11 12 13 16 17 19  2 20 21  3  4  5  6  7  8  9  X (19 unique chromosomes)
+
+## Process snploc file
+snploc_in <- file.path(final_dir, paste0(prefix, "_snploc.txt"))
+snploc_out <- file.path(formatted_dir, paste0(prefix, "_snploc_eigenMT.txt"))
+
+dt_snploc <- fread(snploc_in) %>%
+    # Remove the "chr" prefix from the chr column
+    mutate(chr = gsub("chr", "", chr))
+
+fwrite(dt_snploc, snploc_out, sep = "\t", quote = FALSE)
+
+## Process SNP file
+snp_in <- file.path(final_dir, paste0(prefix, "_SNP.txt"))
+snp_out <- file.path(formatted_dir, paste0(prefix, "_SNP_eigenMT.txt"))
+
+dt_snp <- fread(snp_in)
+
+fwrite(dt_snp, snp_out, sep = "\t", quote = FALSE)
+
+## Process cis_eQTL file (from the 'results' directory)
+qtl_in <- file.path(matrixeqtl_results, "panEQTL_results.txt")
+qtl_out <- file.path(formatted_dir, paste0(prefix, "_cis_eQTL_eigenMT.txt"))
+
+dt_qtl <- fread(qtl_in) %>%
+    # Move the beta column to come before statistic
+    relocate(beta, .before = statistic) %>%
+    # Rename columns as needed for eigenMT
+    rename(SNP = snps,
+            `t-stat` = statistic,
+            `p-value` = pvalue)
+
+fwrite(dt_qtl, qtl_out, sep = "\t", quote = FALSE)
+
+## Process geneloc file
+geneloc_in <- file.path(final_dir, paste0(prefix, "_geneloc.txt"))
+geneloc_out <- file.path(formatted_dir, paste0(prefix, "_geneloc_eigenMT.txt"))
+
+dt_geneloc <- fread(geneloc_in) %>%
+    # Remove the "chr" prefix from the chr column
+    mutate(chr = gsub("chr", "", chr))
+
+fwrite(dt_geneloc, geneloc_out, sep = "\t", quote = FALSE)
+```
+
+The per-chromosome eigenMT run that consumes these formatted files lives in
+`04-run_eigenmt.sh`. Run that script before continuing, then combine its
+per-chromosome outputs below.
+
+## Combine the per-chromosome eigenMT results
+
+Read every per-chromosome eigenMT output, tag each with its chromosome, and
+bind them into one table.
+
+```{r combine-eigenmt}
+eigenMT_results_dir <- file.path(panEQTL_dir, "eigenMT_results/visit1")
+
+# Find all chromosome-specific eigenMT files
+eigenMT_files <- list.files(path = eigenMT_results_dir, 
+                           pattern = "chr.*_eigenMT\\.txt$", 
+                           full.names = TRUE)
+
+# Check if files were found
+if (length(eigenMT_files) == 0) {
+  stop("No eigenMT files found in ", eigenMT_results_dir)
+}
+
+message("Found ", length(eigenMT_files), " eigenMT files to combine")
+
+# Read and combine all files
+all_data <- lapply(eigenMT_files, function(file) {
+  message("Reading file: ", basename(file))
+  dt <- fread(file)
+  
+  # Extract chromosome number from filename
+  chr <- gsub(".*chr([0-9XY]+)_eigenMT.txt", "\\1", basename(file))
+  
+  # Add chromosome column if needed (if not already in the data)
+  if (!"chr" %in% names(dt)) {
+    dt[, chr := chr]
+  }
+  
+  return(dt)
+}) %>% rbindlist(fill = TRUE)  # fill=TRUE allows for different column structures if needed
+
+# Save the combined data
+output_file <- file.path(panEQTL_dir, "panEQTL_results", "panEQTL_eigenMT.txt")
+fwrite(all_data, file = output_file, sep = "\t", quote = FALSE)
+```
+
+## Annotate the cis-eQTL results
+
+Add gene names and the grch38 coordinate to the MatrixEQTL output, using the
+PBMC row features and the PLINK `.bim` (which maps grch37 IDs to grch38
+coordinates and records the minor/major alleles). The annotated table is saved
+for downstream colocalization, and the published GWAS SNPs are joined in for
+inspection.
+
+```{r annotate-eqtls}
+data_env <- readRDS(data_env_path)
+
+rowfeature <- data_env$pbmc_transcriptomics_rowfeature %>%
+        rownames_to_column(var = "gene") %>%
+        select(gene, gene_name)
+
+grch38_to_37 <- fread(paste0(plink_geno_prefix, ".bim")) %>%
+    select(-"V3") %>%
+    rename(grch37 = "V2", 
+           minor = "V5",
+           major = "V6") %>%
+           unite(`grch38`, c("V1","V4"), sep = ":")
+
+combined_eqtls_final <- fread(file.path(matrixeqtl_results, "panEQTL_results.txt")) %>%
+  rename(grch37 = snps) %>%
+  inner_join(rowfeature, by = "gene") %>%
+  relocate(gene_name, .before = "statistic") %>%
+  inner_join(grch38_to_37, by = "grch37") %>%
+  relocate(grch38, .before = "gene")
+
+# Save the combined cis-eQTL results as an RDS file and as a tab-delimited text file.
+qs_save(combined_eqtls_final, file.path(matrixeqtl_results, "panEQTL_final.qs2"))
+
+published_snps <- read_excel(published_snps_path) %>%
+  pivot_longer(cols = everything(), 
+              values_to = "grch38") %>%
+  select(-"name") %>%
+  filter(!is.na(`grch38`)) %>%
+  distinct(grch38)  
+
+eQTL_snps <- published_snps %>%
+    inner_join(combined_eqtls_final, by = "grch38")
+```
+
+## eigenMT correction and significant eQTL counts
+
+Join the per-gene eigenMT correction factor (`TESTS`) onto the cis-eQTL table
+and compute the eigenMT-corrected p-value as `pvalue * TESTS`. Restrict to the
+published SNPs (plus the chr12 proxy variant 12:112945172), save the
+significant set, and report the eQTL, unique-SNP, and unique-gene counts at
+eigenMT < 0.01.
+
+```{r eigenmt-significance}
+combined_eqtls_final <- qs_read(file.path(matrixeqtl_results, "panEQTL_final.qs2"))
+
+# Load published SNP data and reformat
+published_snps <- read_excel(published_snps_path) %>%
+  pivot_longer(cols = everything(), values_to = "grch38") %>%
+  filter(!is.na(grch38)) %>%
+  group_by(grch38) %>%
+  mutate(source = if(n() > 1) "both" else as.character(name)) %>%
+  ungroup() %>%
+  select(-name) %>%
+  distinct(grch38, source)
+
+# Create list of SNPs of interest (70 SNPs) and add extra proxy variant for chr12
+published_snps_plus_chr12 <- published_snps %>%
+  distinct(grch38) %>%
+  bind_rows(tibble(grch38 = "12:112945172"))
+
+eigenMT_final <- fread(file.path(matrixeqtl_results, "panEQTL_eigenMT.txt")) %>%
+  select(gene, TESTS)
+
+# Convert to data.table
+combined_eqtls_dt <- as.data.table(combined_eqtls_final)
+eigenMT_dt <- as.data.table(eigenMT_final)
+published_snps_dt <- as.data.table(published_snps_plus_chr12)
+
+# Set keys for faster joins
+setkey(combined_eqtls_dt, gene)
+setkey(eigenMT_dt, gene)
+setkey(published_snps_dt, grch38)
+
+# Join eQTLs with eigenMT correction factors and calculate corrected p-values
+eqtls_with_correction <- combined_eqtls_dt[eigenMT_dt, nomatch=0
+  ][, eigenMT := pvalue*TESTS]
+
+# Filter for SNPs of interest only
+setkey(eqtls_with_correction, grch38)
+significant_eqtls <- eqtls_with_correction[published_snps_dt, nomatch=0]
+
+# Save results
+qs_save(significant_eqtls, file.path(matrixeqtl_results, "panEQTL_significant_published_eqtls.qs2"))
+
+significant_eqtls_0.01 <- significant_eqtls %>% filter(eigenMT < 0.01)
+
+# Print summary
+cat(sprintf("Found %d eQTLs for published SNPs\n", nrow(`significant_eqtls_0.01`)))
+cat(sprintf("This includes %d unique SNPs and %d unique genes\n", 
+            length(unique(`significant_eqtls_0.01`$grch38)), 
+            length(unique(`significant_eqtls_0.01`$gene))))
+
+# Found 61 eQTLs (snp-gene pairs) for published SNPs
+# This includes 32 unique SNPs and 52 unique genes
+```

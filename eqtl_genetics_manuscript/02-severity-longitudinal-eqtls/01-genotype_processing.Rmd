@@ -1,0 +1,363 @@
+---
+title: "Severity-longitudinal cis-eQTLs: genotype processing and cohort setup"
+author: "Ernie Chen (ernie.chen@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+This notebook prepares the severity-stratified, longitudinal cis-eQTL cohort and
+its genotype covariates. The IMPACC hospitalized COVID-19 cohort is split by
+trajectory group into a rapid-recovery cohort (TG1-3, coded "control") and a
+prolonged-critical/fatal cohort (TG4-5, coded "case"), and is followed across
+nine visits (V1-V4, V6-V10; V5 excluded later in the pipeline). Here we define
+that phenotype, write the published GWAS lead-SNP ranges for genotype
+extraction, and compute PC-AiR genotype principal components for each
+severity-by-visit stratum.
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(dplyr)
+library(data.table)
+library(tidyverse)
+library(tidyr)
+library(tibble)
+library(readr)
+library(readxl)
+library(magrittr)
+library(qs2)
+library(SNPRelate)
+library(GENESIS)
+library(GWASTools)
+library(nFactors)
+```
+
+```{r paths-and-parameters}
+# ---- EDIT THESE PATHS FOR YOUR ENVIRONMENT --------------------------------
+# base_dir            : root for all inputs and outputs of this track.
+# data_env_path       : the IMPACC acute-phase data environment (RDS), holding
+#                       clinical_data, pbmc_transcriptomics_counts / _metadata /
+#                       _rowfeature.
+# admixture_path      : per-sample ancestry/admixture table linking
+#                       participant_id to the genotype core_specific_id (Sample).
+# published_snps_path : Excel workbook of published critical COVID-19 GWAS hits.
+# results_dir         : where range lists and covariate objects are written.
+# All other locations are built from these with file.path().
+base_dir            <- path.expand("/path/to/eqtl_data")
+data_env_path       <- file.path(base_dir, "expression_data",
+                                 "impacc_full-cohort_acute_data_env_030625.RDS")
+admixture_path      <- file.path(base_dir, "genotype_data",
+                                 "impacc_gwas_cohort_admixture.txt")
+published_snps_path <- file.path(base_dir, "tg_impacc_GWAS",
+                                 "All_Severe_COVID_GWAS_hits.xlsx")
+results_dir         <- file.path(base_dir, "tg_eQTL_with_convalescent")
+# ----------------------------------------------------------------------------
+
+genotype_data_dir <- file.path(results_dir, "genotype_data")
+covariates_dir    <- file.path(results_dir, "covariates")
+published_snps_dir <- file.path(results_dir, "published_gwas_snps")
+for (d in c(genotype_data_dir, covariates_dir, published_snps_dir)) {
+  if (!dir.exists(d)) dir.create(d, recursive = TRUE)
+}
+
+# R 4.3.3
+```
+
+## Load the raw PBMC transcriptomics and clinical data
+
+The data environment bundles the clinical table and the PBMC RNA-seq counts,
+metadata, and row features used throughout the pipeline.
+
+```{r}
+data_env <- readRDS(data_env_path)
+```
+
+## Set up the GWAS cohort with trajectory group as phenotype
+
+We take the post-QC GWAS samples, attach the genotype core IDs from the
+admixture table, and code the severity phenotype: TG1-3 as "control" and TG4-5
+as "case". This mapping is preserved exactly throughout the analysis.
+
+```{r}
+clinical_gwas <- data_env$clinical_data %>% # 1255 GWAS samples
+    filter(sample_type == "GWAS") %>%
+    select("participant_id", "resp_status_v1", "resp_status_v2", "resp_status_v3",
+    "respiratory_status_day14", "resp_status_v5", "respiratory_status_day28", "trajectory_group")
+
+# medians: date_v1 = 2 | date_v2 = 5 | date_v3 = 8 | date_v4 = 15 | date_v5 = 22 | date_v6 = 29
+
+gwas_cohort <- clinical_gwas %>% # 1112 distinct GWAS samples
+    select(participant_id, trajectory_group) %>%
+    distinct()
+
+############### append core_sample_ids and filter to include only post-QC GWAS cohort ###################
+
+# post-QC IMPACC cohort
+fam <- fread(admixture_path) %>%
+    select(participant_id, Sample) %>%
+    rename(core_specific_id = Sample)
+
+final_gwas_cohort <- gwas_cohort %>% # 1031 samples
+    inner_join(fam, by = "participant_id") %>%
+    relocate(core_specific_id, .before = "trajectory_group") %>%
+    mutate(pheno = case_when(
+        trajectory_group %in% 1:3 ~ "control",
+        trajectory_group %in% 4:5 ~ "case",
+        TRUE ~ as.character(trajectory_group)
+    ))
+
+# table(final_gwas_cohort$trajectory_group)
+#   1   2   3   4   5
+#  204 230 303 195  99
+# case = 294
+# control = 737
+
+qs_save(final_gwas_cohort, file.path(genotype_data_dir, "impacc_tg_pheno.qs2"))
+
+###### LOAD HERE
+gwas_pheno <- qs_read(file.path(genotype_data_dir, "impacc_tg_pheno.qs2"))
+```
+
+## Non-PC covariates for MatrixEQTL
+
+These are the fixed demographic covariates (age, sex) joined to the post-QC
+cohort. Sex is coded 0 = Female, 1 = Male.
+
+```{r}
+### For Covariate Use Only (matrixeQTL)
+
+nonPC_covars <- data_env$clinical_data %>% # 1255 GWAS samples
+    filter(sample_type == "GWAS") %>%
+    select("participant_id", "trajectory_group", "admit_age", "sex") %>%
+    arrange(participant_id) %>%
+    mutate(
+    # Convert sex to a numeric variable where 0 = Female and 1 = Male.
+    sex = ifelse(sex == "Male", 1, 0)) %>%
+    distinct()
+
+############### append core_sample_ids and filter to include only post-QC GWAS cohort ###################
+
+# post-QC IMPACC cohort
+fam <- fread(admixture_path) %>%
+    select(participant_id, Sample) %>%
+    rename(core_specific_id = Sample)
+
+nonPC_covars_final <- nonPC_covars %>% # 1031 samples
+    inner_join(fam, by = "participant_id") %>%
+    relocate(core_specific_id, .after = "participant_id")
+
+qs_save(nonPC_covars_final, file.path(covariates_dir, "final_nonPC_covars.qs2"))
+```
+
+## Write the published GWAS lead-SNP ranges for genotype extraction
+
+We read the published critical COVID-19 GWAS hits (GenOMICC PMID 37198478 and
+HGI PMID 37674002), write a single-position SNP list and a +/- 1 Mb range list,
+and record which of the 69 SNPs are not present in the IMPACC genotype set.
+The PLINK extractions themselves run in `00-extract_gwas_loci.sh`, which reads
+`snps_to_extract.txt` and `ranges_to_extract.txt` written below. This does not
+need to be re-run for every analysis.
+
+```{r}
+published_snps <- read_excel(published_snps_path)
+
+snps_to_extract <- published_snps %>%
+        pivot_longer(cols = everything(),
+                    values_to = "chr:pos") %>%
+        filter(!is.na(`chr:pos`)) %>%
+        distinct(`chr:pos`) %>%
+        separate(`chr:pos`, into = c("chr", "pos"), sep = ":") %>%
+        mutate(pos = as.numeric(pos),
+                start = pos,
+                end = pos) %>%
+        arrange(chr, start) %>%
+        mutate(ranges = paste0("R", 1:n())) %>%
+        select(chr, start, end, ranges)
+
+# 69 published, non-overlapping critical COVID-19 GWAS SNPs
+write.table(snps_to_extract,
+            file = file.path(results_dir, "snps_to_extract.txt"),
+            quote = FALSE,
+            row.names = FALSE,
+            col.names = FALSE,
+            sep = "\t")
+
+# After running the single-position extraction in 00-extract_gwas_loci.sh
+# (extracted_snps.bim), 57 of the 69 SNPs are found in our data. Identify the
+# 12 SNPs that are not matched in our IMPACC cohort.
+impacc_extracted_snps <- fread(file.path(genotype_data_dir, "extracted_snps.bim")) %>%
+    select(V1, V4) %>%
+    unite(`grch38`, "V1":"V4", sep = ":")
+
+reported_snps <- published_snps %>%
+        pivot_longer(cols = everything(),
+                    values_to = "grch38") %>%
+        filter(!is.na(`grch38`)) %>%
+        distinct(`grch38`)
+
+missing_SNPS <- anti_join(reported_snps, impacc_extracted_snps, by = "grch38")
+
+write.table(missing_SNPS,
+            file = file.path(genotype_data_dir, "twelve_SNPs_not_in_IMPACC_cohort.txt"),
+            quote = FALSE,
+            row.names = FALSE,
+            col.names = FALSE,
+            sep = "\t")
+
+# Next, expand the extraction range to include 2 Mb (+/- 1 Mb) around all SNPs.
+ranges_to_extract <- published_snps %>%
+        pivot_longer(cols = everything(),
+                    values_to = "chr:pos") %>%
+        filter(!is.na(`chr:pos`)) %>%
+        distinct(`chr:pos`) %>%
+        separate(`chr:pos`, into = c("chr", "pos"), sep = ":") %>%
+        mutate(pos = as.numeric(pos),
+                start = pos - 1000000,
+                end = pos + 1000000) %>%
+        arrange(chr, start) %>%
+        mutate(ranges = paste0("R", 1:n())) %>%
+        select(chr, start, end, ranges)
+
+write.table(ranges_to_extract,
+            file = file.path(results_dir, "ranges_to_extract.txt"),
+            quote = FALSE,
+            row.names = FALSE,
+            col.names = FALSE,
+            sep = "\t")
+# 299,380 variants extracted in those 69 ranges.
+```
+
+## Genotype principal components per severity-by-visit stratum (PC-AiR)
+
+For each visit and severity group we run PC-AiR in GENESIS to derive ancestry
+principal components that are robust to cryptic relatedness and population
+structure. The per-stratum PLINK binary sets (`*_pca.bed/.bim/.fam`) are
+produced by the per-stratum extraction loop in `00-extract_gwas_loci.sh`, which
+runs after `02-expression_processing.Rmd` has written each stratum's sample
+keep-list. PC-AiR uses LD-pruned, KING-derived kinship, and nScree (optimal
+coordinates) selects the number of PCs to retain per stratum.
+
+```{r}
+genotype_base_dir <- genotype_data_dir
+
+# We'll store our PC-AiR results in a nested list: visit -> group (case/control)
+pcair_results <- list()
+
+# List the visit folders (e.g., "visit_1", "visit_2", ..., "visit_10")
+visit_dirs <- list.dirs(genotype_base_dir, recursive = FALSE, full.names = TRUE)
+
+for (visit_dir in visit_dirs) {
+
+  visit_name <- basename(visit_dir)  # e.g., "visit_1"
+  # Create an entry for this visit
+  pcair_results[[visit_name]] <- list()
+
+  # List the group folders within the visit folder (e.g., "case", "control")
+  group_dirs <- list.dirs(visit_dir, recursive = FALSE, full.names = TRUE)
+
+  for (group_dir in group_dirs) {
+
+    group_name <- basename(group_dir)  # e.g., "case" or "control"
+
+    # Construct the file paths for the PLINK files.
+    # The PLINK PCA files follow the pattern:
+    #   <visit>_<group>_pca.bed, .fam, .bim
+    bed.fn <- file.path(group_dir, paste0(visit_name, "_", group_name, "_pca.bed"))
+    fam.fn <- file.path(group_dir, paste0(visit_name, "_", group_name, "_pca.fam"))
+    bim.fn <- file.path(group_dir, paste0(visit_name, "_", group_name, "_pca.bim"))
+    out.gdsfn <- file.path(group_dir, paste0(visit_name, "_", group_name, "_pca.gds"))
+
+    # Convert PLINK files to GDS.
+    # For speed, set compress.annotation = "NONE" (lowest compression) and leave compress.geno empty.
+    snpgdsBED2GDS(bed.fn, fam.fn, bim.fn, out.gdsfn,
+                  family = FALSE, snpfirstdim = NA,
+                  compress.annotation = "",
+                  compress.geno = "",
+                  option = NULL,
+                  cvt.chr = c("int", "char"),
+                  cvt.snpid = c("auto", "int"),
+                  verbose = TRUE)
+
+    # Open the GDS file
+    gds_obj <- snpgdsOpen(out.gdsfn, readonly = TRUE)
+
+    # LD-pruning: get a pruned set of SNPs to use in PCA (reduces redundancy)
+    set.seed(1234)
+    ld_pruned <- snpgdsLDpruning(gds_obj, ld.threshold = 0.1, missing.rate = 0.015,
+                                 maf = 0.025, method = "r", num.thread = 46)
+    pruned <- unlist(ld_pruned, use.names = FALSE)
+
+    # Read sample IDs from the GDS file
+    sample.id <- read.gdsn(index.gdsn(gds_obj, "sample.id"))
+
+    # Compute pairwise relatedness using the KING method (robust to stratification)
+    ibd.robust <- snpgdsIBDKING(gds_obj, sample.id = sample.id, family.id = sample.id, num.thread = 46)
+
+    # Convert the KING output to a kinship matrix
+    kingmat <- kingToMatrix(ibd.robust, sample.include = NULL, thresh = 2^(-11/2), verbose = TRUE)
+
+    # Close the GDS file to free up resources
+    snpgdsClose(gds_obj)
+
+    # Re-open the GDS file as a GenotypeData object
+    geno <- GdsGenotypeReader(filename = out.gdsfn) %>% GenotypeData(.)
+
+    # Run PC-AiR using the kinship matrix and pruned SNPs
+    mypcair <- pcair(geno, kinobj = kingmat, divobj = kingmat, snp.include = pruned, num.cores = 46)
+
+    # Determine how many PCs were computed:
+    nComputed <- ncol(mypcair$vectors)
+    nToExtract <- min(32, nComputed)
+
+    geno_mypcs <- data.frame(mypcair$vectors[, 1:nToExtract])
+    eig <- mypcair$values[1:nToExtract]
+
+    # Run nScree to get a data-driven recommendation for the number of PCs
+    scree_out <- nScree(eig)
+    # We'll use the "optimal coordinates" (noc) as our recommendation.
+    num_pcs <- scree_out$Components$noc
+    message(paste("For", visit_name, group_name, "nScree recommends", num_pcs, "PCs."))
+
+    # Extract the recommended number of PCs from the PC-AiR output.
+    # (Here, we extract columns 1 to num_pcs from the geno_mypcs data frame.)
+    geno_covariates <- geno_mypcs[, 1:num_pcs, drop = FALSE] %>%
+      as.data.frame() %>%
+      setNames(paste0("geno_pc", 1:num_pcs)) %>%
+      t() %>% as.data.frame()
+
+    # Save the result in our nested list:
+    pcair_results[[visit_name]][[group_name]] <- list(
+      numOfPCsChosen = num_pcs,
+      pcs = geno_covariates
+    )
+
+    # Clean up objects to free memory and force garbage collection
+    rm(gds_obj, geno, mypcair, geno_mypcs, ld_pruned, pruned, kingmat, ibd.robust)
+    gc()
+
+    # Remove the temporary .gds file now that covariates have been extracted
+    if (file.exists(out.gdsfn)) {
+      file.remove(out.gdsfn)
+    }
+
+  } # end group loop
+
+} # end visit loop
+
+# Now, pcair_results is a nested list structured as:
+# pcair_results$visit_1$case, pcair_results$visit_1$control, ... up to visit_10.
+# Each element contains:
+#   numOfPCsChosen: the number of PCs recommended by nScree,
+#   pcs: the covariate matrix (with PCs as rows) for MatrixeQTL.
+
+qs_save(pcair_results, file.path(covariates_dir, "final_genotype_pcs.qs2"))
+```

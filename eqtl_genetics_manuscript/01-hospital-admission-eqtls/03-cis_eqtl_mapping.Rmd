@@ -1,0 +1,453 @@
+---
+title: "Hospital-admission cis-eQTLs: genotype covariates and cis-eQTL mapping"
+author: "Ernie Chen (ernie.chen@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(MatrixEQTL)
+library(dplyr)
+library(data.table)
+library(tidyr)
+library(tibble)
+library(readxl)
+library(qs2)
+library(SNPRelate)
+library(GENESIS)
+library(magrittr)
+library(GWASTools)
+library(nFactors)
+```
+
+## Paths and parameters
+
+All hardcoded absolute paths from the original notebook are collected here.
+Edit these values to match your environment; everything downstream is built
+from them with `file.path()`.
+
+```{r paths-and-parameters}
+# ---- EDIT THESE FOR YOUR ENVIRONMENT ----
+# Analysis output / results root (this is the original panEQTL_dir).
+results_dir <- "/path/to/hospital_admission_results"
+panEQTL_dir <- results_dir
+
+# Directory holding the order-checked MatrixEQTL inputs (written by the order-check step
+# in this notebook).
+final_dir <- file.path(panEQTL_dir, "final_files")
+
+# Filename prefix shared by all MatrixEQTL input files for this visit.
+prefix <- "impacc_panEQTL_visit1"
+# -----------------------------------------
+```
+
+
+
+## Filter and format the genotype data for MatrixEQTL
+
+Write the list of core-specific sample IDs to keep, then (in PLINK, below)
+produce the A-transpose genotype matrix, the binary set for PCA, and the MAP
+file of SNP locations. The R block then reformats the `.traw` genotype matrix
+and `.map` file into the SNP.txt and snploc.txt inputs MatrixEQTL expects.
+
+```{r matrixeqtl-sample-list}
+# Sample IDs are taken from the inverse-normalized expression matrix written by
+# 02-expression_processing.Rmd, so run that notebook first.
+core_specific_ids <- colnames(fread(file.path(panEQTL_dir, paste0(prefix, "_GE.txt"))))[-1]  # sample IDs from 02-expression_processing.Rmd
+
+sample_ids_df <- data.frame(
+    Column1 = rep(0, length(core_specific_ids)),   # all zeros
+    Column2 = core_specific_ids                    # core-specific IDs
+)
+            
+# Write the sample extraction file (tab-delimited, no quotes, no row/column names)
+write.table(sample_ids_df, file = file.path(panEQTL_dir, "visit1_panEQTL_coreIDs.txt"), quote = FALSE, col.names = FALSE, row.names = FALSE)
+```
+
+The following PLINK calls build the MatrixEQTL genotype inputs. They were
+inline bash in the original notebook; edit the leading variables to match your
+environment before running.
+
+```{bash matrixeqtl-genotype-plink, eval=FALSE}
+# Common paths (edit for your environment)
+bfile=/path/to/impacc_data/plink/impacc_geno
+keep=/path/to/hospital_admission_results/visit1_panEQTL_coreIDs.txt
+ranges=/path/to/hospital_admission_results/ranges_to_extract.txt
+outdir=/path/to/hospital_admission_results
+
+# 1) Genotype matrix for MatrixEQTL (A-transpose) 
+
+## FLIP FLIP here: https://www.cog-genomics.org/plink/2.0/formats#traw vs https://www.cog-genomics.org/plink/1.9/formats#traw
+
+plink2 --bfile "$bfile" \
+       --keep  "$keep" \
+       --extract range "$ranges" \
+       --recode A-transpose \
+       --out   "$outdir/visit1_panEQTL"
+
+# 2) Binary files for PCA
+plink2 --bfile "$bfile" \
+       --keep  "$keep" \
+       --make-bed \
+       --out   "$outdir/visit1_panEQTL_PCA"
+
+# 3) MAP file for SNP locations (PED discarded afterwards)
+plink2 --bfile "$bfile" \
+       --keep  "$keep" \
+       --extract range "$ranges" \
+       --export ped \
+       --out   "$outdir/visit1_panEQTL_ped"  # produces .ped + .map
+```
+
+```{r format-snp-files}
+######### Create the SNP.txt genotype file and the _snploc.txt file. 
+
+traw_file <- file.path(panEQTL_dir, "visit1_panEQTL.traw")
+map_file  <- file.path(panEQTL_dir, "visit1_panEQTL_ped.map")
+
+prefix <- "impacc_panEQTL_visit1"
+
+# Build output file paths:
+snp_out_file    <- file.path(panEQTL_dir, paste0(prefix, "_SNP.txt"))
+snploc_out_file <- file.path(panEQTL_dir, paste0(prefix, "_snploc.txt"))
+            
+# ----- Process the .traw file -----
+# Read the .traw file and remove unwanted columns.
+geno <- fread(traw_file) %>%
+        select(-CHR, -`(C)M`, -POS, -COUNTED, -ALT) %>%
+        column_to_rownames(var = "SNP")
+
+# Adjust column names: drop leading "0_" and collapse duplicated fragments like "ID_ID"
+new_colnames <- vapply(colnames(geno), function(name) {
+  # drop leading "0_" if present
+  if (startsWith(name, "0_"))
+    name <- sub("^0_", "", name)
+
+  # collapse duplicated fragments like "ID_ID"
+  parts <- strsplit(name, "_", fixed = TRUE)[[1]]
+  if (length(parts) > 1 && parts[1] == parts[2])
+    return(parts[1])
+
+  name
+}, character(1))
+colnames(geno) <- new_colnames
+
+# Write the reformatted genotype (SNP) file
+write.table(geno, file = snp_out_file, sep = "\t", col.names = NA, quote = FALSE)
+
+# ----- Process the .map file for SNP locations -----
+snploc <- fread(map_file) %>%
+select(-V3) %>%
+rename(chr = V1, snp = V2, pos = V4) %>%
+select(snp, chr, pos) %>%
+mutate(chr = paste0("chr", chr))
+
+# Reorder snploc so that SNPs are in the same order as the row names in 'geno'
+snploc <- snploc[match(rownames(geno), snploc$snp), ]
+
+# Write the snploc file
+write.table(snploc, file = snploc_out_file, sep = "\t", col.names = TRUE, 
+            quote = FALSE, row.names = FALSE)
+```
+
+## Genotype principal components via PC-AiR
+
+Compute genotype PCs with PC-AiR (GENESIS) to capture population structure
+while accounting for cryptic relatedness. The PLINK PCA binaries are converted
+to GDS, LD-pruned, and a KING kinship matrix is built; PC-AiR is then run, and
+nScree picks the number of PCs to retain via optimal coordinates.
+
+```{r genotype-pcs-pcair}
+# Do this in GENESIS; R 4.4.3
+
+# Construct the file paths for the PLINK files.
+# The PLINK PCA files follow the pattern:
+#   visit1_panEQTL_PCA.bed, .fam, .bim
+
+prefix <- "visit1_panEQTL_PCA"
+
+bed.fn <- file.path(panEQTL_dir, paste0(prefix, ".bed"))
+fam.fn <- file.path(panEQTL_dir, paste0(prefix, ".fam"))
+bim.fn <- file.path(panEQTL_dir, paste0(prefix, ".bim"))
+out.gdsfn <- file.path(panEQTL_dir, paste0(prefix, ".gds"))
+    
+# Convert PLINK files to GDS.
+# For speed, set compress.annotation = "NONE" (lowest compression) and leave compress.geno empty.
+snpgdsBED2GDS(bed.fn, fam.fn, bim.fn, out.gdsfn,
+                family = FALSE, snpfirstdim = NA, 
+                compress.annotation = "",
+                compress.geno = "",
+                option = NULL,
+                cvt.chr = c("int", "char"),
+                cvt.snpid = c("auto", "int"),
+                verbose = TRUE)
+
+# Open the GDS file
+gds_obj <- snpgdsOpen(out.gdsfn, readonly = TRUE)
+
+# LD-pruning: get a pruned set of SNPs to use in PCA (reduces redundancy)
+set.seed(1234)
+ld_pruned <- snpgdsLDpruning(gds_obj, ld.threshold = 0.1, missing.rate = 0.015,
+                                maf = 0.025, method = "r", num.thread = 4)
+pruned <- unlist(ld_pruned, use.names = FALSE)
+
+# Read sample IDs from the GDS file
+sample.id <- read.gdsn(index.gdsn(gds_obj, "sample.id"))
+
+# Compute pairwise relatedness using the KING method (robust to stratification)
+ibd.robust <- snpgdsIBDKING(gds_obj, sample.id = sample.id, family.id = sample.id, num.thread = 4)
+
+# Convert the KING output to a kinship matrix
+kingmat <- kingToMatrix(ibd.robust, sample.include = NULL, thresh = 2^(-11/2), verbose = TRUE)
+
+# Close the GDS file to free up resources
+snpgdsClose(gds_obj)
+
+# Re-open the GDS file as a GenotypeData object
+geno <- GdsGenotypeReader(filename = out.gdsfn) %>% GenotypeData(.)
+
+# Run PC-AiR using the kinship matrix and pruned SNPs
+mypcair <- pcair(geno, kinobj = kingmat, divobj = kingmat, snp.include = pruned, num.cores = 4)
+
+# Determine how many PCs were computed:
+nComputed <- ncol(mypcair$vectors)
+nToExtract <- min(32, nComputed)
+
+geno_mypcs <- data.frame(mypcair$vectors[, 1:nToExtract])
+eig <- mypcair$values[1:nToExtract]
+
+# Run nScree to get a data-driven recommendation for the number of PCs
+scree_out <- nScree(eig)
+# We'll use the "optimal coordinates" (noc) as our recommendation.
+num_pcs <- scree_out$Components$noc
+    
+# Extract the recommended number of PCs from the PC-AiR output.
+# (Here, we extract columns 1 to num_pcs from the geno_mypcs data frame.)
+geno_covariates <- geno_mypcs[, 1:num_pcs, drop = FALSE] %>%
+    as.data.frame() %>%
+    setNames(paste0("geno_pc", 1:num_pcs)) %>%
+    t() %>% as.data.frame()
+
+# Clean up objects to free memory and force garbage collection
+rm(gds_obj, geno, mypcair, geno_mypcs, ld_pruned, pruned, kingmat, ibd.robust)
+gc()
+        
+qs_save(geno_covariates, file.path(panEQTL_dir, "final_genotype_pcs.qs2"))
+```
+
+## Assemble the final covariate file
+
+Combine the demographic covariates (age, sex), the genotype PCs, and the
+expression PCs (written by 02-expression_processing.Rmd) into one covariate
+matrix, keeping only samples present in all three.
+
+```{r combine-covariates}
+nonPC_covars <- qs_read(file.path(panEQTL_dir, "impacc_panEQTL_cohort.qs2")) %>%
+                select(-participant_id, -trajectory_group) 
+
+rna_covars <- qs_read(file.path(panEQTL_dir, "final_expression_pcs.qs2")) %>%
+              t() %>%  
+              as.data.frame() %>% 
+              rownames_to_column(var = "core_specific_id")
+
+geno_covars <- qs_read(file.path(panEQTL_dir, "final_genotype_pcs.qs2")) %>%
+               t() %>%  
+               as.data.frame() %>% 
+               rownames_to_column(var = "core_specific_id")
+
+# Merge the two dataframes by "core_specific_id" to ensure matching samples.
+# This inner join ensures only samples present in both datasets are retained.
+merged_df <- inner_join(geno_covars, rna_covars, by = "core_specific_id") %>%
+# Add the demographic covariates by merging with nonPC_covars
+# Inner join to ensure we only keep samples with all necessary data
+             inner_join(nonPC_covars, by = "core_specific_id") %>%
+             column_to_rownames(var = "core_specific_id") %>% 
+             t()
+
+write.table(merged_df, file = file.path(panEQTL_dir, "impacc_panEQTL_visit1_Covariates.txt"), 
+                       sep = "\t", quote = FALSE, row.names = TRUE, col.names = NA)
+```
+
+## Column-ordering checks and final MatrixEQTL inputs
+
+Sample columns must appear in exactly the same order across the expression,
+genotype, and covariate matrices, and genes/SNPs must match their location
+tables. This chunk reads the per-file inputs, enforces matching gene, SNP, and
+sample order (stopping on any mismatch), and writes the reordered files into
+`final_files/`, which the MatrixEQTL run below loads.
+
+```{r column-ordering-checks}
+prefix <- "impacc_panEQTL_visit1"
+
+# Define the output directory for the final, reordered files.
+final_dir <- file.path(panEQTL_dir, "final_files")
+if (!dir.exists(final_dir)) {
+  dir.create(final_dir, recursive = TRUE)
+}
+
+# Construct input file paths using the naming convention.
+ge_file      <- file.path(panEQTL_dir, paste0(prefix, "_GE.txt"))
+geneloc_file <- file.path(panEQTL_dir, paste0(prefix, "_geneloc.txt"))
+snp_file     <- file.path(panEQTL_dir, paste0(prefix, "_SNP.txt"))
+snploc_file  <- file.path(panEQTL_dir, paste0(prefix, "_snploc.txt"))
+covar_file   <- file.path(panEQTL_dir, paste0(prefix, "_Covariates.txt"))
+    
+# Read input files.
+ge      <- fread(ge_file) %>% column_to_rownames(var = "V1")
+geneloc <- fread(geneloc_file)
+snp     <- fread(snp_file) %>% column_to_rownames(var = "V1")
+snploc  <- fread(snploc_file)
+covar   <- fread(covar_file) %>% column_to_rownames(var = "V1")
+    
+# ----- 1. Ensure Gene Order Matches -----
+if(!(all(geneloc$geneid %in% rownames(ge)) && all(rownames(ge) %in% geneloc$geneid))) {
+    stop("Gene sets do not match")
+}
+ge <- ge[match(geneloc$geneid, rownames(ge)), ]
+
+# ----- 2. Ensure SNP Order Matches -----
+if(!(all(snploc$snp %in% rownames(snp)) && all(rownames(snp) %in% snploc$snp))) {
+    stop("SNP sets do not match")
+}
+snp <- snp[match(snploc$snp, rownames(snp)), ]
+
+# ----- 3. Ensure Sample (Column) Order Matches -----
+common_samples <- Reduce(intersect, list(colnames(ge), colnames(snp), colnames(covar)))
+if(length(common_samples) == 0) {
+    stop("No common sample IDs found")
+}
+ge    <- ge[, common_samples, drop = FALSE]
+snp   <- snp[, common_samples, drop = FALSE]
+covar <- covar[, common_samples, drop = FALSE]
+
+if(!(identical(colnames(ge), colnames(snp)) && identical(colnames(ge), colnames(covar)))) {
+    stop("Sample order mismatch")
+}
+
+# Construct output file paths (preserve naming convention).
+out_ge_file      <- file.path(final_dir, paste0(prefix, "_GE.txt"))
+out_snp_file     <- file.path(final_dir, paste0(prefix, "_SNP.txt"))
+out_covar_file   <- file.path(final_dir, paste0(prefix, "_Covariates.txt"))
+out_geneloc_file <- file.path(final_dir, paste0(prefix, "_geneloc.txt"))
+out_snploc_file  <- file.path(final_dir, paste0(prefix, "_snploc.txt"))
+
+# Write files using fwrite for speed. 
+# fwrite by default writes column names and does not output rownames.
+fwrite(ge %>% rownames_to_column(var = "ID"), out_ge_file, sep = "\t", quote = FALSE)
+fwrite(snp %>% rownames_to_column(var = "ID"), out_snp_file, sep = "\t", quote = FALSE)
+fwrite(covar %>% rownames_to_column(var = "ID"), out_covar_file, sep = "\t", quote = FALSE)
+fwrite(geneloc, out_geneloc_file, sep = "\t", quote = FALSE)
+fwrite(snploc, out_snploc_file, sep = "\t", quote = FALSE)
+```
+
+## Run MatrixEQTL at Visit 1
+
+Run cis-eQTL mapping with a linear model. The cis distance is 1 Mb, all cis
+p-values are kept (`pvOutputThreshold_cis <- 1`), and no trans tests are run.
+The five order-checked input files (SNP, snploc, expression, geneloc,
+covariates) are loaded as SlicedData objects and passed to `Matrix_eQTL_main`;
+the resulting cis-eQTL table is written to the results directory.
+
+```{r matrixeqtl-run}
+# 05.05.2025 
+# R Version 4.4.3
+
+# Define the output directory for Matrix eQTL results
+matrixeqtl_results_dir <- file.path(panEQTL_dir, "panEQTL_results")
+if (!dir.exists(matrixeqtl_results_dir)) {
+  dir.create(matrixeqtl_results_dir, recursive = TRUE)
+}
+
+# Settings for Matrix eQTL
+useModel <- modelLINEAR  # using linear model
+pvOutputThreshold_cis <- 1
+cisDist <- 1e6
+errorCovariance <- numeric()
+
+# Construct file paths for the five necessary files.
+SNP_file_name           <- file.path(final_dir, paste0(prefix, "_SNP.txt"))
+snps_location_file_name <- file.path(final_dir, paste0(prefix, "_snploc.txt"))
+expression_file_name    <- file.path(final_dir, paste0(prefix, "_GE.txt"))
+gene_location_file_name <- file.path(final_dir, paste0(prefix, "_geneloc.txt"))
+covariates_file_name    <- file.path(final_dir, paste0(prefix, "_Covariates.txt"))
+
+# Create SlicedData objects for SNP, gene expression, and covariates.
+snps <- SlicedData$new()
+snps$fileDelimiter <- "\t"
+snps$fileOmitCharacters <- "NA"
+snps$fileSkipRows <- 1
+snps$fileSkipColumns <- 1
+snps$fileSliceSize <- 2000
+snps$LoadFile(SNP_file_name)
+
+gene <- SlicedData$new()
+gene$fileDelimiter <- "\t"
+gene$fileOmitCharacters <- "NA"
+gene$fileSkipRows <- 1
+gene$fileSkipColumns <- 1
+gene$fileSliceSize <- 2000
+gene$LoadFile(expression_file_name)
+
+cvrt <- SlicedData$new()
+cvrt$fileDelimiter <- "\t"
+cvrt$fileOmitCharacters <- "NA"
+cvrt$fileSkipRows <- 1
+cvrt$fileSkipColumns <- 1
+cvrt$fileSliceSize <- 2000
+if (file.exists(covariates_file_name)) {
+    cvrt$LoadFile(covariates_file_name)
+}
+
+snpspos <- read.table(snps_location_file_name, header = TRUE, stringsAsFactors = FALSE)
+genepos <- read.table(gene_location_file_name, header = TRUE, stringsAsFactors = FALSE)
+    
+# Create temporary file names for cis and trans outputs.
+output_file_name_cis <- tempfile()
+output_file_name_tra <- tempfile()
+
+# Run Matrix_eQTL_main.
+me <- Matrix_eQTL_main(
+    snps = snps,
+    gene = gene,
+    cvrt = cvrt,
+    output_file_name = output_file_name_tra,
+    pvOutputThreshold = 0,
+    useModel = useModel,
+    errorCovariance = errorCovariance,
+    verbose = TRUE,
+    output_file_name.cis = output_file_name_cis,
+    pvOutputThreshold.cis = pvOutputThreshold_cis,
+    snpspos = snpspos,
+    genepos = genepos,
+    cisDist = cisDist,
+    pvalue.hist = "qqplot",
+    min.pv.by.genesnp = FALSE,
+    noFDRsaveMemory = FALSE
+)
+
+# Remove the trans output file.
+unlink(output_file_name_tra)
+
+# Directly extract the cis-eQTL results from the me object.
+cis_eqtls <- me$cis$eqtls
+
+write.table(cis_eqtls, file = file.path(matrixeqtl_results_dir, "panEQTL_results.txt"), sep = "\t", quote = FALSE,
+            row.names = FALSE, col.names = TRUE)
+
+# Clean up temporary cis output file.
+unlink(output_file_name_cis)
+
+rm(snps, gene, cvrt, snpspos, genepos, me, cis_eqtls)
+gc()
+```
