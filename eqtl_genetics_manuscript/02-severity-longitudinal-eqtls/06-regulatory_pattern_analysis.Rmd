@@ -1,0 +1,164 @@
+---
+title: "Severity-longitudinal cis-eQTLs: regulatory pattern analysis"
+author: "Ernie Chen (ernie.chen@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+This notebook classifies the colocalized SNP-gene pairs at the published critical
+COVID-19 GWAS loci into four regulatory patterns by severity group (case = TG4-5,
+control = TG1-3): constitutively active, TG1-3 only, TG4-5 only, and dynamic. It
+consumes the significant-eQTL set produced in 04-eigenmt_correction.Rmd and the
+colocalization results from 05-colocalization.Rmd, then saves the classified
+per-locus table (fig3_clean_classified.qs2) that the Figure 3 notebook uses to
+split the heatmap rows and draw panels 3B and 3C.
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(readxl)
+library(tibble)
+library(stringr)
+library(qs2)
+```
+
+```{r paths-and-parameters}
+# ---- EDIT THESE PATHS FOR YOUR ENVIRONMENT --------------------------------
+# base_dir            : root for all inputs and outputs of this track.
+# results_dir         : holds final_files/, eigenMT_FDR/, tg_sumstats/, etc.
+# published_snps_path : Excel workbook of published critical COVID-19 GWAS hits.
+base_dir            <- path.expand("/path/to/eqtl_data")
+results_dir         <- file.path(base_dir, "tg_eQTL_with_convalescent")
+published_snps_path <- file.path(base_dir, "tg_impacc_GWAS",
+                                 "All_Severe_COVID_GWAS_hits.xlsx")
+# ----------------------------------------------------------------------------
+
+combined_dir <- file.path(results_dir, "eigenMT_FDR", "eigenMT_combined_final_result")
+final_dir    <- file.path(results_dir, "final_files")
+sumstats_dir <- file.path(results_dir, "tg_sumstats")
+residuals_dir <- file.path(results_dir, "dynamic_eQTL_analysis", "residuals")
+for (d in c(sumstats_dir, residuals_dir)) if (!dir.exists(d)) dir.create(d, recursive = TRUE)
+
+```
+
+## Classify colocalized SNP-gene pairs into four regulatory patterns
+
+Using the colocalization results (produced in `05-colocalization.Rmd`), we
+restrict to the published-locus eQTLs, flag colocalized significant
+associations (PP.H4 > 0.5), and classify each SNP-gene pair by its severity
+pattern. The four-pattern classifier counts the number of significant
+(eigenMT < 0.05) detections in each severity group and assigns one of:
+constitutively active (>= 5 detections in both groups), TG1-3 only, TG4-5 only,
+or dynamic. This `detection_pattern` is consumed by the Figure 3 notebook to
+split the heatmap rows and to draw the pattern panels (3B, 3C).
+
+```{r}
+# Inputs: the full combined cis-eQTL summary stats, eigenMT TESTS, the published
+# SNP list, and the coloc results (visit, group, SNP, gene, PP.H4).
+eigenmt_dir <- file.path(results_dir, "eigenMT_FDR", "eigenMT_combined_final_result")
+eqtl_dir    <- sumstats_dir
+
+published_snps_h <- read_excel(published_snps_path) %>%
+        pivot_longer(cols = everything(), values_to = "grch38") %>%
+        filter(!is.na(grch38)) %>%
+        distinct(grch38) %>%
+        bind_rows(tibble(grch38 = "12:112945172"))
+
+combined_eqtls_final <- qs_read(file.path(eqtl_dir, "combined_eqtls_tg_final.qs2"))
+
+eigenMT_final2 <- fread(file.path(eigenmt_dir, "final_all_merged_eigenMT.txt")) %>%
+  select(gene, TESTS, visit, group)
+
+coloc_results_dat <- qs_read(file.path(eqtl_dir, "coloc_results_dat_tg_05.qs2")) %>%
+  select(visit, group, grch37, grch38, gene, gene_name, `PP.H4`)
+
+eqtls_for_published_snps <- combined_eqtls_final %>%
+      inner_join(eigenMT_final2, by = c("gene", "visit", "group")) %>%
+      mutate(eigenMT = pvalue*TESTS) %>%
+      inner_join(published_snps_h, by = "grch38")
+
+fig3_dat <- left_join(eqtls_for_published_snps, coloc_results_dat,
+                     by = c("visit", "group", "grch37", "grch38", "gene", "gene_name"))
+
+# STEP 1: Identify SNP-gene pairs with at least one significant eQTL.
+significant_pairs <- fig3_dat %>%
+  filter(eigenMT < 0.05,
+         as.numeric(gsub("visit_", "", visit)) != 5) %>%
+  distinct(grch38, gene_name) %>%
+  mutate(pair_id = paste0(gene_name, "_", grch38))
+
+# STEP 2: Get ALL data for those pairs (significant and non-significant).
+fig3_clean <- fig3_dat %>%
+  filter(as.numeric(gsub("visit_", "", visit)) != 5) %>%  # Exclude visit 5
+  mutate(pair_id = paste0(gene_name, "_", grch38)) %>%
+  # Keep only pairs that have at least one significant eQTL
+  filter(pair_id %in% significant_pairs$pair_id) %>%
+  mutate(
+    group = ifelse(group == "case", "TG4-5", "TG1-3"),
+    visit_num = as.numeric(gsub("visit_", "", visit)),
+    col_key = paste0("V", visit_num, "_", group),
+    neglog10P = pmin(-log10(eigenMT), 10),
+    signed_beta = beta,  # ALL betas, not just significant ones
+    abs_beta = abs(beta),
+    is_significant = eigenMT < 0.05,
+    # Colocalization flag only for significant eQTLs
+    coloc_flag = is_significant & !is.na(PP.H4) & PP.H4 > 0.5,
+    row_id = paste0(gene_name, " | ", grch38)
+  ) %>%
+  arrange(gene_name, as.numeric(gsub(".*:", "", grch38))) %>%
+  mutate(
+    row_id = paste0(gene_name, " | ", grch38),
+    gene_group = gene_name
+  ) %>%
+  mutate(signed_beta_clipped = pmax(pmin(signed_beta, 1), -1))
+
+# Function to classify detection patterns (the four regulatory patterns).
+classify_detection_pattern <- function(data) {
+  data %>%
+    group_by(row_id) %>%
+    summarise(
+      tg13_detections = sum(is_significant & group == "TG1-3", na.rm = TRUE),
+      tg45_detections = sum(is_significant & group == "TG4-5", na.rm = TRUE),
+      total_detections = sum(is_significant, na.rm = TRUE),
+      .groups = 'drop'
+    ) %>%
+    mutate(
+      detection_pattern = case_when(
+        tg13_detections >= 5 & tg45_detections >= 5 ~ "Constitutively Active",
+        tg13_detections >= 1 & tg45_detections == 0 ~ "TG1-3 Only",
+        tg45_detections >= 1 & tg13_detections == 0 ~ "TG4-5 Only",
+        TRUE ~ "Dynamic"
+      )
+    )
+}
+
+# Apply classification
+detection_patterns <- classify_detection_pattern(fig3_clean)
+
+# Add detection patterns back to main data
+fig3_clean <- fig3_clean %>%
+  left_join(detection_patterns %>% select(row_id, detection_pattern), by = "row_id") %>%
+  # Reorder by detection pattern groups
+  arrange(
+    factor(detection_pattern, levels = c("Constitutively Active", "TG1-3 Only", "TG4-5 Only", "Dynamic")),
+    gene_name,
+    as.numeric(gsub(".*:", "", grch38))
+  )
+
+# Save the classified per-locus table for the Figure 3 notebook to consume.
+qs_save(fig3_clean, file.path(sumstats_dir, "fig3_clean_classified.qs2"))
+qs_save(detection_patterns, file.path(sumstats_dir, "detection_patterns.qs2"))
+```

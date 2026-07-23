@@ -1,0 +1,476 @@
+---
+title: "Figure 3: longitudinal severity-stratified cis-eQTL landscape"
+author: "Ernie Chen (ernie.chen@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+This notebook draws the four panels of Figure 3 from the classified per-locus
+table produced in `06-regulatory_pattern_analysis.Rmd`:
+
+- 3A: the paired severity effect-size heatmap across visits V1-V10 (V5 excluded),
+  with TG1-3 and TG4-5 column blocks, rows split by regulatory detection pattern,
+  and colocalized significant eQTLs marked.
+- 3B: the severity-group distribution of the colocalized eQTLs (cohort split).
+- 3C: representative genes for each detection pattern.
+- 3D: the temporal distribution of significant, colocalized cis-eQTLs by visit
+  and severity group.
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(qs2)
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(data.table)
+library(tidyverse)
+library(ComplexHeatmap)
+library(circlize)
+library(grid)
+library(gridExtra)
+library(cowplot)
+library(patchwork)
+library(ggplot2)
+```
+
+```{r paths-and-parameters}
+# ---- EDIT THESE PATHS FOR YOUR ENVIRONMENT --------------------------------
+# base_dir    : root for all inputs and outputs of this track.
+# results_dir : holds tg_sumstats/ with the classified per-locus table written
+#               by 06-regulatory_pattern_analysis.Rmd.
+base_dir    <- path.expand("/path/to/eqtl_data")
+results_dir <- file.path(base_dir, "tg_eQTL_with_convalescent")
+# ----------------------------------------------------------------------------
+
+sumstats_dir <- file.path(results_dir, "tg_sumstats")
+
+# fig3_clean is the per-locus table classified into the four regulatory
+# detection patterns (see 06-regulatory_pattern_analysis.Rmd).
+fig3_clean <- qs_read(file.path(sumstats_dir, "fig3_clean_classified.qs2"))
+```
+
+## Panel 3A: paired severity effect-size heatmap across visits
+
+We build three aligned matrices (signed effect size, significance, and
+colocalization flag) keyed by SNP-gene pair and visit-by-severity column, then
+draw a ComplexHeatmap with TG1-3 / TG4-5 column blocks, rows split by detection
+pattern, single diagonals marking significant eQTLs, and full crosses marking
+colocalized eQTLs.
+
+```{r}
+# UNIFIED MATRIX CREATION FUNCTION
+create_matrix <- function(data, value_col, fill_value = 0) {
+  data %>%
+    select(row_id, col_key, !!sym(value_col)) %>%
+    pivot_wider(names_from = col_key, values_from = !!sym(value_col), values_fill = fill_value) %>%
+    column_to_rownames("row_id") %>%
+    as.matrix()
+}
+
+# Create three matrices
+mat_beta <- create_matrix(fig3_clean, "signed_beta_clipped", 0)
+mat_significance <- create_matrix(fig3_clean, "is_significant", FALSE)
+mat_coloc <- create_matrix(fig3_clean, "coloc_flag", FALSE)
+
+# Column ordering
+visits_to_include <- c(1, 2, 3, 4, 6, 7, 8, 9, 10)
+col_order <- c(paste0("V", visits_to_include, "_TG1-3"),
+               paste0("V", visits_to_include, "_TG4-5"))
+col_order <- col_order[col_order %in% colnames(mat_beta)]
+
+# Reorder matrices
+mat_beta <- mat_beta[, col_order]
+mat_significance <- mat_significance[, col_order]
+mat_coloc <- mat_coloc[, col_order]
+
+# Column info for annotations
+column_info <- data.frame(
+  col_name = colnames(mat_beta),
+  stringsAsFactors = FALSE
+) %>%
+  mutate(
+    visit = as.numeric(gsub("V(\\d+)_.*", "\\1", col_name)),
+    group = gsub(".*_(TG.*)$", "\\1", col_name),
+    phase = ifelse(visit %in% c(1, 2, 3, 4, 6), "Acute", "Convalescent")
+  )
+
+# UNIFIED CELL FUNCTION
+create_cell_function <- function(beta_mat, coloc_mat, significance_mat, show_arrows = TRUE) {
+  function(j, i, x, y, width, height, fill) {
+    # Base color for all betas
+    if(!is.na(beta_mat[i, j])) {
+      grid.rect(x, y, width, height, gp = gpar(fill = fill, col = NA))
+    }
+
+    # Light grid for all cells
+    grid.rect(x, y, width, height, gp = gpar(col = "grey80", fill = NA, lwd = 2.15))
+
+    # Significance and colocalization marks
+    if(!is.na(significance_mat[i, j]) && significance_mat[i, j]) {
+
+      if(!is.na(coloc_mat[i, j]) && coloc_mat[i, j]) {
+        # FULL X for colocalized eQTLs (both diagonals) - CORNER TO CORNER
+        grid.lines(c(x - width*0.41, x + width*0.41), c(y - height*0.41, y + height*0.41),
+                  gp = gpar(col = "grey26", lwd = 1.5))
+        grid.lines(c(x - width*0.41, x + width*0.41), c(y + height*0.41, y - height*0.41),
+                  gp = gpar(col = "grey26", lwd = 1.5))
+      } else {
+        # SINGLE DIAGONAL for significant eQTLs only - CORNER TO CORNER
+        grid.lines(c(x - width*0.41, x + width*0.41), c(y - height*0.41, y + height*0.41),
+                  gp = gpar(col = "grey26", lwd = 1.5))
+      }
+    }
+  }
+}
+
+# Heatmap builder. filter_coloc keeps only rows with a colocalization event.
+create_heatmap <- function(beta_mat, coloc_mat, significance_mat, fig_data, filter_coloc = FALSE, show_arrows = TRUE) {
+
+    if(filter_coloc) {
+        row_has_coloc <- apply(coloc_mat, 1, function(x) any(x, na.rm = TRUE))
+        beta_mat <- beta_mat[row_has_coloc, ]
+        coloc_mat <- coloc_mat[row_has_coloc, ]
+        significance_mat <- significance_mat[row_has_coloc, ]
+        # Filter fig_data to match
+        fig_data <- fig_data %>% filter(row_id %in% rownames(beta_mat))
+        title_suffix <- "with Colocalization"
+    } else {
+        title_suffix <- ""
+    }
+
+    # Get detection patterns for row splitting
+    row_patterns <- fig_data %>%
+      distinct(row_id, detection_pattern) %>%
+      filter(row_id %in% rownames(beta_mat))
+
+    detection_factor <- factor(
+      row_patterns$detection_pattern[match(rownames(beta_mat), row_patterns$row_id)],
+      levels = c("TG4-5 Only", "TG1-3 Only",  "Dynamic", "Constitutively Active"),  # Original levels
+      labels = c("TG4-5 Only (Risk)","TG1-3 Only (Protective)",  "Dynamic", "Constitutively\nActive")   # Line break only in labels
+    )
+
+    col_fun <- colorRamp2(c(-1, 0, 1), c("#2C7BB6", "white", "#D7191C"))
+
+    Heatmap(
+        beta_mat,
+        name = "Effect Size",
+        col = col_fun,
+        na_col = "white",
+
+        cluster_rows = TRUE,
+        clustering_distance_rows = "pearson",
+        # clustering_method_rows = "ward.D2",
+        show_row_dend = FALSE,
+        cluster_columns = FALSE,
+
+        # ROW SPLITTING BY DETECTION PATTERN
+        row_split = detection_factor,
+        row_gap = unit(3, "mm"),
+        row_title_rot = 90,  # Rotate group titles 90 degrees
+        row_title_gp = gpar(fontsize = 11, fontface = "bold"),
+        cluster_row_slices = FALSE,  # prevents group reordering
+
+
+        show_row_names = TRUE,
+        show_column_names = TRUE,
+        row_names_gp = gpar(fontsize = 11, fontface = "italic"),
+        column_names_gp = gpar(fontsize = 11, fontface = "bold"),
+        column_names_rot = 0,
+        column_names_centered = TRUE,
+        column_labels = gsub("_TG.*", "", colnames(beta_mat)),
+
+        # Cell function
+        cell_fun = create_cell_function(beta_mat, coloc_mat, significance_mat, show_arrows),
+
+        # Column grouping
+        column_split = factor(column_info$group, levels = c("TG1-3", "TG4-5")),
+        column_gap = unit(12, "mm"),
+        column_title = c("TG1-3", "TG4-5"),
+        column_title_gp = gpar(fontsize = 14, fontface = "bold"),
+
+        width = unit(200, "mm"),
+        height = unit(ifelse(filter_coloc, 242, 428), "mm"),
+
+        heatmap_legend_param = list(
+            title = "Effect Size",
+            title_gp = gpar(fontsize = 12.5, fontface = "bold"),
+            title_position = "topcenter",
+            labels_gp = gpar(fontsize = 10),
+            direction = "horizontal",
+            at = c(-1, -0.5, 0, 0.5, 1),
+            labels = c("-1", "-0.5", "0", "0.5", "1"),
+            legend_height = unit(3.1, "cm")
+        )
+    )
+}
+
+# Build the full and colocalization-only heatmaps.
+ht_full <- create_heatmap(mat_beta, mat_coloc, mat_significance, fig3_clean, filter_coloc = FALSE)
+ht_coloc <- create_heatmap(mat_beta, mat_coloc, mat_significance, fig3_clean, filter_coloc = TRUE, show_arrows = FALSE)
+
+# Draw the colocalization-only heatmap (Figure 3A).
+draw(ht_coloc, column_title = "COVID-19 GWAS Variant eQTL Effects Across Disease Course and Trajectory Groups",
+     column_title_gp = gpar(fontsize = 15.5, fontface = "bold"),
+     heatmap_legend_side = "bottom", # Move to bottom
+     padding = unit(c(20, 2, 2, 2), "mm"))
+```
+
+## Panel 3B: severity-group distribution of colocalized eQTLs
+
+Among the colocalized SNP-gene pairs we classify each as TG1-3 only, TG4-5 only,
+or significant in both groups, and show the cohort breakdown as a stacked bar.
+
+```{r}
+# First, identify which SNP-gene pairs have at least one colocalization event
+colocalized_pairs <- fig3_clean %>%
+  filter(coloc_flag == TRUE) %>%  # Only pairs with colocalization evidence
+  distinct(row_id) %>%
+  pull(row_id)
+
+# Create severity group classification for ONLY the colocalized pairs
+severity_distribution <- fig3_clean %>%
+  filter(row_id %in% colocalized_pairs,  # Only the colocalized pairs
+         is_significant) %>%  # Only significant detections within those pairs
+  group_by(row_id) %>%
+  summarise(
+    groups_present = paste(sort(unique(group)), collapse = "_"),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    severity_pattern = case_when(
+      groups_present == "TG1-3" ~ "TG1-3 Only",
+      groups_present == "TG4-5" ~ "TG4-5 Only",
+      groups_present == "TG1-3_TG4-5" ~ "Both Groups",
+      TRUE ~ "Other"
+    )
+  )
+
+# Create summary for visualization
+severity_summary <- severity_distribution %>%
+  count(severity_pattern, name = "n_pairs") %>%
+  mutate(
+    prop = n_pairs / sum(n_pairs) * 100,
+    total_n = sum(n_pairs),
+    group = "All Pairs"
+  )
+
+# Reorder factor levels
+severity_summary$severity_pattern <- factor(
+  severity_summary$severity_pattern,
+  levels = c("TG1-3 Only", "Both Groups", "TG4-5 Only")
+)
+
+# Create stacked bar chart
+fig3d <- ggplot(severity_summary, aes(x = group, y = prop, fill = severity_pattern)) +
+  geom_bar(stat = "identity", width = 0.6, color = "black", size = 0.3) +
+
+  geom_text(
+    aes(label = sprintf("%.1f%%\n(n=%d)", prop, n_pairs)),
+    position = position_stack(vjust = 0.5),
+    size = 4,
+    fontface = "bold",
+    color = "white"
+  ) +
+
+  geom_text(
+    aes(y = 105, label = paste0("Total: ", total_n, " colocalized pairs")),
+    size = 4.5,
+    fontface = "bold",
+    color = "black"
+  ) +
+
+  scale_fill_manual(
+    values = c(
+      "TG1-3 Only" = "#E69F00",      # Orange
+      "Both Groups" = "#56B4E9",     # Sky blue
+      "TG4-5 Only" = "#009E73"       # Green
+    ),
+    name = "Detection Pattern"
+  ) +
+
+  scale_y_continuous(
+    limits = c(0, 115),
+    breaks = seq(0, 100, 25),
+    expand = c(0, 0),
+    labels = function(x) paste0(x, "%")
+  ) +
+
+  scale_x_discrete(labels = "COVID-19 GWAS\nColocalized eQTLs") +
+
+  labs(
+    x = NULL,
+    y = "Percentage of eQTLs",
+    title = "Severity Group Distribution\nof Colocalized eQTLs"
+  ) +
+
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid = element_blank(),
+    axis.line = element_line(color = "black", size = 1),
+    axis.text = element_text(size = 11, color = "black"),
+    axis.text.x = element_text(face = "bold", size = 11),
+    axis.title = element_text(face = "bold", size = 12),
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold", size = 11),
+    legend.text = element_text(size = 10),
+    plot.title = element_text(face = "bold", size = 14),
+    plot.margin = margin(t = 10, r = 15, b = 10, l = 10)
+  )
+
+# Display the plot
+fig3d
+```
+
+## Panel 3C: representative genes by detection pattern
+
+For the colocalized pairs we take the top genes in each detection pattern
+(ranked by number of timepoints detected and effect size) and show how many
+timepoints each was detected at.
+
+```{r}
+# Representative genes from each detection pattern
+pattern_genes <- fig3_clean %>%
+  filter(row_id %in% colocalized_pairs, is_significant) %>%
+  group_by(gene_name, detection_pattern) %>%
+  summarise(
+    n_timepoints = n_distinct(visit_num),
+    mean_effect = mean(abs(signed_beta_clipped), na.rm = TRUE),
+    max_effect = max(abs(signed_beta_clipped), na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  # Get top 2-3 genes per pattern
+  group_by(detection_pattern) %>%
+  arrange(desc(n_timepoints), desc(max_effect)) %>%
+  slice_head(n = 3) %>%
+  ungroup() %>%
+  mutate(
+    gene_name = factor(gene_name, levels = rev(gene_name)),
+    pattern_colors = case_when(
+      detection_pattern == "Constitutively Active" ~ "#2C7BB6",
+      detection_pattern == "TG1-3 Only" ~ "#E69F00",
+      detection_pattern == "TG4-5 Only" ~ "#009E73",
+      detection_pattern == "Dynamic" ~ "#D7191C"
+    )
+  )
+
+fig3e <- ggplot(pattern_genes, aes(x = n_timepoints, y = gene_name, fill = pattern_colors)) +
+  geom_bar(stat = "identity", alpha = 0.8, color = "black", size = 0.75) +
+  geom_text(aes(label = n_timepoints), hjust = -0.2, size = 4, fontface = "bold") +
+  scale_fill_identity() +  # Use exact colors
+  scale_x_continuous(
+    breaks = function(x) seq(0, ceiling(max(x)), by = 1),  # Only whole numbers
+    expand = expansion(mult = c(0, 0.1))
+  ) +
+  facet_wrap(~detection_pattern, scales = "free_y", ncol = 1) +
+  labs(
+    x = "Number of Timepoints Detected",
+    y = NULL,
+    title = "Representative Genes by Detection Pattern") +
+  theme_minimal(base_size = 15) +
+  theme(
+    panel.grid = element_blank(),
+    axis.line.x = element_line(color = "black", size = 1),
+    strip.text = element_text(face = "bold", size = 13),
+    strip.background = element_rect(fill = "grey90"),
+    axis.text.y = element_text(face = "italic", size = 16),  # MUCH BIGGER gene names
+    axis.text.x = element_text(size = 12),  # X-axis numbers
+    plot.title = element_text(face = "bold", size = 15)
+  )
+
+# Display the plot
+fig3e
+```
+
+## Panel 3D: temporal distribution of significant colocalized eQTLs
+
+We count the unique colocalized SNP-gene pairs detected at each visit within
+each severity group, filling absent visit-by-group combinations with zero, and
+show them as dodged bars with an acute / convalescent divider.
+
+```{r}
+groups_vec <- c("TG1-3", "TG4-5")
+visits_vec <- c(1, 2, 3, 4, 6, 7, 8, 9, 10)  # Explicit visits (no V5)
+
+temporal_detection <- fig3_clean %>%
+  filter(row_id %in% colocalized_pairs,  # Only colocalized pairs
+         is_significant) %>%  # Only significant detections
+  group_by(visit_num, group) %>%
+  summarise(n_eqtls = n_distinct(row_id),  # Count unique SNP-gene pairs
+            .groups = "drop") %>%
+  # Fill missing visit x group combinations
+  complete(visit_num = visits_vec,
+           group = groups_vec,
+           fill = list(n_eqtls = 0)) %>%
+  mutate(
+    phase = ifelse(visit_num %in% c(1,2,3,4,6), "Acute", "Convalescent"),
+    group = factor(group, levels = groups_vec),
+    visit_label = paste0("V", visit_num)
+  )
+
+# Create the plot
+fig3f <- ggplot(temporal_detection,
+                   aes(x = factor(visit_num),
+                       y = n_eqtls,
+                       fill = group)) +
+  geom_bar(stat = "identity",
+           position = position_dodge(width = 0.7),
+           width = 0.7,
+           colour = "black", size = 0.3, alpha = 0.85) +
+  geom_text(aes(label = n_eqtls),
+            position = position_dodge(width = 0.7),
+            vjust = -0.35, size = 3.5, fontface = "bold") +
+
+  # Phase divider (between acute V6 and convalescent V7)
+  geom_vline(xintercept = 5.5, linetype = "dashed",  # Adjusted for missing V5
+             colour = "grey40", size = 0.8) +
+
+  scale_fill_manual(values = c("TG1-3" = "#E69F00",
+                               "TG4-5" = "#009E73"),
+                    name = "Severity Group") +
+  scale_x_discrete(labels = paste0("V", visits_vec)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.12)),
+                     breaks = function(x) seq(0, ceiling(max(x)), by = 2)) +  # Whole numbers only
+
+  annotate("text", x = 3, y = max(temporal_detection$n_eqtls)*0.92,
+           label = "Acute", fontface = "bold", size = 4) +
+  annotate("text", x = 7.5, y = max(temporal_detection$n_eqtls)*0.92,
+           label = "Convalescent", fontface = "bold", size = 4) +
+
+  labs(x = "Visit",
+       y = "Colocalized eQTL Pairs Detected",
+       title = "Temporal Activity of Causal eQTLs") +
+
+  theme_minimal(base_size = 11) +
+  theme(panel.grid = element_blank(),
+        axis.line = element_line(colour = "black", linewidth = 0.9),
+        axis.text = element_text(face = "bold", size = 12),
+        axis.title = element_text(face = "bold"),
+        legend.position = "bottom",
+        plot.title = element_text(face = "bold", size = 15))
+
+fig3f
+```
+
+## Assemble Figure 3 panels B, C, and D
+
+The heatmap (3A) is drawn on its own above; panels 3B, 3C, and 3D are combined
+into the multi-panel layout below.
+
+```{r}
+# Create 2x1 grid with custom widths
+right_panels <- (fig3d + fig3e + plot_layout(widths = c(1, 2))) /
+                (fig3f) +
+  theme(plot.tag = element_text(size = 16, face = "bold"))
+
+right_panels
+```

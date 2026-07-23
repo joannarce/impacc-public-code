@@ -1,0 +1,557 @@
+---
+title: "Hospital-admission cis-eQTLs: colocalization with GenOMICC"
+author: "Ernie Chen (ernie.chen@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(coloc)
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(qs2)
+library(tibble)
+library(ggplot2)
+```
+
+## Paths and parameters
+
+All hardcoded absolute paths from the original notebook are collected here.
+Edit these values to match your environment; everything downstream is built
+from them with `file.path()`. The GenOMICC critical-illness summary statistics
+can be downloaded from the URL noted in the harmonization chunk below.
+
+```{r paths-and-parameters}
+# ---- EDIT THESE FOR YOUR ENVIRONMENT ----
+# Root of the raw IMPACC genotype/expression data env.
+base_dir <- "/path/to/impacc_data/"
+
+# Serialized IMPACC data environment (clinical + omics).
+data_env_path <- file.path(base_dir, "impacc_data_env.RDS")
+
+# GenOMICC international critical-illness GWAS summary statistics (TSV).
+gwas_sumstats_path <- file.path(base_dir, "GenOMICC_international_meta_release3_critical.tsv")
+
+# Analysis output / results root (this is the original panEQTL_dir).
+results_dir <- "/path/to/hospital_admission_results"
+panEQTL_dir <- results_dir
+
+# Subdirectories built from the results root.
+matrixeqtl_results <- file.path(panEQTL_dir, "panEQTL_results")
+final_dir          <- file.path(panEQTL_dir, "final_files")
+output_dir         <- file.path(panEQTL_dir, "residuals_analysis")
+prefix <- "impacc_panEQTL_visit1"
+# -----------------------------------------
+```
+
+## Compute genotype-conditioned expression residuals
+
+For each significant SNP-gene pair (eigenMT < 0.01), regress the gene's
+inverse-normal expression on all covariates (excluding genotype) and keep the
+residuals alongside the genotype, for downstream plotting. 61 SNP-gene pairs
+(32 unique SNPs, 52 unique genes) are processed.
+
+```{r compute-residuals}
+# Load the significant eQTLs we filtered in previous step
+significant_eqtls <- qs_read(file.path(matrixeqtl_results, "panEQTL_significant_published_eqtls.qs2"))
+
+# Further filter to eigenMT < 0.01 (significant after multiple testing correction)
+significant_eqtls_filtered <- significant_eqtls[eigenMT < 0.01]
+
+# Extract the target SNP-gene pairs for residual calculation
+target_pairs <- significant_eqtls_filtered %>%
+  distinct(grch37, gene)
+
+# Print summary of what we're computing
+cat(sprintf("Computing residuals for %d SNP-gene pairs (eigenMT < 0.01)\n", nrow(target_pairs)))
+# Computing residuals for 61 SNP-gene pairs (eigenMT < 0.01)
+
+# Define file paths for residual calculations (preserve naming convention).
+ge_file      <- file.path(final_dir, paste0(prefix, "_GE.txt"))
+snp_file     <- file.path(final_dir, paste0(prefix, "_SNP.txt"))
+covar_file   <- file.path(final_dir, paste0(prefix, "_Covariates.txt"))
+
+# Check that all required files exist
+if(!all(file.exists(ge_file, covar_file, snp_file))) {
+  stop("One or more required files missing. Check paths.")
+}
+
+# Read the data files
+ge <- fread(ge_file) %>% column_to_rownames(var = "ID")
+covar <- fread(covar_file) %>% column_to_rownames(var = "ID")
+snp <- fread(snp_file) %>% column_to_rownames(var = "ID")
+
+# Initialize a list to store residual results for each SNP-gene pair
+residuals_list <- list()
+
+# Loop over each SNP-gene pair
+for (i in seq_len(nrow(target_pairs))) {
+  target_snp <- target_pairs$grch37[i]    # SNP identifier
+  target_gene <- target_pairs$gene[i]     # Gene name
+  pair_id <- paste0(target_snp, "_", target_gene)
+  
+  # Extract expression for target gene
+  if(!(target_gene %in% rownames(ge))) {
+    message("Target gene ", target_gene, " not found in GE file. Skipping.")
+    next
+  }
+  
+  expr_vals <- t(ge[target_gene,]) %>% 
+              as.data.frame() %>%
+              setNames("expression") %>%
+              rownames_to_column(var = "sample_id")
+      
+  # Extract genotype for target SNP
+  if(!(target_snp %in% rownames(snp))) {
+    message("Target SNP ", target_snp, " not found in SNP file. Skipping.")
+    next
+  }
+  
+  geno_vals <- t(snp[target_snp,]) %>% 
+              as.data.frame() %>%
+              setNames("genotype") %>%
+              rownames_to_column(var = "sample_id")
+      
+  covar_final <- t(covar) %>% 
+              as.data.frame() %>%
+              rownames_to_column(var = "sample_id")
+      
+  # Combine into a data frame for regression
+  dat <- expr_vals %>%
+        inner_join(geno_vals, by = "sample_id") %>%
+        inner_join(covar_final, by = "sample_id") %>%
+        column_to_rownames(var = "sample_id")
+
+  # Build the linear model formula: expression ~ covariates (excluding genotype)
+  covar_names <- colnames(covar_final)[-1]
+  formula_str <- paste("expression ~", paste(covar_names, collapse = " + "))
+
+  # Fit the linear model
+  model <- lm(as.formula(formula_str), data = dat)
+  
+  # Extract residuals
+  resids <- residuals(model) %>%
+        as.data.frame() %>%
+        setNames("residuals") %>%
+        rownames_to_column(var = "sample_id")
+
+  # Add genotype information for plotting
+  geno_for_plotting <- dat %>%
+                       select(genotype) %>%
+                       rownames_to_column(var = "sample_id")
+
+  # Create final residuals data frame for this SNP-gene pair
+  res_df <- resids %>%
+        inner_join(geno_for_plotting, by = "sample_id") %>%
+        mutate(snp = target_snp,
+               gene = target_gene)
+  
+  # Store in list
+  residuals_list[[pair_id]] <- res_df
+  
+  # Print progress
+  if (i %% 10 == 0 || i == nrow(target_pairs)) {
+    cat(sprintf("Processed %d/%d SNP-gene pairs\n", i, nrow(target_pairs)))
+  }
+}
+
+# Combine all residuals into one data frame
+combined_residuals <- bind_rows(residuals_list, .id = "pair_id") %>%
+                      separate(pair_id, into = c("grch37", "gene_id"), sep = "_", remove = TRUE) %>%
+                      select(-snp, -gene_id)
+
+# Print summary
+cat("Combined residuals dataset dimensions:", dim(combined_residuals), "\n") # 55998 7 (918 people X 61 unique eQTL PAIRS)
+cat("Number of unique SNPs:", length(unique(combined_residuals$grch37)), "\n") # 32
+cat("Number of unique genes:", length(unique(combined_residuals$gene_id)), "\n") # 52
+
+# Save results
+qs_save(combined_residuals, file.path(output_dir, "panEQTL_residuals.qs2"))
+```
+
+## Define colocalization ranges and compute allele frequencies
+
+Define a +/- 500 kb window around each of the 32 unique significant SNPs and
+write the range list for PLINK. PLINK then computes allele frequencies over
+those windows (107,803 SNPs fall within +/- 500 kb of the 32 lead SNPs).
+
+```{r coloc-ranges}
+data_env <- readRDS(data_env_path)
+
+sig_eQTLs_no_residuals <- qs_read(file = file.path(matrixeqtl_results, "panEQTL_significant_published_eqtls.qs2"))
+
+all_sig_eqtl_residuals_full <- qs_read(file = file.path(matrixeqtl_results, "panEQTL_residuals.qs2")) %>%
+    select(-gene_id) %>%
+    inner_join(sig_eQTLs_no_residuals, by = c("grch37", "gene"))
+
+ranges_for_coloc <- all_sig_eqtl_residuals_full %>%
+  select(grch38) %>%
+  distinct() %>%
+  separate(grch38, into = c("chr", "pos"), sep = ":", remove = TRUE) %>%
+  mutate(pos = as.numeric(pos),
+  start = pos - 500000,
+  end = pos + 500000) %>%
+  mutate(ranges = paste0("R", 1:n())) %>%
+  select(chr, start, end, ranges)
+
+write.table(ranges_for_coloc, 
+            file = file.path(panEQTL_dir, "ranges_for_coloc.txt"),
+            quote = FALSE, 
+            row.names = FALSE, 
+            col.names = FALSE, 
+            sep = "\t")        
+```
+
+The allele-frequency computation was inline PLINK in the original notebook.
+Edit the leading variables and run it before the harmonization chunk.
+
+```{bash coloc-allele-freq, eval=FALSE}
+# Common paths (edit for your environment)
+base_dir=/path/to/hospital_admission_results
+keep="$base_dir/visit1_panEQTL_coreIDs.txt"
+ranges="$base_dir/ranges_for_coloc.txt"
+bfile=/path/to/impacc_data/plink/impacc_geno
+
+# PLINK run: Calculate allele frequencies (--freq)
+plink   --bfile "$bfile" \
+        --keep "$keep" \
+        --extract range "$ranges" \
+        --freq \
+        --make-bed \
+        --out "$base_dir/visit1_panEQTL_coloc"
+```
+
+## Harmonize eQTL and GenOMICC data
+
+Merge PLINK allele frequencies with the variant table, attach the cis-eQTL
+results and eigenMT correction, and compute the eQTL standard error and varbeta.
+The GenOMICC summary statistics are then read, palindromic/ambiguous SNPs are
+removed (ambiguous defined as palindromic with GWAS MAF between 0.40 and 0.60),
+the GWAS is harmonized, and eQTL effect alleles are flipped to match the GWAS
+allele orientation.
+
+```{r harmonize-coloc}
+# Read .afreq file
+frq_df <- fread(file.path(panEQTL_dir, "visit1_panEQTL_coloc.afreq")) %>%
+            mutate(N = OBS_CT / 2) %>%
+            rename(grch37 = ID, 
+                   CHR = "#CHROM", 
+                   MAF = ALT_FREQS) %>%
+            select(-OBS_CT, -"PROVISIONAL_REF?")
+
+bim_df <- fread(file.path(panEQTL_dir, "visit1_panEQTL_coloc.bim")) %>%
+            relocate(V4, .after = V1) %>%
+            unite("grch38", V1:V4, sep = ":", remove = TRUE) %>%
+            select(-V3) %>%
+            rename(grch37 = V2,
+                    ALT = V5,
+                    REF = V6) 
+
+# Merge grch37 and grch38 information
+impacc_geno_dat <- inner_join(frq_df, bim_df,
+                              by = c("grch37", "REF", "ALT")) %>%
+                              select(-"CHR", -"ALT", -"REF") %>%
+                              relocate(grch38, .after=grch37)
+
+# 107,803 SNPs fall within the range of +/-500kb of the 32 unique SNPs.
+
+# Now, we need to get the relevant cis-eQTL results data from all of these snps
+
+# Load with qs_read -- much faster
+combined_eqtls_final <- qs_read(file.path(matrixeqtl_results, "panEQTL_final.qs2"))
+
+eigenMT_final <- fread(file.path(matrixeqtl_results, "panEQTL_eigenMT.txt")) %>%
+  select(gene, TESTS)
+
+# Final preparation for coloc analysis
+coloc_snps <- impacc_geno_dat %>%
+              inner_join(combined_eqtls_final, by = c("grch37", "grch38")) %>%
+              inner_join(eigenMT_final, by = c("gene")) %>%
+              mutate(eigenMT = pvalue*TESTS) %>%
+              relocate(eigenMT, .before="FDR") %>%
+              rename(eigenMT_tests = "TESTS") %>%
+              mutate(se = abs(beta / statistic),
+                     varbeta = (beta / statistic)^2)
+
+# these are all of the variants (with all corresponding data columns) flanking (+/- 500kb) the 32 unique SNPs with eQTLs
+qs_save(coloc_snps, file.path(panEQTL_dir, "panEQTL_coloc_snps.qs2"))
+
+unique_snps <- (unique(coloc_snps %>% select("grch38"))) %>%
+                separate(grch38, into = c("CHR", "POSb38"), sep = ":", remove = FALSE) %>%
+                mutate(CHR = as.integer(CHR),
+                POSb38 = as.integer(POSb38))
+# 107,803 unique SNPs flanking +/- 500kb from the 32 SNPs. 
+
+# Download the GenOMICC summary statistics once, e.g.:
+# wget https://datashare.ed.ac.uk/bitstream/handle/10283/8536/GenOMICC_international_meta_release3_critical.tsv.gz
+# curl -O https://datashare.ed.ac.uk/bitstream/handle/10283/8536/GenOMICC_international_meta_release3_critical.tsv.gz
+
+genomicc_sumstats <- fread(gwas_sumstats_path) %>%
+                     select(-ID) %>%
+                     inner_join(unique_snps, by = c("CHR", "POSb38")) # 72,157 overlapping SNPs between eQTL & GenoMICC. 
+
+# remove all palindromic SNPs explicitly
+setDT(genomicc_sumstats)
+
+# Step 1: Identify palindromic SNPs explicitly
+genomicc_sumstats[, palindromic := ((Allele1 == "A" & Allele2 == "T") |
+                                    (Allele1 == "T" & Allele2 == "A") |
+                                    (Allele1 == "C" & Allele2 == "G") |
+                                    (Allele1 == "G" & Allele2 == "C"))]
+
+# Step 2: Mark ambiguous SNPs using GWAS MAF threshold (defensible: >0.40)
+ambig_thresh <- 0.40  # Scientifically defensible threshold
+genomicc_sumstats[, ambiguous := palindromic & (Freq1 > ambig_thresh & Freq1 < (1 - ambig_thresh))]
+
+cat("Ambiguous SNPs identified for removal:", sum(genomicc_sumstats$ambiguous), "\n")
+
+# Ambiguous SNPs identified for removal: 1204 
+
+
+###################################
+## (A) Harmonize the GenOMICC data ##
+###################################
+harmonized_genomicc_sumstats <- genomicc_sumstats %>%
+  filter(ambiguous == FALSE) %>%
+  # rename columns to keep consistent naming
+  rename(
+    allele1_gwas   = Allele1,
+    allele2_gwas   = Allele2,
+    beta_gwas      = Effect,
+    se_gwas        = StdErr,
+    pval_gwas      = P.value,
+    freq1_gwas     = Freq1,
+    n_gwas         = TotalSampleSize
+  ) %>%
+  mutate(
+    varbeta_gwas = se_gwas^2
+  )
+#70,953 SNPs left in the genomicc_sumstats after removing potentially Ambiguous SNPs. 
+
+########################################
+## (B) Join to your impacc_eQTL data  ##
+########################################
+# eQTL data is: impacc_eqtl
+impacc_eqtl <- qs_read(file.path(panEQTL_dir, "panEQTL_coloc_snps.qs2"))
+
+joined_df <- impacc_eqtl %>%
+  inner_join(harmonized_genomicc_sumstats, by = c("grch38"))
+# 2836614 rows by 29 columns. 
+
+#######################################
+## (C) Harmonize eQTL to GWAS
+#######################################
+
+setDT(joined_df)
+
+# Step 1: Compute an initial flip flag based on allele identity.
+joined_df[, flip_initial := fifelse(minor == allele1_gwas, FALSE,
+                             fifelse(minor == allele2_gwas, TRUE, NA))]
+
+# Remove any rows where we still have NA (mismatches)
+harmonized_df <- joined_df[!is.na(flip_initial)]
+# 2833834 rows      30 columns
+
+#######################################
+## (D) Flip eQTL statistics to match 
+##           GWAS allele orientation
+#######################################
+
+# Assign beta_eqtl and freq_eqtl for all rows:
+# Assign harmonized eQTL columns consistently for all rows.
+# If flip_initial is TRUE, flip the beta and MAF; if FALSE, keep as is.
+
+harmonized_df[, `:=`(
+  beta_eqtl = ifelse(flip_initial, -beta, beta),
+  freq_eqtl = ifelse(flip_initial, 1 - MAF, MAF)
+)]
+
+# Also, assign the allele columns so that they reflect the GWAS orientation:
+harmonized_df[, `:=`(
+  effect_allele = ifelse(flip_initial, allele1_gwas, minor),
+  other_allele  = ifelse(flip_initial, allele2_gwas, major)
+)]
+
+# Remove the original beta, MAF, minor, and major columns if they're no longer needed.
+harmonized_df <- harmonized_df[, !c("MAF", "beta", "minor", "major"), with = FALSE]
+
+# Report flipping count
+num_flips <- harmonized_df %>% select(grch38, flip_initial) %>% distinct()
+# 30,790 FLIPS
+# 40,086 NO FLIPS
+
+qs_save(harmonized_df, file.path(panEQTL_dir, "harmonized_panEQTL_gwas_final_tg.qs2"))
+```
+
+## Run coloc.abf over each significant SNP-gene pair
+
+For each of the 61 significant SNP-gene pairs (eigenMT < 0.01), extract all
+harmonized SNPs in a +/- 250 kb window, format the eQTL (quantitative) and GWAS
+(case-control, with case fraction s = 23707 / 1075129) datasets, and run
+`coloc.abf` with prior p12 = 5.5e-6. Posterior probabilities PP.H1-PP.H4 are
+recorded per pair. With PP.H4 > 0.5 the source reports 11 pairings, 9 unique
+SNPs, and 10 unique genes.
+
+```{r coloc-abf}
+## LOAD DATA
+harmonized_df <- qs_read(file.path(panEQTL_dir, "harmonized_panEQTL_gwas_final_tg.qs2"))
+
+# Convert to data.table and set keys for efficient subsetting.
+harmonized_dt <- as.data.table(harmonized_df)
+setkey(harmonized_dt, gene, CHR, POSb38)
+rm(harmonized_df)
+# ---------------------------
+# STEP 0: Prepare the SNP-Gene pairs dataframe
+# ---------------------------
+snp_gene_pairs_to_coloc <- qs_read(file = file.path(matrixeqtl_results, "panEQTL_significant_published_eqtls.qs2")) %>%
+          filter(eigenMT < 0.01) %>%
+          select(grch38, gene, gene_name) %>%
+          distinct() %>% # 61 distinct SNP-gene pairs to test for coloc. 
+          separate(grch38, into = c("chr", "pos"), sep = ":", convert = TRUE)
+
+# -----------------------------------------
+# Step 1: Initialize a dataframe to store coloc results.
+# We want to keep all columns from harmonized_df plus PP.H3 and PP.H4.
+# Harmonized_df has the full set of columns as listed.
+coloc_results_dat <- harmonized_dt[0, ] %>% 
+  mutate(PP.H1 = numeric(), PP.H2 = numeric(), PP.H3 = numeric(), PP.H4 = numeric())
+
+# -----------------------------------------
+# Step 2: Loop over each SNP-gene pair in snp_gene_pairs_to_coloc
+# -----------------------------------------
+for(i in 1:nrow(snp_gene_pairs_to_coloc)){
+  
+  # Extract the lead SNP and gene information from the current row.
+  lead_chr    <- as.character(snp_gene_pairs_to_coloc$chr[i])
+  lead_pos    <- snp_gene_pairs_to_coloc$pos[i]
+  lead_grch38 <- paste0(lead_chr, ":", lead_pos)
+  gene_id     <- snp_gene_pairs_to_coloc$gene[i]
+  gene_name   <- snp_gene_pairs_to_coloc$gene_name[i]
+  
+  # Define cis window boundaries: +/- 250 kb around the lead SNP position.
+  win_lower <- lead_pos - 250000
+  win_upper <- lead_pos + 250000
+  
+  # -----------------------------------------
+  # Step 3: Identify all candidate conditions (visit and group) for this SNP-gene pair.
+  candidate_conditions <- harmonized_dt %>%
+    filter(gene == gene_id,
+           grch38 == lead_grch38,
+           eigenMT < 0.01)
+  
+  # If no condition meets the significance threshold, skip this SNP-gene pair.
+  if(nrow(candidate_conditions) == 0){
+    message("No significant eQTL (eigenMT < 0.01) found for ", lead_grch38, " - ", gene_name, "; skipping.")
+    next
+  }
+  
+  # -----------------------------------------
+  # Step 4: Loop over each candidate condition
+  for(j in 1:nrow(candidate_conditions)){
+    condition <- candidate_conditions %>% slice(j)
+    
+    # -----------------------------------------
+    # Step 5: Extract all SNP data within the +/- 250 kb window for this condition and gene.
+
+    dat_subset <- harmonized_dt[
+      gene == gene_id & 
+      CHR == lead_chr & 
+      POSb38 >= win_lower & 
+      POSb38 <= win_upper
+    ]
+        
+    # Remove rows with missing varbeta values to avoid check_dataset error.
+    dat_subset <- dat_subset %>% filter(!is.na(varbeta))
+
+    # If no rows remain after filtering, skip this condition.
+    if(nrow(dat_subset) == 0){
+      message("No eQTL SNPs in window after filtering out missing varbeta for ", lead_grch38, " - ", gene_name, 
+              " in ", cond_visit, " ", cond_group, "; skipping condition.")
+      next
+    }
+    
+    # -----------------------------------------
+    # Step 6: Format the eQTL and GWAS datasets for coloc.
+    # Format the eQTL dataset (quantitative).
+    eqtl_dataset <- list(
+      snp = dat_subset$grch38,
+      beta = dat_subset$beta_eqtl,        # use the harmonized beta
+      varbeta = dat_subset$varbeta,
+      pvalues = dat_subset$pvalue,
+      MAF = dat_subset$freq_eqtl,         # use the harmonized MAF
+      N = dat_subset$N,
+      position = dat_subset$POSb38,
+      type = "quant"
+    )
+    
+    # Format the GWAS dataset (case-control).
+    gwas_dataset <- list(
+      snp = dat_subset$grch38,
+      beta = dat_subset$beta_gwas,
+      varbeta = dat_subset$varbeta_gwas,
+      pvalues = dat_subset$pval_gwas,
+      MAF = dat_subset$freq1_gwas,
+      N = dat_subset$n_gwas,
+      type = "cc",
+      s = (23707 / 1075129),  # defined by the case-control numbers from GenoMICC. 
+      position = dat_subset$POSb38
+    )
+    
+    # Run diagnostic checks (optional)
+    check_dataset(eqtl_dataset)
+    check_dataset(gwas_dataset)
+    
+    # -----------------------------------------
+    # Step 7: Run coloc.abf using the formatted datasets.
+    coloc_res <- coloc.abf(
+      dataset1 = eqtl_dataset,
+      dataset2 = gwas_dataset,
+      p12=5.5e-6) # halfway in between 1e-6 and 1e-5
+    
+    # Extract posterior probabilities.
+    pp_h1 <- coloc_res$summary["PP.H1.abf"]
+    pp_h2 <- coloc_res$summary["PP.H2.abf"]
+    pp_h3 <- coloc_res$summary["PP.H3.abf"]
+    pp_h4 <- coloc_res$summary["PP.H4.abf"]
+    
+    # -----------------------------------------
+    # Step 8: Record the results.
+    # Add the coloc results (PP.H1, PP.H2, PP.H3, PP.H4) to the candidate condition row.
+    condition_out <- condition %>% 
+      mutate(PP.H1 = as.numeric(pp_h1),
+             PP.H2 = as.numeric(pp_h2),
+             PP.H3 = as.numeric(pp_h3),
+             PP.H4 = as.numeric(pp_h4))
+    
+    # Append the row to the final results dataframe.
+    coloc_results_dat <- bind_rows(coloc_results_dat, condition_out)
+    
+  } # end inner loop over candidate conditions
+} # end outer loop over SNP-gene pairs
+
+# -----------------------------------------
+# Final Output:
+# coloc_results_dat now contains one row for each candidate condition (visit-group) 
+# where eigenMT < 0.01 for a SNP-gene pair, along with coloc PP.H1, PP.H2, PP.H3, PP.H4.
+# ----------------------------------------- 
+
+qs_save(coloc_results_dat, file.path(matrixeqtl_results, "panEQTL_coloc_results.qs2"))
+
+# with PPH4 >0.5
+# 11 pairings 
+# 9 unique SNPs
+# 10 unique genes
+```

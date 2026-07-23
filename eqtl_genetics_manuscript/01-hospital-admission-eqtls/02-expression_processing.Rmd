@@ -1,0 +1,301 @@
+---
+title: "Hospital-admission cis-eQTLs: expression processing"
+author: "Ernie Chen (ernie.chen@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(dplyr)
+library(data.table)
+library(tidyverse)
+library(tidyr)
+library(tibble)
+library(edgeR)
+library(RNOmni)
+library(pcaMethods)
+library(PCAForQTL)
+library(qs2)
+```
+
+## Paths and parameters
+
+All hardcoded absolute paths from the original notebook are collected here.
+Edit these values to match your environment; everything downstream is built
+from them with `file.path()`.
+
+```{r paths-and-parameters}
+# ---- EDIT THESE FOR YOUR ENVIRONMENT ----
+# Root of the raw IMPACC genotype/expression data env.
+base_dir <- "/path/to/impacc_data/"
+
+# Serialized IMPACC data environment (clinical + omics).
+data_env_path <- file.path(base_dir, "impacc_data_env.RDS")
+
+# Analysis output / results root (this is the original panEQTL_dir).
+results_dir <- "/path/to/hospital_admission_results"
+panEQTL_dir <- results_dir
+# -----------------------------------------
+
+data_env <- readRDS(data_env_path)
+
+# final_gwas_cohort is produced in 01-genotype_processing.Rmd. Load it (or run
+# that notebook first) so the Visit-1 PBMC RNA samples can be intersected with
+# the genotyped cohort below.
+final_gwas_cohort <- qs_read(file.path(panEQTL_dir, "impacc_panEQTL_cohort.qs2"))
+```
+
+## Select the Visit-1 PBMC RNA samples
+
+Restrict to PBMC RNA-seq samples collected at Visit 1 (hospital admission),
+then intersect with the genotyped GWAS cohort and the PBMC transcriptomics
+metadata so only samples with both genotypes and Visit-1 expression remain.
+
+```{r visit1-rna-samples}
+################# STEP 1: separate the RNA sample_ids by visit #################
+
+pbmc_rna_metadata <- data_env$pbmc_transcriptomics_metadata %>%
+                    rownames_to_column(var = "sample_id") %>%
+                    select("sample_id", "participant_id") # 4202 PBMC samples total across all timepoints
+
+rna_visit_1 <- data_env$clinical_data %>%
+               filter(sample_type == "BLK RNA-SEQ",
+               samples_collected == "TRUE",
+               event_type == "Visit 1") %>% # this df includes both nasal and PBMC RNA transcriptomics. 
+               select(sample_id, participant_id, event_type)
+
+pbmc_rna_final <- rna_visit_1 %>%
+                  inner_join(final_gwas_cohort, by = "participant_id") %>% # this is the union of all RNA samples + samples that passed GWAS QC.
+                  inner_join(pbmc_rna_metadata, by = c("sample_id", "participant_id")) %>%
+                  select(sample_id, core_specific_id) #921 PBMC RNA samples that passed GWAS QC and had visit 1 transcriptomics data. 
+```
+
+## Process the counts: TMM, TPM, GTEx-style filtering, protein-coding
+
+`process_counts()` extracts the raw counts for the selected samples, TMM-normalizes
+with edgeR, converts to TPM using gene lengths, applies the GTEx expression
+thresholds (>= 0.1 TPM in >= 20% of samples and >= 6 raw reads in >= 20% of
+samples), and finally restricts to protein_coding genes for efficiency and
+interpretability.
+
+```{r process-counts}
+#################################################
+# Step 2: Define a function to process counts data
+#################################################
+
+process_counts <- function(sample_info) {
+        # sample_info is a dataframe with columns: sample_id and core_specific_id
+        
+        # 1. Extract counts for the samples in 'sample_info'
+        #    - Use the sample IDs to join with the counts data.
+        #    - Remove 'sample_id' column.
+        #    - Set rownames to 'core_specific_id'.
+        #    - Transpose so that rows = samples and columns = genes.
+        counts_extracted <- data_env$pbmc_transcriptomics_counts %>%
+            rownames_to_column(var = "sample_id") %>%
+            inner_join(sample_info, by = "sample_id") %>%
+            dplyr::select(-sample_id) %>%
+            column_to_rownames(var = "core_specific_id") %>%
+            t() %>%  # Now, rows: samples; columns: genes.
+            as.data.frame()
+        
+        # 2. TMM Normalization using edgeR:
+        dge <- DGEList(counts = counts_extracted)
+        # Calculate normalization factors using the TMM method
+        dge <- calcNormFactors(dge, method = "TMM")
+        # Scale counts by the normalization factors
+        counts_TMM <- sweep(dge$counts, 2, dge$samples$norm.factors, "/")
+        
+        # 3. Merge gene length information for TPM calculation.
+        rowfeature <- data_env$pbmc_transcriptomics_rowfeature %>%
+            mutate(gene_length = abs(end - start),
+                gene_length_kb = gene_length / 1000) %>%
+            rownames_to_column(var = "gene_id")
+        
+        counts_with_gene_length <- counts_TMM %>%
+            as.data.frame() %>%
+            rownames_to_column(var = "gene_id") %>%
+            inner_join(rowfeature %>% dplyr::select(gene_id, gene_length_kb, gene_biotype), by = "gene_id") %>%
+            column_to_rownames(var = "gene_id")
+        
+        # Extract gene lengths as a vector and remove from the counts data
+        gene_lengths <- counts_with_gene_length$gene_length_kb
+        counts_with_gene_length <- counts_with_gene_length %>% dplyr::select(-gene_length_kb, -gene_biotype)
+        
+        # 4. Calculate RPK (Reads Per Kilobase)
+        RPK <- counts_with_gene_length / gene_lengths
+        
+        # 5. Convert RPK to TPM:
+        total_RPK <- colSums(RPK, na.rm = TRUE)
+        scaling_factors <- total_RPK / 1e6
+        TPM <- sweep(RPK, 2, scaling_factors, "/")
+        
+        # 6. Filter genes based on expression thresholds (following GTEx QC):
+        #    a) Genes must have >= 0.1 TPM in at least 20% of samples.
+        tpm_threshold_met <- apply(TPM, 1, function(x) sum(x >= 0.1))
+        genes_pass_tpm <- rownames(TPM)[tpm_threshold_met >= (0.2 * ncol(TPM))]
+        TPM_filtered <- TPM[genes_pass_tpm, ]
+        
+        #    b) Genes must have >= 6 raw reads in at least 20% of samples.
+        #       Use the original extracted counts for this threshold.
+        read_threshold_met <- apply(counts_extracted, 1, function(x) sum(x >= 6))
+        genes_pass_reads <- rownames(counts_extracted)[read_threshold_met >= (0.2 * ncol(counts_extracted))]
+        
+        #    c) Keep genes that pass both thresholds.
+        final_genes <- intersect(genes_pass_tpm, genes_pass_reads)
+        final_TPM <- TPM_filtered[final_genes, ]
+  
+        # 7. Filter for protein-coding genes
+        #    Use the gene_biotype information from rowfeature.
+        protein_coding_genes <- rowfeature %>%
+            filter(gene_biotype == "protein_coding") %>%
+            pull(gene_id)
+        
+        # Intersect with the genes that passed the previous filtering
+        final_genes_protein <- intersect(final_genes, protein_coding_genes)
+        final_TPM <- final_TPM[final_genes_protein, ]
+        
+        # Return the final TPM matrix after QC filtering
+        return(final_TPM)
+        }
+
+#####################################################
+# Step 3: Process the counts data
+#####################################################
+ 
+processed_counts_list <- process_counts(pbmc_rna_final)
+# 13,292 genes by 921 samples
+```
+
+## Outlier detection and inverse-normal transformation
+
+`process_outliers()` rank-normalizes each gene, runs a 2-PC PPCA, flags samples
+more than mean + 4 SD from the origin in PC space as outliers, removes them, and
+re-applies the inverse-normal transform to the cleaned matrix. The gene-location
+table for MatrixEQTL is then derived from the row features.
+
+```{r process-outliers}
+# Define a function to process outliers and re-apply inverse normalization
+process_outliers <- function(final_counts) {
+        # final_counts: a matrix/data.frame of TPM-filtered counts (rows = genes, columns = samples)
+        
+        # 1. Apply inverse normalization (RankNorm) to each gene (row)
+        #    This transforms each row so that its distribution approximates a standard normal.
+        counts_invnorm <- t(apply(final_counts, 1, RankNorm))
+        
+        # 2. Perform PCA on the transposed inverse-normalized data (samples in rows)
+        #    We use the first two principal components for outlier detection.
+        pca_res <- pca(t(counts_invnorm), nPcs = 2, method = "ppca", center = TRUE)
+        scores <- pca_res@scores[, 1:2]
+        
+        # 3. Calculate the Euclidean distance of each sample from the origin in PC space
+        distances <- sqrt(rowSums(scores^2))
+        
+        # 4. Define a threshold: samples with distance > mean + 4*SD are considered outliers
+        threshold <- mean(distances) + 4 * sd(distances)
+        
+        # 5. Identify outlier samples (by index)
+        outlier_indices <- which(distances > threshold)
+        
+        # 6. Print outlier sample names if any are detected
+        if (length(outlier_indices) > 0) {
+            outlier_samples <- colnames(counts_invnorm)[outlier_indices]
+            print(paste("Outlier samples detected:", paste(outlier_samples, collapse = ", ")))
+        } else {
+            print("No outlier samples detected.")
+        }
+        
+        # 7. Remove the outlier samples from the original final_counts matrix.
+        #    (We assume that the column names in final_counts match those in counts_invnorm.)
+        if (length(outlier_indices) > 0) {
+            final_counts_rm_outliers <- final_counts[, !colnames(final_counts) %in% colnames(counts_invnorm)[outlier_indices]]
+        } else {
+            final_counts_rm_outliers <- final_counts
+        }
+        
+        # 8. Recalculate the inverse normalization on the outlier-removed data
+        counts_invnorm_final <- t(apply(final_counts_rm_outliers, 1, RankNorm))
+        
+        # Return a list containing:
+        #   - removed_samples: the names of any outlier samples
+        #   - final_counts: the original counts matrix after outlier removal
+        #   - counts_invnorm_final: the inverse-normalized matrix after outlier removal
+        list(
+            removed_samples = if(length(outlier_indices) > 0) colnames(counts_invnorm)[outlier_indices] else character(0),
+            final_counts = final_counts_rm_outliers, # TPM
+            counts_invnorm_final = counts_invnorm_final # inv norm
+        )
+        }
+
+processed_counts_with_outliers_removed <- process_outliers(processed_counts_list)
+# 3 Outlier samples detected
+
+counts_invnorm_final <- processed_counts_with_outliers_removed$counts_invnorm_final
+
+write.table(counts_invnorm_final, file = file.path(panEQTL_dir, "impacc_panEQTL_visit1_GE.txt"), sep = "\t", col.names = NA, quote = FALSE)
+    
+# Create the geneloc table based on row features,
+# ensuring that gene_id in the row features matches the genes in the current dataset.
+geneloc <- data_env$pbmc_transcriptomics_rowfeature %>%
+    select(-gene_name, -gene_biotype, -strand) %>%
+    rownames_to_column(var = "gene_id") %>%
+    filter(gene_id %in% rownames(counts_invnorm_final)) %>%
+    rename(
+    chr = seqnames,
+    s1 = start,
+    s2 = end,
+    geneid = gene_id
+    ) %>%
+    mutate(
+    chr = paste0("chr", chr),
+    s1 = pmin(s1, s2),
+    s2 = pmax(s1, s2)
+    )
+
+write.table(geneloc, file = file.path(panEQTL_dir, "impacc_panEQTL_visit1_geneloc.txt"), sep = "\t", col.names = TRUE, quote = FALSE, row.names = FALSE)
+```
+
+## Expression PC covariates (Buja-Eyuboglu)
+
+`compute_covariates()` uses the Buja-Eyuboglu method (`runBE`) to choose the
+number of expression PCs to retain, computes them with `prcomp`, and saves them
+as covariates for MatrixEQTL.
+
+```{r expression-pcs}
+# Apply the Buja-Eyuboglu method to determine the number of PCs to retain
+
+# Simplified function to compute covariates (PCs) for a given dataset
+compute_covariates <- function(counts_invnorm_final) {
+        num_pcs <- runBE(counts_invnorm_final)$numOfPCsChosen
+
+        prcompResult <- prcomp(t(counts_invnorm_final), center = TRUE, scale. = TRUE)
+
+        pcs <- prcompResult$x[, 1:num_pcs, drop = FALSE] %>%
+               as.data.frame() %>%
+               setNames(paste0("rna_pc", 1:num_pcs)) %>%
+               t() %>% 
+               as.data.frame()
+
+        list(
+            numOfPCsChosen = num_pcs,
+            pcs = pcs
+        )
+        }
+
+covariates <- compute_covariates(counts_invnorm_final)
+
+rna_covars <- covariates$pcs # 41 covars for this visit cohort of 918 individuals
+
+qs_save(rna_covars, file.path(panEQTL_dir, "final_expression_pcs.qs2"))
+```

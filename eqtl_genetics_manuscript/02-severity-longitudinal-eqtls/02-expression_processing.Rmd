@@ -1,0 +1,522 @@
+---
+title: "Severity-longitudinal cis-eQTLs: expression processing per stratum"
+author: "Ernie Chen (ernie.chen@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+This notebook processes the PBMC RNA-seq expression data independently within
+each severity-by-visit stratum. The cohort is split by visit (Visit 1-10) and
+by severity group (case = TG4-5, control = TG1-3). For each stratum we run TMM
+and TPM normalization with GTEx-style expression filtering, inverse-normal
+transform with PCA-based outlier removal, and compute expression principal
+components (Buja-Eyuboglu / runBE) as MatrixEQTL covariates. We also write each
+stratum's MatrixEQTL expression inputs, the genotype keep-lists consumed by
+`00-extract_gwas_loci.sh`, and the reformatted SNP / snploc files.
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(dplyr)
+library(data.table)
+library(tidyverse)
+library(tidyr)
+library(tibble)
+library(readr)
+library(purrr)
+library(edgeR)
+library(RNOmni)
+library(pcaMethods)
+library(PCAForQTL)
+library(qs2)
+```
+
+```{r paths-and-parameters}
+# ---- EDIT THESE PATHS FOR YOUR ENVIRONMENT --------------------------------
+# base_dir      : root for all inputs and outputs of this track.
+# data_env_path : IMPACC acute-phase data environment (RDS) with
+#                 pbmc_transcriptomics_counts / _metadata / _rowfeature and
+#                 clinical_data.
+# results_dir   : where per-stratum expression, genotype and covariate files
+#                 are written. All other locations are built with file.path().
+base_dir      <- path.expand("/path/to/eqtl_data")
+data_env_path <- file.path(base_dir, "expression_data",
+                           "impacc_full-cohort_acute_data_env_030625.RDS")
+results_dir   <- file.path(base_dir, "tg_eQTL_with_convalescent")
+# ----------------------------------------------------------------------------
+
+genotype_data_dir <- file.path(results_dir, "genotype_data")
+expr_dir          <- file.path(results_dir, "expression_data")
+covariates_dir    <- file.path(results_dir, "covariates")
+for (d in c(genotype_data_dir, expr_dir, covariates_dir)) {
+  if (!dir.exists(d)) dir.create(d, recursive = TRUE)
+}
+
+data_env <- readRDS(data_env_path)
+gwas_pheno <- qs_read(file.path(genotype_data_dir, "impacc_tg_pheno.qs2"))
+
+# We filter for gene_biotype = protein_coding to increase efficiency and
+# interpretability.
+```
+
+## Step 1: separate the RNA sample IDs by visit and split by severity
+
+For each visit we collect the BLK RNA-SEQ samples that were actually collected,
+join the severity phenotype, and split into the case (TG4-5) and control
+(TG1-3) groups, giving a nested list keyed by visit then group.
+
+```{r}
+pbmc_rna_metadata <- data_env$pbmc_transcriptomics_metadata %>%
+                    rownames_to_column(var = "sample_id") %>%
+                    select("sample_id", "participant_id") # 4202 samples total across all timepoints
+
+# Define a function to extract data for a given visit and split by pheno
+get_pbmc_rna_visit <- function(visit_label) {
+            df <- data_env$clinical_data %>%
+                filter(sample_type == "BLK RNA-SEQ",
+                    samples_collected == "TRUE",
+                    event_type == visit_label) %>%
+                inner_join(gwas_pheno, by = "participant_id") %>%
+                inner_join(pbmc_rna_metadata, by = c("sample_id", "participant_id")) %>%
+                select(sample_id, core_specific_id, pheno)
+
+            # Split into "case" and "control"
+            list(
+                case = df %>% filter(pheno == "case"),
+                control = df %>% filter(pheno == "control")
+            )
+            }
+
+# Specify the visits you want to process
+visits <- paste("Visit", 1:10)
+# Use lapply to iterate over the visits and store the results in a list
+pbmc_rna_list <- lapply(visits, get_pbmc_rna_visit)
+# Name the list elements by the visit label for easy reference
+names(pbmc_rna_list) <- visits
+# pbmc_rna_list is now a list with each element (per visit) itself a list
+# containing "case" and "control" cohorts.
+
+qs_save(pbmc_rna_list, file.path(expr_dir, "case_control_cohorts_tg_by_visit.qs2"))
+
+###### LOAD HERE
+pbmc_rna_list <- qs_read(file.path(expr_dir, "case_control_cohorts_tg_by_visit.qs2"))
+```
+
+## Step 2: counts processing per nested group (TMM, TPM, GTEx-style filtering)
+
+This function extracts the raw counts for a stratum, applies edgeR TMM
+normalization, computes TPM using gene lengths, and retains genes meeting the
+GTEx expression thresholds (>= 0.1 TPM and >= 6 reads in at least 20% of
+samples), restricted to protein-coding genes.
+
+```{r}
+process_counts <- function(sample_info) {
+        # sample_info is a dataframe with columns: sample_id, core_specific_id, and pheno
+
+        # 1. Extract counts for the samples in 'sample_info'
+        #    - Use the sample IDs to join with the counts data.
+        #    - Remove 'sample_id' and 'pheno' columns.
+        #    - Set rownames to 'core_specific_id'.
+        #    - Transpose so that rows = samples and columns = genes.
+        counts_extracted <- data_env$pbmc_transcriptomics_counts %>%
+            rownames_to_column(var = "sample_id") %>%
+            inner_join(sample_info, by = "sample_id") %>%
+            dplyr::select(-sample_id, -pheno) %>%
+            column_to_rownames(var = "core_specific_id") %>%
+            t() %>%  # Now, rows: samples; columns: genes.
+            as.data.frame()
+
+        # 2. TMM Normalization using edgeR:
+        dge <- DGEList(counts = counts_extracted)
+        # Calculate normalization factors using the TMM method
+        dge <- calcNormFactors(dge, method = "TMM")
+        # Scale counts by the normalization factors
+        counts_TMM <- sweep(dge$counts, 2, dge$samples$norm.factors, "/")
+
+        # 3. Merge gene length information for TPM calculation.
+        rowfeature <- data_env$pbmc_transcriptomics_rowfeature %>%
+            mutate(gene_length = abs(end - start),
+                gene_length_kb = gene_length / 1000) %>%
+            rownames_to_column(var = "gene_id")
+
+        counts_with_gene_length <- counts_TMM %>%
+            as.data.frame() %>%
+            rownames_to_column(var = "gene_id") %>%
+            inner_join(rowfeature %>% dplyr::select(gene_id, gene_length_kb, gene_biotype), by = "gene_id") %>%
+            column_to_rownames(var = "gene_id")
+
+        # Extract gene lengths as a vector and remove from the counts data
+        gene_lengths <- counts_with_gene_length$gene_length_kb
+        counts_with_gene_length <- counts_with_gene_length %>% dplyr::select(-gene_length_kb, -gene_biotype)
+
+        # 4. Calculate RPK (Reads Per Kilobase)
+        RPK <- counts_with_gene_length / gene_lengths
+
+        # 5. Convert RPK to TPM:
+        total_RPK <- colSums(RPK, na.rm = TRUE)
+        scaling_factors <- total_RPK / 1e6
+        TPM <- sweep(RPK, 2, scaling_factors, "/")
+
+        # 6. Filter genes based on expression thresholds (following GTEx QC):
+        #    a) Genes must have >= 0.1 TPM in at least 20% of samples.
+        tpm_threshold_met <- apply(TPM, 1, function(x) sum(x >= 0.1))
+        genes_pass_tpm <- rownames(TPM)[tpm_threshold_met >= (0.2 * ncol(TPM))]
+        TPM_filtered <- TPM[genes_pass_tpm, ]
+
+        #    b) Genes must have >= 6 raw reads in at least 20% of samples.
+        #       Use the original extracted counts for this threshold.
+        read_threshold_met <- apply(counts_extracted, 1, function(x) sum(x >= 6))
+        genes_pass_reads <- rownames(counts_extracted)[read_threshold_met >= (0.2 * ncol(counts_extracted))]
+
+        #    c) Keep genes that pass both thresholds.
+        final_genes <- intersect(genes_pass_tpm, genes_pass_reads)
+        final_TPM <- TPM_filtered[final_genes, ]
+
+        # 7. Filter for protein-coding genes
+        #    Use the gene_biotype information from rowfeature.
+        protein_coding_genes <- rowfeature %>%
+            filter(gene_biotype == "protein_coding") %>%
+            pull(gene_id)
+
+        # Intersect with the genes that passed the previous filtering
+        final_genes_protein <- intersect(final_genes, protein_coding_genes)
+        final_TPM <- final_TPM[final_genes_protein, ]
+
+        # Return the final TPM matrix after QC filtering
+        return(final_TPM)
+        }
+
+# Loop through each visit and within each visit process both case and control groups.
+processed_counts_list <- lapply(pbmc_rna_list, function(visit_data) {
+  lapply(visit_data, process_counts)
+})
+
+# Now, processed_counts_list is a nested list:
+#   - Outer list: each element is a visit (e.g., "Visit 1", "Visit 2", etc.)
+#   - Each visit element is itself a list with two elements: 'case' and 'control'
+#   - Each 'case' or 'control' element is the processed TPM matrix for that group.
+```
+
+## Outlier detection and inverse-normal transform per stratum
+
+Each stratum is inverse-normalized (RankNorm), then PCA on the first two PCs
+flags samples more than 4 SD from the origin as outliers; those are removed and
+the inverse-normal transform is recomputed on the cleaned matrix.
+
+```{r}
+process_outliers <- function(final_counts) {
+        # final_counts: a matrix/data.frame of TPM-filtered counts (rows = genes, columns = samples)
+
+        # 1. Apply inverse normalization (RankNorm) to each gene (row)
+        #    This transforms each row so that its distribution approximates a standard normal.
+        counts_invnorm <- t(apply(final_counts, 1, RankNorm))
+
+        # 2. Perform PCA on the transposed inverse-normalized data (samples in rows)
+        #    We use the first two principal components for outlier detection.
+        pca_res <- pca(t(counts_invnorm), nPcs = 2, method = "ppca", center = TRUE)
+        scores <- pca_res@scores[, 1:2]
+
+        # 3. Calculate the Euclidean distance of each sample from the origin in PC space
+        distances <- sqrt(rowSums(scores^2))
+
+        # 4. Define a threshold: samples with distance > mean + 4*SD are considered outliers
+        threshold <- mean(distances) + 4 * sd(distances)
+
+        # 5. Identify outlier samples (by index)
+        outlier_indices <- which(distances > threshold)
+
+        # 6. Print outlier sample names if any are detected
+        if (length(outlier_indices) > 0) {
+            outlier_samples <- colnames(counts_invnorm)[outlier_indices]
+            print(paste("Outlier samples detected:", paste(outlier_samples, collapse = ", ")))
+        } else {
+            print("No outlier samples detected.")
+        }
+
+        # 7. Remove the outlier samples from the original final_counts matrix.
+        #    (We assume that the column names in final_counts match those in counts_invnorm.)
+        if (length(outlier_indices) > 0) {
+            final_counts_rm_outliers <- final_counts[, !colnames(final_counts) %in% colnames(counts_invnorm)[outlier_indices]]
+        } else {
+            final_counts_rm_outliers <- final_counts
+        }
+
+        # 8. Recalculate the inverse normalization on the outlier-removed data
+        counts_invnorm_final <- t(apply(final_counts_rm_outliers, 1, RankNorm))
+
+        # Return a list containing:
+        #   - removed_samples: the names of any outlier samples
+        #   - final_counts: the original counts matrix after outlier removal
+        #   - counts_invnorm_final: the inverse-normalized matrix after outlier removal
+        list(
+            removed_samples = if(length(outlier_indices) > 0) colnames(counts_invnorm)[outlier_indices] else character(0),
+            final_counts = final_counts_rm_outliers, # TPM
+            counts_invnorm_final = counts_invnorm_final # inv norm
+        )
+        }
+
+# Apply the outlier processing function to each subcohort independently.
+# Use nested looping: outer over visits, inner over case/control groups.
+processed_counts_with_outliers_removed <- list()
+counter <- 0
+
+for (visit_name in names(processed_counts_list)) {
+  processed_counts_with_outliers_removed[[visit_name]] <- list()
+
+  for (group_name in names(processed_counts_list[[visit_name]])) {
+    counter <- counter + 1
+    cat(paste("Processing combination", counter, ":", visit_name, "-", group_name, "\n"))
+
+    processed_counts_with_outliers_removed[[visit_name]][[group_name]] <-
+      process_outliers(processed_counts_list[[visit_name]][[group_name]])
+  }
+}
+
+# Each element contains: removed_samples, final_counts (TPM, outliers removed),
+# and counts_invnorm_final (inverse-normalized, post outlier removal).
+
+qs_save(processed_counts_with_outliers_removed, file.path(expr_dir, "final_processed_counts_matrices.qs2"))
+
+###### LOAD HERE
+processed_counts_with_outliers_removed <- qs_read(file.path(expr_dir, "final_processed_counts_matrices.qs2"))
+```
+
+## Write the MatrixEQTL expression and gene-location files per stratum
+
+For each stratum we write the inverse-normalized expression matrix (`_GE.txt`)
+and the matching gene-location table (`_geneloc.txt`) into per-visit,
+per-group folders.
+
+```{r}
+# Define the base directory for expression data output
+if (!dir.exists(expr_dir)) {
+  dir.create(expr_dir, recursive = TRUE)
+}
+
+# Loop over each visit in the nested list
+for (visit in names(processed_counts_with_outliers_removed)) {
+
+  # Create a folder for the visit (e.g., "visit_1" for "Visit 1")
+  visit_dir <- file.path(expr_dir, tolower(gsub(" ", "_", visit)))
+  if (!dir.exists(visit_dir)) {
+    dir.create(visit_dir, recursive = TRUE)
+  }
+
+  # Loop over each group (case/control) within the visit
+  for (group in names(processed_counts_with_outliers_removed[[visit]])) {
+
+    # Create a folder for the group within the visit folder
+    group_dir <- file.path(visit_dir, group)
+    if (!dir.exists(group_dir)) {
+      dir.create(group_dir, recursive = TRUE)
+    }
+
+    # Extract the counts_invnorm_final dataframe for this visit and group
+    counts_invnorm_final <- processed_counts_with_outliers_removed[[visit]][[group]]$counts_invnorm_final
+
+    # Write counts_invnorm_final file
+    counts_file_name <- paste0(tolower(gsub(" ", "_", visit)), "_", group, "_GE.txt")
+    counts_file_path <- file.path(group_dir, counts_file_name)
+    write.table(counts_invnorm_final, file = counts_file_path, sep = "\t", col.names = NA, quote = FALSE)
+
+    # Create the geneloc table based on row features,
+    # ensuring that gene_id in the row features matches the genes in the current dataset.
+    geneloc <- data_env$pbmc_transcriptomics_rowfeature %>%
+      select(-gene_name, -gene_biotype, -strand) %>%
+      rownames_to_column(var = "gene_id") %>%
+      filter(gene_id %in% rownames(counts_invnorm_final)) %>%
+      rename(
+        chr = seqnames,
+        s1 = start,
+        s2 = end,
+        geneid = gene_id
+      ) %>%
+      mutate(
+        chr = paste0("chr", chr),
+        s1 = pmin(s1, s2),
+        s2 = pmax(s1, s2)
+      )
+
+    # Write the geneloc file
+    geneloc_file_name <- paste0(tolower(gsub(" ", "_", visit)), "_", group, "_geneloc.txt")
+    geneloc_file_path <- file.path(group_dir, geneloc_file_name)
+    write.table(geneloc, file = geneloc_file_path, sep = "\t", col.names = TRUE, quote = FALSE, row.names = FALSE)
+  }
+}
+```
+
+## Expression PC covariates for MatrixEQTL (Buja-Eyuboglu / runBE)
+
+We apply the Buja-Eyuboglu method (PCAForQTL::runBE) to choose the number of
+expression PCs to retain for each stratum, then extract those PCs as
+covariates.
+
+```{r}
+# Simplified function to compute covariates (PCs) for a given dataset
+compute_covariates <- function(counts_invnorm_final) {
+        num_pcs <- runBE(counts_invnorm_final)$numOfPCsChosen
+
+        prcompResult <- prcomp(t(counts_invnorm_final), center = TRUE, scale. = TRUE)
+
+        pcs <- prcompResult$x[, 1:num_pcs, drop = FALSE] %>%
+               as.data.frame() %>%
+               setNames(paste0("rna_pc", 1:num_pcs)) %>%
+               t() %>%
+               as.data.frame()
+
+        list(
+            numOfPCsChosen = num_pcs,
+            pcs = pcs
+        )
+        }
+
+# Apply the function to each nested dataset in processed_counts_with_outliers_removed
+covariates_list <- lapply(processed_counts_with_outliers_removed, function(visit_data) {
+        lapply(visit_data, function(group_data) {
+            compute_covariates(group_data$counts_invnorm_final)
+        })
+        })
+
+qs_save(covariates_list, file.path(covariates_dir, "final_expression_pcs.qs2"))
+
+###### LOAD HERE
+rna_covar_list <- qs_read(file.path(covariates_dir, "final_expression_pcs.qs2"))
+```
+
+## Write the per-stratum genotype keep-lists for PLINK
+
+The final post-QC sample IDs for each stratum are taken from the columns of the
+outlier-cleaned expression matrices and written as PLINK keep-lists
+(`*_coreIDs.txt`). These are consumed by the per-stratum extraction loop in
+`00-extract_gwas_loci.sh`, which produces the `.traw`, `_pca`, and `_ped`
+genotype files.
+
+```{r}
+# Define base directory for genotype data outputs
+samples_dir <- genotype_data_dir
+        if (!dir.exists(samples_dir)) {
+        dir.create(samples_dir, recursive = TRUE)
+        }
+
+        # Loop over each visit (e.g., "Visit 1", "Visit 2", etc.)
+        for (visit in names(processed_counts_with_outliers_removed)) {
+
+        # Create a folder for the visit (e.g., "visit_1" for "Visit 1")
+        visit_dir <- file.path(samples_dir, tolower(gsub(" ", "_", visit)))
+        if (!dir.exists(visit_dir)) {
+            dir.create(visit_dir, recursive = TRUE)
+        }
+
+        # Loop over each group (case/control) within the visit
+        for (group in names(processed_counts_with_outliers_removed[[visit]])) {
+
+            # Create a folder for the group within the visit folder
+            group_dir <- file.path(visit_dir, group)
+            if (!dir.exists(group_dir)) {
+            dir.create(group_dir, recursive = TRUE)
+            }
+
+            # Extract sample IDs from the column names of the counts_invnorm_final matrix.
+            # (These are the final samples we want to keep for PLINK extraction.)
+            core_specific_ids <- colnames(processed_counts_with_outliers_removed[[visit]][[group]]$counts_invnorm_final)
+
+            # Create a data frame with two identical columns (PLINK expects two columns)
+            sample_ids_df <- data.frame(Column1 = core_specific_ids) %>%
+            mutate(Column2 = Column1)
+
+            # Create a succinct file name (e.g., "v1_case_coreIDs.txt" for Visit 1, case)
+            visit_num <- gsub("Visit ", "", visit)  # extract numeric part, e.g., "1"
+            sample_file_name <- paste0("v", visit_num, "_", group, "_coreIDs.txt")
+            sample_file_path <- file.path(group_dir, sample_file_name)
+
+            # Write the sample extraction file (tab-delimited, no quotes, no row/column names)
+            write.table(sample_ids_df, file = sample_file_path,
+                        quote = FALSE, col.names = FALSE, row.names = FALSE)
+        }
+        }
+```
+
+Run the per-stratum PLINK extraction now: see the per-stratum extraction loop
+in `00-extract_gwas_loci.sh`, which reads the `*_coreIDs.txt` keep-lists written
+above and produces, per stratum, the `_eQTL.traw`, `_pca` binary set, and
+`_ped.map` files.
+
+## Reformat the genotype files into MatrixEQTL SNP and snploc files
+
+For each stratum we read the PLINK `.traw` dosage file and `.map` file, tidy the
+genotype matrix column names, and write the MatrixEQTL `_SNP.txt` and matching
+`_snploc.txt` files.
+
+```{r}
+# Define base directory for genotype outputs (must match previous PLINK workflow)
+samples_dir <- genotype_data_dir
+
+# Loop over each visit folder (e.g., "visit_1", "visit_2", ...)
+visit_dirs <- list.dirs(samples_dir, recursive = FALSE, full.names = TRUE)
+        for (visit_dir in visit_dirs) {
+
+        # Loop over each group folder (e.g., "case" and "control") within the visit folder
+        group_dirs <- list.dirs(visit_dir, recursive = FALSE, full.names = TRUE)
+        for (group_dir in group_dirs) {
+
+            # Extract visit and group base names for naming files.
+            visit_basename <- basename(visit_dir)   # e.g., "visit_1"
+            group_basename <- basename(group_dir)   # e.g., "case" or "control"
+
+            # Use the full visit_basename and group_basename as prefix
+            prefix <- paste0(visit_basename, "_", group_basename)
+
+            # Build input file paths from PLINK outputs:
+            traw_file <- file.path(group_dir, paste0(prefix, "_eQTL.traw"))
+            map_file  <- file.path(group_dir, paste0(prefix, "_ped.map"))
+
+            # Build output file paths:
+            snp_out_file    <- file.path(group_dir, paste0(prefix, "_SNP.txt"))
+            snploc_out_file <- file.path(group_dir, paste0(prefix, "_snploc.txt"))
+
+            # ----- Process the .traw file -----
+            # Read the .traw file and remove unwanted columns.
+            geno <- fread(traw_file) %>%
+            select(-CHR, -`(C)M`, -POS, -COUNTED, -ALT) %>%
+            column_to_rownames(var = "SNP")
+
+            # Adjust column names: if the column name has duplicated parts (e.g. "ID_ID"),
+            # replace it with just the first part.
+            new_colnames <- sapply(colnames(geno), function(name) {
+            parts <- unlist(strsplit(name, "_"))
+            if (length(parts) > 1 && parts[1] == parts[2]) {
+                return(parts[1])
+            }
+            return(name)
+            })
+            colnames(geno) <- new_colnames
+
+            # Write the reformatted genotype (SNP) file
+            write.table(geno, file = snp_out_file, sep = "\t", col.names = NA, quote = FALSE)
+
+            # ----- Process the .map file for SNP locations -----
+            snploc <- fread(map_file) %>%
+            select(-V3) %>%
+            rename(chr = V1, snp = V2, pos = V4) %>%
+            select(snp, chr, pos) %>%
+            mutate(chr = paste0("chr", chr))
+
+            # Reorder snploc so that SNPs are in the same order as the row names in 'geno'
+            snploc <- snploc[match(rownames(geno), snploc$snp), ]
+
+            # Write the snploc file
+            write.table(snploc, file = snploc_out_file, sep = "\t", col.names = TRUE,
+                        quote = FALSE, row.names = FALSE)
+
+        } # end group loop
+        } # end visit loop
+```

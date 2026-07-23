@@ -1,0 +1,363 @@
+---
+title: "Severity-longitudinal cis-eQTLs: MatrixEQTL mapping across strata"
+author: "Ernie Chen (ernie.chen@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+This notebook assembles the final MatrixEQTL input files for each
+severity-by-visit stratum and runs the cis-eQTL mapping. We first merge the
+genotype PCs, expression PCs, and demographic covariates into a single
+covariate matrix per stratum, then enforce that genes, SNPs, and samples are in
+identical order across the expression, genotype, and covariate files. Finally
+we run Matrix_eQTL_main with an additive linear model across all strata
+(visit_5 control is skipped, as that stratum is too small).
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(MatrixEQTL)
+library(data.table)
+library(dplyr)
+library(tibble)
+library(qs2)
+```
+
+```{r paths-and-parameters}
+# ---- EDIT THESE PATHS FOR YOUR ENVIRONMENT --------------------------------
+# base_dir    : root for all inputs and outputs of this track.
+# results_dir : holds expression_data/, genotype_data/, covariates/, and is
+#               where final_files/ and results/ are written.
+base_dir    <- path.expand("/path/to/eqtl_data")
+results_dir <- file.path(base_dir, "tg_eQTL_with_convalescent")
+# ----------------------------------------------------------------------------
+
+# All MatrixEQTL strata: 18 severity-by-visit combinations (visit_5 control
+# excluded). Severity groups: case = TG4-5, control = TG1-3.
+visits <- c("visit_1", "visit_2", "visit_3", "visit_4", "visit_5",
+            "visit_6", "visit_7", "visit_8", "visit_9", "visit_10")
+groups <- c("case", "control")
+```
+
+## Combine the genotype, expression, and demographic covariates per stratum
+
+For each stratum we transpose and merge the genotype PCs and expression PCs on
+the sample ID, add the demographic covariates (age, sex), and write a single
+`_Covariates.txt` file.
+
+```{r}
+###### LOAD HERE
+geno_covars_list <- qs_read(file.path(results_dir, "covariates", "final_genotype_pcs.qs2"))
+rna_covars_list <- qs_read(file.path(results_dir, "covariates", "final_expression_pcs.qs2"))
+
+nonPC_covars_with_dummies <- qs_read(file.path(results_dir, "covariates", "final_nonPC_covars.qs2")) %>%
+  select(-participant_id, -trajectory_group)
+
+# Define the output directory for the combined covariates
+combined_dir <- file.path(results_dir, "covariates")
+
+# Define visits and groups.
+# For rna_covars_list, keys are "Visit 1", etc.
+# For geno_covars_list, keys are "visit_1", etc.
+visits_rna <- c("Visit 1", "Visit 2", "Visit 3", "Visit 4", "Visit 5", "Visit 6", "Visit 7", "Visit 8", "Visit 9", "Visit 10")
+visits_geno <- c("visit_1", "visit_2", "visit_3", "visit_4", "visit_5", "visit_6", "visit_7", "visit_8", "visit_9", "visit_10")
+
+# Initialize a nested list to store combined covariates if needed
+combined_covars <- list()
+
+for(i in seq_along(visits_rna)){
+        rna_key <- visits_rna[i]
+        geno_key <- visits_geno[i]
+
+        # Create an output folder for this visit under the combined directory
+        visit_out_dir <- file.path(combined_dir, geno_key)
+        if (!dir.exists(visit_out_dir)) {
+            dir.create(visit_out_dir, recursive = TRUE)
+        }
+
+        # Create separate subdirectories for "case" and "control"
+        for(group in groups){
+            group_out_dir <- file.path(visit_out_dir, group)
+            if (!dir.exists(group_out_dir)) {
+            dir.create(group_out_dir, recursive = TRUE)
+            }
+        }
+
+        combined_covars[[geno_key]] <- list()
+
+        for(group in groups){
+            # Try to extract data for this visit/group - use tryCatch to handle potential missing combinations
+            tryCatch({
+                # Extract the RNA covariates for this visit and group.
+                # The covariates are stored with PCs as rows. We transpose to have sample IDs as rows.
+                rna_df <- rna_covars_list[[rna_key]][[group]]$pcs %>%
+                t() %>%
+                as.data.frame() %>%
+                rownames_to_column(var = "core_specific_id")
+
+                # Extract the genotype covariates for this visit and group.
+                geno_df <- geno_covars_list[[geno_key]][[group]]$pcs %>%
+                t() %>%
+                as.data.frame() %>%
+                rownames_to_column(var = "core_specific_id")
+
+                # Merge the two dataframes by "core_specific_id" to ensure matching samples.
+                # This inner join ensures only samples present in both datasets are retained.
+                merged_df <- inner_join(geno_df, rna_df, by = "core_specific_id")
+
+                # Add the demographic covariates by merging with nonPC_covars_with_dummies
+                # Inner join to ensure we only keep samples with all necessary data
+                merged_df_with_demo <- merged_df %>%
+                  inner_join(nonPC_covars_with_dummies, by = "core_specific_id")
+
+                # Set the sample IDs as row names and remove the helper column.
+                merged_df_final <- merged_df_with_demo %>%
+                column_to_rownames(var = "core_specific_id") %>%
+                t()
+
+                # Create an output file name: e.g., "visit_1_case_Covariates.txt"
+                # Use the group subdirectory for output.
+                group_out_dir <- file.path(visit_out_dir, group)
+                out_file <- file.path(group_out_dir, paste0(geno_key, "_", group, "_Covariates.txt"))
+
+                # Write the merged dataframe to file
+                write.table(merged_df_final, file = out_file, sep = "\t", quote = FALSE,
+                            row.names = TRUE, col.names = NA)
+
+                # Store in the nested list (optional)
+                combined_covars[[geno_key]][[group]] <- merged_df_final
+
+                # Print success message
+                message(paste("Successfully processed:", geno_key, "-", group))
+
+            }, error = function(e) {
+                # Handle the case where data might not exist for this visit/group combination
+                message(paste("Warning: Unable to process data for", geno_key, "-", group))
+                message(paste("Error message:", e$message))
+            })
+        }
+}
+
+# Save the nested list of combined covariates as an qs2 file
+qs_save(combined_covars, file.path(combined_dir, "combined_covariates.qs2"))
+```
+
+## Column-ordering checks (CRITICAL: sample IDs must be in the same exact order)
+
+MatrixEQTL requires the expression, genotype, and covariate matrices to share an
+identical column (sample) order, and the location files to match the matrix
+rows. This step reorders all five files per stratum and writes them to
+`final_files/`.
+
+```{r}
+# Define directories for the original files:
+ge_dir    <- file.path(results_dir, "expression_data")    # contains _GE.txt and _geneloc.txt files
+snp_dir   <- file.path(results_dir, "genotype_data")        # contains _SNP.txt and _snploc.txt files
+covar_dir <- file.path(results_dir, "covariates")           # contains _Covariates.txt files
+
+# Define the output directory for the final, reordered files.
+final_dir <- file.path(results_dir, "final_files")
+if (!dir.exists(final_dir)) {
+  dir.create(final_dir, recursive = TRUE)
+}
+
+# Loop over visits and groups to process and write new files.
+for(visit in visits) {
+  for(gr in groups) {
+    # Construct input file paths using the naming convention.
+    ge_file      <- file.path(ge_dir, visit, gr, paste0(visit, "_", gr, "_GE.txt"))
+    geneloc_file <- file.path(ge_dir, visit, gr, paste0(visit, "_", gr, "_geneloc.txt"))
+    snp_file     <- file.path(snp_dir, visit, gr, paste0(visit, "_", gr, "_SNP.txt"))
+    snploc_file  <- file.path(snp_dir, visit, gr, paste0(visit, "_", gr, "_snploc.txt"))
+    covar_file   <- file.path(covar_dir, visit, gr, paste0(visit, "_", gr, "_Covariates.txt"))
+
+    message("Processing ", visit, " ", gr)
+
+    # Read input files.
+    ge      <- fread(ge_file) %>% column_to_rownames(var = "V1")
+    geneloc <- fread(geneloc_file)
+    snp     <- fread(snp_file) %>% column_to_rownames(var = "V1")
+    snploc  <- fread(snploc_file)
+    covar   <- fread(covar_file) %>% column_to_rownames(var = "V1")
+
+    # ----- 1. Ensure Gene Order Matches -----
+    if(!(all(geneloc$geneid %in% rownames(ge)) && all(rownames(ge) %in% geneloc$geneid))) {
+      stop("Gene sets do not match for ", visit, " ", gr)
+    }
+    ge <- ge[match(geneloc$geneid, rownames(ge)), ]
+
+    # ----- 2. Ensure SNP Order Matches -----
+    if(!(all(snploc$snp %in% rownames(snp)) && all(rownames(snp) %in% snploc$snp))) {
+      stop("SNP sets do not match for ", visit, " ", gr)
+    }
+    snp <- snp[match(snploc$snp, rownames(snp)), ]
+
+    # ----- 3. Ensure Sample (Column) Order Matches -----
+    common_samples <- Reduce(intersect, list(colnames(ge), colnames(snp), colnames(covar)))
+    if(length(common_samples) == 0) {
+      stop("No common sample IDs found for ", visit, " ", gr)
+    }
+    ge    <- ge[, common_samples, drop = FALSE]
+    snp   <- snp[, common_samples, drop = FALSE]
+    covar <- covar[, common_samples, drop = FALSE]
+
+    if(!(identical(colnames(ge), colnames(snp)) && identical(colnames(ge), colnames(covar)))) {
+      stop("Sample order mismatch for ", visit, " ", gr)
+    }
+
+    # ----- 4. Write the Corrected Files to the final_files directory -----
+    # Create output subdirectory for this visit and group.
+    final_out_dir <- file.path(final_dir, visit, gr)
+    if (!dir.exists(final_out_dir)) {
+      dir.create(final_out_dir, recursive = TRUE)
+    }
+
+    # Construct output file paths (preserve naming convention).
+    out_ge_file      <- file.path(final_out_dir, paste0(visit, "_", gr, "_GE.txt"))
+    out_snp_file     <- file.path(final_out_dir, paste0(visit, "_", gr, "_SNP.txt"))
+    out_covar_file   <- file.path(final_out_dir, paste0(visit, "_", gr, "_Covariates.txt"))
+    out_geneloc_file <- file.path(final_out_dir, paste0(visit, "_", gr, "_geneloc.txt"))
+    out_snploc_file  <- file.path(final_out_dir, paste0(visit, "_", gr, "_snploc.txt"))
+
+    # Write files using fwrite for speed.
+    # fwrite by default writes column names and does not output rownames.
+    fwrite(ge %>% rownames_to_column(var = "ID"), out_ge_file, sep = "\t", quote = FALSE)
+    fwrite(snp %>% rownames_to_column(var = "ID"), out_snp_file, sep = "\t", quote = FALSE)
+    fwrite(covar %>% rownames_to_column(var = "ID"), out_covar_file, sep = "\t", quote = FALSE)
+    fwrite(geneloc, out_geneloc_file, sep = "\t", quote = FALSE)
+    fwrite(snploc, out_snploc_file, sep = "\t", quote = FALSE)
+
+    message("Finished processing ", visit, " ", gr)
+  }
+}
+```
+
+## MatrixEQTL run (loop across all visit-by-severity strata)
+
+We map cis-eQTLs within a 1 Mb window using an additive linear model, saving
+all cis associations (p-value threshold 1) per stratum.
+
+```{r}
+# Define the base directory for final files (the output from the previous step)
+final_dir <- file.path(results_dir, "final_files")
+# Define the output directory for Matrix eQTL results
+matrix_results_dir <- file.path(results_dir, "results")
+if (!dir.exists(matrix_results_dir)) {
+  dir.create(matrix_results_dir, recursive = TRUE)
+}
+
+# Settings for Matrix eQTL
+useModel <- modelLINEAR  # using linear model
+pvOutputThreshold_cis <- 1
+cisDist <- 1e6
+errorCovariance <- numeric()
+
+# Loop over each visit and each group
+for (visit in visits) {
+  for (group in groups) {
+
+    # Skip visit_5 control only
+    if(visit == "visit_5" && group == "control") {
+      message("Skipping ", visit, " ", group)
+      next
+    }
+
+    message("Running Matrix eQTL for ", visit, " ", group)
+
+    # Construct file paths for the five necessary files.
+    SNP_file_name <- file.path(final_dir, visit, group, paste0(visit, "_", group, "_SNP.txt"))
+    snps_location_file_name <- file.path(final_dir, visit, group, paste0(visit, "_", group, "_snploc.txt"))
+    expression_file_name <- file.path(final_dir, visit, group, paste0(visit, "_", group, "_GE.txt"))
+    gene_location_file_name <- file.path(final_dir, visit, group, paste0(visit, "_", group, "_geneloc.txt"))
+    covariates_file_name <- file.path(final_dir, visit, group, paste0(visit, "_", group, "_Covariates.txt"))
+
+    # Create SlicedData objects for SNP, gene expression, and covariates.
+    snps <- SlicedData$new()
+    snps$fileDelimiter <- "\t"
+    snps$fileOmitCharacters <- "NA"
+    snps$fileSkipRows <- 1
+    snps$fileSkipColumns <- 1
+    snps$fileSliceSize <- 2000
+    snps$LoadFile(SNP_file_name)
+
+    gene <- SlicedData$new()
+    gene$fileDelimiter <- "\t"
+    gene$fileOmitCharacters <- "NA"
+    gene$fileSkipRows <- 1
+    gene$fileSkipColumns <- 1
+    gene$fileSliceSize <- 2000
+    gene$LoadFile(expression_file_name)
+
+    cvrt <- SlicedData$new()
+    cvrt$fileDelimiter <- "\t"
+    cvrt$fileOmitCharacters <- "NA"
+    cvrt$fileSkipRows <- 1
+    cvrt$fileSkipColumns <- 1
+    cvrt$fileSliceSize <- 2000
+    if (file.exists(covariates_file_name)) {
+      cvrt$LoadFile(covariates_file_name)
+    }
+
+    snpspos <- read.table(snps_location_file_name, header = TRUE, stringsAsFactors = FALSE)
+    genepos <- read.table(gene_location_file_name, header = TRUE, stringsAsFactors = FALSE)
+
+    # Create temporary file names for cis and trans outputs.
+    output_file_name_cis <- tempfile()
+    output_file_name_tra <- tempfile()
+
+    # Run Matrix_eQTL_main.
+    me <- Matrix_eQTL_main(
+      snps = snps,
+      gene = gene,
+      cvrt = cvrt,
+      output_file_name = output_file_name_tra,
+      pvOutputThreshold = 0,
+      useModel = useModel,
+      errorCovariance = errorCovariance,
+      verbose = TRUE,
+      output_file_name.cis = output_file_name_cis,
+      pvOutputThreshold.cis = pvOutputThreshold_cis,
+      snpspos = snpspos,
+      genepos = genepos,
+      cisDist = cisDist,
+      pvalue.hist = "qqplot",
+      min.pv.by.genesnp = FALSE,
+      noFDRsaveMemory = FALSE
+    )
+
+    # Remove the trans output file.
+    unlink(output_file_name_tra)
+
+    # Directly extract the cis-eQTL results from the me object.
+    cis_eqtls <- me$cis$eqtls
+
+    # Create an output folder for this visit and group in the results directory.
+    out_dir <- file.path(matrix_results_dir, visit, group)
+    if (!dir.exists(out_dir)) {
+      dir.create(out_dir, recursive = TRUE)
+    }
+
+    # Construct the output file name: e.g., "visit_1_case_cis_eQTL.txt"
+    out_file <- file.path(out_dir, paste0(visit, "_", group, "_cis_eQTL.txt"))
+    write.table(cis_eqtls, file = out_file, sep = "\t", quote = FALSE,
+                row.names = FALSE, col.names = TRUE)
+
+    message("Finished Matrix eQTL for ", visit, " ", group, " in ", me$time.in.sec, " seconds")
+
+    # Clean up temporary cis output file.
+    unlink(output_file_name_cis)
+
+    rm(snps, gene, cvrt, snpspos, genepos, me, cis_eqtls)
+    gc()
+  }
+}
+```

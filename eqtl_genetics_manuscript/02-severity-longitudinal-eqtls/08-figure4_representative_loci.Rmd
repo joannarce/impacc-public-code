@@ -1,0 +1,385 @@
+---
+title: "Figure 4: representative colocalized loci (TMIGD2, OAS1, HLA-G, ABO)"
+author: "Ernie Chen (ernie.chen@yale.edu)"
+date: "`r format(Sys.time(), '%b %d %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    theme: yeti
+---
+
+This notebook draws Figure 4 for the four representative colocalized loci
+(TMIGD2 at 19:4717660, OAS1 at 12:112945172, HLA-G at 6:29947491, and ABO at
+9:133271182):
+
+- 4A: genotype-dosage-stratified, covariate-adjusted residual-expression
+  boxplots across visits V1-V10 (V5 excluded), faceted by gene and severity
+  group (TG1-3 vs TG4-5), with eigenMT significance stars.
+- 4B: loess-smoothed dose-response curves of residual expression over time,
+  by genotype within each severity group (and a severity-group comparison
+  pooled across genotypes).
+
+The covariate-adjusted residuals are precomputed in
+`06-regulatory_pattern_analysis.Rmd` and carried in `signif_eqtls_final_tg.qs2`,
+which this notebook loads.
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(tibble)
+library(tidyverse)
+library(qs2)
+library(ggplot2)
+```
+
+```{r paths-and-parameters}
+# ---- EDIT THESE PATHS FOR YOUR ENVIRONMENT --------------------------------
+# base_dir    : root for all inputs and outputs of this track.
+# results_dir : holds tg_sumstats/ with the residual-joined significant-eQTL
+#               table and the coloc results.
+base_dir    <- path.expand("/path/to/eqtl_data")
+results_dir <- file.path(base_dir, "tg_eQTL_with_convalescent")
+# ----------------------------------------------------------------------------
+
+sumstats_dir <- file.path(results_dir, "tg_sumstats")
+
+# Combined cis-eQTL summary statistics and colocalization results.
+combined_eqtl <- qs_read(file.path(sumstats_dir, "combined_eqtls_tg_final.qs2"))
+coloc_results_dat <- qs_read(file.path(sumstats_dir, "coloc_results_dat_tg_05.qs2"))
+```
+
+## Build the plotting data for the colocalized pairs
+
+We restrict the residual-joined significant-eQTL table to the colocalized pairs
+(PP.H4 > 0.5) and strip the "visit_" prefix for plotting.
+
+```{r}
+true_coloc_pairs <- coloc_results_dat %>%
+  filter(`PP.H4` > 0.5) %>%
+  select(grch38, gene, gene_name) %>%
+  distinct()
+# 33 pairs (23 SNPs, 26 genes)
+
+box_plot_dat <- qs_read(file = file.path(sumstats_dir, "signif_eqtls_final_tg.qs2")) %>%
+  inner_join(true_coloc_pairs, by = c("grch38", "gene", "gene_name")) %>%
+  mutate(visit = str_replace(visit, "visit_", ""))
+```
+
+## Panel 4A: genotype-stratified residual-expression boxplots
+
+For the four representative loci we draw covariate-adjusted residual expression
+across visits, filled by genotype, faceted by gene (rows) and severity group
+(columns), with a dashed acute / convalescent divider and eigenMT significance
+stars positioned above the whiskers.
+
+```{r}
+# The four exemplar SNP-gene pairs.
+pairs_to_plot <- tribble(
+  ~snp,          ~gene,
+  "19:4717660",  "TMIGD2",
+  "12:112945172", "OAS1",
+  "6:29947491",  "HLA-G",
+  "9:133271182", "ABO"
+)
+
+# Filter data for exact SNP-gene combinations
+combined_dat <- box_plot_dat %>%
+  inner_join(pairs_to_plot, by = c("grch38" = "snp", "gene_name" = "gene")) %>%
+  filter(
+    visit %in% c("1","2","3","4","6","7","8","9","10"),
+    !is.na(genotype)
+  ) %>%
+  mutate(
+    genotype = factor(genotype, levels = c("0","1","2")),
+    visit = factor(visit, levels = c("1","2","3","4","6","7","8","9","10"), ordered = TRUE),
+    group = factor(case_when(
+      group == "control" ~ "TG1-3",
+      group == "case" ~ "TG4-5"
+    ), levels = c("TG1-3", "TG4-5")),
+    gene_label = case_when(
+      gene_name == "TMIGD2" & grch38 == "19:4717660" ~ "TMIGD2 (19:4717660)",
+      gene_name == "OAS1" & grch38 == "12:112945172" ~ "OAS1 (12:112945172)",
+      gene_name == "HLA-G" & grch38 == "6:29947491" ~ "HLA-G (6:29947491)",
+      gene_name == "ABO" & grch38 == "9:133271182" ~ "ABO (9:133271182)"
+    ),
+    gene_label = factor(gene_label, levels = c(
+      "TMIGD2 (19:4717660)",
+      "OAS1 (12:112945172)",
+      "HLA-G (6:29947491)",
+      "ABO (9:133271182)"
+    ))
+  )
+
+# Get significance data for exact SNP-gene pairs
+pval_data_combined <- box_plot_dat %>%
+  inner_join(pairs_to_plot, by = c("grch38" = "snp", "gene_name" = "gene")) %>%
+  filter(visit %in% c("1","2","3","4","6","7","8","9","10")) %>%
+  group_by(gene_name, grch38, visit, group) %>%
+  summarize(eigenMT = min(eigenMT, na.rm = TRUE), .groups = "drop") %>%
+  mutate(
+    group = case_when(
+      group == "control" ~ "TG1-3",
+      group == "case" ~ "TG4-5"
+    ),
+    group = factor(group, levels = c("TG1-3", "TG4-5")),
+    sig_stars = case_when(
+      eigenMT <= 0.001 ~ "***",
+      eigenMT <= 0.01 ~ "**",
+      eigenMT <= 0.05 ~ "*",
+      TRUE ~ ""
+    ),
+    visit = factor(visit, levels = c("1","2","3","4","6","7","8","9","10"), ordered = TRUE),
+    gene_label = case_when(
+      gene_name == "TMIGD2" & grch38 == "19:4717660" ~ "TMIGD2 (19:4717660)",
+      gene_name == "OAS1" & grch38 == "12:112945172" ~ "OAS1 (12:112945172)",
+      gene_name == "HLA-G" & grch38 == "6:29947491" ~ "HLA-G (6:29947491)",
+      gene_name == "ABO" & grch38 == "9:133271182" ~ "ABO (9:133271182)"
+    ),
+    gene_label = factor(gene_label, levels = c(
+      "TMIGD2 (19:4717660)",
+      "OAS1 (12:112945172)",
+      "HLA-G (6:29947491)",
+      "ABO (9:133271182)"
+    ))
+  ) %>%
+  filter(sig_stars != "")
+
+# Get y-position data for significance stars (using combined_dat which already has exact pairs)
+y_stats_combined <- combined_dat %>%
+  group_by(gene_label, visit, group) %>%
+  summarize(
+    q3 = quantile(residuals, 0.75, na.rm = TRUE),
+    iqr = IQR(residuals, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    upper_whisker = q3 + 1.5 * iqr,
+    y_position = upper_whisker + 0.5 * iqr
+  )
+
+# Join significance with positioning data
+pval_data_combined <- pval_data_combined %>%
+  left_join(y_stats_combined, by = c("gene_label", "visit", "group"))
+
+# Create the unified plot
+figure4 <- ggplot(combined_dat, aes(x = visit, y = residuals, fill = genotype)) +
+  geom_boxplot(width = 0.65, outlier.shape = NA) +
+  facet_grid(gene_label ~ group, scales = "free_y") +
+  scale_fill_manual(values = c("0" = "#E69F00", "1" = "#56B4E9", "2" = "#009E73"), name = "Genotype") +
+  geom_vline(xintercept = 5.5, linetype = "dashed", color = "black", alpha = 0.8) +
+  labs(
+    x = "Visit",
+    y = "Residual expression (covariate-adjusted)",
+    title = "Dynamic eQTLs Across COVID-19 Disease Progression"
+  ) +
+  theme_classic() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.title.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    axis.title.y = element_text(size = 14, face = "bold"),
+    strip.background = element_rect(colour = "black", fill = "grey90", linewidth = 0.8),
+    strip.text = element_text(size = 12, face = "bold", margin = margin(4, 4, 4, 4)),
+    legend.title = element_text(size = 13, face = "bold"),
+    legend.text = element_text(size = 11),
+    legend.position = "bottom",
+    panel.spacing = unit(0.5, "lines"),
+    panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5)
+  )
+
+# Add significance stars
+if (nrow(pval_data_combined) > 0) {
+  figure4 <- figure4 +
+    geom_text(data = pval_data_combined,
+              aes(x = visit, y = y_position, label = sig_stars),
+              size = 6.5, fontface = "bold", inherit.aes = FALSE)
+}
+
+# Add caption
+figure4 <- figure4 +
+  labs(caption = "Visits 1-6: Acute phase | Visits 7-10: Convalescent phase\n* FDR < 0.05  ** FDR < 0.01  *** FDR < 0.001 (eigenMT)") +
+  theme(plot.caption = element_text(size = 12, hjust = 0.5, face = "italic"))
+
+# saves as width 1100 height 1200
+figure4
+```
+
+## Panel 4B: loess-smoothed dose-response curves
+
+We fit loess curves of residual expression over visit for the four exemplar
+loci: first by genotype within each severity group (and pooled as TG1-5 All),
+and separately a severity-group comparison pooled across genotypes.
+
+```{r}
+# Define the 4 exemplar gene-SNP pairs.
+exemplar_pairs <- tribble(
+  ~gene_name, ~snp,
+  "TMIGD2",   "19:4717660",
+  "OAS1",     "12:112945172",
+  "HLA-G",    "6:29947491",
+  "ABO",      "9:133271182"
+)
+
+# Step 1: base data with the exemplar genes and correct facet order.
+spaghetti_data_base <- box_plot_dat %>%
+  filter(
+    gene_name %in% exemplar_pairs$gene_name,
+    grch38 %in% exemplar_pairs$snp,
+    visit %in% c("1","2","3","4","6","7","8","9","10"),
+    !is.na(genotype), !is.na(residuals)
+  ) %>%
+  mutate(
+    group_clean = case_when(
+      group == "control" ~ "TG1-3",
+      group == "case" ~ "TG4-5",
+      TRUE ~ as.character(group)
+    ),
+    visit_num = as.numeric(visit),
+    gene_snp_label = paste0(gene_name, " (", grch38, ")"),
+    genotype_label = factor(genotype,
+                           levels = c("0", "1", "2"),
+                           labels = c("GT0", "GT1", "GT2")),
+    gene_snp_label = factor(gene_snp_label, levels = c(
+      "TMIGD2 (19:4717660)",
+      "OAS1 (12:112945172)",
+      "HLA-G (6:29947491)",
+      "ABO (9:133271182)"
+    ))
+  )
+
+# Step 2: the "All" dataset by duplicating and relabeling.
+spaghetti_data_all <- spaghetti_data_base %>%
+  mutate(group_clean = "TG1-5 (All)")
+
+# Step 3: combine both datasets.
+spaghetti_data_with_all <- bind_rows(
+  spaghetti_data_base,   # Original TG1-3 and TG4-5 data
+  spaghetti_data_all     # Same data labeled as "All"
+) %>%
+  mutate(
+    group_clean = factor(group_clean,
+                        levels = c("TG1-5 (All)", "TG1-3", "TG4-5"))
+  )
+
+# PLOT 1: Severity Group Comparison (loess, pooled across genotypes)
+severity_comparison_plot <- spaghetti_data_base %>%
+  ggplot(aes(x = visit_num, y = residuals)) +
+
+  geom_smooth(aes(color = group_clean, fill = group_clean),
+              method = "loess", span = 0.8, se = TRUE,
+              alpha = 0.1, size = 1.5, linetype = "solid") +
+
+  facet_wrap(~ gene_snp_label, scales = "free_y", ncol = 2) +
+
+  scale_color_manual(
+    name = "Severity Group",
+    values = c("TG1-3" = "#4472C4", "TG4-5" = "#7030A0")
+  ) +
+
+  scale_fill_manual(
+    name = "Severity Group",
+    values = c("TG1-3" = "#4472C4", "TG4-5" = "#7030A0"),
+    guide = "none"
+  ) +
+
+  scale_x_continuous(
+    breaks = c(1,2,3,4,6,7,8,9,10),
+    labels = paste0("V", c(1,2,3,4,6,7,8,9,10))
+  ) +
+
+  labs(
+    title = "Severity Group Differences in Expression Patterns",
+    subtitle = "Overall expression trajectories by disease severity (pooled across genotypes)",
+    x = "Visit",
+    y = "Residual Expression",
+    caption = "Blue = TG1-3 (mild) | Purple = TG4-5 (severe)"
+  ) +
+
+  theme_bw() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    strip.text = element_text(size = 11, face = "bold"),
+    axis.title = element_text(size = 11, face = "bold"),
+    axis.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 0.5),
+    legend.position = "bottom",
+    panel.grid.major = element_line(color = "grey93", size = 0.5),
+    panel.grid.minor = element_blank()
+  )
+
+# PLOT 2: Genotype dose-response by severity group (loess)
+spaghetti_genotype_plot <- ggplot(spaghetti_data_with_all,
+                                  aes(x = visit_num, y = residuals)) +
+
+    geom_smooth(aes(color = factor(genotype), fill = factor(genotype)),
+                method = "loess", span = 0.8, se = TRUE,
+                alpha = 0.1, size = 1.2, linetype = "solid") +
+
+    facet_grid(gene_snp_label ~ group_clean, scales = "free_y") +
+
+    geom_text(
+        data = spaghetti_data_with_all %>%
+               filter(group_clean == "TG1-5 (All)") %>%
+               group_by(gene_snp_label) %>%
+               slice_head(n = 1),  # One row per gene
+        aes(x = -Inf, y = Inf, label = "Combined Analysis"),
+        hjust = -0.1, vjust = 1.1,
+        size = 3, color = "grey30", fontface = "italic",
+        inherit.aes = FALSE
+    ) +
+
+    scale_color_manual(
+        name = "Genotype",
+        values = c("0" = "#E69F00", "1" = "#56B4E9", "2" = "#009E73"),
+        labels = c("0" = "GT0", "1" = "GT1", "2" = "GT2")
+    ) +
+
+    scale_fill_manual(
+        name = "Genotype",
+        values = c("0" = "#E69F00", "1" = "#56B4E9", "2" = "#009E73"),
+        guide = "none"
+    ) +
+
+    scale_x_continuous(
+        breaks = c(1,2,3,4,6,7,8,9,10),
+        labels = paste0("V", c(1,2,3,4,6,7,8,9,10))
+    ) +
+
+    labs(
+        title = "Temporal Expression Patterns: Genotype Effects by Severity Group",
+        subtitle = "Genotype dose-response curves showing population vs subgroup effects",
+        x = "Visit", y = "Residual Expression",
+        caption = "Left = TG1-5 (all patients) | Middle = TG1-3 | Right = TG4-5"
+    ) +
+
+    theme_bw() +
+    theme(
+        plot.title = element_text(size = 14, face = "bold"),
+        plot.subtitle = element_text(size = 12),
+        strip.text = element_text(size = 10, face = "bold"),
+        axis.title = element_text(size = 11, face = "bold"),
+        axis.text = element_text(size = 9),
+        axis.text.x = element_text(angle = 0, hjust = 0.5),
+        legend.position = "bottom",
+        panel.grid.major = element_line(color = "grey93", size = 0.5),
+        panel.grid.minor = element_blank()
+    )
+
+# Display both plots
+severity_comparison_plot
+spaghetti_genotype_plot
+
+# saves as width 1100 height 1200
+```
